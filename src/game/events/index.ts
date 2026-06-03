@@ -1,5 +1,4 @@
 import { proclamationSecondRepublic } from './proclamation_of_the_second_republic';
-import { generalElections1931 } from './elections_1931';
 import { elections1931Results, cabinetFormation1931, ministerAllocation, republicanCabinet1931, leftCabinetExcludesCNT } from './elections_1931_results';
 import { elections1933, elections1933Results } from './elections_1933';
 import { constitution1931 } from './constitution_1931';
@@ -17,11 +16,12 @@ import { birthOfFeDeLasJons } from './birth_of_fe_de_las_jons';
 import { foundingOfPOUM } from './founding_of_poum';
 import { formationOfPRRevS } from './formation_of_prrevs';
 import { laSanjurjada } from './la_sanjurjada';
+import { jabaliEvent } from './jabali';
+import { juradosMixtos } from './jurados_mixtos';
 
 export const INITIAL_EVENTS = [
   proclamationSecondRepublic,
   burningConvents,
-  generalElections1931,
   elections1931Results,
   cabinetFormation1931,
   ministerAllocation,
@@ -41,6 +41,8 @@ export const INITIAL_EVENTS = [
   foundingOfPOUM,
   formationOfPRRevS,
   laSanjurjada,
+  jabaliEvent,
+  juradosMixtos,
   elections1933,
   elections1933Results
 ];

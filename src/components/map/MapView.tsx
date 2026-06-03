@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useGame } from '../game/GameContext';
-import { cn } from '../lib/utils';
+import { useGame } from '../../game/GameContext';
+import { cn } from '../../lib/utils';
 
 interface Region {
   id: string;

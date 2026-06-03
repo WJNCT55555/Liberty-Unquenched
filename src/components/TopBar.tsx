@@ -62,11 +62,11 @@ export const TopBar = () => {
       <div className="w-full border-b border-ink/20 bg-ink text-paper p-3 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-md relative z-20">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
-            <h1 className="font-display text-3xl uppercase tracking-widest text-cnt-red leading-none">
-              CNT-FAI
+            <h1 className="font-display text-2xl uppercase tracking-widest text-cnt-red leading-none mb-1">
+              {isZh ? '自由未烬' : 'Liberty Unquenched'}
             </h1>
             <span className="font-typewriter text-[10px] tracking-widest uppercase opacity-70">
-              {isZh ? '全国委员会' : 'Comité Nacional'}
+              {isZh ? 'CNT-FAI 全国委员会' : 'CNT-FAI Comité Nacional'}
             </span>
           </div>
           

@@ -1,4 +1,4 @@
-import { RegionControl } from './types';
+import { RegionControl } from '../../game/types';
 
 export const INITIAL_REGIONS: Record<string, RegionControl> = {
   andalusia: { id: 'andalusia', name: '安达露西亚', nameEn: 'Andalusia', control: 100 },

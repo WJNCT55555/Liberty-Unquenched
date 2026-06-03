@@ -7,6 +7,7 @@ import { jaimeBalius } from './jaime_balius';
 import { josePeirats } from './jose_peirats';
 import { marianoRodriguez } from './mariano_rodriguez';
 import { orobonFernandez } from './orobon_fernandez';
+import { ramonFranco } from './ramon_franco';
 
 export const INITIAL_ADVISORS = [
   angelPestana,
@@ -17,5 +18,6 @@ export const INITIAL_ADVISORS = [
   jaimeBalius,
   josePeirats,
   marianoRodriguez,
-  orobonFernandez
+  orobonFernandez,
+  ramonFranco
 ];

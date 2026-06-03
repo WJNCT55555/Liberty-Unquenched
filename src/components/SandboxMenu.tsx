@@ -31,7 +31,8 @@ export const SandboxMenu = () => {
     Treintistas: { en: 'Treintistas', zh: '三十人集团' },
     Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
     Faistas: { en: 'Faistas', zh: '无政府主义者' },
-    Puristas: { en: 'Puristas', zh: '纯粹派' }
+    Puristas: { en: 'Puristas', zh: '纯粹派' },
+    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
   };
 
   return (

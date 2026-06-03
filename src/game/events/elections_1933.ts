@@ -161,16 +161,19 @@ export const elections1933Results: GameEvent = {
         const newCortes = calculateElectionResults(state);
         
         // Ensure CNT is kicked out of government if they were in it
-        let min = state.ministers;
+        let min = { ...state.ministers };
         if (min.labor === 'CNT') min.labor = 'PSOE';
         if (min.health === 'CNT') min.health = 'PSOE';
         if (min.justice === 'CNT') min.justice = 'PSOE';
         if (min.industry === 'CNT') min.industry = 'PSOE';
         if (min.interior === 'CNT') min.interior = 'IR';
+        if (min.agriculture === 'CNT') min.agriculture = 'PSOE';
 
         return {
           cortes: newCortes,
           isCNTInGovernment: false,
+          agriculture_minister_party: min.agriculture,
+          labor_minister_party: min.labor,
           ministers: min,
           government: {
             ...state.government,
@@ -188,7 +191,6 @@ export const elections1933Results: GameEvent = {
           },
           stats: {
             ...state.stats,
-            tension: Math.min(100, state.stats.tension + 15),
             workerControl: Math.max(0, state.stats.workerControl - 10)
           }
         };

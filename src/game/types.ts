@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas';
+export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'Other';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
@@ -10,6 +10,7 @@ export interface JournalState {
   id: string;
   status: JournalStatus;
   progress: number;
+  failureProgress?: number;
 }
 
 export interface JournalEntryDef {
@@ -141,12 +142,26 @@ export interface GameState {
   choose_enemies_timer: number;
   inter_party_relationships_timer: number;
   military_policy_timer: number;
+  agricultural_policy_timer: number;
+  labor_rights_timer: number;
+  labor_affairs_timer: number;
   
   coupProgress: number;
+
+  economy_growth: number;
+  inflation_rate: number;
+  unemployment_rate: number;
+  budget: number;
+  tax_lower_class: number;
+  tax_middle_class: number;
+  tax_upper_class: number;
+  tax_tariff: number;
+  tax_consumption: number;
 
   workersAllianceProgress: number;
   cntVotingRate: number;
   isPRRevSFormed: boolean;
+  prrevs_formed_months: number;
   prrevsConstructionLevel: number;
   isCNTInGovernment: boolean;
 
@@ -173,6 +188,8 @@ export interface GameState {
   cortes?: Record<Party, number>;
 
   leverage: number;
+  agriculture_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+  labor_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
   ministers: {
     labor: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     health: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
@@ -180,6 +197,7 @@ export interface GameState {
     industry: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     interior: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     war: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
+    agriculture: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   };
 
   factions: Record<Faction, { influence: number; dissent: number }>;
@@ -225,6 +243,9 @@ export interface GameState {
     religion_policy: number;
     abortion_rights: number;
     education_institutions: number;
+    land_reform_law_enabled: boolean;
+    mixed_jury_law_enabled: boolean;
+    mixed_jury_cnt_opposed: boolean;
   };
 
   // International Relations

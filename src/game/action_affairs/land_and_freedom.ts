@@ -20,8 +20,8 @@ export const landAndFreedom: Card = {
       descriptionZh: '“土地与自由”的呼声在乡村回荡。农民和劳工作为受压迫者，正指望工会来领导他们。为了打破大地主的权力并为革命提供补给，我们必须实施我们的土地愿景。但这应该采取什么形式？是彻底的集体化、自愿的合作社，还是立即的武力没收（充公）？',
       options: [
         {
-          text: 'COLECTIVIZACIONES (Collectivizations)',
-          textZh: 'COLECTIVIZACIONES (农业集体化)',
+          text: 'Collectivizations',
+          textZh: '农业集体化',
           subtitle: 'Abolish money and property inside the rural collectives. Work according to ability, receive according to need.',
           subtitleZh: '在农村集体中废除货币和私有财产。各尽所能，按需分配。',
           effect: (s) => {
@@ -46,8 +46,8 @@ export const landAndFreedom: Card = {
           }
         },
         {
-          text: 'Cooperativa (Cooperatives)',
-          textZh: 'Cooperativa (合作社模式)',
+          text: 'Cooperativa',
+          textZh: '合作社模式',
           subtitle: 'Encourage voluntary cooperatives. Maintain some individual plots to appease the moderate peasantry and boost yields.',
           subtitleZh: '鼓励建立自愿的合作社。保留部分个人地块，以安抚温和的农户并提高农业产量。',
           effect: (s) => {
@@ -61,8 +61,8 @@ export const landAndFreedom: Card = {
           }
         },
         {
-          text: 'Incautación (Confiscation)',
-          textZh: 'Incautación (直接充公)',
+          text: 'Incautación ',
+          textZh: '直接夺取',
           subtitle: 'Seize the estates of the Latifundistas and the reactionaries immediately to supply our forces.',
           subtitleZh: '立即没收大地主和反动派的庄园，以充实我们的武力和资源。',
           effect: (s) => {

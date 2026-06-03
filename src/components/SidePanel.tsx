@@ -2,9 +2,10 @@ import React from 'react';
 import { useGame } from '../game/GameContext';
 import { Faction, Party, SocialClass, GameState } from '../game/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { MapView } from './MapView';
+import { MapView } from './map/MapView';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
-import { AnimatePresence } from 'motion/react';
+import { EconomyModal } from './EconomyModal';
+import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
 
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
@@ -35,16 +36,18 @@ const getPartySupportBreakdown = (state: GameState, party: 'CNT_FAI' | Party) =>
 };
 
 export const SidePanel = () => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
   const [isMapOpen, setIsMapOpen] = React.useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = React.useState(false);
+  const [isEconomyModalOpen, setIsEconomyModalOpen] = React.useState(false);
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
     Treintistas: { en: 'Treintistas', zh: '三十人集团' },
     Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
     Faistas: { en: 'Faistas', zh: '无政府主义者' },
-    Puristas: { en: 'Puristas', zh: '纯粹派' }
+    Puristas: { en: 'Puristas', zh: '纯粹派' },
+    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
   };
 
   const partyNames: Record<Party, { en: string, zh: string }> = {
@@ -72,11 +75,20 @@ export const SidePanel = () => {
     { name: isZh ? factionNames.Puristas.zh : factionNames.Puristas.en, value: state.factions.Puristas.influence, color: '#8b0000' },
   ];
 
+  if (state.factions.Jabalistas && state.factions.Jabalistas.influence > 0) {
+    pieData.push({
+      name: isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en,
+      value: state.factions.Jabalistas.influence,
+      color: '#b45309'
+    });
+  }
+
   const overallDissent = 
     (state.factions.Treintistas.influence * state.factions.Treintistas.dissent +
      state.factions.Cenetistas.influence * state.factions.Cenetistas.dissent +
      state.factions.Faistas.influence * state.factions.Faistas.dissent +
-     state.factions.Puristas.influence * state.factions.Puristas.dissent) / 100;
+     state.factions.Puristas.influence * state.factions.Puristas.dissent +
+     ((state.factions.Jabalistas?.influence || 0) * (state.factions.Jabalistas?.dissent || 0))) / 100;
 
   const getDissentLevel = (dissent: number, isZh: boolean) => {
     if (dissent < 20) return isZh ? '极低' : 'Very Low';
@@ -237,7 +249,7 @@ export const SidePanel = () => {
   return (
     <div className="w-72 border-r-2 border-ink bg-paper p-6 flex flex-col gap-2 overflow-y-auto">
       
-      {state.civilWarStatus !== 'not_started' && (
+      {state.civilWarStatus !== 'not_started' ? (
         <AccordionSection title={isZh ? '西班牙内战' : 'Spanish Civil War'} defaultOpen={true}>
           <div className="flex flex-col gap-4">
             <div>
@@ -269,11 +281,32 @@ export const SidePanel = () => {
             </button>
           </div>
         </AccordionSection>
+      ) : (
+        <AccordionSection title={isZh ? '西班牙地图' : 'Spain Map'} defaultOpen={true}>
+          <div className="flex flex-col gap-4">
+            {/* Map View Button */}
+            <button 
+              onClick={() => setIsMapOpen(true)}
+              className="w-full py-2 border border-ink bg-ink/5 hover:bg-ink/10 text-xs font-bold uppercase tracking-wider transition-colors animate-pulse"
+            >
+              {isZh ? '查看地图' : 'View Map'}
+            </button>
+          </div>
+        </AccordionSection>
       )}
 
       <AccordionSection title={isZh ? '共和危机' : 'Republican Crisis'} defaultOpen={true}>
         <div className="flex flex-col gap-4">
-          <StatBar name={isZh ? '紧张局势' : 'Tension'} value={state.stats.tension} color="bg-red-600" tooltip={isZh ? '内战爆发的风险' : 'Risk of Civil War'} />
+          <StatBar 
+            name={isZh ? '紧张局势' : 'Tension'} 
+            value={state.stats.tension} 
+            color="bg-red-600" 
+            tooltip={
+              isZh 
+                ? `内战爆发的风险（当前难度下当紧张局势达到 ${state.difficulty === 'easy' || state.difficulty === 'sandbox' ? 95 : state.difficulty === 'hard' ? 70 : 80} 时将触发内战）` 
+                : `Risk of Civil War (Civil war will trigger when tension reaches ${state.difficulty === 'easy' || state.difficulty === 'sandbox' ? 95 : state.difficulty === 'hard' ? 70 : 80} in this difficulty)`
+            } 
+          />
           <StatBar name={isZh ? '共和国权威' : 'Rep. Authority'} value={state.stats.republicanAuthority} color="bg-blue-600" tooltip={isZh ? '政府的控制力' : 'Government Control'} />
           <StatBar name={isZh ? '军官忠诚' : 'Army Loyalty'} value={state.stats.armyLoyalty} color="bg-green-600" tooltip={isZh ? '军队对共和国的忠诚度' : 'Army Loyalty to Republic'} />
           <StatBar name={isZh ? '革命热情' : 'Revolutionary Fervor'} value={state.stats.revolutionaryFervor} color="bg-cnt-red" tooltip={isZh ? '社会革命的进展' : 'Progress of Social Revolution'} />
@@ -422,33 +455,53 @@ export const SidePanel = () => {
       {state.cortes && (
         <AccordionSection title={isZh ? '内阁部长' : 'Cabinet Ministers'} defaultOpen={true}>
           <div className="flex flex-col gap-2 text-xs font-mono">
-            <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-              <span>{isZh ? '劳工部' : 'Labor'}</span>
-              <span className={state.ministers.labor === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.labor}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-              <span>{isZh ? '卫生部' : 'Health'}</span>
-              <span className={state.ministers.health === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.health}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-              <span>{isZh ? '司法部' : 'Justice'}</span>
-              <span className={state.ministers.justice === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.justice}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-              <span>{isZh ? '工业部' : 'Industry'}</span>
-              <span className={state.ministers.industry === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.industry}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-              <span>{isZh ? '内政部' : 'Interior'}</span>
-              <span className={state.ministers.interior === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.interior}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>{isZh ? '战争部' : 'War'}</span>
-              <span className={state.ministers.war === 'CNT' ? 'text-cnt-red font-bold' : ''}>{state.ministers.war}</span>
-            </div>
+            <MinisterRow deptKey="labor" nameEn="Labor" nameZh="劳工部" party={state.ministers.labor} />
+            <MinisterRow deptKey="health" nameEn="Health" nameZh="卫生部" party={state.ministers.health} />
+            <MinisterRow deptKey="justice" nameEn="Justice" nameZh="司法部" party={state.ministers.justice} />
+            <MinisterRow deptKey="industry" nameEn="Industry" nameZh="工业部" party={state.ministers.industry} />
+            <MinisterRow deptKey="interior" nameEn="Interior" nameZh="内政部" party={state.ministers.interior} />
+            <MinisterRow deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'Right'} />
+            <MinisterRow deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
           </div>
         </AccordionSection>
       )}
+
+      <AccordionSection title={isZh ? '国家经济与税收' : 'National Economy'} defaultOpen={true}>
+        <div className="flex flex-col gap-3 text-xs font-mono">
+          {/* Miniature Top Indicators Grid */}
+          <div className="grid grid-cols-2 gap-2 bg-paper-light border border-ink/10 rounded-sm p-2 shadow-inner">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '经济增长率' : 'Growth Rate'}</span>
+              <span className="text-sm font-bold text-ink">{(state.economy_growth !== undefined ? state.economy_growth : 2.5).toFixed(1)}%</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '通货膨胀率' : 'Inflation Rate'}</span>
+              <span className={`text-sm font-bold ${(state.inflation_rate !== undefined ? state.inflation_rate : 3.5) > 15 ? 'text-cnt-red font-extrabold animate-pulse' : 'text-ink'}`}>
+                {(state.inflation_rate !== undefined ? state.inflation_rate : 3.5).toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '失业率' : 'Unemployment'}</span>
+              <span className="text-sm font-bold text-ink">{(state.unemployment_rate !== undefined ? state.unemployment_rate : 11.2).toFixed(1)}%</span>
+            </div>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '国家财政预算' : 'Gov Budget'}</span>
+              <span className={`text-sm font-bold ${(state.budget !== undefined ? state.budget : 12.0) >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
+                {(state.budget !== undefined ? state.budget : 12.0).toFixed(1)}M ₧
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsEconomyModalOpen(true)}
+            className="w-full py-2.5 px-3 bg-ink text-paper font-typewriter font-bold uppercase tracking-wider text-xs flex items-center justify-between hover:bg-ink-light transition-colors shadow-sm mt-1"
+            id="open-economy-modal-btn"
+          >
+            <span>{isZh ? '调整财政税收法案' : 'Regulate Taxes & Treasury'}</span>
+            <span className="text-sm">➔</span>
+          </button>
+        </div>
+      </AccordionSection>
 
       <AccordionSection title={isZh ? '内部派系' : 'Internal Factions'} defaultOpen={true}>
         <div className="flex flex-col gap-4">
@@ -476,6 +529,14 @@ export const SidePanel = () => {
             dissent={state.factions.Puristas.dissent}
             color="bg-red-900" 
           />
+          {state.factions.Jabalistas && state.factions.Jabalistas.influence > 0 && (
+            <FactionBar 
+              name={isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en} 
+              influence={state.factions.Jabalistas.influence} 
+              dissent={state.factions.Jabalistas.dissent}
+              color="bg-amber-700" 
+            />
+          )}
         </div>
 
         <div className="mt-6 flex items-center justify-between">
@@ -712,6 +773,14 @@ export const SidePanel = () => {
         onClose={() => setIsPolicyModalOpen(false)} 
         state={state} 
         isZh={isZh} 
+      />
+
+      <EconomyModal
+        isOpen={isEconomyModalOpen}
+        onClose={() => setIsEconomyModalOpen(false)}
+        state={state}
+        dispatch={dispatch}
+        isZh={isZh}
       />
     </div>
   );
@@ -986,3 +1055,227 @@ const StatBar: React.FC<{ name: string; value: number; color: string; tooltip?: 
     </div>
   </div>
 );
+
+const PARTY_INFLUENCE_INFO: Record<string, {
+  name: { en: string; zh: string };
+  dissent: { en: string; zh: string };
+  stability: { en: string; zh: string };
+  desc: { en: string; zh: string };
+}> = {
+  CNT: {
+    name: { en: "CNT (Anarcho-Syndicalist)", zh: "CNT (无政府工团主义)" },
+    dissent: { 
+      en: "Minimizes dissent among Cenetistas and Faistas. However, it provokes severe outrage and dissent among Treintistas and moderate constitutionalists who oppose radical overreach.", 
+      zh: "极大降低工团派与无政府主义者群体的分歧度。然而，由于路线激进且反宪政，反过来会在三十人派及温和民主人士中引发强烈不满，显著推高其分歧度。" 
+    },
+    stability: { 
+      en: "Harshly reduces Government Stability. Republican allies (IR, PRR) view CNT control of core ministries with existential alarm, leading to minimal consensus and high risk of gridlock.", 
+      zh: "极大地削弱联合政府的宪政稳定性。温和共和政群对无政府主义者直接掌管国家核心部门感到深度恐慌，导致内阁合作极其脆弱、效率下降且加速右翼政变的密谋。" 
+    },
+    desc: {
+      en: "Represents the revolutionary union. Prioritizes worker counter-power, complete administrative transparency, and direct action over institutional pragmatism.",
+      zh: "代表革命工会的意志。高度重视工人自决权力、徹底精简官僚冗员和直接行动，而非体制层面的务实妥协。"
+    }
+  },
+  PSOE: {
+    name: { en: "PSOE (Socialist)", zh: "PSOE (工人社会党 / 左翼)" },
+    dissent: { 
+      en: "Soothes Treintistas who respect public reformist policies. However, Cenetistas and Faistas remain highly suspicious of socialist state-builder centralized doctrines, mildly raising radical dissent.", 
+      zh: "能够有效安抚主张公开改良主义的「三十人派」。但是，强硬的工团分子与无政府纯粹派对社会党的中央权力与官僚体制教条抱有天然警惕，导致激进分歧缓慢累积。" 
+    },
+    stability: { 
+      en: "Maintains high Government Stability. PSOE represents a massive parliamentary force capable of sustaining state bureaucracies and commanding respect among middle-class progressives.", 
+      zh: "显著巩固联合政府稳定性。作为议会制内的中流砥柱，社工党拥有庞大的选民根基和极强的行政底蕴，擅长稳控公务队伍秩序与稳健的法案立法运行。" 
+    },
+    desc: {
+      en: "A mass social democratic reformist party. Focuses on robust state legislation, social-democratic planning, and gradual constitutional pathways.",
+      zh: "规模庞大的社会民主主义改良政党。聚焦于强化国家干预立法、主张循序渐进的民主宪政转型及民生福利网保障。"
+    }
+  },
+  IR: {
+    name: { en: "IR (Left Republican)", zh: "IR (左翼共和国人 / 自由左翼)" },
+    dissent: { 
+      en: "Satisfies Treintistas expecting constitutional preservation, but severely worsens dissent among radical Faistas and Puristas who view the bourgeois democratic establishment as an obstacle to revolution.", 
+      zh: "深受企盼宪政稳定的三十人派温和派人士支持；然而这对于彻底推倒代议制政体的无政府纯粹派和杜鲁蒂之友而言意味着革命力量被资本主义体制驯服，将引起极高分歧。" 
+    },
+    stability: { 
+      en: "Excellent Government Stability. They embody constitutional legitimacy and the rule of law, reassuring foreign democratic powers, civil administrators, and constitutional military officers.", 
+      zh: "提供最强的政府法统及政治稳定性。作为第二共和国最可靠的宪政火种与温和自由力量代表，可有效抚平军警高层和公共文官的恐慌，极大减少体制内讧。" 
+    },
+    desc: {
+      en: "The standard bourgeois left-liberal party led by Manuel Azaña. Champions constitutional democracy, anticlericalism, and moderate agrarian/educational improvements.",
+      zh: "由阿萨尼亚领导的左翼自由派政党。崇尚民主宪政、世俗世德、捍卫议会至上，提倡温和的农地改良与国民教育改造。"
+    }
+  },
+  PRR: {
+    name: { en: "PRR (Radical Republican / Centrist)", zh: "PRR (激进共和党 / 中右中间派)" },
+    dissent: { 
+      en: "Sparks widespread dissent and deep bitterness across almost all CNT and radical working-class circles, who interpret their presence as capitalistic compromise and opportunistic betrayal.", 
+      zh: "在全劳联内部及广大工人阶级基层诱发大范围分歧与深重敌意。大多数派系会将其视为对劳苦大众利益的资产阶级勾兑与机会主义背叛。" 
+    },
+    stability: { 
+      en: "Moderate Government Stability. Satisfies middle-road conservative elements, but leaves the progressive social project gridlocked, fragile, and highly volatile under sudden crisis.", 
+      zh: "带来中等的政府稳定性。能局部安抚部分中右翼与有产阶级，但会阻碍任何实质的社会改良项目，导致内阁无法达成共识，在强烈阶级摩擦下极易陷于瘫痪。" 
+    },
+    desc: {
+      en: "A centrist anti-clerical party whose opportunist concessions toward conservative and clerical factions alienate the left-wing coalition.",
+      zh: "中右翼机会主义世俗派。在土地与工人工资等核心利益上频繁偏袒雇主，极度缺乏工人阶级支持，饱受争议。"
+    }
+  },
+  Right: {
+    name: { en: "Right (Conservatives / Catholics)", zh: "Right (右翼保守派 / 天主教CEDA)" },
+    dissent: { 
+      en: "Provokes maximal dissent across all anarchist, worker, and progressive factions. Seen as the direct political facade of reactive landowners and military conspirators, triggering mass unrest.", 
+      zh: "在无政府、工会以及所有反法西斯力量中挑起毁灭性的最高级别分歧。右翼掌权被视作大资本家和旧军警反攻倒算的丧钟，势必挑起激进的大众暴动。" 
+    },
+    stability: { 
+      en: "Extremely low Government Stability under progressive lens. Instantly triggers general strikes, intense class warfare in urban regions, and the complete collapse of central coalition coordination.", 
+      zh: "处于完全崩溃的超低稳定性。极易诱发毁坏性的全国总罢工、激烈的城市武装流血斗争以及中央对地方管制权力的彻底空心化。" 
+    },
+    desc: {
+      en: "Represents clerical reaction, landowners, and elements of the old regime. Actively hostile to agrarian reform, union leverage, and secularization.",
+      zh: "代表着宗教守旧势力、大种植园地主与极保守军事势力门阀。积极反对土地分配、削弱工会权威，谋求全面回到旧社会秩序。"
+    }
+  },
+  Other: {
+    name: { en: "Other / Unaligned Technocrats", zh: "其他 / 无党籍技术专家" },
+    dissent: { 
+      en: "Slightly elevated faction dissent due to the lack of clear ideological and class representation.", 
+      zh: "对分歧度产生中性或略微推高的影响。因为各派系均不视其为自己的政治或阶级利益代言人。" 
+    },
+    stability: { 
+      en: "Reduced stability as technocrats or non-aligned ministers lack the massive party machinery and legislative weight needed to enforce policy consensus.", 
+      zh: "对内阁稳定性缺乏显著支撑。无党派人士不具备强力党团的掩护和法案立案背景，极易在强烈的政治狂风中随风倒，行动力差。" 
+    },
+    desc: {
+      en: "Apolitical technocrats, military professionals, or minority alignments covering specific operational duties under temporary cabinets.",
+      zh: "非政治化的事务官署、功利军警官僚或过渡政府性质的代理人，仅做临时业务运作。"
+    }
+  }
+};
+
+const DEPT_INFO_PACK: Record<string, {
+  name: { en: string; zh: string };
+  focus: { en: string; zh: string };
+}> = {
+  labor: {
+    name: { en: "Ministry of Labor", zh: "劳工部" },
+    focus: { 
+      en: "Maintains industrial peace and arbitrates strikes. A CNT Labor Minister can pass humane 40-hour workweeks and safety standards, directly building union legitimacy.",
+      zh: "负责维护工业生产稳定、裁决大范围停工与工人大罢工。CNT部长在位时，可发布历史性的「四十小时工作周」与工业安全章程，极大抬升工会统摄力。"
+    }
+  },
+  health: {
+    name: { en: "Ministry of Health", zh: "卫生与社会工作部" },
+    focus: { 
+      en: "Manages healthcare, welfare centers, and regional clinics. Crucial to support cooperative supply networks and socialized local welfare structures.",
+      zh: "掌管医院体系、育幼院、社会福利站和互助抗疫网。是联合会推广自主化、去集权化的公共卫生活动与社会福利的有力平台。"
+    }
+  },
+  justice: {
+    name: { en: "Ministry of Justice", zh: "司法部" },
+    focus: { 
+      en: "Oversees criminal courts, legal code amendments, and general amnesty. Critical to legally shield collective acquisitions and release political prisoners.",
+      zh: "执掌司法裁决、法案宪法修订以及发布国家特赦令。是解除地主司法纠缠、在法律上确认工人强占土地房屋有效、并赦免革命战士的防护盾。"
+    }
+  },
+  industry: {
+    name: { en: "Ministry of Industry", zh: "工业部" },
+    focus: { 
+      en: "Shapes industrial planning, trade regulations, and factory collectivization codes. Directs raw material allocations for weapons production and civilian infrastructure.",
+      zh: "管辖工矿采掘、原材料配给、关税调节以及集体化工厂监督。决定战时军事供应链和民用产品供需的大后方生产力布局。"
+    }
+  },
+  interior: {
+    name: { en: "Ministry of the Interior", zh: "内政部 (治安与政法)" },
+    focus: { 
+      en: "Commands the municipal security forces, assault guards, and public order. The primary shield to suppress coup attempts, dismantle spy cells, and patrol urban stability.",
+      zh: "调遣国民警警卫队、突击警卫队并操持全境公共秩序。是刺探右翼军官暗谋、实施定点逮捕、压制反革命暴动及战时清特务的关键安全堡垒。"
+    }
+  },
+  agriculture: {
+    name: { en: "Ministry of Agriculture", zh: "农业部" },
+    focus: { 
+      en: "Overlooks land reforms, estate expropriations, and grain distribution. A CNT Agriculture Minister enables collective farming card selections to mobilize rural laborers.",
+      zh: "农牧业事务及土地改革，决定西班牙境内数百万饥饿的无地日雇农对政权的态度。CNT部长在位时可执行大农场征收。"
+    }
+  },
+  war: {
+    name: { en: "Ministry of War", zh: "战争部 (国防)" },
+    focus: { 
+      en: "Governs troop enlistments, heavy weapons factories, and regular army command. Critical for central military policy cards to reform defensive chains against reactionary forces.",
+      zh: "统御国防陆海军编制、战训以及国防预算，是把持合法重武装力量的最终底牌，可极大增强抵抗叛乱叛军的战备。"
+    }
+  }
+};
+
+const MinisterRow: React.FC<{
+  deptKey: string;
+  nameEn: string;
+  nameZh: string;
+  party: string;
+}> = ({ deptKey, nameEn, nameZh, party }) => {
+  const { state } = useGame();
+  const isZh = state.language === 'zh';
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const cleanParty = party || 'Other';
+  const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
+  const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
+
+  const isUpward = ['interior', 'agriculture', 'war'].includes(deptKey);
+
+  return (
+    <div 
+      className="flex justify-between items-center border-b border-ink/20 pb-1 relative group cursor-help select-none"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <span>{isZh ? nameZh : nameEn}</span>
+      <span className={party === 'CNT' ? 'text-cnt-red font-bold' : ''}>{party}</span>
+
+      {/* Tooltip on Hover positioned to stay within the SidePanel bounds and prevent horizontal clipping */}
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div 
+            initial={{ opacity: 0, y: isUpward ? 8 : -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: isUpward ? 8 : -8 }}
+            className={`absolute left-0 w-full bg-[#f4f1ea] border-2 border-ink p-3 text-[11px] font-typewriter z-50 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] leading-relaxed text-ink pointer-events-none ${
+              isUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            }`}
+          >
+            {/* Folder tab design accent */}
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-ink"></div>
+            
+            <div className="pl-2">
+              <div className="font-display text-xs uppercase border-b border-ink/30 pb-0.5 mb-1.5 text-ink font-bold">
+                {isZh ? deptInfo.name.zh : deptInfo.name.en}
+              </div>
+              <p className="italic text-ink-light mb-2 text-[10px] leading-tight">
+                {isZh ? deptInfo.focus.zh : deptInfo.focus.en}
+              </p>
+              
+              <div className="font-bold border-b border-ink/20 pb-0.5 mb-1 text-ink uppercase tracking-wide text-[10px]">
+                {isZh ? '部长政党背景的影响' : 'Minister Party Influence'}
+              </div>
+              <div className="text-cnt-red font-bold mb-1.5">
+                {isZh ? partyInfo.name.zh : partyInfo.name.en}
+              </div>
+              
+              <div className="mb-1.5 text-[10px] leading-tight">
+                <span className="font-bold text-ink">{isZh ? '【派系分歧影响】' : '[Faction Dissent]'}</span>: <br/>
+                <span className="text-ink-light">{isZh ? partyInfo.dissent.zh : partyInfo.dissent.en}</span>
+              </div>
+              
+              <div className="text-[10px] leading-tight">
+                <span className="font-bold text-ink">{isZh ? '【政府稳定影响】' : '[Gov Stability]'}</span>: <br/>
+                <span className="text-ink-light">{isZh ? partyInfo.stability.zh : partyInfo.stability.en}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

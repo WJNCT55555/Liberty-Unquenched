@@ -3,11 +3,16 @@ import { GameState, Card, Advisor, GameEvent } from './types';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
-import { INITIAL_REGIONS } from './regions';
+import { INITIAL_REGIONS } from '../components/map/regions';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
-  acc[entry.id] = { id: entry.id, status: 'active', progress: 0 };
+  acc[entry.id] = { 
+    id: entry.id, 
+    status: 'inactive', 
+    progress: 0,
+    ...(entry.id === 'journal_land_reform' ? { failureProgress: 0 } : {})
+  };
   return acc;
 }, {} as Record<string, any>);
 
@@ -30,10 +35,23 @@ export const INITIAL_STATE: GameState = {
   choose_enemies_timer: 0,
   inter_party_relationships_timer: 0,
   military_policy_timer: 0,
+  agricultural_policy_timer: 0,
+  labor_rights_timer: 0,
+  labor_affairs_timer: 0,
   coupProgress: 0,
+  economy_growth: 2.5,
+  inflation_rate: 3.5,
+  unemployment_rate: 11.2,
+  budget: 12.0,
+  tax_lower_class: 5,
+  tax_middle_class: 15,
+  tax_upper_class: 25,
+  tax_tariff: 10,
+  tax_consumption: 8,
   workersAllianceProgress: 0,
   cntVotingRate: 15,
   isPRRevSFormed: false,
+  prrevs_formed_months: 0,
   prrevsConstructionLevel: 0,
   isCNTInGovernment: false,
   ateneos_established: 0,
@@ -58,6 +76,7 @@ export const INITIAL_STATE: GameState = {
     Cenetistas: { influence: 35, dissent: 10 },
     Faistas: { influence: 45, dissent: 15 },
     Puristas: { influence: 10, dissent: 20 },
+    Jabalistas: { influence: 0, dissent: 0 },
   },
   classes: {
     Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, Other: 5 } },
@@ -116,6 +135,9 @@ export const INITIAL_STATE: GameState = {
     religion_policy: 0,
     abortion_rights: 0,
     education_institutions: 0,
+    land_reform_law_enabled: false,
+    mixed_jury_law_enabled: false,
+    mixed_jury_cnt_opposed: false,
   },
   relations: {
     uk: 50,
@@ -141,6 +163,8 @@ export const INITIAL_STATE: GameState = {
   civilWarStatus: 'not_started',
   warProgress: 50,
   leverage: 0,
+  agriculture_minister_party: 'Right',
+  labor_minister_party: 'Right',
   ministers: {
     labor: 'Right',
     health: 'Right',
@@ -148,6 +172,7 @@ export const INITIAL_STATE: GameState = {
     industry: 'Right',
     interior: 'Right',
     war: 'Right',
+    agriculture: 'Right',
   },
   popularFrontUnity: 50,
   popularFrontFactions: {
@@ -199,7 +224,7 @@ export const INITIAL_STATE: GameState = {
   unlockedAchievementsThisRun: [],
   journal: initialJournalState,
   activeAdvisors: [null, null, null],
-  advisorPool: INITIAL_ADVISORS,
+  advisorPool: INITIAL_ADVISORS.filter(a => a.id !== 'Ramón Franco'),
   currentEvent: null,
   hand: [],
   actionDeck: INITIAL_CARDS.filter(c => c.type === 'Action'),
@@ -227,6 +252,7 @@ type GameAction =
   | { type: 'CHECK_EVENT' }
   | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' }
   | { type: 'LOAD_STATE'; payload: GameState }
+  | { type: 'UPDATE_TAXES'; payload: { tax_lower_class?: number; tax_middle_class?: number; tax_upper_class?: number; tax_tariff?: number; tax_consumption?: number } }
   | { type: 'DEBUG_TRIGGER_ENDING'; payload: string }
   | { type: 'SANDBOX_EDIT'; payload: Partial<GameState> };
 
@@ -244,17 +270,37 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       let startCivilWarStatus: 'not_started' | 'ongoing' = 'not_started';
       let psFounded = false;
       let feFounded = false;
+      
+      let start_growth = 2.5;
+      let start_inflation = 3.5;
+      let start_unemployment = 11.2;
+      let start_budget = 12.0;
 
-      if (action.payload.scenario === '1933') {
+      if (action.payload.scenario === '1931') {
+        startYear = 1931;
+        startMonth = 4;
+        start_growth = 1.2;
+        start_inflation = 1.4;
+        start_unemployment = 14.5;
+        start_budget = 10.0;
+      } else if (action.payload.scenario === '1933') {
         startYear = 1933;
         startMonth = 11;
         feFounded = true;
+        start_growth = 2.1;
+        start_inflation = 2.5;
+        start_unemployment = 18.2;
+        start_budget = 8.0;
       } else if (action.payload.scenario === '1936') {
         startYear = 1936;
         startMonth = 7;
         startCivilWarStatus = 'ongoing';
         psFounded = true;
         feFounded = true;
+        start_growth = 3.5;
+        start_inflation = 5.8;
+        start_unemployment = 12.0;
+        start_budget = 15.0;
       }
 
       let initialResources = 2;
@@ -293,6 +339,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         civilWarStatus: startCivilWarStatus,
         pendingEvents: startingEvents,
         superEvent: action.payload.scenario === '1931' ? 'abdication_alfonso' : (action.payload.scenario === '1936' ? 'spanish_civil_war' : null),
+        economy_growth: start_growth,
+        inflation_rate: start_inflation,
+        unemployment_rate: start_unemployment,
+        budget: start_budget,
       };
       break;
     }
@@ -355,6 +405,16 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
       break;
     }
+    case 'UPDATE_TAXES':
+      newState = {
+        ...state,
+        tax_lower_class: action.payload.tax_lower_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_lower_class)) : state.tax_lower_class,
+        tax_middle_class: action.payload.tax_middle_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_middle_class)) : state.tax_middle_class,
+        tax_upper_class: action.payload.tax_upper_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_upper_class)) : state.tax_upper_class,
+        tax_tariff: action.payload.tax_tariff !== undefined ? Math.max(1, Math.min(100, action.payload.tax_tariff)) : state.tax_tariff,
+        tax_consumption: action.payload.tax_consumption !== undefined ? Math.max(1, Math.min(100, action.payload.tax_consumption)) : state.tax_consumption,
+      };
+      break;
     case 'DEBUG_TRIGGER_ENDING':
       newState = { ...state, isGameOver: true, ending: action.payload };
       break;
@@ -411,7 +471,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         // Check Civil War Trigger
         if (newCivilWarStatus === 'not_started') {
           const isHistoricalTrigger = nextYear === 1936 && nextMonth === 7;
-          const isTensionTrigger = state.stats.tension >= 100;
+          
+          let tensionThreshold = 80; // Default for normal / historical
+          if (state.difficulty === 'easy' || state.difficulty === 'sandbox') {
+            tensionThreshold = 95;
+          } else if (state.difficulty === 'hard') {
+            tensionThreshold = 70;
+          }
+          
+          const isTensionTrigger = state.stats.tension >= tensionThreshold;
           
           if (isHistoricalTrigger || isTensionTrigger) {
             newSuperEvent = 'spanish_civil_war';
@@ -442,7 +510,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             month: nextMonth, 
             year: nextYear, 
             civilWarStatus: newCivilWarStatus,
-            regions: updatedRegions 
+            regions: updatedRegions,
+            prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
           }) : false;
           
           if (e.date) return dateMatch;
@@ -468,7 +537,104 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           armaments: state.armaments + armamentIncome,
           internationalBrigades: newIntBrigades,
           internationalBrigadesFormed: newIntBrigadesFormed,
+          prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0,
         };
+
+        // --- Core Economic Monthly Simulation ---
+        const taxLowerRate = (tempState.tax_lower_class !== undefined ? tempState.tax_lower_class : 5) / 100;
+        const taxMiddleRate = (tempState.tax_middle_class !== undefined ? tempState.tax_middle_class : 15) / 100;
+        const taxUpperRate = (tempState.tax_upper_class !== undefined ? tempState.tax_upper_class : 25) / 100;
+        const taxTarRate = (tempState.tax_tariff !== undefined ? tempState.tax_tariff : 10) / 100;
+        const taxConsRate = (tempState.tax_consumption !== undefined ? tempState.tax_consumption : 8) / 100;
+
+        // 1. Budget Balance (Revenue - Expenditures)
+        // Weighted contributions by class to total income tax revenue
+        const incomeTaxRev = (taxLowerRate * 4.0) + (taxMiddleRate * 3.5) + (taxUpperRate * 4.5);
+        const isCivilWar = tempState.civilWarStatus === 'ongoing';
+        const tariffRev = taxTarRate * (isCivilWar ? 2.0 : 5.0);
+        const consumptionTaxRev = taxConsRate * 8.0;
+        const totalTaxRev = incomeTaxRev + tariffRev + consumptionTaxRev;
+
+        let monthlyExpenditures = 1.0; // Basic civil administration
+        if (tempState.domesticPolicy.max_hours_law > 0) {
+          monthlyExpenditures += 0.3;
+        }
+        if (tempState.domesticPolicy.min_wage > 0) {
+          monthlyExpenditures += 0.2;
+        }
+        if (isCivilWar) {
+          monthlyExpenditures += 3.5; // War efforts drain
+        }
+
+        const budgetDelta = totalTaxRev - monthlyExpenditures;
+        const newBudgetVal = parseFloat(((tempState.budget !== undefined ? tempState.budget : 12.0) + budgetDelta).toFixed(2));
+        tempState.budget = Math.max(-100, Math.min(100, newBudgetVal));
+
+        // 2. Economic Growth Rate (clamped to 1% to 100%)
+        const econFactor = ((tempState.stats.economy !== undefined ? tempState.stats.economy : 50) - 50) / 15;
+        let nextGrowth = 3.5 - (taxLowerRate * 1.5) - (taxMiddleRate * 2.0) - (taxUpperRate * 2.5) - (taxTarRate * 3.0) - (taxConsRate * 3.5) + econFactor;
+        if (isCivilWar) {
+          nextGrowth -= 6.0;
+        }
+        tempState.economy_growth = parseFloat(Math.max(1, Math.min(100, nextGrowth)).toFixed(2));
+
+        // 3. Inflation Rate (clamped to 1% to 100%)
+        let deficitInflation = 0;
+        if (budgetDelta < 0) {
+          deficitInflation = Math.abs(budgetDelta) * 0.5;
+        }
+        let nextInflation = 2.5 - (taxLowerRate * 1.0) - (taxMiddleRate * 1.5) - (taxUpperRate * 2.0) + (taxTarRate * 8.0) + (taxConsRate * 6.0) + deficitInflation;
+        if (isCivilWar) {
+          nextInflation += 8.0;
+        }
+        tempState.inflation_rate = parseFloat(Math.max(1, Math.min(100, nextInflation)).toFixed(2));
+
+        // 4. Unemployment Rate (clamped to 1% to 100%)
+        let laborReformReduction = 0;
+        if (tempState.domesticPolicy.max_hours_law > 0) {
+          laborReformReduction += 1.5;
+        }
+        let nextUnemployment = 12.0 - ((tempState.economy_growth - 2.5) * 0.4) + (taxLowerRate * 1.0) + (taxMiddleRate * 1.5) + (taxUpperRate * 3.0) - (taxTarRate * 1.5) - laborReformReduction;
+        if (isCivilWar) {
+          nextUnemployment += 4.0;
+        }
+        tempState.unemployment_rate = parseFloat(Math.max(1, Math.min(100, nextUnemployment)).toFixed(2));
+
+        // Gently steer stats.economy (represents general economic health/stability index, 0-100)
+        let econHealthDelta = (tempState.economy_growth - 2.5) * 1.5;
+        if (tempState.budget < -8) econHealthDelta -= 1.5;
+        if (tempState.inflation_rate > 15) econHealthDelta -= 2.0;
+        const newEconHealth = Math.max(0, Math.min(100, (tempState.stats.economy || 50) + econHealthDelta));
+        tempState.stats = {
+          ...tempState.stats,
+          economy: parseFloat(newEconHealth.toFixed(1))
+        };
+
+        // Monthly action of Land Reform Act
+        if (tempState.domesticPolicy.land_reform_law_enabled) {
+          tempState.domesticPolicy = {
+            ...tempState.domesticPolicy,
+            land_reform_progress: Math.min(100, tempState.domesticPolicy.land_reform_progress + 1)
+          };
+        }
+
+        // Monthly action of Mixed Jury Law
+        if (tempState.domesticPolicy.mixed_jury_law_enabled) {
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: Math.max(0, tempState.stats.revolutionaryFervor - 1)
+          };
+
+          if (tempState.domesticPolicy.mixed_jury_cnt_opposed) {
+            const newClasses = JSON.parse(JSON.stringify(tempState.classes));
+            if (newClasses.Obreros && newClasses.Obreros.support) {
+              const val = 5 / 12;
+              newClasses.Obreros.support.PSOE = Math.min(100, (newClasses.Obreros.support.PSOE || 0) + val);
+              newClasses.Obreros.support.CNT_FAI = Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) - val);
+            }
+            tempState.classes = newClasses;
+          }
+        }
 
         let newJournal = JSON.parse(JSON.stringify(state.journal || {}));
 
@@ -480,6 +646,16 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
              tempState = { ...tempState, ...effectResult };
           }
         });
+
+        // Check failure progress for land reform: if no progress is made from previous month, increase failureProgress by 1% (1)
+        const landReformEntry = newJournal['journal_land_reform'];
+        if (landReformEntry && state.journal['journal_land_reform']?.status === 'active') {
+          const prevProgress = state.domesticPolicy.land_reform_progress;
+          const nextProgress = tempState.domesticPolicy.land_reform_progress;
+          if (nextProgress <= prevProgress) {
+            landReformEntry.failureProgress = Math.min(100, (landReformEntry.failureProgress || 0) + 1);
+          }
+        }
 
         Object.keys(newJournal).forEach(journalId => {
           const entryState = newJournal[journalId];
@@ -511,6 +687,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           choose_enemies_timer: Math.max(0, state.choose_enemies_timer - 1),
           inter_party_relationships_timer: Math.max(0, state.inter_party_relationships_timer - 1),
           military_policy_timer: Math.max(0, state.military_policy_timer - 1),
+          agricultural_policy_timer: Math.max(0, (state.agricultural_policy_timer || 0) - 1),
+          labor_rights_timer: Math.max(0, (state.labor_rights_timer || 0) - 1),
+          labor_affairs_timer: Math.max(0, (state.labor_affairs_timer || 0) - 1),
           advisorActionTimer: Math.max(0, state.advisorActionTimer - 1),
           aragonTimer: Math.max(0, state.aragonTimer - 1),
           militiaReorgTimer: Math.max(0, state.militiaReorgTimer - 1),

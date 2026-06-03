@@ -62,6 +62,60 @@ export const strike: Card = {
               factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
             };
           }
+        },
+        {
+          text: 'Strike in solidarity with imprisoned workers (+8 Revolutionary Fervor, -5 CNT Factions Dissent)',
+          textZh: '声援狱中工人罢工 (+8 革命热情, -5 CNT派系异议度)',
+          subtitle: 'Demand the immediate release of political and social prisoners, cementing union solidarity.',
+          subtitleZh: '要求立即释放政治与社会犯人，巩固各派系在重压之下的工会团结。',
+          effect: (s) => {
+            const overallDissent = 
+              (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
+               s.factions.Cenetistas.influence * s.factions.Cenetistas.dissent +
+               s.factions.Faistas.influence * s.factions.Faistas.dissent +
+               s.factions.Puristas.influence * s.factions.Puristas.dissent) / 100;
+            const multiplier = 1 - (overallDissent / 100);
+
+            // Decrease dissent of CNT factions
+            const updatedFactions = JSON.parse(JSON.stringify(s.factions));
+            for (const f in updatedFactions) {
+              if (updatedFactions[f] && typeof updatedFactions[f].dissent === 'number') {
+                updatedFactions[f].dissent = Math.max(0, updatedFactions[f].dissent - 5);
+              }
+            }
+
+            return {
+              factions: updatedFactions,
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 8 * multiplier),
+              }
+            };
+          }
+        },
+        {
+          text: 'Strike to advance workers\' rights (+10 Worker Control, +5 Working-Class Support, -3 Economy)',
+          textZh: '推动工人权利的罢工 (+10 工人控制度, +5 工人与农民对CNT-FAI支持度, -3 经济)',
+          subtitle: 'Focus the strike on concrete economic and workplace demands: higher wages, safety standards, and shorter hours.',
+          subtitleZh: '将罢工重点放在具体的经济和工作场所诉求上：更高的薪资、安全标准和缩短工时。',
+          effect: (s) => {
+            const newClasses = JSON.parse(JSON.stringify(s.classes));
+            if (newClasses.Obreros && newClasses.Obreros.support) {
+              newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 5);
+            }
+            if (newClasses.Braceros && newClasses.Braceros.support) {
+              newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 5);
+            }
+
+            return {
+              classes: newClasses,
+              stats: {
+                ...s.stats,
+                workerControl: Math.min(100, s.stats.workerControl + 10),
+                economy: Math.max(0, s.stats.economy - 3),
+              }
+            };
+          }
         }
       ]
     }

@@ -1,5 +1,6 @@
 import { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { elections1931Results } from './elections_1931_results';
 
 export const cnt_third_congress_6: GameEvent = {
   id: 'cnt_third_congress_6',
@@ -19,7 +20,9 @@ As the radio waves of the closing rally dissipate into the night sky of the Iber
     {
       text: 'The congress has closed, but the struggle continues.',
       textZh: '大会闭幕了，斗争仍在继续',
-      effect: (state) => ({})
+      effect: (state) => ({
+        pendingEvents: [{ ...elections1931Results }, ...state.pendingEvents]
+      })
     }
   ]
 };
@@ -38,7 +41,7 @@ export const cnt_third_congress_5: GameEvent = {
       subtitleZh: '“面对独裁或虚伪的民主，我们唯一的回答是革命总罢工！”',
       effect: (state) => {
         let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 5);
+        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 10);
         newFactions = adjustFactionInfluence(newFactions, 'Puristas', 10);
         newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
         newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 15);
@@ -48,7 +51,8 @@ export const cnt_third_congress_5: GameEvent = {
           cntVotingRate: Math.max(0, state.cntVotingRate - 8),
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10),
+            republican_socialist_coalition_power: Math.max(0, state.stats.republican_socialist_coalition_power - 15)
           },
           factions: newFactions,
           currentEvent: cnt_third_congress_6
@@ -70,6 +74,10 @@ export const cnt_third_congress_5: GameEvent = {
         return {
           cnt_participate_election: true,
           cntVotingRate: Math.min(100, state.cntVotingRate + 8),
+          stats: {
+            ...state.stats,
+            republican_socialist_coalition_power: Math.min(100, state.stats.republican_socialist_coalition_power + 15)
+          },
           factions: newFactions,
           currentEvent: cnt_third_congress_6
         };
@@ -92,7 +100,8 @@ export const cnt_third_congress_5: GameEvent = {
           cntVotingRate: Math.min(100, state.cntVotingRate + 50),
           stats: {
             ...state.stats,
-            bureaucratization: Math.min(100, state.stats.bureaucratization + 40)
+            bureaucratization: Math.min(100, state.stats.bureaucratization + 40),
+            republican_socialist_coalition_power: Math.min(100, state.stats.republican_socialist_coalition_power + 35)
           },
           factions: newFactions,
           currentEvent: cnt_third_congress_6

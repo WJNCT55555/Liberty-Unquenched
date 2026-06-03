@@ -8,12 +8,12 @@ export const regionalIssuesJournal: JournalEntryDef = {
   descriptionZh: '加泰罗尼亚、巴斯克地区和加利西亚要求获得更大的自治权。如果不满足这些要求，将会疏远至关重要的盟友并威胁共和国的统一，而让步太多可能会激怒中央集权势力。',
   successCondition: 'Regional Autonomy Progress reaches 100%',
   successConditionZh: '地区自治进度达到 100%',
-  successEffectDesc: 'Republican Authority +10, Popular Front Unity +10',
-  successEffectDescZh: '共和国权威 +10，人民阵线团结度 +10',
+  successEffectDesc: 'Popular Front Unity +10',
+  successEffectDescZh: '人民阵线团结度 +10',
   failureCondition: 'Tension Reaches 90',
   failureConditionZh: '紧张局势达到 90',
-  failureEffectDesc: 'Republican Authority -20, Tension +10',
-  failureEffectDescZh: '共和国权威 -20，紧张局势 +10',
+  failureEffectDesc: 'None',
+  failureEffectDescZh: '无',
   hasProgress: true,
   progressMax: 100,
   getProgress: (state) => state.domesticPolicy.regional_autonomy_progress,
@@ -21,7 +21,10 @@ export const regionalIssuesJournal: JournalEntryDef = {
   checkStatus: (state, entryState) => {
     if (entryState.status === 'completed' || entryState.status === 'failed') return null;
     
-    // Complete if autonomy is high enough
+    // Must be after 1931 election government formation
+    const isGovFormed = state.scenario !== '1931' || state.government.type !== 'Provisional Government';
+    if (!isGovFormed) return 'inactive';
+
     if (state.domesticPolicy.regional_autonomy_progress >= 100) {
       return 'completed';
     }
@@ -35,18 +38,11 @@ export const regionalIssuesJournal: JournalEntryDef = {
   onComplete: (state) => ({
     stats: {
       ...state.stats,
-      republicanAuthority: Math.min(100, state.stats.republicanAuthority + 10),
       popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 10)
     }
   }),
   
-  onFail: (state) => ({
-    stats: {
-      ...state.stats,
-      republicanAuthority: Math.max(0, state.stats.republicanAuthority - 20),
-      tension: Math.min(100, state.stats.tension + 10)
-    }
-  }),
+  onFail: (state) => ({}),
 
   activeEffect: {
     description: 'Republican authority slowly erodes without a clear regional policy.',

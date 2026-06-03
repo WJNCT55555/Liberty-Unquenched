@@ -5,6 +5,8 @@ import { cn } from '../lib/utils';
 import { UserPlus, X, Users, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Note: Cabinet Ministers tooltips on hover are implemented in SidePanel.tsx (where the Cabinet UI is rendered)
+
 export const AdvisorPanel = () => {
   const { state, dispatch } = useGame();
   const [isPoolOpen, setIsPoolOpen] = useState(false);

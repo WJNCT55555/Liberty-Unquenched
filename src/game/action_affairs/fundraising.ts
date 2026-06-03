@@ -42,10 +42,12 @@ export const fundraising: Card = {
               dues: newDues,
               resources: s.resources + newDues,
               factions: {
+                ...s.factions,
                 Treintistas: { ...s.factions.Treintistas, dissent: Math.max(0, s.factions.Treintistas.dissent - 8) },
                 Cenetistas: { ...s.factions.Cenetistas, dissent: Math.max(0, s.factions.Cenetistas.dissent - 8) },
                 Faistas: { ...s.factions.Faistas, dissent: Math.max(0, s.factions.Faistas.dissent - 8) },
-                Puristas: { ...s.factions.Puristas, dissent: Math.max(0, s.factions.Puristas.dissent - 8) }
+                Puristas: { ...s.factions.Puristas, dissent: Math.max(0, s.factions.Puristas.dissent - 8) },
+                ...(s.factions.Jabalistas ? { Jabalistas: { ...s.factions.Jabalistas, dissent: Math.max(0, s.factions.Jabalistas.dissent - 8) } } : {})
               }
             };
           }

@@ -60,11 +60,11 @@ export const StartScreen = () => {
           >
             {/* Title */}
             <div className="text-center mb-8">
-              <h1 className="font-display text-7xl md:text-9xl text-paper uppercase tracking-tighter leading-none" style={{ textShadow: '4px 4px 0px #c1272d' }}>
-                CNT-FAI
+              <h1 className="font-display text-5xl md:text-8xl text-paper uppercase tracking-tighter leading-none mb-4" style={{ textShadow: '4px 4px 0px #c1272d' }}>
+                {isZh ? '自由未烬' : 'Liberty Unquenched'}
               </h1>
               <p className="font-typewriter text-paper/80 text-lg md:text-xl tracking-widest mt-4">
-                {isZh ? '西班牙革命 · 1936' : 'THE SPANISH REVOLUTION · 1936'}
+                {isZh ? '西班牙大革命 · 1931-1939' : 'THE SPANISH REVOLUTION · 1931-1939'}
               </p>
             </div>
 

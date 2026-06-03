@@ -29,18 +29,7 @@ export const POLICIES_DEF: Record<'economy' | 'society', PolicyDef[]> = {
         { level: 4, name: { en: 'Total', zh: '全面国有化' }, desc: { en: 'A fully planned and collectivised economy.', zh: '完全的计划经济与集体化经济。' } }
       ]
     },
-    {
-      id: 'land_reform_progress',
-      name: { en: 'Land Reform', zh: '土地改革' },
-      icon: <Plant className="w-5 h-5" />,
-      levels: [
-        { level: 0, name: { en: 'Private Consolidation', zh: '私人土地兼并' }, desc: { en: 'Land remains in the hands of the Latifundistas.', zh: '土地仍然掌握在大地主手中。' } },
-        { level: 1, name: { en: 'Minor Reform', zh: '轻微土地改革' }, desc: { en: 'Some unused lands are distributed to peasants.', zh: '一些未使用的土地被分配给农民。' } },
-        { level: 2, name: { en: 'Moderate Reform', zh: '中等土地改革' }, desc: { en: 'Significant expropriation with compensation.', zh: '伴随补偿的重大土地征用。' } },
-        { level: 3, name: { en: 'Major', zh: '重大土地改革' }, desc: { en: 'Large estates broken up and given to collectives without pay.', zh: '大型庄园被拆分并无偿交给集体。' } },
-        { level: 4, name: { en: 'Total', zh: '全面土地改革' }, desc: { en: 'Complete collectivization of agricultural land.', zh: '农业用地的全面集体化。' } }
-      ]
-    },
+
     {
       id: 'max_hours_law',
       name: { en: 'Max Hours', zh: '最高工时' },
@@ -223,8 +212,8 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 </div>
               </div>
 
-              {/* Overview Mode: Right Column - Society */}
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
+              {/* Overview Mode: Middle Column - Society */}
+              <div className="flex-1 border-r-0 md:border-r-2 border-ink border-opacity-30 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
                 <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
                   <Book className="w-6 h-6 text-ink-light" />
                   {isZh ? '社会法案 (Society)' : 'Society'}
@@ -263,6 +252,98 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Overview Mode: Right Column - Bills */}
+              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-paper">
+                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
+                  <BookOpen className="w-6 h-6 text-ink-light" />
+                  {isZh ? '法案与法令 (Bills)' : 'Bills & Acts'}
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className={`p-4 border-2 flex flex-col gap-2 relative transition-all ${
+                    state.domesticPolicy.land_reform_law_enabled 
+                      ? 'border-green-600 bg-green-50/30' 
+                      : 'border-ink/20 bg-ink/5 opacity-60'
+                  }`}>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold font-typewriter text-lg text-ink">
+                        {isZh ? '土地改革法' : 'Land Reform Act'}
+                      </span>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border font-typewriter tracking-wider ${
+                        state.domesticPolicy.land_reform_law_enabled 
+                          ? 'bg-green-100 border-green-600 text-green-700' 
+                          : 'bg-paper border-ink/20 text-ink/40'
+                      }`}>
+                        {state.domesticPolicy.land_reform_law_enabled 
+                          ? (isZh ? '已启用' : 'Enacted') 
+                          : (isZh ? '未启用' : 'Inactive')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink/70 leading-relaxed font-sans mt-1">
+                      {isZh 
+                        ? '旨在促进农村闲置土地及大地主未开发土地的征收和分配。该法案一旦正式签署启用，每个月将自动为土地改革进度+1%，提供稳定的土地社会化进程。' 
+                        : 'Organizes expropriation and fair allocation of unused agricultural estates. Once enacted, it automatically adds 1 point (1%) to Land Reform progress each month.'}
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
+                      {state.domesticPolicy.land_reform_law_enabled ? (
+                        <span className="text-green-700 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse inline-block" />
+                          {isZh ? '持续运行中：每月进度 +1%' : 'Active: Monthly Progress +1%'}
+                        </span>
+                      ) : (
+                        <span className="text-ink/50">
+                          {isZh ? '待激活（通过特定历史事件启动）' : 'Awaiting legislative launch'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`p-4 border-2 flex flex-col gap-2 relative transition-all ${
+                    state.domesticPolicy.mixed_jury_law_enabled 
+                      ? 'border-green-600 bg-green-50/30' 
+                      : 'border-ink/20 bg-ink/5 opacity-60'
+                  }`}>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold font-typewriter text-lg text-ink">
+                        {isZh ? '混合陪审团法' : 'Mixed Jury Law'}
+                      </span>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border font-typewriter tracking-wider ${
+                        state.domesticPolicy.mixed_jury_law_enabled 
+                          ? 'bg-green-100 border-green-600 text-green-700' 
+                          : 'bg-paper border-ink/20 text-ink/40'
+                      }`}>
+                        {state.domesticPolicy.mixed_jury_law_enabled 
+                          ? (isZh ? '已启用' : 'Enacted') 
+                          : (isZh ? '未启用' : 'Inactive')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink/70 leading-relaxed font-sans mt-1">
+                      {isZh 
+                        ? '旨在促进雇主与工人之间纠纷调解，规制待遇并保障其执行。法案启用后使革命狂热每月 -1。若遭到 CNT 抵制，则将长线削弱 CNT 在产业工人中的支持，转移至社会党 (PSOE)。' 
+                        : 'Resolves disputes between workers and employers, and regulates wages, hours, and dismissals. Active effect decreases revolutionary fervor by 1 per month, and gradually erodes CNT support among workers if opposed by the union.'}
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
+                      {state.domesticPolicy.mixed_jury_law_enabled ? (
+                        <span className="text-green-700 flex flex-col gap-1">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-600 animate-pulse inline-block" />
+                            {isZh ? '持续运行中：每月革命狂热 -1' : 'Active: Monthly Revolutionary Fervor -1'}
+                          </span>
+                          {state.domesticPolicy.mixed_jury_cnt_opposed && (
+                            <span className="text-amber-700 flex items-center gap-1 font-semibold mt-1 normal-case">
+                              ⚠️ {isZh ? '遭到 CNT 抵制：每月转移 5/12 产业工人支持度至 PSOE' : 'CNT Opposed: Monthly moves 5/12 worker support to PSOE'}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-ink/50">
+                          {isZh ? '待激活（通过特定历史事件启动）' : 'Awaiting legislative launch'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </>

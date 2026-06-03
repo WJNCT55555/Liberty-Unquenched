@@ -238,12 +238,25 @@ export const ministerAllocation: GameEvent = {
   },
   options: [
     {
+      text: 'Demand the Ministry of Agriculture (Cost: 5 Leverage)',
+      textZh: '要求农业部（花费：5 筹码）',
+      condition: (state) => state.leverage >= 5 && state.ministers.agriculture !== 'CNT',
+      effect: (state) => ({
+        leverage: state.leverage - 5,
+        agriculture_minister_party: 'CNT',
+        ministers: { ...state.ministers, agriculture: 'CNT' },
+        stats: { ...state.stats, workerControl: state.stats.workerControl + 5 },
+        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
+      })
+    },
+    {
       text: 'Demand the Ministry of Labor (Cost: 5 Leverage)',
       textZh: '要求劳工部（花费：5 筹码）',
       condition: (state) => state.leverage >= 5 && state.ministers.labor !== 'CNT',
       effect: (state) => ({
         leverage: state.leverage - 5,
-        ministers: { ...state.ministers, labor: 'CNT' },
+        labor_minister_party: 'CNT' as const,
+        ministers: { ...state.ministers, labor: 'CNT' as const },
         stats: { ...state.stats, workerControl: state.stats.workerControl + 15 },
         pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
       })

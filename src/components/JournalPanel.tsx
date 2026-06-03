@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../game/GameContext';
 import { getJournalEntryDef } from '../game/journal';
-import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock } from 'lucide-react';
 
 export const JournalPanel: React.FC = () => {
   const { state } = useGame();
@@ -91,7 +91,9 @@ export const JournalPanel: React.FC = () => {
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, id)}
-        className={`relative mb-6 border-2 border-ink bg-paper shadow-[4px_4px_0px_#141414] group transition-all ${draggedId === id ? 'opacity-50 blur-sm scale-95' : 'hover:-translate-y-1 hover:shadow-[6px_6px_0px_#141414] cursor-pointer'}`}
+        className={`relative mb-6 border-2 border-ink bg-paper shadow-[4px_4px_0px_#141414] group transition-all ${
+          draggedId === id ? 'opacity-50 blur-sm scale-95' : 'hover:-translate-y-1 hover:shadow-[6px_6px_0px_#141414] cursor-pointer'
+        } ${entryState.status === 'inactive' ? 'grayscale-[0.5]' : ''}`}
         onClick={(e) => toggleExpand(id, e)}
       >
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-paper-dark border-r-2 border-ink flex flex-col items-center py-3 cursor-grab active:cursor-grabbing text-ink/40 hover:text-ink/80 transition-colors">
@@ -104,7 +106,11 @@ export const JournalPanel: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 mb-2 pb-2 border-b-2 border-ink/20">
-            <Bookmark size={14} className={entryState.status === 'active' ? 'text-ink fill-ink' : 'text-ink/30'} />
+            {entryState.status === 'inactive' ? (
+              <Lock size={14} className="text-ink/30" />
+            ) : (
+              <Bookmark size={14} className={entryState.status === 'active' ? 'text-ink fill-ink' : 'text-ink/30'} />
+            )}
             <span className="font-typewriter text-[10px] font-bold uppercase tracking-widest opacity-80 flex-1">
               {isZh ? `档案编号 :: ${fileCode}` : `DOSSIER :: ${fileCode}`}
             </span>
@@ -114,10 +120,21 @@ export const JournalPanel: React.FC = () => {
           <h4 className="font-bold text-lg leading-tight uppercase pr-6 mb-2">{title}</h4>
           
           {entryState.status !== 'active' && (
-            <div className={`mt-2 mb-2 w-max px-2 py-0.5 text-[10px] font-bold uppercase font-typewriter border-2 ${
-              entryState.status === 'completed' ? 'text-green-700 border-green-700 bg-green-50' : 'text-cnt-red border-cnt-red bg-red-50'
+            <div className={`mt-2 mb-2 w-max px-2 py-0.5 text-[10px] font-bold uppercase font-typewriter border-2 flex items-center gap-1.5 ${
+              entryState.status === 'completed' 
+                ? 'text-green-700 border-green-700 bg-green-50' 
+                : entryState.status === 'inactive'
+                ? 'text-ink/40 border-ink/20 bg-paper-dark'
+                : 'text-cnt-red border-cnt-red bg-red-50'
             }`}>
-              {isZh ? (entryState.status === 'completed' ? '已解决' : '已失败') : entryState.status}
+              {entryState.status === 'completed' ? <CheckCircle2 size={12} /> : 
+               entryState.status === 'inactive' ? <Lock size={12} /> : <XCircle size={12} />}
+              <span>
+                {isZh ? (
+                  entryState.status === 'completed' ? '已完成' : 
+                  entryState.status === 'inactive' ? '未触发' : '已失败'
+                ) : entryState.status}
+              </span>
             </div>
           )}
 
@@ -166,6 +183,27 @@ export const JournalPanel: React.FC = () => {
                       className="bg-ink h-full transition-all duration-1000 ease-out" 
                       style={{ 
                         width: `${Math.min(100, Math.max(0, ((def.getProgress ? def.getProgress(state, entryState) : entryState.progress) / (def.progressMax || 100)) * 100))}%`,
+                        backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px)'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {entryState.failureProgress !== undefined && entryState.status === 'active' && (
+                <div className="mb-2 bg-paper-dark p-2 border-2 border-cnt-red/30">
+                  <div className="flex justify-between text-[10px] font-typewriter uppercase tracking-widest mb-1.5 font-bold text-cnt-red">
+                    <span>{isZh ? '失败进度' : 'FAILURE PROGRESS'}</span>
+                    <span>{Math.round(entryState.failureProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-cnt-red/10 h-3 border border-cnt-red relative overflow-hidden p-[1px]">
+                    <div className="absolute inset-0 flex justify-between px-1 opacity-20 pointer-events-none">
+                      {[...Array(10)].map((_, i) => <div key={i} className="w-px h-full bg-cnt-red" />)}
+                    </div>
+                    <div 
+                      className="bg-cnt-red h-full transition-all duration-1000 ease-out" 
+                      style={{ 
+                        width: `${Math.min(100, Math.max(0, entryState.failureProgress))}%`,
                         backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px)'
                       }}
                     />
