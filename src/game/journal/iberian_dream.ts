@@ -8,8 +8,8 @@ export const iberianDreamJournal: JournalEntryDef = {
   descriptionZh: '伊比利亚半岛的统一长久以来是许多进步人士和革命者的梦想。为了实现伊比利亚联邦，我们必须将影响力扩展到葡萄牙，并支持那里的革命力量对抗“新国家”政权。',
   successCondition: 'Covert Ops in Portugal reaches 100',
   successConditionZh: '在葡萄牙的隐蔽行动进度达到 100',
-  successEffectDesc: 'Economy +15, Republican Authority +15',
-  successEffectDescZh: '经济 +15，共和国权威 +15',
+  successEffectDesc: 'Republican Authority +15',
+  successEffectDescZh: '共和国权威 +15',
   failureCondition: 'Full civil war breaks out',
   failureConditionZh: '全面内战爆发',
   failureEffectDesc: 'The dream is shattered, Popular Front Unity -10',
@@ -36,7 +36,6 @@ export const iberianDreamJournal: JournalEntryDef = {
   onComplete: (state) => ({
     stats: {
       ...state.stats,
-      economy: Math.min(100, state.stats.economy + 15),
       republicanAuthority: Math.min(100, state.stats.republicanAuthority + 15)
     }
   }),

@@ -23,7 +23,6 @@ export const joanPeiro: Advisor = {
         stats: {
           ...state.stats,
           workerControl: state.stats.workerControl + 15,
-          economy: state.stats.economy + 5,
         }
       }),
       description: 'We have reorganized factories under direct worker management. Production is stabilizing, and the workers feel empowered.',
@@ -41,10 +40,6 @@ export const joanPeiro: Advisor = {
       effect: (state) => ({
         advisorActionTimer: 6,
         resources: state.resources + 5,
-        stats: {
-          ...state.stats,
-          economy: Math.min(100, state.stats.economy + 5),
-        }
       }),
       description: 'Voluntary cooperatives are more efficient and less alienating to the middle classes than forced expropriation.',
       descriptionZh: '自愿的合作社比强制征用更有效率，也更不容易疏远中产阶级。',

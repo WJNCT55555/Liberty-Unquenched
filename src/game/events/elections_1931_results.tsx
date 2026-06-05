@@ -1,8 +1,10 @@
-import React from 'react';
-import { GameEvent, Party } from '../types';
+import React, { useState } from 'react';
+import { GameEvent, Party, GameState } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { calculateElectionResults } from '../utils/election';
 import { PARTY_COLORS } from '../constants';
+import { useGame } from '../GameContext';
+import { cn } from '../../lib/utils';
 
 export const elections1931Results: GameEvent = {
   id: '1931_elections_results',
@@ -224,6 +226,219 @@ export const cabinetFormation1931: GameEvent = {
   ]
 };
 
+const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) => {
+  const { dispatch } = useGame();
+  const isZh = state.language === 'zh';
+  const initialLeverage = state.leverage ?? 15;
+
+  const ministriesList = [
+    {
+      id: 'labor',
+      name: 'Ministry of Labor',
+      nameZh: '劳工部',
+      cost: 5,
+      description: 'Significantly increases Worker Control (+15)',
+      descriptionZh: '显著提高工人控制量 (+15)',
+    },
+    {
+      id: 'agriculture',
+      name: 'Ministry of Agriculture',
+      nameZh: '农业部',
+      cost: 5,
+      description: 'Increases Worker Control (+5)',
+      descriptionZh: '提高工人控制量 (+5)',
+    },
+    {
+      id: 'health',
+      name: 'Ministry of Health & Social Assistance',
+      nameZh: '卫生与社会援助部',
+      cost: 5,
+      description: 'Increases Revolutionary Fervor (+10)',
+      descriptionZh: '提升革命热情 (+10)',
+    },
+    {
+      id: 'finance',
+      name: 'Ministry of Finance',
+      nameZh: '财政部',
+      cost: 10,
+      description: 'Increases Worker Control (+5)',
+      descriptionZh: '提高工人控制量 (+5)',
+    },
+    {
+      id: 'justice',
+      name: 'Ministry of Justice',
+      nameZh: '司法部',
+      cost: 10,
+      description: 'Secures anarchist influence in judiciary branch',
+      descriptionZh: '掌控司法体系统领权',
+    },
+    {
+      id: 'industry',
+      name: 'Ministry of Industry',
+      nameZh: '工业部',
+      cost: 10,
+      description: 'Greatly increases Worker Control (+20)',
+      descriptionZh: '极大提高工人控制量 (+20)',
+    },
+    {
+      id: 'interior',
+      name: 'Ministry of Interior',
+      nameZh: '内政部',
+      cost: 15,
+      description: 'Controls state security, but lowers Army Loyalty (-10)',
+      descriptionZh: '掌管安全防务，但会削减军官忠诚度 (-10)',
+    },
+  ];
+
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  const totalCost = ministriesList.reduce((sum, m) => {
+    return sum + (selected[m.id] ? m.cost : 0);
+  }, 0);
+
+  const remainingLeverage = initialLeverage - totalCost;
+  const isOverLimit = remainingLeverage < 0;
+
+  const handleToggle = (id: string) => {
+    setSelected(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const handleFinalize = () => {
+    if (isOverLimit) return;
+
+    dispatch({
+      type: 'RESOLVE_EVENT',
+      payload: (currentState) => {
+        const newMinisters = { ...currentState.ministers };
+        let workerControlDelta = 0;
+        let revFervorDelta = 0;
+        let armyLoyaltyDelta = 0;
+
+        // Apply selected ministries
+        if (selected.labor) {
+          newMinisters.labor = 'CNT';
+          workerControlDelta += 15;
+        }
+        if (selected.industry) {
+          newMinisters.industry = 'CNT';
+          workerControlDelta += 20;
+        }
+        if (selected.agriculture) {
+          newMinisters.agriculture = 'CNT';
+          workerControlDelta += 5;
+        }
+        if (selected.finance) {
+          newMinisters.finance = 'CNT';
+          workerControlDelta += 5;
+        }
+        if (selected.health) {
+          newMinisters.health = 'CNT';
+          revFervorDelta += 10;
+        }
+        if (selected.justice) {
+          newMinisters.justice = 'CNT';
+        }
+        if (selected.interior) {
+          newMinisters.interior = 'CNT';
+          armyLoyaltyDelta -= 10;
+        }
+
+        return {
+          leverage: currentState.leverage - totalCost,
+          labor_minister_party: selected.labor ? 'CNT' : currentState.labor_minister_party,
+          agriculture_minister_party: selected.agriculture ? 'CNT' : currentState.agriculture_minister_party,
+          finance_minister_party: selected.finance ? 'CNT' : currentState.finance_minister_party,
+          ministers: newMinisters,
+          stats: {
+            ...currentState.stats,
+            workerControl: Math.min(100, currentState.stats.workerControl + workerControlDelta),
+            revolutionaryFervor: Math.min(100, currentState.stats.revolutionaryFervor + revFervorDelta),
+            armyLoyalty: Math.max(0, currentState.stats.armyLoyalty + armyLoyaltyDelta),
+          },
+          currentEvent: null,
+        };
+      }
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      <div className="font-sans text-sm font-bold border-b border-ink/20 pb-2 mb-2 flex justify-between items-center text-ink flex-wrap gap-2">
+        <span className="font-display uppercase tracking-widest text-base">
+          {isZh ? '内阁阁员谈判协商' : 'Cabinet Negotiation'}
+        </span>
+        <span className={`font-mono px-3 py-1 border font-bold text-xs ${isOverLimit ? 'border-cnt-red bg-cnt-red text-paper' : 'border-ink bg-ink text-paper'}`}>
+          {isZh ? `剩余筹码: ${remainingLeverage} / ${initialLeverage}` : `Leverage Left: ${remainingLeverage} / ${initialLeverage}`}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {ministriesList.map((m) => {
+          const isChecked = !!selected[m.id];
+          return (
+            <button
+              key={m.id}
+              onClick={() => handleToggle(m.id)}
+              className={cn(
+                "text-left p-4 border transition-colors font-typewriter text-sm uppercase tracking-wider relative group overflow-hidden w-full flex flex-col cursor-pointer",
+                isChecked 
+                  ? "border-ink bg-ink text-paper block" 
+                  : "border-ink hover:bg-ink hover:text-paper bg-transparent text-ink block"
+              )}
+            >
+              <div className="relative z-10 flex flex-col w-full">
+                <span className="font-bold flex items-center gap-2">
+                  <span>{isChecked ? '☑' : '☐'}</span>
+                  <span>
+                    {isZh 
+                      ? `要求${m.nameZh}（花费：${m.cost} 筹码）` 
+                      : `Demand the ${m.name} (Cost: ${m.cost} Leverage)`}
+                  </span>
+                </span>
+                <span className={cn(
+                  "text-xs mt-1 normal-case font-serif italic opacity-80",
+                  isChecked ? "text-paper" : "text-ink-light group-hover:text-paper"
+                )}>
+                  {isZh ? m.descriptionZh : m.description}
+                </span>
+              </div>
+              {!isChecked && (
+                <div className="absolute inset-0 bg-cnt-red transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-0 opacity-20"></div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {isOverLimit && (
+        <div className="text-xs text-cnt-red font-bold font-typewriter text-center animate-pulse mt-2 uppercase tracking-wider">
+          {isZh 
+            ? '⚠ 政治资源筹码不足！请取消勾选某些部门以继续。' 
+            : '⚠ Not enough leverage! Deselect some ministries to proceed.'}
+        </div>
+      )}
+
+      <button
+        disabled={isOverLimit}
+        onClick={handleFinalize}
+        className={cn(
+          "w-full mt-4 py-4 border transition-all font-typewriter text-sm uppercase tracking-wider relative group overflow-hidden text-center",
+          !isOverLimit 
+            ? "border-cnt-red bg-cnt-red text-paper hover:bg-ink hover:text-paper cursor-pointer font-bold" 
+            : "border-ink-light opacity-50 cursor-not-allowed text-ink-light"
+        )}
+      >
+        <span className="relative z-10">
+          {isZh ? '确认组合内阁并结束政合谈判' : 'CONCLUDE CABINET FORMULATION & SUBMIT'}
+        </span>
+      </button>
+    </div>
+  );
+};
+
 export const ministerAllocation: GameEvent = {
   id: 'minister_allocation',
   title: 'Ministerial Allocation',
@@ -231,86 +446,7 @@ export const ministerAllocation: GameEvent = {
   description: 'We have agreed to join the cabinet. We now have political leverage to demand specific ministries. The more powerful the ministry, the more leverage it requires. What shall we demand?',
   descriptionZh: '我们同意加入内阁。我们现在拥有政治筹码来要求特定的部长职位。部门越强大，需要的筹码就越多。我们要要求什么？',
   renderContent: (state) => {
-    const isZh = state.language === 'zh';
-    return React.createElement('div', { className: 'font-mono text-lg font-bold text-cnt-red' }, 
-      isZh ? `当前筹码: ${state.leverage}` : `Current Leverage: ${state.leverage}`
-    );
+    return <MinisterSelectionComponent state={state} />;
   },
-  options: [
-    {
-      text: 'Demand the Ministry of Agriculture (Cost: 5 Leverage)',
-      textZh: '要求农业部（花费：5 筹码）',
-      condition: (state) => state.leverage >= 5 && state.ministers.agriculture !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 5,
-        agriculture_minister_party: 'CNT',
-        ministers: { ...state.ministers, agriculture: 'CNT' },
-        stats: { ...state.stats, workerControl: state.stats.workerControl + 5 },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'Demand the Ministry of Labor (Cost: 5 Leverage)',
-      textZh: '要求劳工部（花费：5 筹码）',
-      condition: (state) => state.leverage >= 5 && state.ministers.labor !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 5,
-        labor_minister_party: 'CNT' as const,
-        ministers: { ...state.ministers, labor: 'CNT' as const },
-        stats: { ...state.stats, workerControl: state.stats.workerControl + 15 },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'Demand the Ministry of Health & Social Assistance (Cost: 5 Leverage)',
-      textZh: '要求卫生与社会援助部（花费：5 筹码）',
-      condition: (state) => state.leverage >= 5 && state.ministers.health !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 5,
-        ministers: { ...state.ministers, health: 'CNT' },
-        stats: { ...state.stats, revolutionaryFervor: state.stats.revolutionaryFervor + 10 },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'Demand the Ministry of Justice (Cost: 10 Leverage)',
-      textZh: '要求司法部（花费：10 筹码）',
-      condition: (state) => state.leverage >= 10 && state.ministers.justice !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 10,
-        ministers: { ...state.ministers, justice: 'CNT' },
-        stats: { ...state.stats },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'Demand the Ministry of Industry (Cost: 10 Leverage)',
-      textZh: '要求工业部（花费：10 筹码）',
-      condition: (state) => state.leverage >= 10 && state.ministers.industry !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 10,
-        ministers: { ...state.ministers, industry: 'CNT' },
-        stats: { ...state.stats, economy: state.stats.economy - 5, workerControl: state.stats.workerControl + 20 },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'Demand the Ministry of Interior (Cost: 15 Leverage)',
-      textZh: '要求内政部（花费：15 筹码）',
-      condition: (state) => state.leverage >= 15 && state.ministers.interior !== 'CNT',
-      effect: (state) => ({
-        leverage: state.leverage - 15,
-        ministers: { ...state.ministers, interior: 'CNT' },
-        stats: { ...state.stats, armyLoyalty: Math.max(0, state.stats.armyLoyalty - 10) },
-        pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
-      })
-    },
-    {
-      text: 'We are satisfied with our current ministries. Conclude negotiations.',
-      textZh: '我们对目前的部长职位感到满意。结束谈判。',
-      effect: (state) => ({
-        // Just proceed, no new events added
-      })
-    }
-  ]
+  options: []
 };

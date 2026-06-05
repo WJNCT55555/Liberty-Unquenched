@@ -206,22 +206,6 @@ export const TopBar = () => {
                 )}
               </div>
 
-              {/* Debug Section */}
-              <div className="mt-8 border-t-2 border-ink pt-4">
-                <h3 className="font-typewriter text-sm uppercase tracking-widest mb-4 text-center text-cnt-red">
-                  {isZh ? '调试: 触发结局' : 'Debug: Trigger Endings'}
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'CHILDREN_OF_THE_PEOPLE' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">人民之子</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'POPULAR_FRONT' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">人民阵线</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'RUSSIAN_SPAIN' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">俄属西班牙</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'THE_GREAT_PURGE' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">大清洗</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'SILENT_REPUBLIC' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">寂静的共和</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'FOR_WHOM_THE_BELL_TOLLS' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">丧钟为谁而鸣</button>
-                  <button onClick={() => dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'WE_HAVE_PASSED' })} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper">我们已经通过</button>
-                </div>
-              </div>
-
               {message && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}

@@ -1,6 +1,274 @@
 import React from 'react';
 import { GameState } from '../game/types';
-import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
+import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, ShieldCheck, HelpCircle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  state: GameState;
+  dispatch: (action: any) => void;
+  isZh: boolean;
+}
+
+const MinimalPieChart: React.FC<{
+  data: { label: string; value: number; color: string }[];
+  size?: number;
+}> = ({ data, size = 44 }) => {
+  const total = data.reduce((acc, d) => acc + d.value, 0);
+  const r = 24; // solid radius
+  const cx = 32;
+  const cy = 32;
+
+  if (total <= 0) return <div style={{ width: size, height: size }} className="rounded-full bg-ink/10 opacity-30" />;
+
+  let accumulatedPercent = 0;
+  
+  const paths = data.map((slice, i) => {
+    const valueMap = slice.value / total;
+    if (valueMap <= 0.0001) return null;
+    
+    if (valueMap >= 0.999) {
+      return (
+        <circle
+          key={i}
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill={slice.color}
+        />
+      );
+    }
+    
+    const startX = Math.cos(2 * Math.PI * accumulatedPercent);
+    const startY = Math.sin(2 * Math.PI * accumulatedPercent);
+    accumulatedPercent += valueMap;
+    const endX = Math.cos(2 * Math.PI * accumulatedPercent);
+    const endY = Math.sin(2 * Math.PI * accumulatedPercent);
+    const largeArcFlag = valueMap > 0.5 ? 1 : 0;
+    
+    const sx = cx + startX * r;
+    const sy = cy + startY * r;
+    const ex = cx + endX * r;
+    const ey = cy + endY * r;
+    
+    const pathData = [
+      `M ${cx} ${cy}`,
+      `L ${sx.toFixed(1)} ${sy.toFixed(1)}`,
+      `A ${r} ${r} 0 ${largeArcFlag} 1 ${ex.toFixed(1)} ${ey.toFixed(1)}`,
+      `Z`
+    ].join(' ');
+    
+    return (
+      <path
+        key={i}
+        d={pathData}
+        fill={slice.color}
+        className="transition-all duration-300 hover:opacity-85"
+      />
+    );
+  });
+
+  return (
+    <div className="relative group flex-shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 64 64" className="w-full h-full transform -rotate-90 select-none">
+        <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.05)" />
+        {paths}
+      </svg>
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex flex-col bg-slate-900 text-white text-[8px] font-mono p-1.5 rounded whitespace-nowrap shadow-md z-40 gap-0.5 leading-none">
+        {data.map((d, i) => d.value > 0 && (
+          <div key={i} className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: d.color }} />
+            <span className="text-zinc-300">{d.label}:</span>
+            <span className="font-bold text-white">{d.value.toFixed(1)}M</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SingleIndicatorLineChart: React.FC<{
+  history: { growth: number; inflation: number; unemployment: number; month: number; year: number }[];
+  currentYear: number;
+  currentMonth: number;
+  metric: 'growth' | 'inflation' | 'unemployment';
+  color: string;
+  isZh: boolean;
+}> = ({ history, currentYear, currentMonth, metric, color, isZh }) => {
+  // Generate data for months 1 to 12 of currentYear
+  const monthsData = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const record = history.find(h => h.year === currentYear && h.month === m);
+    return {
+      month: m,
+      value: record ? record[metric] : null
+    };
+  });
+
+  // Filter out nulls to find min and max for scaling
+  const activePoints = monthsData.filter(d => d.value !== null) as { month: number; value: number }[];
+
+  let minVal = 0;
+  let maxVal = 10;
+  if (activePoints.length > 0) {
+    const values = activePoints.map(p => p.value);
+    minVal = Math.max(0, Math.min(...values) - 0.5);
+    maxVal = Math.max(1, Math.max(...values) + 0.5);
+  }
+  const valRange = maxVal - minVal || 1;
+
+  const width = 180;
+  const height = 50;
+  const padLeft = 16;
+  const padRight = 6;
+  const padTop = 6;
+  const padBottom = 12;
+
+  const getX = (m: number) => {
+    return padLeft + ((m - 1) / 11) * (width - padLeft - padRight);
+  };
+
+  const getY = (v: number) => {
+    const ratio = (v - minVal) / valRange;
+    return height - padBottom - ratio * (height - padTop - padBottom);
+  };
+
+  // Generate SVG path for the active line segment
+  let pathD = '';
+  if (activePoints.length > 0) {
+    pathD = activePoints
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(p.month).toFixed(1)} ${getY(p.value).toFixed(1)}`)
+      .join(' ');
+  }
+
+  const monthLabels = isZh 
+    ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+    : ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+
+  const [hoveredM, setHoveredM] = React.useState<number | null>(null);
+
+  return (
+    <div className="flex flex-col justify-between select-none">
+      <div className="relative w-full h-[50px]">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+          {/* Horizontal dashed guide grid lines */}
+          {[0, 0.5, 1].map((r, i) => {
+            const val = minVal + r * valRange;
+            const y = getY(val);
+            return (
+              <g key={i} className="opacity-20">
+                <line
+                  x1={padLeft}
+                  y1={y}
+                  x2={width - padRight}
+                  y2={y}
+                  stroke="currentColor"
+                  strokeWidth="0.3"
+                  strokeDasharray="1 1.5"
+                  className="text-ink"
+                />
+                <text
+                  x={padLeft - 3}
+                  y={y + 1.5}
+                  textAnchor="end"
+                  fontSize="5.5"
+                  className="fill-ink-light font-mono"
+                >
+                  {val.toFixed(0)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Line Path */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke={color}
+              strokeWidth="1.25"
+              strokeLinecap="round"
+              className="opacity-90"
+            />
+          )}
+
+          {/* Invisible interactive columns for month hovering */}
+          {monthsData.map((d, i) => {
+            const x = getX(d.month);
+            const colWidth = (width - padLeft - padRight) / 11;
+            return (
+              <rect
+                key={i}
+                x={x - colWidth / 2}
+                y={padTop}
+                width={colWidth}
+                height={height - padTop - padBottom}
+                fill="transparent"
+                className="cursor-pointer"
+                onMouseEnter={() => d.value !== null && setHoveredM(d.month)}
+                onMouseLeave={() => setHoveredM(null)}
+              />
+            );
+          })}
+
+          {/* Active dots */}
+          {activePoints.map((p, i) => {
+            const cx = getX(p.month);
+            const cy = getY(p.value);
+            const isCurrent = p.month === currentMonth;
+            const isHovered = p.month === hoveredM;
+            return (
+              <g key={i}>
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={isCurrent ? "2.2" : isHovered ? "2.0" : "1.2"}
+                  fill={color}
+                  stroke={isCurrent || isHovered ? "#fff" : "none"}
+                  strokeWidth="0.75"
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Hover label */}
+        {hoveredM !== null && (() => {
+          const point = activePoints.find(p => p.month === hoveredM);
+          if (!point) return null;
+          return (
+            <div className="absolute right-1 top-1 bg-slate-900 border border-white/10 text-white text-[7px] font-mono rounded px-1 py-0.5 pointer-events-none select-none z-50">
+              {hoveredM}{isZh ? '月' : 'M'}: <span className="font-bold">{point.value.toFixed(1)}%</span>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* X-axis labels */}
+      <div className="flex justify-between text-[7px] font-mono text-ink-light px-1 border-t border-ink/5 pt-0.5 mt-0.5">
+        {monthLabels.map((lbl, idx) => {
+          const m = idx + 1;
+          const isCurrent = m === currentMonth;
+          const isFut = m > currentMonth;
+          return (
+            <span 
+              key={idx} 
+              className={`w-3 text-center transition-all ${
+                isCurrent 
+                  ? 'font-bold text-ink scale-110' 
+                  : isFut 
+                    ? 'opacity-30' 
+                    : 'opacity-70'
+              }`}
+            >
+              {lbl}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 interface Props {
   isOpen: boolean;
@@ -13,20 +281,29 @@ interface Props {
 export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch, isZh }) => {
   if (!isOpen) return null;
 
-  const handleAdjustTax = (taxKey: 'tax_lower_class' | 'tax_middle_class' | 'tax_upper_class' | 'tax_tariff' | 'tax_consumption', amount: number) => {
-    const currentVal = state[taxKey] !== undefined ? (state[taxKey] as number) : 10;
-    const newVal = Math.max(1, Math.min(100, currentVal + amount));
+  const handleAdjustValue = (
+    key: 'tax_lower_class' | 'tax_middle_class' | 'tax_upper_class' | 'tax_tariff' | 'tax_consumption' | 'military_spending' | 'land_reform_compensation',
+    amount: number,
+    min = 1,
+    max = 100
+  ) => {
+    const currentVal = state[key] !== undefined 
+      ? (state[key] as number) 
+      : (key === 'military_spending' ? 15 : (key === 'land_reform_compensation' ? 100 : 10));
+    const newVal = Math.max(min, Math.min(max, currentVal + amount));
     dispatch({
       type: 'UPDATE_TAXES',
       payload: {
-        [taxKey]: newVal
+        [key]: newVal
       }
     });
   };
 
   const isCivilWar = state.civilWarStatus === 'ongoing';
+  const compRateVal = state.land_reform_compensation !== undefined ? state.land_reform_compensation : 100;
+  const milSpendVal = state.military_spending !== undefined ? state.military_spending : 15;
 
-  // Calculate live estimation of monthly tax revenue
+  // Live Revenue Calculation
   const taxLowerRate = (state.tax_lower_class !== undefined ? state.tax_lower_class : 5) / 100;
   const taxMiddleRate = (state.tax_middle_class !== undefined ? state.tax_middle_class : 15) / 100;
   const taxUpperRate = (state.tax_upper_class !== undefined ? state.tax_upper_class : 25) / 100;
@@ -38,29 +315,37 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   const consumptionTaxRev = taxConsRate * 8.0;
   const estimatedRevenue = incomeTaxRev + tariffRev + consumptionTaxRev;
 
-  // Monthly expenditure estimate
-  let estimatedExpenditures = 1.0;
+  // Live Expenditures Calculation (including new variables)
+  let estimatedExpenditures = 1.0; // Basic civil administration
   if (state.domesticPolicy.max_hours_law > 0) estimatedExpenditures += 0.3;
   if (state.domesticPolicy.min_wage > 0) estimatedExpenditures += 0.2;
   if (isCivilWar) estimatedExpenditures += 3.5;
+
+  const milCost = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
+  const debtInterestCost = (state.public_debt !== undefined ? state.public_debt : 500.0) * ((isCivilWar ? 0.05 : 0.02) / 12);
+  const landCompCost = state.domesticPolicy.land_reform_law_enabled ? ((compRateVal / 100) * 0.4) : 0.0;
+
+  estimatedExpenditures += milCost;
+  estimatedExpenditures += debtInterestCost;
+  estimatedExpenditures += landCompCost;
 
   const estimatedDelta = estimatedRevenue - estimatedExpenditures;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-paper border-2 border-ink w-full max-w-5xl md:h-[85vh] flex flex-col shadow-2xl relative">
+      <div className="bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
         
         {/* Header */}
         <div className="border-b-2 border-ink border-opacity-30 p-4 flex justify-between items-center bg-ink/5">
           <div className="flex items-center gap-2">
             <Landmark className="w-6 h-6 text-ink-light" />
             <h2 className="font-typewriter text-2xl font-bold">
-              {isZh ? '国家财政与宏观经济管理' : 'State Treasury & National Economy'}
+              {isZh ? '财政与税收' : 'Finance & Taxation'}
             </h2>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 hover:bg-ink/10 transition-colors border border-transparent hover:border-ink"
+            className="p-1 hover:bg-ink/10 transition-colors border border-transparent hover:border-ink cursor-pointer"
             id="close-economy-modal"
           >
             <X className="w-6 h-6" />
@@ -68,350 +353,519 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
         </div>
 
         {/* Outer Split View */}
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden font-mono text-xs">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden font-mono text-xs">
           
-          {/* Left Column: National Balance sheet and Macro monitors */}
-          <div className="flex-1 md:max-w-md border-r-0 md:border-r-2 border-ink border-opacity-30 p-5 overflow-y-auto flex flex-col gap-5 bg-ink/5">
+          {/* Left Column: Balancing, indicators, treasury intervention */}
+          <div className="w-full lg:w-[60%] lg:flex-shrink-0 border-r-0 lg:border-r-2 border-ink border-opacity-30 p-4 overflow-y-auto flex flex-col gap-4 bg-ink/5">
+            
+            {/* Bento-like 8 indicators grid */}
             <div>
-              <h3 className="font-typewriter text-base font-bold pb-1.5 border-b border-ink/20 uppercase tracking-wider mb-3">
-                {isZh ? '宏观经济运行指标' : 'Macroeconomic Indicators'}
+              <h3 className="font-typewriter text-xs font-bold pb-1 border-b border-ink/20 uppercase tracking-wider mb-2">
+                {isZh ? '宏观经济指标' : 'Macroeconomic Status indicators'}
               </h3>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 {/* Economy Growth */}
-                <div className="bg-paper border border-ink/10 p-3 rounded-sm flex flex-col justify-between shadow-sm">
-                  <div className="flex items-center justify-between text-ink-light mb-1">
-                    <span className="text-[10px] uppercase font-bold tracking-tight">{isZh ? '经济增长率' : 'GDP Growth'}</span>
-                    <TrendingUp className="w-3.5 h-3.5" />
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '增长率' : 'GDP Growth'}</span>
+                    <TrendingUp className="w-3 h-3 text-ink-light" />
                   </div>
-                  <span className="text-xl font-bold text-ink">
+                  <span className="text-base font-bold text-ink mt-1 mb-1">
                     {(state.economy_growth !== undefined ? state.economy_growth : 2.5).toFixed(2)}%
                   </span>
-                  <span className="text-[9px] text-ink-light mt-1">
-                    {isZh ? '理想区间: 2% - 8%' : 'Optimal: 2% - 8%'}
-                  </span>
+                  <div className="border-t border-ink/5 pt-1.5 mt-1">
+                    <SingleIndicatorLineChart
+                      history={state.economyHistory || []}
+                      currentYear={state.year}
+                      currentMonth={state.month}
+                      metric="growth"
+                      color="#2563eb"
+                      isZh={isZh}
+                    />
+                  </div>
                 </div>
 
                 {/* Inflation */}
-                <div className="bg-paper border border-ink/10 p-3 rounded-sm flex flex-col justify-between shadow-sm">
-                  <div className="flex items-center justify-between text-ink-light mb-1">
-                    <span className="text-[10px] uppercase font-bold tracking-tight">{isZh ? '通货膨胀率' : 'Inflation'}</span>
-                    <Percent className="w-3.5 h-3.5" />
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '通货膨胀' : 'Inflation'}</span>
+                    <Percent className="w-3 h-3 text-ink-light" />
                   </div>
-                  <span className={`text-xl font-bold ${(state.inflation_rate !== undefined ? state.inflation_rate : 3.5) > 15 ? 'text-cnt-red font-extrabold animate-pulse' : 'text-ink'}`}>
+                  <span className={`text-base font-bold mt-1 mb-1 ${state.inflation_rate > 15 || (state.gold_reserves ?? 2200) < 500 ? 'text-cnt-red font-extrabold animate-pulse' : 'text-ink'}`}>
                     {(state.inflation_rate !== undefined ? state.inflation_rate : 3.5).toFixed(2)}%
                   </span>
-                  <span className="text-[9px] text-ink-light mt-1">
-                    {(state.inflation_rate !== undefined ? state.inflation_rate : 3.5) > 15 
-                      ? (isZh ? '⚠️ 严重通膨' : '⚠️ Hyperinflation') 
-                      : (isZh ? '正常区间: 1% - 6%' : 'Target: 1% - 6%')}
-                  </span>
+                  <div className="border-t border-ink/5 pt-1.5 mt-1">
+                    <SingleIndicatorLineChart
+                      history={state.economyHistory || []}
+                      currentYear={state.year}
+                      currentMonth={state.month}
+                      metric="inflation"
+                      color="#dc2626"
+                      isZh={isZh}
+                    />
+                  </div>
                 </div>
 
                 {/* Unemployment */}
-                <div className="bg-paper border border-ink/10 p-3 rounded-sm flex flex-col justify-between shadow-sm">
-                  <div className="flex items-center justify-between text-ink-light mb-1">
-                    <span className="text-[10px] uppercase font-bold tracking-tight">{isZh ? '失业率' : 'Unemployment'}</span>
-                    <Users className="w-3.5 h-3.5" />
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '失业率' : 'Unemployment'}</span>
+                    <Users className="w-3 h-3 text-ink-light" />
                   </div>
-                  <span className="text-xl font-bold text-ink">
+                  <span className="text-base font-bold text-ink mt-1 mb-1">
                     {(state.unemployment_rate !== undefined ? state.unemployment_rate : 11.2).toFixed(2)}%
                   </span>
-                  <span className="text-[9px] text-ink-light mt-1">
-                    {isZh ? '高失业率会导致民意下滑' : 'High rates damage regime support'}
-                  </span>
-                </div>
-
-                {/* Budget treasury */}
-                <div className="bg-paper border border-ink/10 p-3 rounded-sm flex flex-col justify-between shadow-sm">
-                  <div className="flex items-center justify-between text-ink-light mb-1">
-                    <span className="text-[10px] uppercase font-bold tracking-tight">{isZh ? '国库盈余/赤字' : 'Treasury Reserve'}</span>
-                    <Landmark className="w-3.5 h-3.5" />
+                  <div className="border-t border-ink/5 pt-1.5 mt-1">
+                    <SingleIndicatorLineChart
+                      history={state.economyHistory || []}
+                      currentYear={state.year}
+                      currentMonth={state.month}
+                      metric="unemployment"
+                      color="#7e22ce"
+                      isZh={isZh}
+                    />
                   </div>
-                  <span className={`text-xl font-bold ${(state.budget !== undefined ? state.budget : 12.0) >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {/* Regular Budget */}
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国库预算' : 'Treasury Budget'}</span>
+                    <Landmark className="w-3 h-3 text-ink-light" />
+                  </div>
+                  <span className={`text-base font-bold mt-1 ${state.budget >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
                     {(state.budget !== undefined ? state.budget : 12.0).toFixed(2)}M ₧
                   </span>
-                  <span className="text-[9px] text-ink-light mt-1">
-                    {(state.budget !== undefined ? state.budget : 12.0) < -5 
-                      ? (isZh ? '🔴 处于破产危机' : '🔴 Sovereign Debt risk') 
-                      : (isZh ? '比塞塔本位储备' : 'Peseta standard')}
+                </div>
+
+                {/* Gold Reserves */}
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '黄金储备' : 'Gold Reserves'}</span>
+                    <Coins className="w-3 h-3 text-yellow-600" />
+                  </div>
+                  <span className={`text-base font-bold mt-1 ${(state.gold_reserves ?? 2200) < 500 ? 'text-cnt-red font-extrabold' : 'text-amber-800'}`}>
+                    {(state.gold_reserves ?? 2200).toFixed(0)}M ₧
+                  </span>
+                </div>
+
+                {/* Foreign Exchange */}
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '外汇储备' : 'Foreign FX'}</span>
+                    <DollarSign className="w-3 h-3 text-green-700" />
+                  </div>
+                  <span className={`text-base font-bold mt-1 ${(state.foreign_exchange ?? 180) < 30 ? 'text-orange-600 font-bold' : 'text-green-800'}`}>
+                    {(state.foreign_exchange ?? 180).toFixed(1)}M ₧
                   </span>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {/* Public Debt */}
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs col-span-2">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国家公共债务累计' : 'Soevereign Public Debt'}</span>
+                    <Activity className="w-3 h-3 text-red-500" />
+                  </div>
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className={`text-base font-bold ${state.public_debt > 1500 ? 'text-cnt-red font-extrabold' : 'text-slate-700'}`}>
+                      {(state.public_debt !== undefined ? state.public_debt : 500.0).toFixed(2)}M ₧
+                    </span>
+                    <span className="text-[8px] text-ink-light">
+                      {isZh ? `年息: ${isCivilWar ? '5%' : '2%'}` : `Int Rate: ${isCivilWar ? '5%' : '2%'}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* War Bonds */}
+                {state.war_bonds !== undefined && state.war_bonds > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 p-2 rounded-xs flex flex-col justify-between shadow-xs col-span-2">
+                    <span className="text-[8px] uppercase font-bold tracking-tight text-orange-700">{isZh ? '已发行战时公债' : 'Outstanding War Bonds'}</span>
+                    <span className="text-sm font-bold text-orange-800 mt-1">
+                      {state.war_bonds.toFixed(2)}M ₧
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Live budget accounting */}
-            <div className="bg-paper border border-ink/30 p-4 rounded-sm flex flex-col gap-2.5 shadow-md">
-              <h4 className="font-bold border-b border-ink/10 pb-1 text-ink uppercase tracking-wide text-xs">
-                {isZh ? '国家财政收支估算/月' : 'Sovereign Budget Forecast (Monthly)'}
+            {/* Detailed balance sheet forecast */}
+            <div className="bg-paper border border-ink/20 p-3 rounded-xs flex flex-col gap-2 shadow-xs">
+              <h4 className="font-bold border-b border-ink/10 pb-0.5 text-ink uppercase tracking-wide text-[10px] flex justify-between">
+                <span>{isZh ? '预估月度收支明细' : 'Treasury Monthly Projection'}</span>
+                <span className="text-ink-light font-normal text-[8px]">{isZh ? '即时推演' : 'Live Projection'}</span>
               </h4>
               
-              <div className="flex flex-col gap-1.5 text-[11px] leading-relaxed">
-                <div className="flex justify-between text-ink-light">
-                  <span>{isZh ? '・所得税预计收入:' : '• Income Tax Revenue:'}</span>
-                  <span className="font-bold text-ink">{incomeTaxRev.toFixed(2)}M ₧</span>
-                </div>
-                <div className="flex justify-between text-ink-light">
-                  <span>{isZh ? '・关税预计收入:' : '• Tariffs Revenue:'}</span>
-                  <span className="font-bold text-ink">{tariffRev.toFixed(2)}M ₧</span>
-                </div>
-                <div className="flex justify-between text-ink-light">
-                  <span>{isZh ? '・消费税预计收入:' : '• Consumption Tax:'}</span>
-                  <span className="font-bold text-ink">{consumptionTaxRev.toFixed(2)}M ₧</span>
-                </div>
-                
-                <div className="h-px bg-ink/10 my-1" />
-                
-                <div className="flex justify-between text-green-700 font-bold">
-                  <span>{isZh ? '【预计总财政收入】' : 'Total Revenue Estimate'}</span>
-                  <span>+{estimatedRevenue.toFixed(2)}M ₧</span>
-                </div>
-                
-                <div className="flex justify-between text-cnt-red font-bold">
-                  <span>{isZh ? '【行政与政策总支出】' : 'Total Expenditures'}</span>
-                  <span>-{estimatedExpenditures.toFixed(2)}M ₧</span>
+              <div className="flex flex-col md:flex-row gap-4 font-mono">
+                {/* Left Column: Line items details */}
+                <div className="flex-1 flex flex-col gap-1 text-[10px] leading-relaxed">
+                  {/* Revenue */}
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・所得税总额:' : '• Income Tax Revenue:'}</span>
+                    <span className="font-bold text-ink">{incomeTaxRev.toFixed(2)}M ₧</span>
+                  </div>
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・关税壁垒总额:' : '• Tariffs Revenue:'}</span>
+                    <span className="font-bold text-ink">{tariffRev.toFixed(2)}M ₧</span>
+                  </div>
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・消费税总额:' : '• Consumption Tax:'}</span>
+                    <span className="font-bold text-ink">{consumptionTaxRev.toFixed(2)}M ₧</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-green-700 font-bold text-[11px] mt-1 border-t border-green-200/50 pt-1 pb-0.5">
+                    <span>{isZh ? '【预计总财政收入】' : 'Total Revenue Estimate'}</span>
+                    <span className="text-[12px] font-extrabold">+{estimatedRevenue.toFixed(2)}M ₧</span>
+                  </div>
+
+                  {/* Expense details */}
+                  <div className="h-px bg-ink/10 my-1 font-sans" />
+
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・政府基础行政款:' : '• Civilian Administration:'}</span>
+                    <span className="font-bold text-ink">1.00M ₧</span>
+                  </div>
+                  {state.domesticPolicy.max_hours_law > 0 && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・八小时工作制维稳:' : '• Max Hours Enforcement:'}</span>
+                      <span className="font-bold text-ink">0.30M ₧</span>
+                    </div>
+                  )}
+                  {state.domesticPolicy.min_wage > 0 && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・最低工资保障监察:' : '• Min Wage Compliance:'}</span>
+                      <span className="font-bold text-ink">0.20M ₧</span>
+                    </div>
+                  )}
+                  {isCivilWar && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・内战全面动员战争开销:' : '• War Mobilization Cost:'}</span>
+                      <span className="font-bold text-ink">3.50M ₧</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・国防军事常备预算:' : '• Defense Military Budget:'}</span>
+                    <span className="font-bold text-ink">{milCost.toFixed(2)}M ₧</span>
+                  </div>
+                  <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                    <span>{isZh ? '・公债利息偿还划款:' : '• Debt Sovereign Interest:'}</span>
+                    <span className="font-bold text-ink">{debtInterestCost.toFixed(2)}M ₧</span>
+                  </div>
+                  {state.domesticPolicy.land_reform_law_enabled && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・土地改革补偿与安置费:' : '• Land Compensation Cost:'}</span>
+                      <span className="font-bold text-ink">{landCompCost.toFixed(2)}M ₧</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center text-cnt-red font-bold text-[11px] mt-1 border-t border-red-200/50 pt-1 pb-0.5">
+                    <span>{isZh ? '【法案与政策总支出】' : 'Total Expenditures'}</span>
+                    <span className="text-[12px] font-extrabold">-{estimatedExpenditures.toFixed(2)}M ₧</span>
+                  </div>
+
+                  <div className="h-px bg-ink/30 my-1"/>
+
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-bold text-ink">{isZh ? '每月净增收 (赤字将转为国债):' : 'Net Monthly Surplus (Deficit goes to Debt):'}</span>
+                    <span className={`font-bold px-1.5 py-0.5 rounded-sm ${estimatedDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-cnt-red'}`}>
+                      {estimatedDelta >= 0 ? '+' : ''}{estimatedDelta.toFixed(2)}M ₧
+                    </span>
+                  </div>
                 </div>
 
-                <div className="h-px bg-ink/30 my-1"/>
+                {/* Right Column: Mini charts side panel */}
+                <div className="w-full md:w-[28%] flex flex-row md:flex-col justify-around items-center gap-4 py-1">
+                  {/* Revenue Pie Chart */}
+                  <div className="flex flex-col items-center text-center gap-1.5">
+                    <MinimalPieChart
+                      data={[
+                        { label: isZh ? '所得税' : 'Income Tax', value: incomeTaxRev, color: '#16a34a' },
+                        { label: isZh ? '关税' : 'Tariff', value: tariffRev, color: '#d97706' },
+                        { label: isZh ? '消费税' : 'Cons. Tax', value: consumptionTaxRev, color: '#2563eb' },
+                      ]}
+                      size={84}
+                    />
+                  </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-ink">{isZh ? '每月预算净盈余:' : 'Net Monthly Surplus:'}</span>
-                  <span className={`text-sm font-bold px-1.5 py-0.5 rounded-sm ${estimatedDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-cnt-red'}`}>
-                    {estimatedDelta >= 0 ? '+' : ''}{estimatedDelta.toFixed(2)}M ₧
-                  </span>
+                  {/* Expenditure Pie Chart */}
+                  <div className="flex flex-col items-center text-center gap-1.5 leading-none">
+                    <MinimalPieChart
+                      data={[
+                        { label: isZh ? '政府行政' : 'Civil Admin', value: 1.0, color: '#64748b' },
+                        { label: isZh ? '八小时工作' : 'Max Hours', value: state.domesticPolicy.max_hours_law > 0 ? 0.3 : 0, color: '#a855f7' },
+                        { label: isZh ? '最低工资' : 'Min Wage', value: state.domesticPolicy.min_wage > 0 ? 0.2 : 0, color: '#ec4899' },
+                        { label: isZh ? '内战开销' : 'War Cost', value: isCivilWar ? 3.5 : 0, color: '#ef4444' },
+                        { label: isZh ? '常备军费' : 'Defense Mil', value: milCost, color: '#b91c1c' },
+                        { label: isZh ? '债务利息' : 'Debt Int', value: debtInterestCost, color: '#0f172a' },
+                        { label: isZh ? '土改补偿' : 'Land Comp', value: state.domesticPolicy.land_reform_law_enabled ? landCompCost : 0, color: '#eab308' },
+                      ].filter(d => d.value > 0)}
+                      size={84}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* War effects warning */}
-            {isCivilWar && (
-              <div className="bg-red-50 border border-cnt-red/30 p-3.5 rounded-sm flex gap-2 text-cnt-red leading-relaxed shadow-sm">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-bold text-xs uppercase tracking-tight">{isZh ? '战时紧急经济状态' : 'Marshall State of War'}</span>
-                  <p className="text-[10px] mt-0.5 text-red-900">
+            {/* National Intervention Actions (Wartime & Peacetime Emergency) */}
+            <div className="bg-paper border-2 border-dashed border-ink/30 p-3 rounded-xs flex flex-col gap-2">
+              <h4 className="font-bold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1">
+                <Landmark className="w-3 h-3 text-orange-600" />
+                <span>{isZh ? '国库紧急干预行动方案' : 'Emergency Sovereign Interventions'}</span>
+              </h4>
+              
+              <div className="flex flex-col gap-1.5">
+                {/* Action 1: Sell Gold Reserves */}
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-[10px] text-amber-800">{isZh ? '抛售比塞塔黄金储备换外汇' : 'Sell Gold for Foreign Exchange'}</span>
+                    <button
+                      onClick={() => dispatch({ type: 'SELL_GOLD_FOR_FX' })}
+                      disabled={(state.gold_reserves ?? 2200) < 100}
+                      className="px-2 py-0.5 bg-ink text-paper text-[9px] uppercase font-bold hover:bg-ink-light disabled:bg-ink/10 disabled:text-ink/40 cursor-pointer rounded-xs"
+                    >
+                      {isZh ? '抛售 100M 黄金' : 'Sell 100M Gold'}
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-ink-light leading-none leading-snug">
                     {isZh 
-                      ? '西班牙内战正在进行！每月维持战争需要额外支出 3.5M ₧，对外国际贸易阻断导致关税收入缩减 60%，基础经济成长受到严重挫伤 -6.0%。'
-                      : 'Civil war is raging! Military spending drains 3.5M ₧ monthly, tariff yields sliced by 60% due to trade collapse, and growth base slashed by -6.0%.'}
+                      ? '【抛售黄金】扣除黄金储备 100M，增加外汇储备 100M。然而，无实物资产 backing 会推升国内通胀率 +1.5%。'
+                      : 'Lose 100M Gold reserves to immediately buy 100M liquid FX. Beware: lower reserves trigger currency lack of backing (+1.5% inflation).'}
+                  </p>
+                </div>
+
+                {/* Action 2: Issue War Bonds */}
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-[10px] text-orange-700">{isZh ? '发行爱国战时公债募款' : 'Issue National War Bonds'}</span>
+                    <button
+                      onClick={() => dispatch({ type: 'ISSUE_WAR_BONDS' })}
+                      className="px-2 py-0.5 bg-ink text-paper text-[9px] uppercase font-bold hover:bg-ink-light cursor-pointer rounded-xs"
+                    >
+                      {isZh ? '发行 50M 国债' : 'Issue 50M Bonds'}
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-ink-light leading-snug">
+                    {isZh 
+                      ? '【发行公债】国库预算立即增加 50M ₧，并吸收 10M ₧ 国际外汇声援，但公共债务会增加 60M ₧（溢价偿还本息），且增加通货膨胀 +1.2%。'
+                      : 'Raises raw funds: gains +50M budget & +10M foreign exchange, but adds +60M to Sovereign Debt and spikes inflation by +1.2%.'}
+                  </p>
+                </div>
+
+                {/* Action 3: Urgent weapon import */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-[10px] text-green-700">{isZh ? '消耗外汇紧急进口外国武器军火' : 'Foreign Weapon Emergency Import'}</span>
+                    <button
+                      onClick={() => dispatch({ type: 'BUY_RESOURCES_URGENT' })}
+                      disabled={(state.foreign_exchange ?? 180) < 25.0}
+                      className="px-2 py-0.5 bg-ink text-paper text-[9px] uppercase font-bold hover:bg-ink-light disabled:bg-ink/10 disabled:text-ink/40 cursor-pointer rounded-xs"
+                    >
+                      <span className="flex items-center gap-0.5">
+                        <ShoppingCart className="w-2.5 h-2.5" />
+                        {isZh ? '支付工本 25M 外汇' : 'Pay 25M FX'}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-ink-light leading-snug">
+                    {isZh 
+                      ? '【紧急军购】消耗外汇储备 25M ₧，立即进口 2 点社会资源、 1 点军事军备。外汇短缺时将无法向苏联、法国等采购。'
+                      : 'Spend 25M foreign currency to urgently bypass bottlenecks and receive +2 resources & +1 armaments from overseas mills.'}
                   </p>
                 </div>
               </div>
-            )}
+            </div>
 
-            {!isCivilWar && (
-              <div className="bg-green-50 border border-green-800/20 p-3 text-green-800 leading-relaxed shadow-xs">
-                <div className="flex items-center gap-1.5 font-bold text-[11px] mb-1">
-                  <ShieldCheck className="w-4 h-4 text-green-700" />
-                  <span>{isZh ? '和平时期平稳财政' : 'Peacetime Balanced Budget'}</span>
-                </div>
-                <p className="text-[10px] text-green-900/80 leading-normal">
-                  {isZh 
-                    ? '在没有全面内战的情况下，国家商业流动性充裕。增加税收可以积累超额盈余额度，但税率过高（特别是工作阶级税）会引起群众的愤怒或打击内需增长。'
-                    : 'Unrestricted state operations. High taxation provides massive budgetary resources, but heavy working class income tax suppresses social support.'}
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Right Column: Tax policy adjusting workspace WITHOUT sliders */}
-          <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-4 bg-paper bg-opacity-70">
-            <h3 className="font-typewriter text-base font-bold pb-1.5 border-b border-ink/20 uppercase tracking-wider mb-2">
-              {isZh ? '税收政策法案管理' : 'Tax Policy & Rate Regulation'}
-            </h3>
-
-            {/* The 5 Non-slider discrete cards */}
+          {/* Right Column: Tax policy + New systems (spending adjustments) */}
+          <div className="w-full lg:w-[40%] lg:flex-shrink-0 p-4 overflow-y-auto flex flex-col gap-4 bg-paper bg-opacity-70">
             
-            {/* 1. Working Class (Lower Class) Income Tax */}
-            <div className="border border-ink/20 p-4 rounded bg-paper-light shadow-sm hover:border-ink/50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-[#4c51bf] text-white font-bold text-[9px] rounded-xs uppercase tracking-tight">Lower Class</span>
-                  <h4 className="font-bold text-ink text-[13px]">{isZh ? '无产阶级个人所得税' : 'Working Class Income Tax'}</h4>
+            {/* National tax sliders */}
+            <div>
+              <h3 className="font-typewriter text-xs font-bold pb-1 border-b border-ink/20 uppercase tracking-wider mb-2">
+                {isZh ? '税收政策法案（宏观收入端）' : 'State Tax Policies (Macro Revenue Side)'}
+              </h3>
+
+              <div className="flex flex-col gap-2.5">
+                {/* 1. Lower Class Tax */}
+                <div className="border border-ink/10 p-2.5 rounded-sm bg-paper-light">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                      {isZh ? '无产阶级所得税' : 'Working Class Income Tax'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
+                      {state.tax_lower_class !== undefined ? state.tax_lower_class : 5}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh 
+                      ? '直接对广大工农无产阶级个人课税。由于其人数极其庞杂，稍微增加一百分点会导致购买力严重缩水，损害整体 GDP 增长率，但能稍许降低总通胀。'
+                      : 'A tax on the bulk of the population. Higher rates squeeze general consumer spending and GDP growth, but curb high inflation.'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('tax_lower_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('tax_lower_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('tax_lower_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('tax_lower_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                  </div>
                 </div>
-                <p className="text-[10px] text-ink-light leading-relaxed">
-                  {isZh 
-                    ? '对广大工农阶层直接课征所得税。轻微加征可以平抑高通货膨胀，但由于该阶层人口极其庞大，提高税率会直接大幅挫伤经济成长。'
-                    : 'Direct tax on laborers and peasantry. Mild increases combat high inflation. However, due to large demographics, too high rates suppress national growth.'}
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <span className="font-bold text-lg text-ink font-mono bg-ink/5 px-2 py-1 rounded w-16 text-center border border-ink/10">
-                  {state.tax_lower_class !== undefined ? state.tax_lower_class : 5}%
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleAdjustTax('tax_lower_class', -5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-5%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_lower_class', -1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_lower_class', 1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_lower_class', 5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+5%</button>
+
+                {/* 2. Middle Class Tax */}
+                <div className="border border-ink/10 p-2.5 rounded-sm bg-paper-light">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      {isZh ? '中产阶层所得税' : 'Middle Class Income Tax'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
+                      {state.tax_middle_class !== undefined ? state.tax_middle_class : 15}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh 
+                      ? '针对办事员、小职员、中小商业家等阶层的税率。相较无产阶级，购买力挤压温和一些，是较为平稳的国库来源。'
+                      : 'Levy on local shopkeepers and civil servants. Solid treasury contribution with slightly reduced populist anger, but mildly slows trade.'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('tax_middle_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('tax_middle_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('tax_middle_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('tax_middle_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                  </div>
+                </div>
+
+                {/* 3. Upper Class Tax */}
+                <div className="border border-ink/10 p-2.5 rounded-sm bg-paper-light">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                      {isZh ? '上层阶级所得税' : 'Upper Class Income Tax'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
+                      {state.tax_upper_class !== undefined ? state.tax_upper_class : 25}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh 
+                      ? '课征于寡头、重工豪强和庄园大地主的累进税。最丰厚的财富来源，但过高征税会导致资本外流或停产罢工，失业率会随之明显攀升。'
+                      : 'Highly progressive income levy on industrial magnates and landed grandees. Deep treasury yield, but too high levels freeze local hiring.'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('tax_upper_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('tax_upper_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('tax_upper_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('tax_upper_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                  </div>
+                </div>
+
+                {/* 4. Import Tariffs */}
+                <div className="border border-ink/10 p-2.5 rounded-sm bg-paper-light">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                      {isZh ? '对外关税' : 'Import Tariffs'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
+                      {state.tax_tariff !== undefined ? state.tax_tariff : 10}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh 
+                      ? '对海外竞品设置重重壁垒以保护民族轻重工商业。能保证稳固外汇与部分关税收入，但直接抬高国内进口商品零售物价，导致极高通胀率。'
+                      : 'Protects domestic trade via import walls. Generates protective tariff pools, but drives up raw price index (imports inflation).'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('tax_tariff', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('tax_tariff', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('tax_tariff', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('tax_tariff', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                  </div>
+                </div>
+
+                {/* 5. Consumption Tax */}
+                <div className="border border-ink/10 p-2.5 rounded-sm bg-paper-light">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
+                      {isZh ? '消费税' : 'Consumption Tax'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
+                      {state.tax_consumption !== undefined ? state.tax_consumption : 8}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh 
+                      ? '针对一切商业交易中的附加增值流通税。最不易随政治波动的全民税项，能极稳定提供收入，但对中低阶层购买力略带抑制。'
+                      : 'A steady and broad transaction tax. Very stable revenue source, but broad levels reduce merchant exchange slightly.'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('tax_consumption', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('tax_consumption', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('tax_consumption', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('tax_consumption', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 2. Middle Class Income Tax */}
-            <div className="border border-ink/20 p-4 rounded bg-paper-light shadow-sm hover:border-ink/50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-[#d69e2e] text-white font-bold text-[9px] rounded-xs uppercase tracking-tight">Middle Class</span>
-                  <h4 className="font-bold text-ink text-[13px]">{isZh ? '中产阶层个人所得税' : 'Middle Class Income Tax'}</h4>
-                </div>
-                <p className="text-[10px] text-ink-light leading-relaxed">
-                  {isZh 
-                    ? '针对中等收入群体（小官吏、商业主、富裕职员）的收入课税。在不严重伤害工农阶层的前提下稳健增加财政收入，但由于伤害其购买力，增加本税会使失业率和经济负荷升高。'
-                    : 'Progressive tax on minor civil servants, shopkeepers, and white-collar workers. Generates buffer revenue with reduced populist blowback, but marginally dampens local hiring.'}
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <span className="font-bold text-lg text-ink font-mono bg-ink/5 px-2 py-1 rounded w-16 text-center border border-ink/10">
-                  {state.tax_middle_class !== undefined ? state.tax_middle_class : 15}%
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleAdjustTax('tax_middle_class', -5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-5%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_middle_class', -1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_middle_class', 1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_middle_class', 5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+5%</button>
-                </div>
-              </div>
-            </div>
+            {/* NEW: Expenditure side parameters */}
+            <div>
+              <h3 className="font-typewriter text-xs font-bold pb-1 border-b border-ink/20 uppercase tracking-wider mb-2">
+                {isZh ? '国防预算与社会法案（宏观支出端）' : 'Sovereign Budgets & Reform Laws (Expenditures Side)'}
+              </h3>
 
-            {/* 3. Upper Class Income Tax */}
-            <div className="border border-ink/20 p-4 rounded bg-paper-light shadow-sm hover:border-ink/50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-[#e53e3e] text-white font-bold text-[9px] rounded-xs uppercase tracking-tight">Upper Class</span>
-                  <h4 className="font-bold text-ink text-[13px]">{isZh ? '有产阶级/大资本家所得税' : 'Upper Class Income Tax'}</h4>
+              <div className="flex flex-col gap-2.5">
+                {/* 1. Military Spend Allocation */}
+                <div className="border-2 border-slate-400 p-2.5 rounded bg-amber-50/20">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1.5">
+                      <span className="px-1 py-0.5 bg-slate-700 text-white font-mono text-[8px] uppercase tracking-tight">Defense</span>
+                      {isZh ? '国家常备国防军事预算' : 'Regular National Military Budget'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded text-ink">
+                      {milSpendVal}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh
+                      ? '【军费决定忠诚】国防常规开销比例（和平时期预期 15% ）。低于预期会导致常规陆军军官深感愤怒不满，右翼军官暗中勾结，军事政变概率持续飙升；增加国防支出可以极高抑制政变并每月自动生产多达数十倍的武器军备。'
+                      : 'Defense funding limits. Underfunding below 15% Peacetime standard sparks army officer mutiny, directly accelerating military coup progress. Higher rates yield automated armaments.'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('military_spending', -10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-10%</button>
+                    <button onClick={() => handleAdjustValue('military_spending', -1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                    <button onClick={() => handleAdjustValue('military_spending', 1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                    <button onClick={() => handleAdjustValue('military_spending', 10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+10%</button>
+                  </div>
                 </div>
-                <p className="text-[10px] text-ink-light leading-relaxed">
-                  {isZh 
-                    ? '针对大地主、金融寡头和工业巨头课征的高额资本出资税。最丰厚的特定财富蓄水池，但超高的税负会强力打击富余资本的再投资意向，导致社会失业率飙升，同时略微抑制通货膨胀。'
-                    : 'Targeted high margin collection from grand landowners and industrial monopolies. Deep revenue yields, but overtaxing heavily chills local capital investments and spikes unemployment.'}
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <span className="font-bold text-lg text-ink font-mono bg-ink/5 px-2 py-1 rounded w-16 text-center border border-ink/10">
-                  {state.tax_upper_class !== undefined ? state.tax_upper_class : 25}%
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleAdjustTax('tax_upper_class', -5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-5%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_upper_class', -1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_upper_class', 1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_upper_class', 5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+5%</button>
-                </div>
-              </div>
-            </div>
 
-            {/* 4. Tariffs / Trade Barriers */}
-            <div className="border border-ink/20 p-4 rounded bg-paper-light shadow-sm hover:border-ink/50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-[#4a5568] text-white font-bold text-[9px] rounded-xs uppercase tracking-tight">Trade</span>
-                  <h4 className="font-bold text-ink text-[13px]">{isZh ? '国境关税壁垒' : 'Import Tariffs'}</h4>
-                </div>
-                <p className="text-[10px] text-ink-light leading-relaxed">
-                  {isZh 
-                    ? '对所有进入共和国国境的海外商品设立关税防线。有利于保护民族中小工商业，但严重的边际进口限制会使国内进口物价大幅度攀升（即高通货膨胀）。'
-                    : 'Tariff protection walls erected at domestic frontiers. Shelters minor national factories from imported rivals, but directly accelerates retail import inflation.'}
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <span className="font-bold text-lg text-ink font-mono bg-ink/5 px-2 py-1 rounded w-16 text-center border border-ink/10">
-                  {state.tax_tariff !== undefined ? state.tax_tariff : 10}%
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleAdjustTax('tax_tariff', -5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-5%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_tariff', -1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_tariff', 1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_tariff', 5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+5%</button>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Consumption Tax */}
-            <div className="border border-ink/20 p-4 rounded bg-[#fbfaf7] shadow-sm hover:border-ink/50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-[#319795] text-white font-bold text-[9px] rounded-xs uppercase tracking-tight">Regressive</span>
-                  <h4 className="font-bold text-ink text-[13px]">{isZh ? '零售消费税' : 'Consumption Tax'}</h4>
-                </div>
-                <p className="text-[10px] text-ink-light leading-relaxed">
-                  {isZh 
-                    ? '针对日常零售服务和商品的流通税。最平稳和广泛的增收税，但会使民间商业交易略微蒙受打击、减缓经济流通。'
-                    : 'Broad transactional levy placed directly on goods and utility trade. Offers a highly non-volatile source of revenue, but lowers retail transactions.'}
-                </p>
-              </div>
-              
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <span className="font-bold text-lg text-ink font-mono bg-ink/5 px-2 py-1 rounded w-16 text-center border border-ink/10">
-                  {state.tax_consumption !== undefined ? state.tax_consumption : 8}%
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleAdjustTax('tax_consumption', -5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-5%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_consumption', -1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >-1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_consumption', 1)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+1%</button>
-                  <button 
-                    onClick={() => handleAdjustTax('tax_consumption', 5)}
-                    className="px-2 py-1 border border-ink text-xs font-bold bg-paper hover:bg-ink hover:text-paper transition-all cursor-pointer rounded-sm"
-                  >+5%</button>
+                {/* 2. Land Reform Compensation Rate */}
+                <div className="border-2 border-emerald-600 p-2.5 rounded bg-emerald-50/10">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-ink text-[11px] flex items-center gap-1.5">
+                      <span className="px-1 py-0.5 bg-emerald-700 text-white font-mono text-[8px] uppercase tracking-tight">Social Land</span>
+                      {isZh ? '土地改革拆迁安置与地主补偿标准' : 'Land Reform Act Compensation Standard'}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-emerald-100 px-1.5 py-0.5 text-emerald-800 rounded">
+                      {compRateVal}%
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
+                    {isZh
+                      ? '【土改博弈】土地改革法案使能时的地主土地赎买补偿比率。进行100%全额市价补偿会消耗每月多达 0.4M 预算，但能平息大地主阶层愤怒阻碍军官发动政变；实行 0% 的强力强占充公虽然节省国库，但会让地主阶层极端愤怒并极大推动军事政变，同时由于阻碍降至最低，土改推行进度将提速至2.5倍。'
+                      : 'Compensation paid to grandees when Land Reform Law is active. 100% full buyout drains 0.4M budget but lowers landowners coup support. 0% seizure saves cash & 2.5x speeds up division progress, but highly triggers landowner rage (coup threshold increases).'}
+                  </p>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => handleAdjustValue('land_reform_compensation', -20, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-20%</button>
+                    <button onClick={() => handleAdjustValue('land_reform_compensation', -5, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                    <button onClick={() => handleAdjustValue('land_reform_compensation', 5, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    <button onClick={() => handleAdjustValue('land_reform_compensation', 20, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+20%</button>
+                  </div>
                 </div>
               </div>
             </div>

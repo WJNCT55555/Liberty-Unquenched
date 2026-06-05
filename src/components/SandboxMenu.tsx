@@ -27,6 +27,30 @@ export const SandboxMenu = () => {
     dispatch({ type: 'SANDBOX_EDIT', payload: { factions: newFactions } });
   };
 
+  const handleMinisterChange = (role: string, value: any) => {
+    const newMinisters = { ...state.ministers, [role]: value };
+    const extraPayload: any = { ministers: newMinisters };
+    const anyCNT = Object.values(newMinisters).some(v => v === 'CNT');
+    if (anyCNT) {
+      extraPayload.isCNTInGovernment = true;
+    }
+    if (role === 'labor') extraPayload.labor_minister_party = value;
+    if (role === 'agriculture') extraPayload.agriculture_minister_party = value;
+    if (role === 'finance') extraPayload.finance_minister_party = value;
+    dispatch({ type: 'SANDBOX_EDIT', payload: extraPayload });
+  };
+
+  const ministerRoles = [
+    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
+    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
+    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
+  ] as const;
+
   const factionNames: Record<Faction, { en: string, zh: string }> = {
     Treintistas: { en: 'Treintistas', zh: '三十人集团' },
     Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
@@ -88,6 +112,86 @@ export const SandboxMenu = () => {
                 </div>
               </div>
 
+              {/* Sandbox Card Options */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '沙盒卡牌规则' : 'Sandbox Card Rules'}
+                </h3>
+                <label className="flex items-center gap-3 bg-ink/5 p-4 cursor-pointer hover:bg-ink/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={state.sandboxCardChoiceEnabled || false}
+                    onChange={(e) => handleEdit('sandboxCardChoiceEnabled', e.target.checked)}
+                    className="w-5 h-5 accent-cnt-red cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-display text-lg">
+                      {isZh ? '开启自选卡牌模式' : 'Enable Card Inspector / Selection Mode'}
+                    </span>
+                    <span className="font-mono text-xs text-ink/75">
+                      {isZh ? '启用后，点击三个牌库（行动、政府、武装）时将弹出所有卡牌面板供手选加入手牌。' : 'When enabled, clicking a card deck opens a panel of all available cards in that deck for you to select, rather than drawing randomly.'}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Cabinet Ministers Adjustment */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '内阁部长编制调整' : 'Cabinet Ministers Adjustment'}
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-ink/5 p-4">
+                  {/* First item: CNT Government status */}
+                  <div className="md:col-span-2 border-b border-ink/10 pb-3 mb-1">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={state.isCNTInGovernment || false}
+                        onChange={(e) => handleEdit('isCNTInGovernment', e.target.checked)}
+                        className="w-5 h-5 accent-cnt-red cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-display font-bold">
+                          {isZh ? 'CNT 参与执政/入阁' : 'CNT Participating in Government'}
+                        </span>
+                        <span className="font-mono text-xs text-ink/75">
+                          {isZh ? '开启后，即可直接执行那些需要“CNT入阁/执政”的内阁法案政策。' : 'Directly triggers conditions permitting CNT government policy execution.'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Dropdowns for all 8 ministers */}
+                  {ministerRoles.map(({ role, labelZh, labelEn, options }) => {
+                    const currentVal = state.ministers[role];
+                    return (
+                      <div key={role} className="flex flex-col gap-1 border-r border-b border-ink/10 pr-2 pb-2">
+                        <label className="font-display text-sm font-semibold tracking-wide">
+                          {isZh ? labelZh : labelEn}
+                        </label>
+                        <select
+                          value={currentVal || 'Right'}
+                          onChange={(e) => handleMinisterChange(role, e.target.value)}
+                          className="bg-paper text-ink border border-ink/30 px-2 py-1.5 font-sans text-sm shortcut-focus outline-none focus:border-cnt-red transition-all cursor-pointer"
+                        >
+                          {options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt === 'CNT' && (isZh ? 'CNT (无政府工团)' : 'CNT')}
+                              {opt === 'PSOE' && (isZh ? 'PSOE (社会党)' : 'PSOE')}
+                              {opt === 'IR' && (isZh ? 'IR (共和左翼)' : 'IR')}
+                              {opt === 'PRR' && (isZh ? 'PRR (激进共和党)' : 'PRR')}
+                              {opt === 'Right' && (isZh ? 'Right (保守右翼)' : 'Right')}
+                              {opt === 'Other' && (isZh ? 'Other (其他第三方)' : 'Other')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Factions */}
               <div className="flex flex-col gap-4">
                 <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
@@ -127,6 +231,36 @@ export const SandboxMenu = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Debug Section / Trigger Endings */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1 text-cnt-red">
+                  {isZh ? '调试: 触发结局' : 'Debug: Trigger Endings'}
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'CHILDREN_OF_THE_PEOPLE' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '人民之子' : 'Children of the People'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'POPULAR_FRONT' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '人民阵线' : 'Popular Front'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'RUSSIAN_SPAIN' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '俄属西班牙' : 'Russian Spain'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'THE_GREAT_PURGE' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '大清洗' : 'The Great Purge'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'SILENT_REPUBLIC' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '寂静的共和' : 'Silent Republic'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'FOR_WHOM_THE_BELL_TOLLS' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '丧钟为谁而鸣' : 'For Whom the Bell Tolls'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'WE_HAVE_PASSED' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide justify-self-center col-span-2 md:col-span-1 w-full">
+                    {isZh ? '我们已经通过' : 'We Have Passed'}
+                  </button>
                 </div>
               </div>
             </div>

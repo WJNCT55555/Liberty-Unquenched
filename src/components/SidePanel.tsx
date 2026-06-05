@@ -311,7 +311,6 @@ export const SidePanel = () => {
           <StatBar name={isZh ? '军官忠诚' : 'Army Loyalty'} value={state.stats.armyLoyalty} color="bg-green-600" tooltip={isZh ? '军队对共和国的忠诚度' : 'Army Loyalty to Republic'} />
           <StatBar name={isZh ? '革命热情' : 'Revolutionary Fervor'} value={state.stats.revolutionaryFervor} color="bg-cnt-red" tooltip={isZh ? '社会革命的进展' : 'Progress of Social Revolution'} />
           <StatBar name={isZh ? '工人控制度' : 'Worker Control'} value={state.stats.workerControl} color="bg-orange-600" tooltip={isZh ? '工人对工厂和土地的控制' : 'Worker Control of Factories and Land'} />
-          <StatBar name={isZh ? '经济状况' : 'Economy'} value={state.stats.economy} color="bg-yellow-600" tooltip={isZh ? '国家的经济健康度' : 'Economic Health'} />
         </div>
       </AccordionSection>
 
@@ -460,6 +459,7 @@ export const SidePanel = () => {
             <MinisterRow deptKey="justice" nameEn="Justice" nameZh="司法部" party={state.ministers.justice} />
             <MinisterRow deptKey="industry" nameEn="Industry" nameZh="工业部" party={state.ministers.industry} />
             <MinisterRow deptKey="interior" nameEn="Interior" nameZh="内政部" party={state.ministers.interior} />
+            <MinisterRow deptKey="finance" nameEn="Finance" nameZh="财政部" party={state.ministers.finance || 'Right'} />
             <MinisterRow deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'Right'} />
             <MinisterRow deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
           </div>
@@ -488,6 +488,19 @@ export const SidePanel = () => {
               <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '国家财政预算' : 'Gov Budget'}</span>
               <span className={`text-sm font-bold ${(state.budget !== undefined ? state.budget : 12.0) >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
                 {(state.budget !== undefined ? state.budget : 12.0).toFixed(1)}M ₧
+              </span>
+            </div>
+            {/* Extended indicators */}
+            <div className="flex flex-col mt-1 border-t border-ink/5 pt-1">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '黄金/外汇储备' : 'Gold / FX Reserves'}</span>
+              <span className="text-sm font-bold text-amber-800">
+                {(state.gold_reserves ?? 2200).toFixed(0)}M/{(state.foreign_exchange ?? 180).toFixed(0)}M ₧
+              </span>
+            </div>
+            <div className="flex flex-col mt-1 border-t border-ink/5 pt-1">
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '公债规模' : 'Public Debt'}</span>
+              <span className="text-sm font-bold text-slate-700">
+                {(state.public_debt ?? 500.0).toFixed(0)}M ₧
               </span>
             </div>
           </div>
@@ -1200,6 +1213,13 @@ const DEPT_INFO_PACK: Record<string, {
       zh: "农牧业事务及土地改革，决定西班牙境内数百万饥饿的无地日雇农对政权的态度。CNT部长在位时可执行大农场征收。"
     }
   },
+  finance: {
+    name: { en: "Ministry of Finance", zh: "财政部" },
+    focus: { 
+      en: "Oversees public budget, tax rates, tariff levels, and national currency/gold reserves. Excellent for implementing libertarian communist wealth redistribution policies.",
+      zh: "主管国家预算、所得税税率、海陆关税与国家金库/外汇储备。是在财政层面上贯彻自由共产主义、重塑社会分配机制、实现财富再分配的最强工具。"
+    }
+  },
   war: {
     name: { en: "Ministry of War", zh: "战争部 (国防)" },
     focus: { 
@@ -1223,7 +1243,7 @@ const MinisterRow: React.FC<{
   const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
   const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
 
-  const isUpward = ['interior', 'agriculture', 'war'].includes(deptKey);
+  const isUpward = ['interior', 'agriculture', 'war', 'finance'].includes(deptKey);
 
   return (
     <div 

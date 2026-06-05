@@ -8,6 +8,7 @@ import { EventBoard } from './EventBoard';
 export const MainArea = () => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
+  const [selectedDeckForChoice, setSelectedDeckForChoice] = React.useState<'Action' | 'Governmental' | 'Military' | null>(null);
 
   return (
     <div className="flex-1 flex flex-col p-8 relative overflow-y-auto bg-halftone">
@@ -42,10 +43,10 @@ export const MainArea = () => {
             <div className="flex flex-col items-center gap-12 w-full max-w-7xl">
               {/* Decks (Top Layer) */}
               <div className="flex flex-row gap-8 justify-center">
-                <DeckView type="Action" />
-                <DeckView type="Governmental" />
+                <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
+                <DeckView type="Governmental" onSelectOpen={setSelectedDeckForChoice} />
                 {state.civilWarStatus !== 'not_started' && (
-                  <DeckView type="Military" />
+                  <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
                 )}
               </div>
               
@@ -77,6 +78,15 @@ export const MainArea = () => {
             )}
           </motion.div>
         ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedDeckForChoice && (
+          <CardSelectorModal
+            deckType={selectedDeckForChoice}
+            onClose={() => setSelectedDeckForChoice(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -153,7 +163,7 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
   );
 };
 
-const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military' }> = ({ type }) => {
+const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military'; onSelectOpen: (type: 'Action' | 'Governmental' | 'Military') => void }> = ({ type, onSelectOpen }) => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
   const handLimit = state.difficulty === 'hard' ? 3 : 4;
@@ -169,9 +179,17 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military' }> = ({ 
     return "bg-amber-900 border-ink text-paper"; // Military deck color
   };
 
+  const handleClick = () => {
+    if (state.sandboxCardChoiceEnabled) {
+      onSelectOpen(type);
+    } else {
+      dispatch({ type: 'DRAW_CARD', payload: type });
+    }
+  };
+
   return (
     <button
-      onClick={() => dispatch({ type: 'DRAW_CARD', payload: type })}
+      onClick={handleClick}
       disabled={!canDraw}
       className={cn(
         "w-48 aspect-[2/3] border-2 flex flex-col items-center justify-center p-4 transition-all relative overflow-hidden",
@@ -182,7 +200,7 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military' }> = ({ 
       <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]"></div>
       <span className="font-display text-2xl text-center relative z-10 leading-none">{typeName}</span>
       <span className="font-typewriter text-[10px] mt-4 opacity-80 uppercase tracking-widest relative z-10">
-        {isZh ? '点击抽取' : 'Draw Card'}
+        {state.sandboxCardChoiceEnabled ? (isZh ? '自选卡牌' : 'Select Card') : (isZh ? '点击抽取' : 'Draw Card')}
       </span>
     </button>
   );
@@ -244,3 +262,151 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military' }> = ({ 
       </motion.div>
     );
   };
+
+interface CardSelectorModalProps {
+  deckType: 'Action' | 'Governmental' | 'Military';
+  onClose: () => void;
+}
+
+const CardSelectorModal: React.FC<CardSelectorModalProps> = ({ deckType, onClose }) => {
+  const { state, dispatch } = useGame();
+  const isZh = state.language === 'zh';
+  const [search, setSearch] = React.useState('');
+  
+  const deck = deckType === 'Action' 
+    ? state.actionDeck 
+    : deckType === 'Governmental' 
+      ? state.governmentDeck 
+      : state.militaryDeck;
+
+  const filteredCards = deck.filter(c => {
+    const title = (isZh && c.titleZh ? c.titleZh : c.title).toLowerCase();
+    const desc = (isZh && c.descriptionZh ? c.descriptionZh : c.description).toLowerCase();
+    const query = search.toLowerCase();
+    return title.includes(query) || desc.includes(query);
+  });
+
+  const handleSelect = (cardId: string) => {
+    dispatch({ type: 'DRAW_SPECIFIC_CARD', payload: { cardId, deckType } });
+    onClose();
+  };
+
+  const deckName = isZh
+    ? (deckType === 'Action' ? '行动牌库' : deckType === 'Governmental' ? '政府牌库' : '武装牌库')
+    : `${deckType} Deck`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-4 md:p-8"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 10 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 10 }}
+        className="bg-paper text-ink border-print p-6 md:p-8 max-w-5xl w-full relative max-h-[85vh] overflow-y-auto flex flex-col gap-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center border-b-2 border-ink pb-4">
+          <div>
+            <h3 className="font-display text-3xl uppercase text-cnt-red leading-none">
+              {isZh ? `自选卡牌: ${deckName}` : `Select Card: ${deckName}`}
+            </h3>
+            <p className="font-mono text-xs opacity-60 mt-1">
+              {isZh 
+                ? `拥有 ${deck.length} 张可用卡片。手牌槽当前: ${state.hand.length}/${state.difficulty === 'hard' ? 3 : 4}` 
+                : `Contains ${deck.length} available cards. Current hand: ${state.hand.length}/${state.difficulty === 'hard' ? 3 : 4}`}
+            </p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="px-3 py-1 border border-ink hover:bg-ink hover:text-paper font-typewriter text-xs uppercase"
+          >
+            {isZh ? '关闭' : 'Close'}
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="w-full">
+          <input
+            type="text"
+            placeholder={isZh ? '搜索卡牌名称或描述...' : 'Search card name or details...'}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-ink/5 border border-ink p-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-cnt-red"
+          />
+        </div>
+
+        {/* Card Grid */}
+        <div className="flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh] pr-2">
+          {filteredCards.length === 0 ? (
+            <div className="flex items-center justify-center h-48 border border-dashed border-ink/20 font-mono text-sm opacity-60">
+              {isZh ? '没有找到符合搜索条件的卡片' : 'No matching cards found'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredCards.map(card => {
+                const isPlayableNow = state.actionsLeft >= card.cost && 
+                  (card.resourceCost === undefined || state.resources >= card.resourceCost) &&
+                  (card.armamentCost === undefined || state.armaments >= card.armamentCost) &&
+                  (card.condition === undefined || card.condition(state));
+
+                return (
+                  <div
+                    key={card.id}
+                    className={cn(
+                      "bg-paper p-4 border flex flex-col justify-between aspect-[2/3] relative shadow-sm transition-all hover:shadow-md",
+                      card.type === 'Action' ? "border-print-red/60 hover:border-cnt-red" : "border-print/60 hover:border-ink",
+                      state.hand.length >= (state.difficulty === 'hard' ? 3 : 4) && "opacity-75"
+                    )}
+                  >
+                    <div>
+                      {/* Cost and Type */}
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-typewriter text-[9px] uppercase tracking-wider bg-ink text-paper px-1 py-0.5">
+                          {isZh ? (card.type === 'Action' ? '行动' : card.type === 'Military' ? '武装' : '政府') : card.type}
+                        </span>
+                        <div className="text-right flex flex-col font-mono text-[10px]">
+                          <span className="font-bold">{card.cost} AP</span>
+                          {card.condition && (
+                            <span className={cn(
+                              "text-[8px] tracking-wide",
+                              isPlayableNow ? "text-green-700" : "text-cnt-red"
+                            )}>
+                              {isPlayableNow ? (isZh ? '条件合规' : 'Playable') : (isZh ? '条件不满足' : 'Locked')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <h4 className="font-display text-lg uppercase mb-1 leading-tight border-b border-ink/10 pb-1">
+                        {isZh && card.titleZh ? card.titleZh : card.title}
+                      </h4>
+
+                      {/* Description */}
+                      <p className="font-serif text-[11px] leading-snug text-ink/80 max-h-[100px] overflow-y-auto pl-1">
+                        {isZh && card.descriptionZh ? card.descriptionZh : card.description}
+                      </p>
+                    </div>
+
+                    {/* Choose Button */}
+                    <button
+                      onClick={() => handleSelect(card.id)}
+                      className="mt-4 w-full py-1.5 bg-ink text-paper text-center font-typewriter text-[10px] uppercase tracking-widest hover:bg-cnt-red hover:text-paper transition-colors"
+                    >
+                      {isZh ? '选择抽取' : 'Select'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};

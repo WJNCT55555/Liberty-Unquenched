@@ -53,8 +53,7 @@ export const laborAffairs: Card = {
                 stats: {
                   ...s.stats,
                   workerControl: Math.min(100, s.stats.workerControl + 8),
-                  revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5),
-                  economy: Math.max(0, s.stats.economy - 5)
+                  revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5)
                 }
               };
             }
@@ -89,8 +88,7 @@ export const laborAffairs: Card = {
                 stats: {
                   ...s.stats,
                   popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 8),
-                  revolutionaryFervor: Math.max(0, s.stats.revolutionaryFervor - 5),
-                  economy: Math.min(100, s.stats.economy + 4)
+                  revolutionaryFervor: Math.max(0, s.stats.revolutionaryFervor - 5)
                 }
               };
             }
@@ -123,8 +121,7 @@ export const laborAffairs: Card = {
                 factions: newFactions,
                 stats: {
                   ...s.stats,
-                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 4),
-                  economy: Math.min(100, s.stats.economy + 2)
+                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 4)
                 }
               };
             }

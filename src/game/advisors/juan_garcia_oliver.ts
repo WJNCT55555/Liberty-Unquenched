@@ -48,8 +48,7 @@ export const juanGarciaOliver: Advisor = {
         armaments: state.armaments + 15,
         stats: {
           ...state.stats,
-          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 10),
-          economy: Math.max(0, state.stats.economy - 5)
+          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 10)
         }
       }),
       description: 'The workers must be armed to defend the revolution against both fascists and reactionaries.',

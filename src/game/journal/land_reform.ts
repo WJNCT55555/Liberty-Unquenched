@@ -8,8 +8,8 @@ export const landReformJournal: JournalEntryDef = {
   descriptionZh: '土地所有权集中在大地主手中是贫困和动荡的主要根源。我们必须将土地重新分配给雇农（braceros）和农夫（labradores），否则将面临持续的农业罢工和农村暴力。',
   successCondition: 'Land Reform Progress reaches 100%',
   successConditionZh: '土地改革进度达到 100%',
-  successEffectDesc: 'Worker Control +10, Economy +5',
-  successEffectDescZh: '工人控制度 +10，经济 +5',
+  successEffectDesc: 'Worker Control +10',
+  successEffectDescZh: '工人控制度 +10',
   failureCondition: 'Failure progress reaches 100%',
   failureConditionZh: '土地改革失败进度达到 100%',
   failureEffectDesc: 'Worker Control -10',
@@ -41,7 +41,6 @@ export const landReformJournal: JournalEntryDef = {
     stats: {
       ...state.stats,
       workerControl: Math.min(100, state.stats.workerControl + 10),
-      economy: Math.min(100, state.stats.economy + 5),
       revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10)
     }
   }),

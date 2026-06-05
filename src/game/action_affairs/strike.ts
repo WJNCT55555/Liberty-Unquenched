@@ -41,10 +41,10 @@ export const strike: Card = {
           }
         },
         {
-          text: 'A full general strike (+15 Worker Control, +10 Revolutionary Fervor, -5 Economy, +5 Faistas Influence)',
-          textZh: '全面总罢工 (+15 工人控制, +10 革命热情, -5 经济, +5 无政府派影响力)',
-          subtitle: 'Paralyze the economy and mobilize the entire working class for revolution.',
-          subtitleZh: '瘫痪经济，动员整个工人阶级投身革命，这将极大增强无政府派的影响力。',
+          text: 'A full general strike (+15 Worker Control, +10 Revolutionary Fervor, +5 Faistas Influence)',
+          textZh: '全面总罢工 (+15 工人控制, +10 革命热情, +5 无政府派影响力)',
+          subtitle: 'Mobilize the entire working class for revolution.',
+          subtitleZh: '动员整个工人阶级投身革命，这将极大增强无政府派的影响力。',
           effect: (s) => {
             const overallDissent = 
               (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
@@ -57,7 +57,6 @@ export const strike: Card = {
                 ...s.stats,
                 workerControl: Math.min(100, s.stats.workerControl + 15),
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10 * multiplier),
-                economy: Math.max(0, s.stats.economy - 5),
               },
               factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
             };
@@ -94,8 +93,8 @@ export const strike: Card = {
           }
         },
         {
-          text: 'Strike to advance workers\' rights (+10 Worker Control, +5 Working-Class Support, -3 Economy)',
-          textZh: '推动工人权利的罢工 (+10 工人控制度, +5 工人与农民对CNT-FAI支持度, -3 经济)',
+          text: 'Strike to advance workers\' rights (+10 Worker Control, +5 Working-Class Support)',
+          textZh: '推动工人权利的罢工 (+10 工人控制度, +5 工人与农民对CNT-FAI支持度)',
           subtitle: 'Focus the strike on concrete economic and workplace demands: higher wages, safety standards, and shorter hours.',
           subtitleZh: '将罢工重点放在具体的经济和工作场所诉求上：更高的薪资、安全标准和缩短工时。',
           effect: (s) => {
@@ -112,7 +111,6 @@ export const strike: Card = {
               stats: {
                 ...s.stats,
                 workerControl: Math.min(100, s.stats.workerControl + 10),
-                economy: Math.max(0, s.stats.economy - 3),
               }
             };
           }

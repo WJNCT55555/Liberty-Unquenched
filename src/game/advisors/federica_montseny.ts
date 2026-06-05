@@ -28,8 +28,7 @@ export const federicaMontseny: Advisor = {
           classes: newClasses,
           stats: {
             ...state.stats,
-            popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 5),
-            economy: Math.min(100, state.stats.economy + 5)
+            popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 5)
           }
         };
       },

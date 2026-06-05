@@ -31,25 +31,7 @@ export const angelPestana: Advisor = {
       description: 'By engaging in dialogue with moderate republicans, we have secured better conditions for our unions, though purists decry this as class collaboration.',
       descriptionZh: '通过与温和的共和派对话，我们为工会争取到了更好的条件，尽管纯粹主义者谴责这是阶级合作。',
     },
-    {
-      id: 'moderate_syndicalism',
-      title: 'Moderate Syndicalism',
-      titleZh: '温和工团主义',
-      subtitle: 'Focus on gradual economic gains.',
-      subtitleZh: '专注于渐进的经济收益。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          economy: Math.min(100, state.stats.economy + 10),
-        }
-      }),
-      description: 'We must prioritize the economic well-being of the workers over immediate revolution.',
-      descriptionZh: '我们必须把工人的经济福祉放在首位，而不是立即进行革命。',
-    },
+
     {
       id: 'strengthen_treintistas',
       title: 'Strengthen the Treintistas',

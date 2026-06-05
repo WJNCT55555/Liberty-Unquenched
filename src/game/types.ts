@@ -145,18 +145,26 @@ export interface GameState {
   agricultural_policy_timer: number;
   labor_rights_timer: number;
   labor_affairs_timer: number;
+  fiscal_policy_timer: number;
   
   coupProgress: number;
 
   economy_growth: number;
   inflation_rate: number;
   unemployment_rate: number;
+  economyHistory?: { growth: number; inflation: number; unemployment: number; month: number; year: number }[];
   budget: number;
   tax_lower_class: number;
   tax_middle_class: number;
   tax_upper_class: number;
   tax_tariff: number;
   tax_consumption: number;
+  gold_reserves: number;
+  foreign_exchange: number;
+  public_debt: number;
+  war_bonds: number;
+  military_spending: number;
+  land_reform_compensation: number;
 
   workersAllianceProgress: number;
   cntVotingRate: number;
@@ -164,6 +172,7 @@ export interface GameState {
   prrevs_formed_months: number;
   prrevsConstructionLevel: number;
   isCNTInGovernment: boolean;
+  sandboxCardChoiceEnabled?: boolean;
 
   ateneos_established: number;
   fijl_established: boolean;
@@ -190,6 +199,12 @@ export interface GameState {
   leverage: number;
   agriculture_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   labor_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
+  finance_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+  temp_tax_lower?: number;
+  temp_tax_middle?: number;
+  temp_tax_upper?: number;
+  temp_tax_tariff?: number;
+  temp_tax_consumption?: number;
   ministers: {
     labor: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     health: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
@@ -198,6 +213,7 @@ export interface GameState {
     interior: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     war: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     agriculture: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+    finance?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   };
 
   factions: Record<Faction, { influence: number; dissent: number }>;

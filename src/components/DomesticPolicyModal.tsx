@@ -173,7 +173,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
               <div className="flex-1 border-r-0 md:border-r-2 border-ink border-opacity-30 p-6 overflow-y-auto flex flex-col gap-6">
                 <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
                   <Hammer className="w-6 h-6 text-ink-light" />
-                  {isZh ? '经济法案 (Economy)' : 'Economy'}
+                  {isZh ? '经济法律' : 'Economy'}
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.economy.map((policy) => {
@@ -184,28 +184,57 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                       <button
                         key={policy.id}
                         onClick={() => setActivePolicy(policy)}
-                        className="text-left p-4 border border-ink transition-all flex flex-col gap-2 bg-transparent hover:bg-ink hover:text-paper group"
+                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-transparent hover:bg-ink hover:text-paper group"
                       >
-                        <div className="flex justify-between items-center w-full">
-                          <span className="font-bold font-typewriter text-lg group-hover:text-paper">{isZh ? policy.name.zh : policy.name.en}</span>
-                          <div className="flex gap-1">
-                            {policy.levels.map((lvl) => (
-                              <div 
-                                key={lvl.level} 
-                                className={`w-3 h-3 rounded-full border border-ink/20 ${
-                                  lvl.level === currentValue 
-                                    ? 'bg-cnt-red group-hover:bg-paper' 
-                                    : (lvl.level < currentValue 
-                                        ? 'bg-ink/40 group-hover:bg-paper/40'
-                                        : 'bg-transparent group-hover:bg-paper/10')
-                                }`}
-                              />
-                            ))}
+                        {/* Current Law Icon on Left */}
+                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
+                          <img 
+                            src={`/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
+                            referrerPolicy="no-referrer"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ display: 'none' }}
+                            onLoad={(e) => {
+                              e.currentTarget.style.display = 'block';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'none';
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
+                            {policy.icon}
                           </div>
                         </div>
-                        <span className="text-sm font-medium text-ink-light group-hover:text-paper/80">
-                          {isZh ? currentLevelName?.zh : currentLevelName?.en}
-                        </span>
+
+                        {/* Content on Right */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div className="flex justify-between items-center w-full">
+                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
+                              {isZh ? policy.name.zh : policy.name.en}
+                            </span>
+                            <div className="flex gap-1 flex-shrink-0 ml-2">
+                              {policy.levels.map((lvl) => (
+                                <div 
+                                  key={lvl.level} 
+                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
+                                    lvl.level === currentValue 
+                                      ? 'bg-cnt-red group-hover:bg-paper' 
+                                      : (lvl.level < currentValue 
+                                          ? 'bg-ink/40 group-hover:bg-paper/40'
+                                          : 'bg-transparent group-hover:bg-paper/10')
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
+                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
@@ -216,7 +245,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
               <div className="flex-1 border-r-0 md:border-r-2 border-ink border-opacity-30 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
                 <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
                   <Book className="w-6 h-6 text-ink-light" />
-                  {isZh ? '社会法案 (Society)' : 'Society'}
+                  {isZh ? '社会法律' : 'Society'}
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.society.map((policy) => {
@@ -227,28 +256,57 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                       <button
                         key={policy.id}
                         onClick={() => setActivePolicy(policy)}
-                        className="text-left p-4 border border-ink transition-all flex flex-col gap-2 bg-paper hover:bg-ink hover:text-paper group shadow-sm"
+                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-paper hover:bg-ink hover:text-paper group shadow-sm"
                       >
-                        <div className="flex justify-between items-center w-full">
-                          <span className="font-bold font-typewriter text-lg group-hover:text-paper">{isZh ? policy.name.zh : policy.name.en}</span>
-                          <div className="flex gap-1">
-                            {policy.levels.map((lvl) => (
-                              <div 
-                                key={lvl.level} 
-                                className={`w-3 h-3 rounded-full border border-ink/20 ${
-                                  lvl.level === currentValue 
-                                    ? 'bg-cnt-red group-hover:bg-paper' 
-                                    : (lvl.level < currentValue 
-                                        ? 'bg-ink/40 group-hover:bg-paper/40'
-                                        : 'bg-transparent group-hover:bg-paper/10')
-                                }`}
-                              />
-                            ))}
+                        {/* Current Law Icon on Left */}
+                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
+                          <img 
+                            src={`/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
+                            referrerPolicy="no-referrer"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ display: 'none' }}
+                            onLoad={(e) => {
+                              e.currentTarget.style.display = 'block';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'none';
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
+                            {policy.icon}
                           </div>
                         </div>
-                        <span className="text-sm font-medium text-ink-light group-hover:text-paper/80">
-                          {isZh ? currentLevelName?.zh : currentLevelName?.en}
-                        </span>
+
+                        {/* Content on Right */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div className="flex justify-between items-center w-full">
+                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
+                              {isZh ? policy.name.zh : policy.name.en}
+                            </span>
+                            <div className="flex gap-1 flex-shrink-0 ml-2">
+                              {policy.levels.map((lvl) => (
+                                <div 
+                                  key={lvl.level} 
+                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
+                                    lvl.level === currentValue 
+                                      ? 'bg-cnt-red group-hover:bg-paper' 
+                                      : (lvl.level < currentValue 
+                                          ? 'bg-ink/40 group-hover:bg-paper/40'
+                                          : 'bg-transparent group-hover:bg-paper/10')
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
+                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
@@ -259,7 +317,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
               <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-paper">
                 <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
                   <BookOpen className="w-6 h-6 text-ink-light" />
-                  {isZh ? '法案与法令 (Bills)' : 'Bills & Acts'}
+                  {isZh ? '政策法令' : 'Bills'}
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div className={`p-4 border-2 flex flex-col gap-2 relative transition-all ${
@@ -283,7 +341,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                     </div>
                     <p className="text-xs text-ink/70 leading-relaxed font-sans mt-1">
                       {isZh 
-                        ? '旨在促进农村闲置土地及大地主未开发土地的征收和分配。该法案一旦正式签署启用，每个月将自动为土地改革进度+1%，提供稳定的土地社会化进程。' 
+                        ? '旨在促进农村闲置土地及大地主未开发土地的征收和分配，提供稳定的土地社会化进程。启用效果：每个月土地改革进度+1%。' 
                         : 'Organizes expropriation and fair allocation of unused agricultural estates. Once enacted, it automatically adds 1 point (1%) to Land Reform progress each month.'}
                     </p>
                     <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
@@ -321,7 +379,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                     </div>
                     <p className="text-xs text-ink/70 leading-relaxed font-sans mt-1">
                       {isZh 
-                        ? '旨在促进雇主与工人之间纠纷调解，规制待遇并保障其执行。法案启用后使革命狂热每月 -1。若遭到 CNT 抵制，则将长线削弱 CNT 在产业工人中的支持，转移至社会党 (PSOE)。' 
+                        ? '旨在促进雇主与工人之间纠纷调解，规制待遇并保障其执行。启用效果：革命狂热每月 -1。（若遭到 CNT 抵制，则将削弱 CNT 在产业工人中的支持，并使工人逐渐支持至工人社会党。' 
                         : 'Resolves disputes between workers and employers, and regulates wages, hours, and dismissals. Active effect decreases revolutionary fervor by 1 per month, and gradually erodes CNT support among workers if opposed by the union.'}
                     </p>
                     <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
@@ -377,7 +435,31 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         }`}
                       >
                         <div className="mt-1 flex-shrink-0 relative">
-                          <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center font-bold text-lg bg-paper ${
+                          <div className="relative w-14 h-14 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm">
+                            <img 
+                              src={`/Law/${lvl.name.en}.png`}
+                              alt={lvl.name.en}
+                              referrerPolicy="no-referrer"
+                              className="absolute inset-0 w-full h-full object-cover"
+                              style={{ display: 'none' }}
+                              onLoad={(e) => {
+                                e.currentTarget.style.display = 'block';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'none';
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="flex items-center justify-center text-ink/40 w-full h-full">
+                              {activePolicy.icon}
+                            </div>
+                          </div>
+                          
+                          {/* Level badge */}
+                          <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center font-bold text-xs bg-paper ${
                             isCurrent ? 'border-cnt-red text-cnt-red shadow-sm' : 'border-ink/20 text-ink-light'
                           }`}>
                             {lvl.level}

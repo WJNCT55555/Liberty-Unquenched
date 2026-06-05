@@ -73,7 +73,6 @@ export const agriculturalPolicy: Card = {
                 },
                 stats: {
                   ...s.stats,
-                  economy: Math.min(100, s.stats.economy + 5),
                   popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 4)
                 }
               };
