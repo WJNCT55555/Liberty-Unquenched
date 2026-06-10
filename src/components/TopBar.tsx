@@ -80,7 +80,6 @@ export const TopBar = () => {
 
         <div className="flex items-center gap-4 md:gap-8 font-typewriter text-sm overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto justify-start lg:justify-end hide-scrollbar">
           <div className="flex gap-4 md:gap-6">
-            <StatItem icon={<Coins className="w-4 h-4 opacity-70" />} label={isZh ? '经济' : 'Economy'} value={state.stats.economy} />
             <StatItem icon={<Factory className="w-4 h-4 opacity-70" />} label={isZh ? '工人控制' : 'Worker Control'} value={state.stats.workerControl} />
           </div>
           

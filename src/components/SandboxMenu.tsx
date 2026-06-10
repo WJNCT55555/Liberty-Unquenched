@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../game/GameContext';
 import { X, Plus, Minus } from 'lucide-react';
 import { Faction } from '../game/types';
+import { COALITION_DEFS } from '../game/coalitions';
+import { formCoalition } from '../game/utils/coalition';
 
 export const SandboxMenu = () => {
   const { state, dispatch } = useGame();
@@ -231,6 +233,144 @@ export const SandboxMenu = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Coalition Sandbox Controls */}
+              <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '调试: 执政联盟' : 'Debug: Alliances & Coalitions'}
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Coalition selectors */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-ink/70">
+                      {isZh ? '强行组建联盟' : 'Force Coalition Formation'}
+                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      {COALITION_DEFS.map(def => (
+                        <button 
+                          key={def.id}
+                          onClick={() => {
+                            const res = formCoalition(state, def.id);
+                            dispatch({ type: 'SANDBOX_EDIT', payload: res });
+                          }}
+                          className={`p-2 border text-[11px] font-mono text-left uppercase tracking-wide hover:bg-ink hover:text-paper transition-all ${
+                            state.activeCoalition?.activeId === def.id ? 'bg-ink text-paper border-ink font-bold' : 'border-ink bg-transparent'
+                          }`}
+                        >
+                          {isZh ? def.nameZh : def.name}
+                        </button>
+                      ))}
+                      {state.activeCoalition && (
+                        <button 
+                          onClick={() => {
+                            dispatch({ type: 'SANDBOX_EDIT', payload: { activeCoalition: null } });
+                          }}
+                          className="p-2 border border-dashed border-cnt-red text-[11px] font-mono text-center uppercase tracking-wide text-cnt-red hover:bg-cnt-red hover:text-paper hover:border-solid transition-all mt-1"
+                        >
+                          {isZh ? '解散当前联盟' : 'Dissolve Current Coalition'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Active Coalition Attributes */}
+                  <div className="flex flex-col gap-3 bg-ink/5 p-3 rounded-sm text-xs font-typewriter">
+                    <span className="font-bold border-b border-ink/10 pb-1 mb-1">
+                      {isZh ? '活跃联盟微调' : 'Active Alliance Parameters'}
+                    </span>
+
+                    {state.activeCoalition ? (
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex justify-between">
+                            <span>{isZh ? '联盟团结度 (0-100)' : 'Cohesion (0-100)'}</span>
+                            <span className="font-bold">{state.activeCoalition.cohesion}%</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="0" max="100"
+                            value={state.activeCoalition.cohesion}
+                            onChange={(e) => {
+                              const cohesionVal = parseInt(e.target.value);
+                              dispatch({ 
+                                type: 'SANDBOX_EDIT', 
+                                payload: { 
+                                  activeCoalition: { 
+                                    ...state.activeCoalition!, 
+                                    cohesion: cohesionVal 
+                                  } 
+                                } 
+                              });
+                            }}
+                            className="w-full accent-cnt-red"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <div className="flex justify-between">
+                            <span>{isZh ? '对CNT态度 (进度条: 0-100)' : 'CNT Attitude (Bar scale: 0-100)'}</span>
+                            <span className="font-bold">{state.activeCoalition.cntAttitude} (➡️ {Math.round((state.activeCoalition.cntAttitude + 100) / 2)}/100)</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-100" max="100"
+                            value={state.activeCoalition.cntAttitude}
+                            onChange={(e) => {
+                              const attVal = parseInt(e.target.value);
+                              dispatch({ 
+                                type: 'SANDBOX_EDIT', 
+                                payload: { 
+                                  activeCoalition: { 
+                                    ...state.activeCoalition!, 
+                                    cntAttitude: attVal 
+                                  } 
+                                } 
+                              });
+                            }}
+                            className="w-full accent-cnt-red"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 border-t border-ink/10 pt-2 mt-1">
+                          <span className="text-[10px] font-bold text-ink-light uppercase">
+                            {isZh ? '切换CNT工会立场 (反对/合作/执政)' : 'CNT Factions Stance'}
+                          </span>
+                          <div className="grid grid-cols-3 gap-1">
+                            {['oppose', 'cooperate', 'govern'].map(stance => (
+                              <button
+                                key={stance}
+                                onClick={() => {
+                                  dispatch({
+                                    type: 'SANDBOX_EDIT',
+                                    payload: {
+                                      activeCoalition: {
+                                        ...state.activeCoalition!,
+                                        cntStance: stance as any
+                                      }
+                                    }
+                                  });
+                                }}
+                                className={`py-1 text-[10px] font-bold uppercase rounded-sm border ${
+                                  state.activeCoalition?.cntStance === stance
+                                    ? 'bg-ink text-paper border-ink'
+                                    : 'bg-transparent border-ink/30 hover:bg-ink/5'
+                                }`}
+                              >
+                                {stance}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-28 text-ink/40 text-center uppercase tracking-wider text-[10px] leading-relaxed">
+                        {isZh ? '当前无活跃执政党联盟\n请在左侧强制组建一个。' : 'No active coalition.\nSelect one from the left to start fine-tuning.'}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

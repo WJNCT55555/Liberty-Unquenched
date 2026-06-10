@@ -12,8 +12,8 @@ export const iberianDreamJournal: JournalEntryDef = {
   successEffectDescZh: '共和国权威 +15',
   failureCondition: 'Full civil war breaks out',
   failureConditionZh: '全面内战爆发',
-  failureEffectDesc: 'The dream is shattered, Popular Front Unity -10',
-  failureEffectDescZh: '梦想破灭，人民阵线团结度 -10',
+  failureEffectDesc: 'The dream is shattered',
+  failureEffectDescZh: '梦想破灭',
   hasProgress: true,
   progressMax: 100,
   getProgress: (state) => state.covert_ops_portugal,
@@ -42,8 +42,7 @@ export const iberianDreamJournal: JournalEntryDef = {
   
   onFail: (state) => ({
     stats: {
-      ...state.stats,
-      popularFrontUnity: Math.max(0, state.stats.popularFrontUnity - 10)
+      ...state.stats
     }
   }),
 

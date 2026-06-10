@@ -17,8 +17,8 @@ export const AdvisorPanel = () => {
     Treintistas: '三十人集团',
     Cenetistas: '工团派',
     Faistas: '无政府主义者',
-    AmigosDeDurruti: '杜鲁蒂之友',
-    Puristas: '纯粹派'
+    Puristas: '纯粹派',
+    Jabalistas: '野猪议员'
   };
 
   const handleActionClick = (action: AdvisorAction) => {
@@ -61,9 +61,11 @@ export const AdvisorPanel = () => {
               {advisor ? (
                 <>
                   {/* Faction Stamp */}
-                  <div className="absolute -top-2 -left-2 bg-ink text-paper text-[8px] font-typewriter px-1.5 py-0.5 border border-ink shadow-[2px_2px_0px_0px_rgba(204,0,0,1)] z-20 transform -rotate-6">
-                    {isZh ? factionNames[advisor.faction] : advisor.faction}
-                  </div>
+                  {advisor.faction !== 'None' && (
+                    <div className="absolute -top-2 -left-2 bg-ink text-paper text-[8px] font-typewriter px-1.5 py-0.5 border border-ink shadow-[2px_2px_0px_0px_rgba(204,0,0,1)] z-20 transform -rotate-6">
+                      {isZh ? factionNames[advisor.faction] : advisor.faction}
+                    </div>
+                  )}
 
                   <button 
                     onClick={(e) => {
@@ -176,9 +178,11 @@ export const AdvisorPanel = () => {
                     }}
                   >
                     {/* Faction Badge */}
-                    <div className="absolute top-0 right-0 bg-ink text-paper text-[10px] font-typewriter px-2 py-1 border-b-2 border-l-2 border-ink">
-                      {isZh ? factionNames[advisor.faction] : advisor.faction}
-                    </div>
+                    {advisor.faction !== 'None' && (
+                      <div className="absolute top-0 right-0 bg-ink text-paper text-[10px] font-typewriter px-2 py-1 border-b-2 border-l-2 border-ink">
+                        {isZh ? factionNames[advisor.faction] : advisor.faction}
+                      </div>
+                    )}
 
                     <div className="flex gap-4 mb-3">
                       {advisor.image && (

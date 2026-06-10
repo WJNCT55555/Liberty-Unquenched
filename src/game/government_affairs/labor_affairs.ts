@@ -87,7 +87,6 @@ export const laborAffairs: Card = {
                 factions: newFactions,
                 stats: {
                   ...s.stats,
-                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 8),
                   revolutionaryFervor: Math.max(0, s.stats.revolutionaryFervor - 5)
                 }
               };
@@ -120,8 +119,7 @@ export const laborAffairs: Card = {
                 classes: newClasses,
                 factions: newFactions,
                 stats: {
-                  ...s.stats,
-                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 4)
+                  ...s.stats
                 }
               };
             }

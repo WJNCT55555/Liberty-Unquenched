@@ -23,7 +23,6 @@ export const buenaventuraDurruti: Advisor = {
         stats: {
           ...state.stats,
           anarchistMilitia: state.stats.anarchistMilitia + 15,
-          popularFrontUnity: state.stats.popularFrontUnity - 3,
         }
       }),
       description: 'We have expanded the anarchist militias in Aragon and Catalonia. While this bolsters the fight against Franco, it creates friction with Republican government forces who demand centralized command.',

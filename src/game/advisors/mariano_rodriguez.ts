@@ -48,7 +48,6 @@ export const marianoRodriguez: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 10),
           revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5)
         },
         partyRelations: {

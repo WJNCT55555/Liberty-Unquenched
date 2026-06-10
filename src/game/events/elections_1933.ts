@@ -30,8 +30,7 @@ export const elections1933: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Faistas', 15),
           stats: { 
             ...state.stats, 
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15),
-            popularFrontUnity: Math.max(0, state.stats.popularFrontUnity - 15)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15)
           },
           pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents]
         };
@@ -53,8 +52,7 @@ export const elections1933: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Treintistas', 10),
           stats: { 
             ...state.stats, 
-            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10),
-            popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 10)
+            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10)
           },
           pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents]
         };
@@ -82,14 +80,16 @@ export const elections1933Results: GameEvent = {
       PSOE: { en: 'PSOE', zh: '工人社会党' },
       IR: { en: 'IR', zh: '共和左翼' },
       UR: { en: 'UR', zh: '共和联盟' },
-      PCE: { en: 'PCE', zh: '共产党' },
+      PCE: { en: 'PCE', zh: '西班牙共产党' },
       PS: { en: 'PS', zh: '工团主义党' },
       FE: { en: 'FE', zh: '长枪党' },
       POUM: { en: 'POUM', zh: '马统工党' },
-      AP: { en: 'CEDA', zh: 'CEDA' }, // In 1933 AP is part of CEDA
+      AP: { en: 'CEDA', zh: '西班牙自治右翼联盟' }, // In 1933 AP is part of CEDA
       CT: { en: 'CT', zh: '传统主义者' },
       RE: { en: 'RE', zh: '西班牙革新' },
       DLR: { en: 'PRR', zh: '激进党' }, // Merged PRR logic with DLR for simplicity
+      PRR: { en: 'PRR', zh: '共和激进党 (勒鲁派)' },
+      ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
       Other: { en: 'Other', zh: '其他' }
     };
 

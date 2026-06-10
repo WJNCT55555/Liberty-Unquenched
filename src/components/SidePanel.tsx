@@ -2,11 +2,12 @@ import React from 'react';
 import { useGame } from '../game/GameContext';
 import { Faction, Party, SocialClass, GameState } from '../game/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { MapView } from './map/MapView';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
 import { EconomyModal } from './EconomyModal';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
+import { COALITION_DEFS } from '../game/coalitions';
+import { getPartySupport, updateCoalitionState } from '../game/utils/coalition';
 
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
   let totalSupport = 0;
@@ -65,6 +66,8 @@ export const SidePanel = () => {
     CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
     RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
     DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
+    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
+    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
     Other: { en: 'Other', zh: '其他' }
   };
 
@@ -163,15 +166,10 @@ export const SidePanel = () => {
     CT: { en: 'Traditionalist and Carlist party, deeply conservative.', zh: '传统主义与卡洛斯派政党，极其保守。' },
     RE: { en: 'Monarchist party, seeking to restore the King.', zh: '君主主义政党，寻求恢复国王。' },
     DLR: { en: 'Conservative Republican party, defending property and order.', zh: '保守共和政党，捍卫财产与秩序。' },
+    PRR: { en: 'Centrist Republican party, pursuing moderate reforms under the Republic.', zh: '中间派共和政党，主张在共和国框架下进行温和改革。' },
+    ERC: { en: 'Catalan center-left nationalist party, friendly but prioritizes Catalan autonomy.', zh: '加泰罗尼亚中左翼民族主义政党，态度友好，但优先保障加泰罗尼亚自治。' },
     Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' }
   };
-
-  const popularFrontPieData = [
-    { name: 'PCE', value: state.popularFrontFactions.pce, color: '#dc2626' }, // red-600
-    { name: 'PSOE', value: state.popularFrontFactions.psoe, color: '#ea580c' }, // orange-600
-    { name: 'IR', value: state.popularFrontFactions.ir, color: '#2563eb' }, // blue-600
-    { name: 'UR', value: state.popularFrontFactions.ur, color: '#0284c7' }, // sky-600
-  ];
 
   const getNationalisationText = (val: number, isZh: boolean) => {
     if (val === 0) return isZh ? '不存在' : 'None';
@@ -274,22 +272,27 @@ export const SidePanel = () => {
             </div>
             {/* Map View Button */}
             <button 
-              onClick={() => setIsMapOpen(true)}
-              className="w-full py-2 border border-ink bg-ink/5 hover:bg-ink/10 text-xs font-bold uppercase tracking-wider transition-colors"
+              disabled
+              className="w-full py-2 border border-ink/20 bg-ink/5 text-ink-light/40 text-xs font-bold uppercase tracking-wider cursor-not-allowed transition-colors"
             >
-              {isZh ? '查看地图' : 'View Map'}
+              {isZh ? '查看地图 (暂未开放)' : 'View Map (Offline)'}
             </button>
           </div>
         </AccordionSection>
       ) : (
         <AccordionSection title={isZh ? '西班牙地图' : 'Spain Map'} defaultOpen={true}>
           <div className="flex flex-col gap-4">
+            <div className="text-xs font-mono text-ink-light leading-relaxed">
+              {isZh 
+                ? '局势风起云涌。内战爆发后将实装战区划分与阵线对决图景。' 
+                : 'The situation is volatile. Regional sectors and frontlines will be fully simulated upon civil war onset.'}
+            </div>
             {/* Map View Button */}
             <button 
-              onClick={() => setIsMapOpen(true)}
-              className="w-full py-2 border border-ink bg-ink/5 hover:bg-ink/10 text-xs font-bold uppercase tracking-wider transition-colors animate-pulse"
+              disabled
+              className="w-full py-2 border border-ink/20 bg-ink/5 text-ink-light/40 text-xs font-bold uppercase tracking-wider cursor-not-allowed"
             >
-              {isZh ? '查看地图' : 'View Map'}
+              {isZh ? '查看地图 (暂未开放)' : 'View Map (Offline)'}
             </button>
           </div>
         </AccordionSection>
@@ -316,6 +319,36 @@ export const SidePanel = () => {
 
       <AccordionSection title={isZh ? '国内政治' : 'Domestic Politics'} defaultOpen={true}>
         <div className="flex flex-col gap-2 text-xs font-mono">
+          {/* CNT工委会方针 (Placed above government composition) */}
+          {state.activeCoalition && (() => {
+            const activeCoalition = updateCoalitionState(state) || state.activeCoalition;
+            const stanceLabels: Record<string, { en: string; zh: string }> = {
+              oppose: { en: 'Oppose', zh: '反对' },
+              cooperate: { en: 'Cooperate', zh: '合作' },
+              govern: { en: 'Govern', zh: '执政' }
+            };
+            const stanceText = isZh ? stanceLabels[activeCoalition.cntStance]?.zh : stanceLabels[activeCoalition.cntStance]?.en;
+            return (
+              <div className="flex justify-between items-center bg-paper-dark border border-ink/20 p-2 relative overflow-hidden mb-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-typewriter text-[9px] uppercase tracking-wider text-ink-light leading-none">
+                    {isZh ? 'CNT工委会方针' : 'CNT-FAI DIRECTIVE'}
+                  </span>
+                  <span className="text-[8px] font-typewriter text-ink-light/50">
+                    {isZh ? '决定联盟执政地位' : 'Directs state legal authority'}
+                  </span>
+                </div>
+                <div className={`px-2 py-0.5 font-display text-[10px] uppercase border-2 font-bold rotate-[-1deg] shadow-[1px_1px_0px_#1a1a1a] transition-all duration-300 ${
+                  activeCoalition.cntStance === 'govern' ? 'bg-paper text-emerald-800 border-emerald-800' :
+                  activeCoalition.cntStance === 'cooperate' ? 'bg-paper text-indigo-950 border-indigo-950' :
+                  'bg-paper text-cnt-red border-cnt-red animate-pulse'
+                }`}>
+                  {stanceText}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="flex justify-between items-center border-b border-ink/20 pb-1">
             <span className="text-ink-light">{isZh ? '政府构成' : 'Government'}</span>
             <span className="font-bold">{isZh ? state.government.typeZh : state.government.type}</span>
@@ -328,7 +361,122 @@ export const SidePanel = () => {
             <span className="text-ink-light">{isZh ? '总理' : 'PM'}</span>
             <span>{isZh ? state.government.primeMinisterZh : state.government.primeMinister}</span>
           </div>
-          
+
+          {/* Active Coalition Details Pane (Inside domestic politics, placed under government info) */}
+          {state.activeCoalition && (() => {
+            const activeCoalition = updateCoalitionState(state) || state.activeCoalition;
+            const def = COALITION_DEFS.find(d => d.id === activeCoalition.activeId);
+            if (!def) return null;
+
+            const coalitionName = isZh ? def.nameZh : def.name;
+            const docStamp = isZh ? "【 西班牙内阁执政联盟公署 】" : "《 COMPROMISO DE COALICION GENERAL 》";
+
+            return (
+              <div className="flex flex-col gap-2.5 font-typewriter text-xs bg-paper-dark border border-ink/20 p-2.5 relative overflow-hidden my-3">
+                {/* Document Header Seal / Decorative */}
+                <div className="text-center text-[9px] tracking-widest font-bold text-ink/75 border-b border-ink/15 pb-2 select-none">
+                  {docStamp}
+                </div>
+
+                {/* Cohesion gauge with radial dots (halftone) and classic scale reference */}
+                <div className="flex flex-col gap-1 pb-1.5 border-b border-ink/10">
+                  <div className="flex justify-between font-typewriter text-[9px] uppercase tracking-wider text-ink-light">
+                    <span>{isZh ? '政党联盟团结度' : 'Coalition Cohesion'}</span>
+                    <span className="font-bold text-ink">{activeCoalition.cohesion}/100</span>
+                  </div>
+                  <div className="h-3 w-full border border-ink/20 bg-paper relative overflow-hidden">
+                    <div 
+                      className="h-full bg-ink bg-halftone transition-all duration-1000" 
+                      style={{ width: `${activeCoalition.cohesion}%` }}
+                      title={isZh ? `政党联盟团结度: ${activeCoalition.cohesion}` : `Coalition cohesion factor: ${activeCoalition.cohesion}`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[7px] font-typewriter text-ink-light/70 uppercase leading-none mt-0.5 select-none">
+                    <span>[0 DISSOLVED]</span>
+                    <span>[50 SECURE]</span>
+                    <span>[100 STEADFAST]</span>
+                  </div>
+                </div>
+
+                {/* Attitude to CNT: 0-100 progress bar */}
+                <div className="flex flex-col gap-1 pb-1.5 border-b border-ink/10">
+                  <div className="flex justify-between font-typewriter text-[9px] uppercase tracking-wider text-ink-light">
+                    <span>{isZh ? '联盟对CNT的态度' : 'Coalition\'s Attitude to CNT'}</span>
+                    <span className={`font-bold ${
+                      activeCoalition.cntAttitude >= 35 ? 'text-green-700' : 
+                      activeCoalition.cntAttitude <= -30 ? 'text-cnt-red font-extrabold animate-pulse' : 
+                      'text-ink'
+                    }`}>
+                      {Math.round((activeCoalition.cntAttitude + 100) / 2)}/100
+                    </span>
+                  </div>
+                  
+                  {/* Progress bar from 0 to 100 */}
+                  <div className="h-3 w-full border border-ink/20 bg-paper relative overflow-hidden">
+                    <div 
+                      className="h-full bg-ink bg-halftone transition-all duration-1000"
+                      style={{ width: `${(activeCoalition.cntAttitude + 100) / 2}%` }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[7px] font-typewriter text-ink-light/80 uppercase tracking-tight select-none mt-0.5">
+                    <span className="text-cnt-red font-bold">0% {isZh ? '敌对' : 'HOSTILE'}</span>
+                    <span>50% {isZh ? '中立' : 'NEUTRAL'}</span>
+                    <span className="text-ink font-bold">100% {isZh ? '友好' : 'FRIENDLY'}</span>
+                  </div>
+                </div>
+
+                {/* Redrawn register sheet for member contributions */}
+                <div className="flex flex-col gap-1 mt-1 border-t border-ink/20 pt-2">
+                  <div className="grid grid-cols-4 text-[8px] text-ink-light uppercase pb-1 font-bold tracking-wider font-typewriter border-b border-ink/20">
+                    <span>{isZh ? '结盟政党' : 'PARTY COAL.'}</span>
+                    <span className="text-right">{isZh ? '承诺度' : 'COMMIT'}</span>
+                    <span className="text-right">{isZh ? '派系力量' : 'POWER'}</span>
+                    <span className="text-right">{isZh ? '合算贡献' : 'WEIGHT'}</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 mt-1 font-typewriter">
+                    {(() => {
+                      // Compute total support of all parties currently in the alliance
+                      const totalAllianceSupport = def.members.reduce((sum, m) => {
+                        const sVal = m === 'CNT_FAI' ? calculatePartySupport(state, 'CNT_FAI') : (state.partySupport?.[m as Party] ?? calculatePartySupport(state, m as Party));
+                        return sum + sVal;
+                      }, 0);
+
+                      return def.members.map(member => {
+                        const contribution = activeCoalition.memberContributions[member as Party] ?? 80;
+                        const supportVal = member === 'CNT_FAI' ? calculatePartySupport(state, 'CNT_FAI') : (state.partySupport?.[member as Party] ?? calculatePartySupport(state, member as Party));
+                        
+                        // Coalition faction power = (partySupport / sum of all coalition parties support) * 100%
+                        const factionPowerPct = totalAllianceSupport > 0 ? (supportVal / totalAllianceSupport) * 100 : 100 / (def.members.length || 1);
+                        const weightedContrib = contribution * (factionPowerPct / 100);
+
+                        const pColor = member === 'CNT_FAI' ? (state.isPRRevSFormed ? PARTY_COLORS['PS'] : PARTY_COLORS['CNT_FAI']) : (PARTY_COLORS[member as Party] || '#9ca3af');
+                        const pLabel = member === 'CNT_FAI' ? (state.isPRRevSFormed ? 'PRRevS' : 'CNT-FAI') : member;
+
+                        return (
+                          <div key={member} className="grid grid-cols-4 text-[9px] items-center py-0.5 border-b border-dashed border-ink/10 last:border-0 font-typewriter">
+                            <div className="flex items-center gap-1 font-bold">
+                              <div className="w-1.5 h-1.5 border border-ink" style={{ backgroundColor: pColor }} />
+                              <span className="tracking-tight text-ink">{pLabel}</span>
+                            </div>
+                            <span className="text-right text-ink-light" title={isZh ? `执政契约投入/承诺指度: ${contribution}` : `Party commitment score: ${contribution}`}>{contribution}</span>
+                            <span className="text-right text-ink-light" title={isZh ? `全国支持率: ${supportVal.toFixed(1)}%` : `National support: ${supportVal.toFixed(1)}%`}>
+                              {factionPowerPct.toFixed(1)}%
+                            </span>
+                            <span className="text-right font-bold text-ink" title={isZh ? `合算贡献 = 承诺度 ${contribution} * 派系力量 ${factionPowerPct.toFixed(1)}%` : `Weight = Commit ${contribution} * Power ${factionPowerPct.toFixed(1)}%`}>
+                              {weightedContrib.toFixed(1)}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="mt-2 mb-1 font-bold text-[10px] uppercase tracking-wider text-ink-light">
             {isZh ? '政党关系 (对CNT-FAI)' : 'Party Relations (to CNT-FAI)'}
           </div>
@@ -368,7 +516,7 @@ export const SidePanel = () => {
               {(Object.entries(state.cortes) as [Party, number][])
                 .filter(([_, seats]) => seats > 0)
                 .sort((a, b) => {
-                  const order = ['PCE', 'POUM', 'PS', 'PSOE', 'IR', 'UR', 'Other', 'AP', 'CT', 'RE', 'FE'];
+                  const order = ['PCE', 'POUM', 'PS', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'Other', 'AP', 'CT', 'RE', 'FE'];
                   return order.indexOf(a[0]) - order.indexOf(b[0]);
                 })
                 .map(([party, seats]) => (
@@ -398,59 +546,6 @@ export const SidePanel = () => {
         </AccordionSection>
       )}
 
-      <AccordionSection title={isZh ? '人民阵线' : 'Popular Front'} defaultOpen={state.civilWarStatus !== 'not_started'}>
-        <div className="flex flex-col gap-4">
-          <div>
-            <div className="flex justify-between text-xs font-mono mb-1">
-              <span>{isZh ? '团结度' : 'Unity'}</span>
-              <span>{state.popularFrontUnity}%</span>
-            </div>
-            <div className="h-2 w-full bg-ink/10 border border-ink overflow-hidden">
-              <div 
-                className="h-full bg-orange-600 transition-all duration-500" 
-                style={{ width: `${state.popularFrontUnity}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between">
-            <div className="h-24 w-24">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={popularFrontPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={20}
-                    outerRadius={40}
-                    paddingAngle={2}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {popularFrontPieData.map((entry, index) => (
-                      <Cell key={`pf-cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#f4f1ea', border: '1px solid #141414', borderRadius: 0, fontFamily: 'monospace' }}
-                    itemStyle={{ color: '#141414' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 ml-4 flex flex-col justify-center gap-1">
-              {popularFrontPieData.map((d) => (
-                <div key={d.name} className="flex items-center gap-2 text-xs font-mono">
-                  <div className="w-3 h-3 border border-ink" style={{ backgroundColor: d.color }} />
-                  <span>{d.name}</span>
-                  <span className="ml-auto">{d.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </AccordionSection>
-
       {state.cortes && (
         <AccordionSection title={isZh ? '内阁部长' : 'Cabinet Ministers'} defaultOpen={true}>
           <div className="flex flex-col gap-2 text-xs font-mono">
@@ -465,6 +560,8 @@ export const SidePanel = () => {
           </div>
         </AccordionSection>
       )}
+
+
 
       <AccordionSection title={isZh ? '国家经济与税收' : 'National Economy'} defaultOpen={true}>
         <div className="flex flex-col gap-3 text-xs font-mono">
@@ -633,7 +730,8 @@ export const SidePanel = () => {
                 const poumSupport = state.poum_founded ? calculatePartySupport(state, 'POUM') : 0;
                 const psoeSupport = calculatePartySupport(state, 'PSOE');
                 const irSupport = calculatePartySupport(state, 'IR');
-                const totalLeftSupport = pceSupport + poumSupport + psoeSupport + irSupport;
+                const ercSupport = calculatePartySupport(state, 'ERC');
+                const totalLeftSupport = pceSupport + poumSupport + psoeSupport + irSupport + ercSupport;
                 
                 if (totalLeftSupport === 0) {
                   return (
@@ -650,6 +748,7 @@ export const SidePanel = () => {
                     {state.poum_founded && <div className="h-full transition-all duration-500" style={{ width: `${(poumSupport / totalLeftSupport) * state.cntVotingRate}%`, backgroundColor: PARTY_COLORS['POUM'] }} title="POUM" />}
                     <div className="h-full transition-all duration-500" style={{ width: `${(psoeSupport / totalLeftSupport) * state.cntVotingRate}%`, backgroundColor: PARTY_COLORS['PSOE'] }} title="PSOE" />
                     <div className="h-full transition-all duration-500" style={{ width: `${(irSupport / totalLeftSupport) * state.cntVotingRate}%`, backgroundColor: PARTY_COLORS['IR'] }} title="IR" />
+                    <div className="h-full transition-all duration-500" style={{ width: `${(ercSupport / totalLeftSupport) * state.cntVotingRate}%`, backgroundColor: PARTY_COLORS['ERC'] }} title="ERC" />
                   </>
                 );
               }
@@ -751,7 +850,9 @@ export const SidePanel = () => {
           <AllianceBar name={isZh ? partyNames.PCE.zh : partyNames.PCE.en} value={calculatePartySupport(state, 'PCE')} color={PARTY_COLORS['PCE']} breakdown={getPartySupportBreakdown(state, 'PCE')} />
           <AllianceBar name={isZh ? partyNames.PSOE.zh : partyNames.PSOE.en} value={calculatePartySupport(state, 'PSOE')} color={PARTY_COLORS['PSOE']} breakdown={getPartySupportBreakdown(state, 'PSOE')} />
           <AllianceBar name={isZh ? partyNames.IR.zh : partyNames.IR.en} value={calculatePartySupport(state, 'IR')} color={PARTY_COLORS['IR']} breakdown={getPartySupportBreakdown(state, 'IR')} />
+          <AllianceBar name={isZh ? partyNames.ERC.zh : partyNames.ERC.en} value={calculatePartySupport(state, 'ERC')} color={PARTY_COLORS['ERC']} breakdown={getPartySupportBreakdown(state, 'ERC')} />
           <AllianceBar name={isZh ? partyNames.UR.zh : partyNames.UR.en} value={calculatePartySupport(state, 'UR')} color={PARTY_COLORS['UR']} breakdown={getPartySupportBreakdown(state, 'UR')} />
+          <AllianceBar name={isZh ? partyNames.PRR.zh : partyNames.PRR.en} value={calculatePartySupport(state, 'PRR')} color={PARTY_COLORS['PRR']} breakdown={getPartySupportBreakdown(state, 'PRR')} />
           <AllianceBar name={isZh ? partyNames.DLR.zh : partyNames.DLR.en} value={calculatePartySupport(state, 'DLR')} color={PARTY_COLORS['DLR']} breakdown={getPartySupportBreakdown(state, 'DLR')} />
           <AllianceBar name={isZh ? partyNames.AP.zh : partyNames.AP.en} value={calculatePartySupport(state, 'AP')} color={PARTY_COLORS['AP']} breakdown={getPartySupportBreakdown(state, 'AP')} />
           {state.fe_founded && <AllianceBar name={isZh ? partyNames.FE.zh : partyNames.FE.en} value={calculatePartySupport(state, 'FE')} color={PARTY_COLORS['FE']} breakdown={getPartySupportBreakdown(state, 'FE')} />}
@@ -776,11 +877,6 @@ export const SidePanel = () => {
           <RelationItem name={isZh ? '国际社会主义者' : 'Int. Socialists'} value={state.relations.internationalSocialists} text={getRelationText(state.relations.internationalSocialists, 'socialist', isZh)} colorClass={getRelationColor(state.relations.internationalSocialists)} />
         </div>
       </AccordionSection>
-
-      <AnimatePresence>
-        {isMapOpen && <MapView onClose={() => setIsMapOpen(false)} />}
-      </AnimatePresence>
-
       <DomesticPolicyModal 
         isOpen={isPolicyModalOpen} 
         onClose={() => setIsPolicyModalOpen(false)} 
@@ -846,6 +942,8 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
     CT: { en: 'CT', zh: '传统主义者' },
     RE: { en: 'RE', zh: '西班牙革新' },
     DLR: { en: 'DLR', zh: '自由共和右翼' },
+    PRR: { en: 'PRR', zh: '共和激进党' },
+    ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
     Other: { en: 'Other', zh: '其他' }
   };
 

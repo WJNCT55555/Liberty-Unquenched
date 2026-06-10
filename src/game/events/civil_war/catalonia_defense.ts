@@ -13,11 +13,7 @@ export const cataloniaDefense: GameEvent = {
       textZh: '无政府主义者夺取政权！',
       effect: (state) => ({
         cataloniaControl: 'cnt_fai',
-        stats: { ...state.stats, workerControl: state.stats.workerControl + 20 },
-        regions: {
-          ...state.regions,
-          catalonia: { ...state.regions.catalonia, control: 100 }
-        }
+        stats: { ...state.stats, workerControl: state.stats.workerControl + 20 }
       })
     },
     {
@@ -25,11 +21,7 @@ export const cataloniaDefense: GameEvent = {
       textZh: '无政府主义者与孔帕尼斯暂时结盟',
       effect: (state) => ({
         cataloniaControl: 'committee',
-        stats: { ...state.stats, popularFrontUnity: state.stats.popularFrontUnity + 10 },
-        regions: {
-          ...state.regions,
-          catalonia: { ...state.regions.catalonia, control: 100 }
-        }
+        stats: { ...state.stats }
       })
     }
   ]

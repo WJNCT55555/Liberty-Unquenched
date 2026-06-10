@@ -13,6 +13,8 @@ export const PARTY_COLORS: Record<string, string> = {
   CT: '#FFFFFF',
   RE: '#16166B',
   DLR: '#AC0621',
+  PRR: '#a21caf',
+  ERC: '#fb923c',
   Other: '#9ca3af'
 };
 
@@ -35,5 +37,6 @@ export const CLASS_INFO: Record<SocialClass, { nameEn: string, nameZh: string, p
   PequenaBurguesia: { nameEn: 'Pequeña Burguesía', nameZh: '小资产阶级', pop: 12, appealZh: '恢复秩序、保护宗教', sensitiveZh: '无政府主义混乱、反宗教行为', descriptionZh: '城市夹缝中精打细算的小店主、手工业者、个体户。他们嫉妒资产阶级的客厅，也恐惧无产阶级的街道，当混乱威胁到微薄积蓄时，他们便会毫不留情的逃往哪怕是最反动者的阵营。', descriptionEn: 'Penny-pinching shopkeepers, artisans, and self-employed individuals caught in the urban cracks. They envy the bourgeoisie\'s living rooms and fear the proletariat\'s streets. When chaos threatens their meager savings, they will ruthlessly flee to the camp of even the most reactionary forces.' },
   Intelectuales: { nameEn: 'Intelectuales', nameZh: '知识分子', pop: 5, appealZh: '言论自由、反法西斯、教育改革', sensitiveZh: '反智倾向、斯大林主义渗透', descriptionZh: '教师、律师、医生、记者、大学教授。他们是整个国家的大脑，在几近四肢瘫痪的西班牙，共和、君主、教会、革命、共产、法西斯、民主、秩序……在千条未来道路中，他们与西班牙本身一样迷茫。', descriptionEn: 'Teachers, lawyers, doctors, journalists, and university professors. They are the brain of the nation. In a nearly paralyzed Spain, amidst a thousand future paths—republic, monarchy, church, revolution, communism, fascism, democracy, order—they are as lost as Spain itself.' },
   Burguesia: { nameEn: 'Burguesía', nameZh: '工业资产阶级', pop: 5, appealZh: '自治、保护产业、镇压工人占领', sensitiveZh: '工厂占领、集体化', descriptionZh: '铁路、矿山与纺织厂的主人。他们清楚地知道自己的敌人是谁。也同样知道，无论是什么样的招牌，谁驾驭了金钱，谁就是西班牙的主人。', descriptionEn: 'The masters of railways, mines, and textile mills. They know exactly who their enemies are. They also know that no matter the signboard, whoever harnesses the money is the master of Spain.' },
-  Clero: { nameEn: 'Clero', nameZh: '天主教会', pop: 8, appealZh: '保护宗教场所、停止迫害', sensitiveZh: '反教权暴力、无神论宣传', descriptionZh: '在每一座村庄的中心，教堂总是最高的建筑。神在人间的代理人们管理着通往天堂的门票，也掌握着民间社会的准则——教育、婚姻与死亡的话语权。面临着无神论者的渎神行径他们将会毫不犹豫的反抗一切敌基督者。', descriptionEn: 'In the center of every village, the church is always the tallest building. God\'s representatives on earth manage the tickets to heaven and control the norms of civil society—the discourse on education, marriage, and death. Faced with the blasphemous acts of atheists, they will resist all antichrists without hesitation.' },
+  Clero: { nameEn: 'Clero', nameZh: '天主教会', pop: 8, appealZh: '保护宗教场所、停止迫害', sensitiveZh: '反教权暴力、无神论宣传', descriptionZh: '在每一座村庄的中心，教堂总是最高的建筑。神在人间的代理人们管理着通往天堂的门票，也掌握着民间社会的准则——教育、婚姻与死亡的话语权。面临着无神论者渎神行径他们将会毫不犹豫的反抗一切敌基督者。', descriptionEn: 'In the center of every village, the church is always the tallest building. God\'s representatives on earth manage the tickets to heaven and control the norms of civil society—the discourse on education, marriage, and death. Faced with the blasphemous acts of atheists, they will resist all antichrists without hesitation.' },
 };
+

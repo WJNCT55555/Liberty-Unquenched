@@ -323,7 +323,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
 
   const milCost = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
   const debtInterestCost = (state.public_debt !== undefined ? state.public_debt : 500.0) * ((isCivilWar ? 0.05 : 0.02) / 12);
-  const landCompCost = state.domesticPolicy.land_reform_law_enabled ? ((compRateVal / 100) * 0.4) : 0.0;
+  const isLandReformPaused = state.domesticPolicy.land_reform_law_enabled && (state.budget <= 0);
+  const landCompCost = (state.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) ? 0.4 : 0.0;
 
   estimatedExpenditures += milCost;
   estimatedExpenditures += debtInterestCost;
@@ -558,7 +559,15 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   {state.domesticPolicy.land_reform_law_enabled && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                       <span>{isZh ? '・土地改革补偿与安置费:' : '• Land Compensation Cost:'}</span>
-                      <span className="font-bold text-ink">{landCompCost.toFixed(2)}M ₧</span>
+                      <span className="font-bold text-ink">
+                        {isLandReformPaused ? (
+                          <span className="text-cnt-red text-[10px] font-mono uppercase tracking-tight">
+                            {isZh ? '⌛ 预算赤字・已暂停' : '⌛ Deficit • Paused'}
+                          </span>
+                        ) : (
+                          `${landCompCost.toFixed(2)}M ₧`
+                        )}
+                      </span>
                     </div>
                   )}
 
@@ -857,8 +866,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
                     {isZh
-                      ? '【土改博弈】土地改革法案使能时的地主土地赎买补偿比率。进行100%全额市价补偿会消耗每月多达 0.4M 预算，但能平息大地主阶层愤怒阻碍军官发动政变；实行 0% 的强力强占充公虽然节省国库，但会让地主阶层极端愤怒并极大推动军事政变，同时由于阻碍降至最低，土改推行进度将提速至2.5倍。'
-                      : 'Compensation paid to grandees when Land Reform Law is active. 100% full buyout drains 0.4M budget but lowers landowners coup support. 0% seizure saves cash & 2.5x speeds up division progress, but highly triggers landowner rage (coup threshold increases).'}
+                      ? '【土改博弈】土地改革法案启用时的地主土地赎买补偿比率。不论比率高低，补偿放置安置金均为每月固定 0.4M 预算支出。实行100%全额市价补偿率可平息大阶层地主愤怒，阻碍军官发动政变；实行 0% 强充公虽然不降低此项固定支出，但会让地主极端愤怒，极大推动政变，不过可让土改进度提速至 2.5 倍。如果经济赤字（国库预算 ≤ 0），则法案及补偿金将暂停。'
+                      : 'Compensation standard paid to grandees when Land Reform Law is active. The monthly expenditure is a fixed 0.4M regardless of standard. A 100% full buyout standard lowers landowners coup support. A 0% standard 2.5x speeds up division progress, but highly triggers landowner rage. If there is a budget deficit (national budget <= 0), the bill and its compensation are paused.'}
                   </p>
                   <div className="flex justify-end gap-1">
                     <button onClick={() => handleAdjustValue('land_reform_compensation', -20, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-20%</button>

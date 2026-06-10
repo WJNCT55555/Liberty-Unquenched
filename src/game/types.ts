@@ -1,7 +1,7 @@
 import React from 'react';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
-export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'Other';
+export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'PRR' | 'ERC' | 'Other';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
 export type JournalStatus = 'inactive' | 'active' | 'completed' | 'failed';
@@ -70,7 +70,7 @@ export interface Advisor {
   id: string;
   name: string;
   nameZh?: string;
-  faction: Faction;
+  faction: Faction | 'None';
   description: string;
   descriptionZh?: string;
   image?: string;
@@ -93,6 +93,33 @@ export interface Card {
   effect: (state: GameState) => Partial<GameState>;
 }
 
+export type CoalitionId =
+  | 'republican_socialist'   // 共和-社会党联盟
+  | 'popular_front'           // 人民阵线
+  | 'ceda_radical'            // CEDA-激进联盟
+  | 'workers_alliance'        // 工人联盟 (PSOE + CNT)
+  | 'national_front';         // 国民阵线
+
+export interface CoalitionState {
+  activeId: CoalitionId;
+  memberContributions: Record<Party, number>;
+  cohesion: number;
+  cntAttitude: number;
+  cntStance: 'oppose' | 'cooperate' | 'govern';
+  formedAt: { year: number; month: number };
+}
+
+export interface CoalitionDef {
+  id: CoalitionId;
+  name: string;
+  nameZh: string;
+  members: (Party | 'CNT_FAI')[];
+  minSeatShare: number;
+  canForm?: (state: GameState) => boolean;
+  shouldDissolve?: (state: GameState, coalition: CoalitionState) => boolean;
+  dissolveThreshold: number;
+}
+
 export interface GameEvent {
   id: string;
   date?: { year: number; month: number };
@@ -113,13 +140,6 @@ export interface GameEvent {
     condition?: (state: GameState) => boolean;
     effect: (state: GameState) => Partial<GameState>;
   }[];
-}
-
-export interface RegionControl {
-  id: string;
-  name: string;
-  nameEn: string;
-  control: number; // 0 (Nationalist) to 100 (Republican)
 }
 
 export interface GameState {
@@ -187,7 +207,6 @@ export interface GameState {
     workerControl: number;
     anarchistMilitia: number;
     republicanAuthority: number;
-    popularFrontUnity: number;
     pceSupport: number;
     revolutionaryFervor: number;
     republican_socialist_coalition_power: number;
@@ -195,6 +214,9 @@ export interface GameState {
   };
   
   cortes?: Record<Party, number>;
+  partySupport: Record<Party, number>;
+  activeCoalition: CoalitionState | null;
+  coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];
 
   leverage: number;
   agriculture_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
@@ -294,15 +316,6 @@ export interface GameState {
   civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
   warProgress: number; // 0 (Republic Victory) to 100 (Nationalist Victory), 50 is stalemate
   
-  // Popular Front
-  popularFrontUnity: number;
-  popularFrontFactions: {
-    pce: number;
-    psoe: number;
-    ir: number;
-    ur: number;
-  };
-
   // Super Events & Event Board
   superEvent: 'spanish_civil_war' | 'spanish_civil_war_ends' | 'abdication_alfonso' | null;
   pendingEvents: GameEvent[];
@@ -341,7 +354,6 @@ export interface GameState {
   francoAfricaControl: boolean;
   cataloniaIndependent: boolean;
   hasArmoredCars: boolean;
-  regions: Record<string, RegionControl>;
   womensRightsReformed: boolean;
   internationalBrigadesArrived: boolean;
   educationSecularized: boolean;

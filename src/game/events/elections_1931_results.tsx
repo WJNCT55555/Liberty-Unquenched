@@ -5,6 +5,7 @@ import { calculateElectionResults } from '../utils/election';
 import { PARTY_COLORS } from '../constants';
 import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
+import { formCoalition } from '../utils/coalition';
 
 export const elections1931Results: GameEvent = {
   id: '1931_elections_results',
@@ -29,15 +30,27 @@ export const elections1931Results: GameEvent = {
       CT: { en: 'CT', zh: '传统主义者' },
       RE: { en: 'RE', zh: '西班牙革新' },
       DLR: { en: 'DLR', zh: '自由共和右翼' },
+      PRR: { en: 'PRR', zh: '激进共和党' },
+      ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
       Other: { en: 'Other', zh: '其他' }
     };
+
+    const partyOrder: Party[] = ['PS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
       name: isZh ? partyNames[party as Party].zh : partyNames[party as Party].en,
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
-    })).filter(d => d.seats > 0);
+    }))
+    .filter(d => d.seats > 0)
+    .sort((a, b) => {
+      const indexA = partyOrder.indexOf(a.id as Party);
+      const indexB = partyOrder.indexOf(b.id as Party);
+      const finalIndexA = indexA === -1 ? 999 : indexA;
+      const finalIndexB = indexB === -1 ? 999 : indexB;
+      return finalIndexA - finalIndexB;
+    });
     
     const totalSeats = data.reduce((sum, d) => sum + d.seats, 0);
     const formatPct = (seats: number) => `${Math.round((seats / totalSeats) * 100)}%`;
@@ -90,6 +103,49 @@ export const elections1931Results: GameEvent = {
     );
   },
   options: [
+    {
+      text: 'Support the formation of the Republican-Socialist Coalition.',
+      textZh: '推动并组建共和-社会党内阁（激活政党联盟系统）。',
+      effect: (state) => {
+        const newCortes = calculateElectionResults(state);
+        const cntSupported = state.stats.republican_socialist_coalition_power > 50;
+
+        let nextEvents = state.pendingEvents;
+        let govType = 'Republican-Socialist Cabinet';
+        let govTypeZh = '共和-社会党内阁';
+        let pm = 'Manuel Azaña';
+        let pmZh = '曼努埃尔·阿萨尼亚';
+
+        if (cntSupported) {
+          nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents];
+        } else {
+          nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents];
+        }
+
+        const baseState = {
+          ...state,
+          cortes: newCortes,
+          government: {
+            ...state.government,
+            type: govType,
+            typeZh: govTypeZh,
+            primeMinister: pm,
+            primeMinisterZh: pmZh
+          },
+          stats: {
+            ...state.stats
+          },
+          pendingEvents: nextEvents
+        };
+
+        // Directly activate the 'republican_socialist' coalition!
+        const finalState = formCoalition(baseState, 'republican_socialist');
+        return {
+          ...finalState,
+          currentEvent: null
+        };
+      }
+    },
     {
       text: 'A new era begins, but the state remains our enemy.',
       textZh: '一个新时代开始了，但国家依然是我们的敌人。',

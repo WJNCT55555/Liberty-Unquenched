@@ -25,8 +25,7 @@ export const josePeirats: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 10),
-          popularFrontUnity: Math.max(0, state.stats.popularFrontUnity - 5)
+          workerControl: Math.min(100, state.stats.workerControl + 10)
         },
         factions: adjustFactionInfluence(state.factions, 'Puristas', 10)
       })

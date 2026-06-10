@@ -27,8 +27,7 @@ export const federicaMontseny: Advisor = {
           advisorActionTimer: 6,
           classes: newClasses,
           stats: {
-            ...state.stats,
-            popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 5)
+            ...state.stats
           }
         };
       },

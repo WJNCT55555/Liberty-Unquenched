@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { GameState, Card, Advisor, GameEvent } from './types';
+import { initializeStartingCoalition, updatePartySupport, updateCoalitionState, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils/coalition';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
-import { INITIAL_REGIONS } from '../components/map/regions';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
@@ -82,7 +82,6 @@ export const INITIAL_STATE: GameState = {
     workerControl: 10,
     anarchistMilitia: 0,
     republicanAuthority: 50,
-    popularFrontUnity: 50,
     pceSupport: 15,
     revolutionaryFervor: 10,
     republican_socialist_coalition_power: 50,
@@ -96,14 +95,14 @@ export const INITIAL_STATE: GameState = {
     Jabalistas: { influence: 0, dissent: 0 },
   },
   classes: {
-    Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, Other: 5 } },
-    Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, Other: 15 } },
-    Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 30, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, Other: 50 } },
-    Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, Other: 0 } },
-    PequenaBurguesia: { support: { CNT_FAI: 0, PSOE: 5, PCE: 0, IR: 45, UR: 35, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, Other: 5 } },
-    Intelectuales: { support: { CNT_FAI: 5, PSOE: 20, PCE: 0, IR: 30, UR: 15, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 20, Other: 5 } },
-    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 25, UR: 25, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 25, Other: 15 } },
-    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, Other: 30 } },
+    Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 2, Other: 3 } },
+    Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 15 } },
+    Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 20, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, PRR: 15, ERC: 5, Other: 40 } },
+    Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, PRR: 0, ERC: 0, Other: 0 } },
+    PequenaBurguesia: { support: { CNT_FAI: 0, PSOE: 5, PCE: 0, IR: 35, UR: 25, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 15, ERC: 10, Other: 0 } },
+    Intelectuales: { support: { CNT_FAI: 5, PSOE: 20, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 10, ERC: 10, Other: 0 } },
+    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 20, UR: 15, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 15, ERC: 10, Other: 10 } },
+    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 5, ERC: 0, Other: 25 } },
   },
   armedForces: {
     regularArmy: { manpower: 100000, loyalty: 50 },
@@ -139,6 +138,8 @@ export const INITIAL_STATE: GameState = {
     CT: 0,
     RE: 0,
     DLR: 30,
+    PRR: 35,
+    ERC: 55,
     Other: 50,
   },
   domesticPolicy: {
@@ -192,13 +193,6 @@ export const INITIAL_STATE: GameState = {
     agriculture: 'Right',
     finance: 'Right',
   },
-  popularFrontUnity: 50,
-  popularFrontFactions: {
-    pce: 20,
-    psoe: 40,
-    ir: 30,
-    ur: 10,
-  },
   superEvent: null,
   pendingEvents: [],
   treintistasLeft: false,
@@ -231,7 +225,6 @@ export const INITIAL_STATE: GameState = {
   francoAfricaControl: false,
   cataloniaIndependent: false,
   hasArmoredCars: false,
-  regions: INITIAL_REGIONS,
   womensRightsReformed: false,
   internationalBrigadesArrived: false,
   educationSecularized: false,
@@ -249,6 +242,11 @@ export const INITIAL_STATE: GameState = {
   governmentDeck: INITIAL_CARDS.filter(c => c.type === 'Government'),
   militaryDeck: INITIAL_CARDS.filter(c => c.type === 'Military'),
   discard: [],
+  partySupport: {
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
+  },
+  activeCoalition: null,
+  coalitionHistory: [],
 };
 
 interface GameContextType {
@@ -415,6 +413,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         military_spending: start_mil_spend,
         land_reform_compensation: start_land_comp,
       };
+      newState = initializeStartingCoalition(newState);
       break;
     }
     case 'RETURN_TO_START':
@@ -590,17 +589,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           }
         }
 
-        // Region control decay before civil war
-        let updatedRegions = { ...state.regions };
-        if (newCivilWarStatus === 'not_started') {
-          Object.keys(updatedRegions).forEach(id => {
-            updatedRegions[id] = {
-              ...updatedRegions[id],
-              control: Math.max(0, updatedRegions[id].control - 1)
-            };
-          });
-        }
-
         // Add other regular events based on date or condition
         let monthlyEvents = INITIAL_EVENTS.filter(e => {
           // Skip if already pending or current
@@ -613,7 +601,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             month: nextMonth, 
             year: nextYear, 
             civilWarStatus: newCivilWarStatus,
-            regions: updatedRegions,
             prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
           }) : false;
           
@@ -635,7 +622,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           month: nextMonth,
           year: nextYear,
           civilWarStatus: newCivilWarStatus,
-          regions: updatedRegions,
           resources: state.resources + resourceIncome,
           armaments: state.armaments + armamentIncome,
           internationalBrigades: newIntBrigades,
@@ -684,7 +670,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         monthlyExpenditures += debtInterestCost;
 
         // Legislative expenditures for Land Reform Compensation
-        const landCompCost = tempState.domesticPolicy.land_reform_law_enabled ? (compRateVal * 0.4) : 0.0;
+        const isLandReformPaused = tempState.domesticPolicy.land_reform_law_enabled && (tempState.budget <= 0);
+        const landCompCost = (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) ? 0.4 : 0.0;
         monthlyExpenditures += landCompCost;
 
         const budgetDelta = totalTaxRev - monthlyExpenditures;
@@ -719,7 +706,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
 
         // Adjust landowner class tension / reaction from expropriation (low compensation)
-        if (tempState.domesticPolicy.land_reform_law_enabled) {
+        if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
           if (compRateVal < 0.35) {
             extraCoupRise += 0.4;
             tempState.stats.tension = Math.max(0, Math.min(100, tempState.stats.tension + 0.3));
@@ -792,7 +779,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         };
 
         // Monthly action of Land Reform Act
-        if (tempState.domesticPolicy.land_reform_law_enabled) {
+        if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
           const landProgressStep = 1.0 + (1.0 - compRateVal) * 1.5; // faster expropriation
           tempState.domesticPolicy = {
             ...tempState.domesticPolicy,
@@ -856,6 +843,23 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             }
           }
         });
+
+        // --- Core Political Party Alliance System Monthly Processing ---
+        tempState.partySupport = updatePartySupport(tempState);
+        if (tempState.activeCoalition) {
+          tempState.activeCoalition = updateCoalitionState(tempState);
+        }
+        tempState = checkCoalitionDissolve(tempState);
+        tempState = autoFormCoalitionIfNeeded(tempState);
+
+        // Keep legacy stats field in sync for backward compatibility with old event triggers
+        if (tempState.activeCoalition) {
+          if (tempState.activeCoalition.activeId === 'republican_socialist') {
+            tempState.stats.republican_socialist_coalition_power = tempState.activeCoalition.cohesion;
+          } else if (tempState.activeCoalition.activeId === 'popular_front') {
+            tempState.stats.republican_socialist_coalition_power = tempState.activeCoalition.cohesion;
+          }
+        }
 
         newState = {
           ...state,

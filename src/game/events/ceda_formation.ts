@@ -33,8 +33,7 @@ export const cedaFormation: GameEvent = {
           classes: newClasses,
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10),
-            popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 5)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
           }
         };
       }
@@ -61,8 +60,7 @@ export const cedaFormation: GameEvent = {
           classes: newClasses,
           factions: adjustFactionInfluence(state.factions, 'Faistas', 5),
           stats: {
-            ...state.stats,
-            popularFrontUnity: Math.max(0, state.stats.popularFrontUnity - 10)
+            ...state.stats
           }
         };
       }

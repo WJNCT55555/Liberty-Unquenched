@@ -322,7 +322,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 <div className="grid grid-cols-1 gap-4">
                   <div className={`p-4 border-2 flex flex-col gap-2 relative transition-all ${
                     state.domesticPolicy.land_reform_law_enabled 
-                      ? 'border-green-600 bg-green-50/30' 
+                      ? (state.budget <= 0 ? 'border-amber-600 bg-amber-50/10' : 'border-green-600 bg-green-50/30') 
                       : 'border-ink/20 bg-ink/5 opacity-60'
                   }`}>
                     <div className="flex justify-between items-start">
@@ -331,11 +331,11 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                       </span>
                       <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border font-typewriter tracking-wider ${
                         state.domesticPolicy.land_reform_law_enabled 
-                          ? 'bg-green-100 border-green-600 text-green-700' 
+                          ? (state.budget <= 0 ? 'bg-amber-100 border-amber-600 text-amber-700' : 'bg-green-100 border-green-600 text-green-700') 
                           : 'bg-paper border-ink/20 text-ink/40'
                       }`}>
                         {state.domesticPolicy.land_reform_law_enabled 
-                          ? (isZh ? '已启用' : 'Enacted') 
+                          ? (state.budget <= 0 ? (isZh ? '已暂停' : 'Paused') : (isZh ? '已启用' : 'Enacted')) 
                           : (isZh ? '未启用' : 'Inactive')}
                       </span>
                     </div>
@@ -346,10 +346,17 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                     </p>
                     <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
                       {state.domesticPolicy.land_reform_law_enabled ? (
-                        <span className="text-green-700 flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse inline-block" />
-                          {isZh ? '持续运行中：每月进度 +1%' : 'Active: Monthly Progress +1%'}
-                        </span>
+                        state.budget <= 0 ? (
+                          <span className="text-amber-700 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse inline-block" />
+                            {isZh ? '⚠️ 经济赤字（国库预算 ≤ 0）：法案已暂停，补偿金暂不支付' : '⚠️ Deficit (Budget <= 0): Bill has been paused, compensation stopped'}
+                          </span>
+                        ) : (
+                          <span className="text-green-700 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse inline-block" />
+                            {isZh ? '持续运行中：土地划分推进中（每月支出 0.4M 固定补偿金）' : 'Active: Expropriation in progress (0.4M fixed monthly cost)'}
+                          </span>
+                        )
                       ) : (
                         <span className="text-ink/50">
                           {isZh ? '待激活（通过特定历史事件启动）' : 'Awaiting legislative launch'}

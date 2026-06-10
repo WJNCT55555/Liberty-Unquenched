@@ -72,8 +72,7 @@ export const agriculturalPolicy: Card = {
                   min_wage: Math.min(100, s.domesticPolicy.min_wage + 10)
                 },
                 stats: {
-                  ...s.stats,
-                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 4)
+                  ...s.stats
                 }
               };
             }
@@ -91,8 +90,7 @@ export const agriculturalPolicy: Card = {
                 agricultural_policy_timer: 6,
                 factions: newFactions,
                 stats: {
-                  ...s.stats,
-                  popularFrontUnity: Math.min(100, s.stats.popularFrontUnity + 10),
+                  ...s.stats
                 }
               };
             }

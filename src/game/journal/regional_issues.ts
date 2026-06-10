@@ -8,8 +8,8 @@ export const regionalIssuesJournal: JournalEntryDef = {
   descriptionZh: '加泰罗尼亚、巴斯克地区和加利西亚要求获得更大的自治权。如果不满足这些要求，将会疏远至关重要的盟友并威胁共和国的统一，而让步太多可能会激怒中央集权势力。',
   successCondition: 'Regional Autonomy Progress reaches 100%',
   successConditionZh: '地区自治进度达到 100%',
-  successEffectDesc: 'Popular Front Unity +10',
-  successEffectDescZh: '人民阵线团结度 +10',
+  successEffectDesc: 'None',
+  successEffectDescZh: '无',
   failureCondition: 'Tension Reaches 90',
   failureConditionZh: '紧张局势达到 90',
   failureEffectDesc: 'None',
@@ -37,8 +37,7 @@ export const regionalIssuesJournal: JournalEntryDef = {
 
   onComplete: (state) => ({
     stats: {
-      ...state.stats,
-      popularFrontUnity: Math.min(100, state.stats.popularFrontUnity + 10)
+      ...state.stats
     }
   }),
   

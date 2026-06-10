@@ -3,7 +3,7 @@ import { CLASS_INFO } from '../constants';
 
 export function calculateElectionResults(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, Other: 0
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
   };
   let cntVotes = 0;
 
@@ -44,7 +44,7 @@ export function calculateElectionResults(state: GameState): Record<Party, number
   // 3. Convert to seats (Total 470)
   const TOTAL_SEATS = 470;
   const seats: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, Other: 0
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
   };
 
   let remainingSeats = TOTAL_SEATS;

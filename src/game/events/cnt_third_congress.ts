@@ -178,10 +178,10 @@ export const cnt_third_congress_3: GameEvent = {
   descriptionZh: `大会的议程转向了困扰西班牙已久的农业问题和日益严重的失业危机。代表们指出，临时政府正在酝酿的土地改革极其软弱，“最终将化为泡影”。同时，面对资本主义的危机和超额生产，工人阶级正在承受苦难。大会起草了一份激进的经济诉求：无偿没收大庄园交由农民工会集体管理，并要求立即实行六小时工作制以解决失业问题。`,
   options: [
     {
-      text: 'Issue uncompromising revolutionary demands.',
-      textZh: '发布不妥协的革命诉求',
-      subtitle: '"We would rather let the capitalists\' profits drop to 15% than tolerate workers starving to death. If our demands are not met, we will confiscate it ourselves!"',
-      subtitleZh: '“宁可让资本家的利润降到15%，也绝不容忍工人饿死。如果不满足我们的要求，我们就自己动手没收！”',
+      text: 'Arouse the Revolutionary Enthusiasm of Rural Producers',
+      textZh: '激发农村生产者的革命积极性',
+      subtitle: '"Launch an open struggle in the countryside against the landlord system, the state treasury and sub-landlords, and cultivate the peasant masses into unionists and revolutionaries."',
+      subtitleZh: '"在农村公开发起反对地主制、国库和次级地主的斗争，并培养农民群众成为工会和革命者。"',
       effect: (state) => {
         const newClasses = JSON.parse(JSON.stringify(state.classes));
         newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + 5);
@@ -199,10 +199,10 @@ export const cnt_third_congress_3: GameEvent = {
       }
     },
     {
-      text: 'Focus on securing minimum wages and tax relief.',
-      textZh: '集中精力争取最低工资与减轻税收',
-      subtitle: '"We should proceed step by step, first implementing minimum wage standards in all regions, and boycotting taxes on wages."',
-      subtitleZh: '“我们应当循序渐进，先落实各地区的最低工资标准，并抵制对工资征税。”',
+      text: 'Day laborers, tenant farmers, peasants, sharecroppers, unite! / ¡Jornaleros, arrendatarios, labradores y aparceros, uníos!',
+      textZh: '短工、佃农、农民、分成农，团结起来！/¡Jornaleros, arrendatarios, labradores y aparceros, uníos!',
+      subtitle: '"The CNT will provide the broadest practical and moral solidarity in the peasant movement\'s struggle."',
+      subtitleZh: '"CNT将在农民运动的斗争行动中，提供最广泛的务实和道德团结。"',
       effect: (state) => {
         let newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 8);

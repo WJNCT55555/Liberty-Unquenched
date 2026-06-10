@@ -27,8 +27,7 @@ export const jaimeBalius: Advisor = {
           factions: newFactions,
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10),
-            popularFrontUnity: Math.max(0, state.stats.popularFrontUnity - 5)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
           }
         };
       },
