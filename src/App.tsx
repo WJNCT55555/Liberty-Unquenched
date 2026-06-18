@@ -16,6 +16,7 @@ import { SuperEvent } from './components/SuperEvent';
 import { SandboxMenu } from './components/SandboxMenu';
 import { useGame } from './game/GameContext';
 import { Toaster } from 'sonner';
+import { MapView } from './map/MapView';
 
 const GameContent = () => {
   const { state } = useGame();
@@ -31,10 +32,16 @@ const GameContent = () => {
       <SandboxMenu />
       <div className="flex flex-1 overflow-hidden">
         <SidePanel />
-        <div className="flex-1 flex flex-col relative">
-          <MainArea />
-          <AdvisorPanel />
-          <JournalPanel />
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+          {state.currentView === 'map' ? (
+            <MapView />
+          ) : (
+            <>
+              <MainArea />
+              <AdvisorPanel />
+              <JournalPanel />
+            </>
+          )}
           <EndingScreen />
           <SuperEvent />
         </div>

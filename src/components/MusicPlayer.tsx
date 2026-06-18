@@ -67,7 +67,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.src = currentTrack.src;
+      const base = (import.meta as any).env.BASE_URL || '/';
+      const cleanSrc = currentTrack.src.startsWith('/') ? currentTrack.src.slice(1) : currentTrack.src;
+      audioRef.current.src = `${base}${cleanSrc}`;
       if (isPlaying) {
         audioRef.current.play().catch(e => {
           console.error("Playback failed:", e);

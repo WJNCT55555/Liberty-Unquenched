@@ -272,10 +272,16 @@ export const SidePanel = () => {
             </div>
             {/* Map View Button */}
             <button 
-              disabled
-              className="w-full py-2 border border-ink/20 bg-ink/5 text-ink-light/40 text-xs font-bold uppercase tracking-wider cursor-not-allowed transition-colors"
+              onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
+              className={`w-full py-2 border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                state.currentView === 'map' 
+                  ? 'bg-red-700/20 border-red-600 text-red-600 shadow-[0_0_8px_rgba(220,38,38,0.2)] hover:bg-red-700/30' 
+                  : 'bg-ink/10 border-ink/30 text-ink hover:bg-ink/15 hover:border-ink/50'
+              }`}
             >
-              {isZh ? '查看地图 (暂未开放)' : 'View Map (Offline)'}
+              {state.currentView === 'map' 
+                ? (isZh ? '关闭地图' : 'Close Map') 
+                : (isZh ? '查看战区地图' : 'View War Map')}
             </button>
           </div>
         </AccordionSection>
@@ -289,10 +295,16 @@ export const SidePanel = () => {
             </div>
             {/* Map View Button */}
             <button 
-              disabled
-              className="w-full py-2 border border-ink/20 bg-ink/5 text-ink-light/40 text-xs font-bold uppercase tracking-wider cursor-not-allowed"
+              onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
+              className={`w-full py-2 border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                state.currentView === 'map' 
+                  ? 'bg-accent/20 border-accent text-accent shadow-[0_0_8px_rgba(166,124,82,0.2)] hover:bg-accent/30' 
+                  : 'bg-ink/10 border-ink/30 text-ink hover:bg-ink/15 hover:border-ink/50'
+              }`}
             >
-              {isZh ? '查看地图 (暂未开放)' : 'View Map (Offline)'}
+              {state.currentView === 'map' 
+                ? (isZh ? '关闭地图' : 'Close Map') 
+                : (isZh ? '查看全国地图' : 'View Spain Map')}
             </button>
           </div>
         </AccordionSection>
@@ -319,28 +331,27 @@ export const SidePanel = () => {
 
       <AccordionSection title={isZh ? '国内政治' : 'Domestic Politics'} defaultOpen={true}>
         <div className="flex flex-col gap-2 text-xs font-mono">
-          {/* CNT工委会方针 (Placed above government composition) */}
-          {state.activeCoalition && (() => {
-            const activeCoalition = updateCoalitionState(state) || state.activeCoalition;
+          {/* CNT立场 (Placed above government composition) - elevated to GameState top-level field */}
+          {(() => {
             const stanceLabels: Record<string, { en: string; zh: string }> = {
               oppose: { en: 'Oppose', zh: '反对' },
               cooperate: { en: 'Cooperate', zh: '合作' },
               govern: { en: 'Govern', zh: '执政' }
             };
-            const stanceText = isZh ? stanceLabels[activeCoalition.cntStance]?.zh : stanceLabels[activeCoalition.cntStance]?.en;
+            const stanceText = isZh ? stanceLabels[state.cntStance]?.zh : stanceLabels[state.cntStance]?.en;
             return (
-              <div className="flex justify-between items-center bg-paper-dark border border-ink/20 p-2 relative overflow-hidden mb-2">
+              <div className="flex justify-between items-center bg-paper-dark border border-ink/20 p-2 relative overflow-hidden mb-2" id="cnt-stance-indicator">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-typewriter text-[9px] uppercase tracking-wider text-ink-light leading-none">
-                    {isZh ? 'CNT工委会方针' : 'CNT-FAI DIRECTIVE'}
+                    {isZh ? 'CNT立场' : 'CNT STANCE'}
                   </span>
                   <span className="text-[8px] font-typewriter text-ink-light/50">
                     {isZh ? '决定联盟执政地位' : 'Directs state legal authority'}
                   </span>
                 </div>
                 <div className={`px-2 py-0.5 font-display text-[10px] uppercase border-2 font-bold rotate-[-1deg] shadow-[1px_1px_0px_#1a1a1a] transition-all duration-300 ${
-                  activeCoalition.cntStance === 'govern' ? 'bg-paper text-emerald-800 border-emerald-800' :
-                  activeCoalition.cntStance === 'cooperate' ? 'bg-paper text-indigo-950 border-indigo-950' :
+                  state.cntStance === 'govern' ? 'bg-paper text-emerald-800 border-emerald-800' :
+                  state.cntStance === 'cooperate' ? 'bg-paper text-indigo-950 border-indigo-950' :
                   'bg-paper text-cnt-red border-cnt-red animate-pulse'
                 }`}>
                   {stanceText}
@@ -557,6 +568,7 @@ export const SidePanel = () => {
             <MinisterRow deptKey="finance" nameEn="Finance" nameZh="财政部" party={state.ministers.finance || 'Right'} />
             <MinisterRow deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'Right'} />
             <MinisterRow deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
+            <MinisterRow deptKey="estado" nameEn="State (Foreign)" nameZh="国务部" party={state.ministers.estado || 'Right'} />
           </div>
         </AccordionSection>
       )}

@@ -10,7 +10,7 @@ export const laborRights: Card = {
   descriptionZh: '通过控制劳工部，我们可以制定国家劳工标准。我们的支持者期望我们实行40小时工作周、执行安全法规，并全额资资助失业保险计划。',
   cost: 1,
   condition: (state: GameState) => {
-    const isGov = state.isCNTInGovernment;
+    const isGov = state.cntStance === 'govern';
     const isMinister = state.ministers.labor === 'CNT' || state.labor_minister_party === 'CNT';
     const isTimerZero = (state.labor_rights_timer || 0) <= 0;
     return isGov && isMinister && isTimerZero;

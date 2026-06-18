@@ -10,7 +10,7 @@ export const laborAffairs: Card = {
   descriptionZh: '工业重镇加泰罗尼亚正燃起劳工骚乱之火。雇主们发起了一场大规模停工，试图迫使工人在工资和福利上接受更多削减。劳工部亟需出面仲裁劳资冲突。',
   cost: 1,
   condition: (state: GameState) => {
-    const isGov = state.isCNTInGovernment;
+    const isGov = state.cntStance === 'govern';
     const isMinister = state.ministers.labor === 'CNT' || state.labor_minister_party === 'CNT';
     const isTimerZero = (state.labor_affairs_timer || 0) <= 0;
     return isGov && isMinister && isTimerZero;

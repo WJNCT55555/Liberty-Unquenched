@@ -2,7 +2,7 @@ import { Card } from '../types';
 import { adjustFactionInfluence } from '../utils';
 
 export const syndicateExpansion: Card = {
-  id: 'syndicate expansion',
+  id: 'syndicate_expansion',
   title: 'Syndicate Expansion',
   titleZh: '工会扩张',
   type: 'Action',

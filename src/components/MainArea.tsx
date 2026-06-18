@@ -105,7 +105,10 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
     >
       <div className="absolute top-0 left-0 w-full h-2 bg-cnt-red"></div>
       <h3 className="font-display text-4xl uppercase mb-4 text-ink leading-none">
-        {isZh && event.titleZh ? event.titleZh : event.title}
+        {(() => {
+          const resolvedTitle = isZh && event.titleZh ? event.titleZh : event.title;
+          return typeof resolvedTitle === 'function' ? resolvedTitle(state) : resolvedTitle;
+        })()}
       </h3>
       <div className="max-h-[40vh] overflow-y-auto mb-8 border-l-4 border-ink pl-4">
         <p className="font-serif text-xl leading-relaxed italic">
@@ -135,7 +138,10 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
             >
               <div className="relative z-10 flex flex-col">
                 <span className="font-bold">
-                  {isZh && opt.textZh ? opt.textZh : opt.text}
+                  {(() => {
+                    const resolvedText = isZh && opt.textZh ? opt.textZh : opt.text;
+                    return typeof resolvedText === 'function' ? resolvedText(state) : resolvedText;
+                  })()}
                 </span>
                 {(opt.subtitle || opt.subtitleZh) && isAvailable && (
                   <span className="text-xs mt-1 normal-case font-serif italic opacity-80">

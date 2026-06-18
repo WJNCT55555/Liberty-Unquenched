@@ -70,7 +70,7 @@ export const StartScreen = () => {
 
             {/* Image */}
             <div className="mb-12 relative flex justify-center items-center">
-              <img src="/img/República Española.png" alt="República Española" className="w-80 md:w-96 lg:w-[28rem] object-contain relative z-10 drop-shadow-[0_0_15px_rgba(193,39,45,0.5)]" />
+              <img src={`${(import.meta as any).env.BASE_URL || '/'}img/República Española.png`} alt="República Española" className="w-80 md:w-96 lg:w-[28rem] object-contain relative z-10 drop-shadow-[0_0_15px_rgba(193,39,45,0.5)]" />
             </div>
 
             {/* Menu */}

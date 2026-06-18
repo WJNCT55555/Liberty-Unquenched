@@ -60,7 +60,7 @@ export const SuperEvent: React.FC = () => {
             [Image: {image}]
           </div>
           <img 
-            src={image} 
+            src={`${(import.meta as any).env.BASE_URL || '/'}${image.startsWith('/') ? image.slice(1) : image}`} 
             alt={title} 
             className="relative z-10 w-full h-full object-cover opacity-80 mix-blend-luminosity hover:mix-blend-normal transition-all duration-1000"
             onError={(e) => {

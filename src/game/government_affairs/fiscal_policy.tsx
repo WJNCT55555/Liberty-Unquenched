@@ -577,7 +577,7 @@ export const fiscalPolicy: Card = {
   description: 'Now that the CNT controls the Ministry of Finance, we can reshape taxes and tariffs according to libertarian communist principles.',
   descriptionZh: '既然全国劳工联盟掌控了财政部，我们就可以依照自由共产主义原则来重塑税收与关税。',
   cost: 1,
-  condition: (state: GameState) => state.isCNTInGovernment && (state.ministers.finance === 'CNT') && (state.fiscal_policy_timer || 0) <= 0,
+  condition: (state: GameState) => state.cntStance === 'govern' && (state.ministers.finance === 'CNT') && (state.fiscal_policy_timer || 0) <= 0,
   effect: (state: GameState) => {
     return {
       // Secure current state values before entering menus

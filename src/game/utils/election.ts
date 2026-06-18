@@ -26,7 +26,7 @@ export function calculateElectionResults(state: GameState): Record<Party, number
   }
 
   // 2. Handle CNT-FAI votes
-  const cntSupported = state.stats.republican_socialist_coalition_power > 50;
+  const cntSupported = state.cntStance === 'cooperate';
 
   if (cntSupported) {
     // Distribute CNT votes to left allies (PSOE, IR)

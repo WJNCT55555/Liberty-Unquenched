@@ -114,7 +114,6 @@ export function formCoalition(state: GameState, id: CoalitionId): GameState {
     memberContributions: contributions as Record<Party, number>,
     cohesion: 80,
     cntAttitude: 0,
-    cntStance: 'cooperate',
     formedAt: { year: state.year, month: state.month }
   };
 
@@ -217,13 +216,13 @@ export function initializeStartingCoalition(state: GameState): GameState {
   
   if (s.scenario === '1931') {
     s.activeCoalition = null;
+    s.cntStance = 'oppose';
   } else if (s.scenario === '1933') {
     s = formCoalition(s, 'ceda_radical');
+    s.cntStance = 'oppose';
   } else if (s.scenario === '1936') {
     s = formCoalition(s, 'popular_front');
-    if (s.activeCoalition) {
-      s.activeCoalition.cntStance = 'cooperate'; // default cooperation stance
-    }
+    s.cntStance = 'cooperate'; // default cooperation stance
   }
   return s;
 }

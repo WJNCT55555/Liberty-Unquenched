@@ -18,6 +18,7 @@ import { formationOfPRRevS } from './formation_of_prrevs';
 import { laSanjurjada } from './la_sanjurjada';
 import { jabaliEvent } from './jabali';
 import { juradosMixtos } from './jurados_mixtos';
+import { huelgaTelefonica1931 } from './huelga_telefonica_1931';
 
 export const INITIAL_EVENTS = [
   proclamationSecondRepublic,
@@ -28,6 +29,7 @@ export const INITIAL_EVENTS = [
   republicanCabinet1931,
   leftCabinetExcludesCNT,
   cnt_third_congress_1,
+  huelgaTelefonica1931,
   manifestoOfThirty,
   constitution1931,
   foundingSyndicalistParty,

@@ -1,6 +1,8 @@
 import { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { ramonFranco } from '../advisors/ramon_franco';
+import { eduardoBarriobero } from '../advisors/eduardo_barriobero';
+import { pedroVallina } from '../advisors/pedro_vallina';
 
 export const jabaliEvent: GameEvent = {
   id: 'jabali',
@@ -15,8 +17,8 @@ export const jabaliEvent: GameEvent = {
     {
       text: "Let the boar's tusks tear old Spain apart!",
       textZh: '让野猪的獠牙撕碎旧西班牙',
-      subtitle: 'Unleash radical passions: introduce the Jabalistas faction (Influence 15, Dissent 0), unlock Ramón Franco as an advisor, increase revolutionary fervor, and gain worker support.',
-      subtitleZh: '释放激进的狂热：引入野猪议员派系（影响力 15，分歧 0），解锁顾问拉蒙·弗朗哥加入池中，建立革命热情并赢得工人支持。',
+      subtitle: 'Unleash radical passions: introduce the Jabalistas faction (Influence 15, Dissent 0), unlock Ramón Franco, Eduardo Barriobero, and Pedro Vallina as advisors, increase revolutionary fervor, and gain worker support.',
+      subtitleZh: '释放激进的狂热：引入野猪议员派系（影响力 15，分歧 0），解锁顾问拉蒙·弗朗哥、爱德华多·巴里奥贝罗和佩德罗·瓦利纳加入池中，提高革命热情并赢得工人支持。',
       effect: (state) => {
         const newClasses = JSON.parse(JSON.stringify(state.classes));
         if (newClasses.Obreros && newClasses.Obreros.support) {
@@ -33,6 +35,12 @@ export const jabaliEvent: GameEvent = {
         const newPool = [...state.advisorPool];
         if (!newPool.some(a => a.id === 'Ramón Franco')) {
           newPool.push(ramonFranco);
+        }
+        if (!newPool.some(a => a.id === 'Eduardo Barriobero')) {
+          newPool.push(eduardoBarriobero);
+        }
+        if (!newPool.some(a => a.id === 'Pedro Vallina')) {
+          newPool.push(pedroVallina);
         }
 
         return {

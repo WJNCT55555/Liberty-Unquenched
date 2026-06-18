@@ -169,13 +169,15 @@ export const elections1933Results: GameEvent = {
         if (min.interior === 'CNT') min.interior = 'IR';
         if (min.agriculture === 'CNT') min.agriculture = 'PSOE';
         if (min.finance === 'CNT') min.finance = 'PSOE';
+        if (min.estado === 'CNT') min.estado = 'PSOE';
 
         return {
           cortes: newCortes,
-          isCNTInGovernment: false,
+          cntStance: 'oppose' as const,
           agriculture_minister_party: min.agriculture,
           labor_minister_party: min.labor,
           finance_minister_party: min.finance || 'PSOE',
+          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           government: {
             ...state.government,

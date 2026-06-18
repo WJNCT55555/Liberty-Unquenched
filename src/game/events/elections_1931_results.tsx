@@ -6,6 +6,7 @@ import { PARTY_COLORS } from '../constants';
 import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
 import { formCoalition } from '../utils/coalition';
+import { huelgaTelefonica1931 } from './huelga_telefonica_1931';
 
 export const elections1931Results: GameEvent = {
   id: '1931_elections_results',
@@ -55,9 +56,6 @@ export const elections1931Results: GameEvent = {
     const totalSeats = data.reduce((sum, d) => sum + d.seats, 0);
     const formatPct = (seats: number) => `${Math.round((seats / totalSeats) * 100)}%`;
 
-    const repSocSeats = cortes.PSOE + cortes.IR;
-    const repSeats = cortes.IR + cortes.UR + cortes.DLR;
-
     return React.createElement('div', { className: 'flex flex-col items-center w-full' },
       React.createElement(ParliamentChart, { data, width: 400, height: 200 }),
       
@@ -83,32 +81,25 @@ export const elections1931Results: GameEvent = {
               )
             )
           )
-        ),
-        
-        // Potential Coalitions
-        React.createElement('div', { className: 'mt-6' },
-          React.createElement('h4', { className: 'font-bold mb-3 text-base' }, isZh ? '潜在执政联盟:' : 'Potential coalitions:'),
-          React.createElement('ul', { className: 'space-y-3' },
-            React.createElement('li', null, 
-              React.createElement('span', { className: 'font-medium' }, isZh ? '共和-社会党联盟 (PSOE + IR): ' : 'Republican-Socialist (PSOE + IR): '),
-              `${formatPct(repSocSeats)} (${repSocSeats} ${isZh ? '席' : 'seats'})`
-            ),
-            React.createElement('li', null, 
-              React.createElement('span', { className: 'font-medium' }, isZh ? '共和联盟 (IR + UR + DLR): ' : 'Republican Coalition (IR + UR + DLR): '),
-              `${formatPct(repSeats)} (${repSeats} ${isZh ? '席' : 'seats'})`
-            )
-          )
         )
       )
     );
   },
   options: [
     {
-      text: 'Support the formation of the Republican-Socialist Coalition.',
-      textZh: '推动并组建共和-社会党内阁（激活政党联盟系统）。',
+      text: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.PSOE || 0) + (cortes.IR || 0) + (cortes.ERC || 0) + (cortes.PRR || 0) + (cortes.UR || 0);
+        return `Republican-Socialist Coalition (PSOE + IR + ERC + PRR + UR) Wins (${seats} seats)`;
+      },
+      textZh: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.PSOE || 0) + (cortes.IR || 0) + (cortes.ERC || 0) + (cortes.PRR || 0) + (cortes.UR || 0);
+        return `共和-社会党联盟（PSOE + IR + ERC + PRR + UR）获胜（${seats}席）`;
+      },
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
-        const cntSupported = state.stats.republican_socialist_coalition_power > 50;
+        const cntSupported = state.cntStance === 'cooperate';
 
         let nextEvents = state.pendingEvents;
         let govType = 'Republican-Socialist Cabinet';
@@ -147,6 +138,53 @@ export const elections1931Results: GameEvent = {
       }
     },
     {
+      text: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+        return `Republican Coalition (ERC + IR + UR + PRR + DLR) Wins (${seats} seats)`;
+      },
+      textZh: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+        return `共和联盟（ERC + IR + UR + PRR + DLR）获胜（${seats}席）`;
+      },
+      condition: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+        return seats > 235;
+      },
+      unavailableSubtitle: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+        return `Requires a majority of seats (> 235). Current: ${seats} seats.`;
+      },
+      unavailableSubtitleZh: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+        return `需要席位过半（> 235席）。当前：${seats}席。`;
+      },
+      effect: (state) => {
+        const newCortes = calculateElectionResults(state);
+        let nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents];
+        let govType = 'Republican Cabinet';
+        let govTypeZh = '共和派内阁';
+        let pm = 'Alejandro Lerroux';
+        let pmZh = '亚历杭德罗·勒鲁';
+
+        return {
+          cortes: newCortes,
+          government: {
+            ...state.government,
+            type: govType,
+            typeZh: govTypeZh,
+            primeMinister: pm,
+            primeMinisterZh: pmZh
+          },
+          pendingEvents: nextEvents
+        };
+      }
+    },
+    {
       text: 'A new era begins, but the state remains our enemy.',
       textZh: '一个新时代开始了，但国家依然是我们的敌人。',
       effect: (state) => {
@@ -157,7 +195,7 @@ export const elections1931Results: GameEvent = {
         const isRepSoc = repSocSeats >= repSeats;
         
         // Trigger cabinet formation if CNT tacitly supported
-        const cntSupported = state.stats.republican_socialist_coalition_power > 50;
+        const cntSupported = state.cntStance === 'cooperate';
 
         let nextEvents = state.pendingEvents;
         let govType = state.government.type;
@@ -204,8 +242,16 @@ export const elections1931Results: GameEvent = {
 
 export const republicanCabinet1931: GameEvent = {
   id: '1931_republican_cabinet',
-  title: 'The Republican Cabinet',
-  titleZh: '共和派内阁',
+  title: (state) => {
+    const cortes = state.cortes || calculateElectionResults(state);
+    const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+    return `Republican Coalition (ERC + IR + UR + PRR + DLR) Wins (${seats} seats)`;
+  },
+  titleZh: (state) => {
+    const cortes = state.cortes || calculateElectionResults(state);
+    const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
+    return `共和联盟（ERC + IR + UR + PRR + DLR）获胜（${seats}席）`;
+  },
   description: 'The centrist and left-republican parties have formed a bourgeois government, excluding the socialists. Alejandro Lerroux has been appointed Prime Minister. This government is committed to a capitalist republic and will likely oppose our revolutionary goals.',
   descriptionZh: '中间派和左翼共和党人组成了一个资产阶级政府，将社会党人排除在外。亚历杭德罗·勒鲁被任命为总理。这个政府致力于建立一个资本主义共和国，很可能会反对我们的革命目标。',
   options: [
@@ -229,9 +275,17 @@ export const leftCabinetExcludesCNT: GameEvent = {
     {
       text: 'They will soon feel the power of the organized working class.',
       textZh: '他们很快就会感受到有组织的工人阶级的力量。',
-      effect: (state) => ({
-        stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5) }
-      })
+      effect: (state) => {
+        const alreadyPending = state.pendingEvents.some(e => e.id === huelgaTelefonica1931.id);
+        const updatedPending = alreadyPending 
+          ? state.pendingEvents 
+          : [{ ...huelgaTelefonica1931 }, ...state.pendingEvents];
+          
+        return {
+          stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5) },
+          pendingEvents: updatedPending
+        };
+      }
     }
   ]
 };
@@ -268,9 +322,9 @@ export const cabinetFormation1931: GameEvent = {
         newFactions.Puristas.dissent += 20;
         
         return {
+          cntStance: 'govern' as const,
           factions: newFactions,
           leverage: 15, // Starting leverage for ministries
-          isCNTInGovernment: true,
           stats: {
             ...state.stats,
             bureaucratization: Math.min(100, state.stats.bureaucratization + 20)
@@ -344,6 +398,14 @@ const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) =
       description: 'Controls state security, but lowers Army Loyalty (-10)',
       descriptionZh: '掌管安全防务，但会削减军官忠诚度 (-10)',
     },
+    {
+      id: 'estado',
+      name: 'Ministry of State',
+      nameZh: '国务部',
+      cost: 5,
+      description: 'Allows playing Foreign Policy cards. (+5 Revolutionary Fervor)',
+      descriptionZh: '可全盘掌控我国外交政策。提升革命热情 (+5)',
+    },
   ];
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -401,12 +463,17 @@ const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) =
           newMinisters.interior = 'CNT';
           armyLoyaltyDelta -= 10;
         }
+        if (selected.estado) {
+          newMinisters.estado = 'CNT';
+          revFervorDelta += 5;
+        }
 
         return {
           leverage: currentState.leverage - totalCost,
           labor_minister_party: selected.labor ? 'CNT' : currentState.labor_minister_party,
           agriculture_minister_party: selected.agriculture ? 'CNT' : currentState.agriculture_minister_party,
           finance_minister_party: selected.finance ? 'CNT' : currentState.finance_minister_party,
+          estado_minister_party: selected.estado ? 'CNT' : currentState.estado_minister_party,
           ministers: newMinisters,
           stats: {
             ...currentState.stats,

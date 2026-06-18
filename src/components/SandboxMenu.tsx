@@ -34,11 +34,12 @@ export const SandboxMenu = () => {
     const extraPayload: any = { ministers: newMinisters };
     const anyCNT = Object.values(newMinisters).some(v => v === 'CNT');
     if (anyCNT) {
-      extraPayload.isCNTInGovernment = true;
+      extraPayload.cntStance = 'govern';
     }
     if (role === 'labor') extraPayload.labor_minister_party = value;
     if (role === 'agriculture') extraPayload.agriculture_minister_party = value;
     if (role === 'finance') extraPayload.finance_minister_party = value;
+    if (role === 'estado') extraPayload.estado_minister_party = value;
     dispatch({ type: 'SANDBOX_EDIT', payload: extraPayload });
   };
 
@@ -51,6 +52,7 @@ export const SandboxMenu = () => {
     { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
     { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
     { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
+    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'State Minister (Foreign)', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
   ] as const;
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
@@ -149,8 +151,8 @@ export const SandboxMenu = () => {
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={state.isCNTInGovernment || false}
-                        onChange={(e) => handleEdit('isCNTInGovernment', e.target.checked)}
+                        checked={state.cntStance === 'govern'}
+                        onChange={(e) => handleEdit('cntStance', e.target.checked ? 'govern' : 'oppose')}
                         className="w-5 h-5 accent-cnt-red cursor-pointer"
                       />
                       <div className="flex flex-col">
@@ -333,43 +335,40 @@ export const SandboxMenu = () => {
                             className="w-full accent-cnt-red"
                           />
                         </div>
-
-                        <div className="flex flex-col gap-1.5 border-t border-ink/10 pt-2 mt-1">
-                          <span className="text-[10px] font-bold text-ink-light uppercase">
-                            {isZh ? '切换CNT工会立场 (反对/合作/执政)' : 'CNT Factions Stance'}
-                          </span>
-                          <div className="grid grid-cols-3 gap-1">
-                            {['oppose', 'cooperate', 'govern'].map(stance => (
-                              <button
-                                key={stance}
-                                onClick={() => {
-                                  dispatch({
-                                    type: 'SANDBOX_EDIT',
-                                    payload: {
-                                      activeCoalition: {
-                                        ...state.activeCoalition!,
-                                        cntStance: stance as any
-                                      }
-                                    }
-                                  });
-                                }}
-                                className={`py-1 text-[10px] font-bold uppercase rounded-sm border ${
-                                  state.activeCoalition?.cntStance === stance
-                                    ? 'bg-ink text-paper border-ink'
-                                    : 'bg-transparent border-ink/30 hover:bg-ink/5'
-                                }`}
-                              >
-                                {stance}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-28 text-ink/40 text-center uppercase tracking-wider text-[10px] leading-relaxed">
+                      <div className="flex flex-col items-center justify-center h-20 text-ink/40 text-center uppercase tracking-wider text-[10px] leading-relaxed">
                         {isZh ? '当前无活跃执政党联盟\n请在左侧强制组建一个。' : 'No active coalition.\nSelect one from the left to start fine-tuning.'}
                       </div>
                     )}
+
+                    <div className="flex flex-col gap-1.5 border-t border-ink/10 pt-2 mt-1">
+                      <span className="text-[10px] font-bold text-ink-light uppercase">
+                        {isZh ? '切换CNT工会立场 (反对/合作/执政)' : 'CNT Factions Stance'}
+                      </span>
+                      <div className="grid grid-cols-3 gap-1">
+                        {['oppose', 'cooperate', 'govern'].map(stance => (
+                          <button
+                            key={stance}
+                            onClick={() => {
+                              dispatch({
+                                type: 'SANDBOX_EDIT',
+                                payload: {
+                                  cntStance: stance as any
+                                }
+                              });
+                            }}
+                            className={`py-1 text-[10px] font-bold uppercase rounded-sm border ${
+                              state.cntStance === stance
+                                ? 'bg-ink text-paper border-ink'
+                                : 'bg-transparent border-ink/30 hover:bg-ink/5'
+                            }`}
+                          >
+                            {stance}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -47,12 +47,11 @@ export const cnt_third_congress_5: GameEvent = {
         newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 15);
         
         return {
-          cnt_boycott_election: true,
+          cntStance: 'oppose' as const,
           cntVotingRate: Math.max(0, state.cntVotingRate - 8),
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10),
-            republican_socialist_coalition_power: Math.max(0, state.stats.republican_socialist_coalition_power - 15)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
           },
           factions: newFactions,
           currentEvent: cnt_third_congress_6
@@ -72,11 +71,10 @@ export const cnt_third_congress_5: GameEvent = {
         newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 15);
         
         return {
-          cnt_participate_election: true,
+          cntStance: 'oppose' as const,
           cntVotingRate: Math.min(100, state.cntVotingRate + 8),
           stats: {
-            ...state.stats,
-            republican_socialist_coalition_power: Math.min(100, state.stats.republican_socialist_coalition_power + 15)
+            ...state.stats
           },
           factions: newFactions,
           currentEvent: cnt_third_congress_6
@@ -96,12 +94,11 @@ export const cnt_third_congress_5: GameEvent = {
         newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 15);
         
         return {
-          cnt_participate_election: true,
+          cntStance: 'cooperate' as const,
           cntVotingRate: Math.min(100, state.cntVotingRate + 50),
           stats: {
             ...state.stats,
-            bureaucratization: Math.min(100, state.stats.bureaucratization + 40),
-            republican_socialist_coalition_power: Math.min(100, state.stats.republican_socialist_coalition_power + 35)
+            bureaucratization: Math.min(100, state.stats.bureaucratization + 40)
           },
           factions: newFactions,
           currentEvent: cnt_third_congress_6

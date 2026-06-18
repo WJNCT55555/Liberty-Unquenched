@@ -32,7 +32,10 @@ export const EventBoard: React.FC = () => {
             className="w-full text-left p-4 bg-transparent border-2 border-ink hover:bg-ink hover:text-paper transition-colors flex justify-between items-center group"
           >
             <span className="font-display text-xl uppercase tracking-widest">
-              {isZh && event.titleZh ? event.titleZh : event.title}
+              {(() => {
+                const resolvedTitle = isZh && event.titleZh ? event.titleZh : event.title;
+                return typeof resolvedTitle === 'function' ? resolvedTitle(state) : resolvedTitle;
+              })()}
             </span>
             <span className="font-typewriter text-sm tracking-widest">
               {isZh ? '查看' : 'VIEW'} &rarr;

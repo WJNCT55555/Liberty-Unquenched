@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { media } from './media';
 
 export const organizationsCard: Card = {
   id: 'organizations',
@@ -14,6 +15,7 @@ export const organizationsCard: Card = {
     organizations_timer: 6,
     currentEvent: {
       id: 'organizations_decision',
+      date: { year: state.year, month: state.month },
       title: 'Confederal Organizations',
       titleZh: '组织',
       description: 'The union is building the new society within the shell of the old. Where should we allocate our resources?',
@@ -22,14 +24,18 @@ export const organizationsCard: Card = {
         {
           text: 'Fund Media & Publishers (-1 Resource)',
           textZh: '资助我们的媒体和无政府主义出版社 (-1 资源)',
-          subtitle: 'Spread our ideas through the printed word.',
-          subtitleZh: '通过印刷品传播我们的理念，重置宣传计时器。',
+          subtitle: 'Spread our ideas through the printed word and trigger Media options immediately.',
+          subtitleZh: '通过印刷品传播我们的理念，直接跳转并触发媒体活动。',
           condition: (s: GameState) => s.resources >= 1,
           unavailableSubtitleZh: () => '资源不足。',
-          effect: (s: GameState) => ({
-            resources: s.resources - 1,
-            propaganda_timer: 0
-          })
+          effect: (s: GameState) => {
+            const mediaResult = media.effect(s);
+            return {
+              resources: s.resources - 1,
+              propaganda_timer: 0,
+              currentEvent: mediaResult.currentEvent
+            };
+          }
         },
         {
           text: 'Fortify Strike Funds (-1 Resource)',

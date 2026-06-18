@@ -1,4 +1,5 @@
 import React from 'react';
+import { Province, Army } from '../map/types_map';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'PRR' | 'ERC' | 'Other';
@@ -105,7 +106,6 @@ export interface CoalitionState {
   memberContributions: Record<Party, number>;
   cohesion: number;
   cntAttitude: number;
-  cntStance: 'oppose' | 'cooperate' | 'govern';
   formedAt: { year: number; month: number };
 }
 
@@ -124,15 +124,15 @@ export interface GameEvent {
   id: string;
   date?: { year: number; month: number };
   condition?: (state: GameState) => boolean;
-  title: string;
-  titleZh?: string;
+  title: string | ((state: GameState) => string);
+  titleZh?: string | ((state: GameState) => string);
   description: string;
   descriptionZh?: string;
   image?: string;
   renderContent?: (state: GameState) => React.ReactNode;
   options: {
-    text: string;
-    textZh?: string;
+    text: string | ((state: GameState) => string);
+    textZh?: string | ((state: GameState) => string);
     subtitle?: string;
     subtitleZh?: string;
     unavailableSubtitle?: (state: GameState) => string;
@@ -144,6 +144,12 @@ export interface GameEvent {
 
 export interface GameState {
   screen: 'start' | 'game';
+  currentView?: 'standard' | 'map';
+  provinces?: Record<string, Province>;
+  armies?: Army[];
+  mapSelectedProvinceId?: string | null;
+  mapSelectedArmyId?: string | null;
+  mapSelectedArmyIds?: string[];
   scenario: '1931' | '1933' | '1936';
   difficulty: 'easy' | 'normal' | 'hard' | 'historical' | 'sandbox';
   language: 'en' | 'zh';
@@ -191,7 +197,7 @@ export interface GameState {
   isPRRevSFormed: boolean;
   prrevs_formed_months: number;
   prrevsConstructionLevel: number;
-  isCNTInGovernment: boolean;
+  cntStance: 'oppose' | 'cooperate' | 'govern';
   sandboxCardChoiceEnabled?: boolean;
 
   ateneos_established: number;
@@ -207,9 +213,7 @@ export interface GameState {
     workerControl: number;
     anarchistMilitia: number;
     republicanAuthority: number;
-    pceSupport: number;
     revolutionaryFervor: number;
-    republican_socialist_coalition_power: number;
     bureaucratization: number;
   };
   
@@ -218,10 +222,17 @@ export interface GameState {
   activeCoalition: CoalitionState | null;
   coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];
 
+  coalition_dissent?: number;
+  gibraltar_resolved?: boolean;
+  andorra_secured?: boolean;
+  usa_total_embargo?: boolean;
+  latin_american_diaspora_mobilized?: boolean;
+
   leverage: number;
   agriculture_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   labor_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
   finance_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+  estado_minister_party?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   temp_tax_lower?: number;
   temp_tax_middle?: number;
   temp_tax_upper?: number;
@@ -236,6 +247,7 @@ export interface GameState {
     war: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
     agriculture: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
     finance?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+    estado?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   };
 
   factions: Record<Faction, { influence: number; dissent: number }>;
@@ -342,8 +354,6 @@ export interface GameState {
   pceInPower: boolean;
   pceAcceptsComintern: boolean;
   
-  cnt_boycott_election: boolean;
-  cnt_participate_election: boolean;
   ps_founded: boolean;
   fe_founded: boolean;
   poum_founded: boolean;

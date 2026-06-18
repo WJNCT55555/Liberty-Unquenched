@@ -41,8 +41,7 @@ export const constitution1931: GameEvent = {
         stats: {
           ...state.stats,
           revolutionaryFervor: state.stats.revolutionaryFervor - 5,
-          workerControl: state.stats.workerControl + 5,
-          republican_socialist_coalition_power: state.stats.republican_socialist_coalition_power + 5
+          workerControl: state.stats.workerControl + 5
         },
         factions: adjustFactionInfluence(state.factions, 'Treintistas', 10)
       })

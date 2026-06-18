@@ -74,7 +74,7 @@ export const checkEndings = (state: GameState): GameState => {
     : 0;
 
   // 1. The Great Purge
-  if (state.stats.pceSupport > 80 && state.cntFaiInGovernment) {
+  if (state.partySupport['PCE'] > 80 && state.cntFaiInGovernment) {
     triggeredEnding = ENDINGS.THE_GREAT_PURGE;
   }
   // 2. We Have Passed
@@ -82,7 +82,7 @@ export const checkEndings = (state: GameState): GameState => {
     triggeredEnding = ENDINGS.WE_HAVE_PASSED;
   }
   // 3. Russian Spain
-  else if (state.civilWarStatus === 'won' && state.moscowGoldTransferred && state.stats.pceSupport > 80 && state.pceInPower && state.pceAcceptsComintern) {
+  else if (state.civilWarStatus === 'won' && state.moscowGoldTransferred && state.partySupport['PCE'] > 80 && state.pceInPower && state.pceAcceptsComintern) {
     triggeredEnding = ENDINGS.RUSSIAN_SPAIN;
   }
   // 4. Children of the People

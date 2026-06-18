@@ -11,7 +11,7 @@ export const formationOfPRRevS: GameEvent = {
     const pestanaActive = state.activeAdvisors.some(a => a?.id === 'Ángel Pestaña');
     return pestanaActive &&
            state.stats.bureaucratization >= 50 &&
-           state.isCNTInGovernment &&
+           state.cntStance === 'govern' &&
            state.factions.Treintistas.influence > 60 &&
            state.prrevsConstructionLevel >= 4 &&
            !state.isPRRevSFormed;

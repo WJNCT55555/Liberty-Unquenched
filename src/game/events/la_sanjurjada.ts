@@ -27,7 +27,7 @@ export const laSanjurjada: GameEvent = {
     {
       text: 'We must pressure the officials in government to forcefully implement the military reform act.',
       textZh: '我们必须照会在政府中的官员，强硬推行军官改革法案。',
-      condition: (state) => state.isPRRevSFormed && state.isCNTInGovernment,
+      condition: (state) => state.isPRRevSFormed && state.cntStance === 'govern',
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,

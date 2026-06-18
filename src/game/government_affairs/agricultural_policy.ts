@@ -10,7 +10,7 @@ export const agriculturalPolicy: Card = {
   descriptionZh: '尽管农业政策历来不是全劳联（CNT）的专长，但这一领域迫切需要政策。',
   cost: 1,
   condition: (state: GameState) => {
-    const isGov = state.isCNTInGovernment;
+    const isGov = state.cntStance === 'govern';
     const isMinister = state.ministers.agriculture === 'CNT' || state.agriculture_minister_party === 'CNT';
     const isTimerZero = (state.agricultural_policy_timer || 0) === 0;
     return isGov && isMinister && isTimerZero;

@@ -8,7 +8,7 @@ export const militaryPolicy: Card = {
   description: 'With the CNT holding the Ministry of War, we must decide our approach towards the army and defense.',
   descriptionZh: '由于CNT控制了战争部（国防部），我们必须决定对军队和国防的政策。',
   cost: 1, // Add standard action point cost if applicable
-  condition: (state) => state.isCNTInGovernment && state.ministers.war === 'CNT' && (state.military_policy_timer || 0) <= 0,
+  condition: (state) => state.cntStance === 'govern' && state.ministers.war === 'CNT' && (state.military_policy_timer || 0) <= 0,
   effect: (state: GameState) => {
     return {
       currentEvent: {

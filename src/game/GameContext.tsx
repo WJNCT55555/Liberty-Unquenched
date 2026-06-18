@@ -5,6 +5,8 @@ import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
+import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../map/map_constants';
+import { initializeMapState, triggerCivilWarOnMap } from '../map/map_logic';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -18,6 +20,12 @@ const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
 
 export const INITIAL_STATE: GameState = {
   screen: 'start',
+  currentView: 'standard',
+  provinces: INITIAL_PROVINCES,
+  armies: INITIAL_ARMIES,
+  mapSelectedProvinceId: null,
+  mapSelectedArmyId: null,
+  mapSelectedArmyIds: [],
   scenario: '1931',
   difficulty: 'normal',
   language: 'en',
@@ -69,7 +77,7 @@ export const INITIAL_STATE: GameState = {
   isPRRevSFormed: false,
   prrevs_formed_months: 0,
   prrevsConstructionLevel: 0,
-  isCNTInGovernment: false,
+  cntStance: 'oppose',
   sandboxCardChoiceEnabled: false,
   ateneos_established: 0,
   fijl_established: false,
@@ -82,9 +90,7 @@ export const INITIAL_STATE: GameState = {
     workerControl: 10,
     anarchistMilitia: 0,
     republicanAuthority: 50,
-    pceSupport: 15,
     revolutionaryFervor: 10,
-    republican_socialist_coalition_power: 50,
     bureaucratization: 0,
   },
   factions: {
@@ -99,10 +105,10 @@ export const INITIAL_STATE: GameState = {
     Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 15 } },
     Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 20, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, PRR: 15, ERC: 5, Other: 40 } },
     Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, PRR: 0, ERC: 0, Other: 0 } },
-    PequenaBurguesia: { support: { CNT_FAI: 0, PSOE: 5, PCE: 0, IR: 35, UR: 25, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 15, ERC: 10, Other: 0 } },
-    Intelectuales: { support: { CNT_FAI: 5, PSOE: 20, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 10, ERC: 10, Other: 0 } },
-    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 20, UR: 15, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 15, ERC: 10, Other: 10 } },
-    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 5, ERC: 0, Other: 25 } },
+    PequenaBurguesia: { support: { CNT_FAI: 2, PSOE: 5, PCE: 0, IR: 25, UR: 3, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 45, ERC: 10, Other: 0 } },
+    Intelectuales: { support: { CNT_FAI: 5, PSOE: 15, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 0, ERC: 10, Other: 5 } },
+    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 35, ERC: 10, Other: 10 } },
+    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 15, ERC: 0, Other: 15 } },
   },
   armedForces: {
     regularArmy: { manpower: 100000, loyalty: 50 },
@@ -183,6 +189,7 @@ export const INITIAL_STATE: GameState = {
   leverage: 0,
   agriculture_minister_party: 'Right',
   labor_minister_party: 'Right',
+  estado_minister_party: 'Right',
   ministers: {
     labor: 'Right',
     health: 'Right',
@@ -192,6 +199,7 @@ export const INITIAL_STATE: GameState = {
     war: 'Right',
     agriculture: 'Right',
     finance: 'Right',
+    estado: 'Right',
   },
   superEvent: null,
   pendingEvents: [],
@@ -214,8 +222,6 @@ export const INITIAL_STATE: GameState = {
   cntFaiInGovernment: false,
   pceInPower: false,
   pceAcceptsComintern: false,
-  cnt_boycott_election: false,
-  cnt_participate_election: false,
   ps_founded: false,
   fe_founded: false,
   poum_founded: false,
@@ -235,7 +241,7 @@ export const INITIAL_STATE: GameState = {
   unlockedAchievementsThisRun: [],
   journal: initialJournalState,
   activeAdvisors: [null, null, null],
-  advisorPool: INITIAL_ADVISORS.filter(a => a.id !== 'Ramón Franco'),
+  advisorPool: INITIAL_ADVISORS.filter(a => a.id !== 'Ramón Franco' && a.id !== 'Pedro Vallina' && a.id !== 'Eduardo Barriobero'),
   currentEvent: null,
   hand: [],
   actionDeck: INITIAL_CARDS.filter(c => c.type === 'Action'),
@@ -247,6 +253,7 @@ export const INITIAL_STATE: GameState = {
   },
   activeCoalition: null,
   coalitionHistory: [],
+  coalition_dissent: 0,
 };
 
 interface GameContextType {
@@ -274,7 +281,11 @@ type GameAction =
   | { type: 'ISSUE_WAR_BONDS' }
   | { type: 'BUY_RESOURCES_URGENT' }
   | { type: 'DEBUG_TRIGGER_ENDING'; payload: string }
-  | { type: 'SANDBOX_EDIT'; payload: Partial<GameState> };
+  | { type: 'SANDBOX_EDIT'; payload: Partial<GameState> }
+  | { type: 'TOGGLE_MAP_VIEW' }
+  | { type: 'SELECT_MAP_PROVINCE'; payload: string | null }
+  | { type: 'SELECT_MAP_ARMY'; payload: { armyId: string | null; isShift: boolean } }
+  | { type: 'MOVE_MAP_ARMY'; payload: { armyId: string; targetProvinceId: string } };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -399,6 +410,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         fe_founded: feFounded,
         poum_founded: action.payload.scenario === '1936',
         civilWarStatus: startCivilWarStatus,
+        ...initializeMapState(action.payload.scenario, startCivilWarStatus),
+        mapSelectedProvinceId: null,
+        mapSelectedArmyId: null,
+        mapSelectedArmyIds: [],
+        currentView: 'standard',
         pendingEvents: startingEvents,
         superEvent: action.payload.scenario === '1931' ? 'abdication_alfonso' : (action.payload.scenario === '1936' ? 'spanish_civil_war' : null),
         economy_growth: start_growth,
@@ -525,6 +541,79 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState = { ...state, ...action.payload };
       }
       break;
+    case 'TOGGLE_MAP_VIEW':
+      newState = {
+        ...state,
+        currentView: state.currentView === 'map' ? 'standard' : 'map',
+      };
+      break;
+    case 'SELECT_MAP_PROVINCE':
+      newState = {
+        ...state,
+        mapSelectedProvinceId: action.payload,
+      };
+      break;
+    case 'SELECT_MAP_ARMY': {
+      const { armyId, isShift } = action.payload;
+      if (!isShift) {
+        newState = {
+          ...state,
+          mapSelectedArmyId: armyId,
+          mapSelectedArmyIds: armyId ? [armyId] : [],
+        };
+      } else {
+        const currentIds = state.mapSelectedArmyIds || [];
+        const isSelected = armyId ? currentIds.includes(armyId) : false;
+        let nextIds = [...currentIds];
+        if (armyId) {
+          if (isSelected) {
+            nextIds = nextIds.filter(id => id !== armyId);
+          } else {
+            nextIds.push(armyId);
+          }
+        }
+        newState = {
+          ...state,
+          mapSelectedArmyId: nextIds[nextIds.length - 1] || null,
+          mapSelectedArmyIds: nextIds,
+        };
+      }
+      break;
+    }
+    case 'MOVE_MAP_ARMY': {
+      const { armyId, targetProvinceId } = action.payload;
+      const armies = state.armies || [];
+      const updatedArmies = armies.map(army => {
+        if (army.id === armyId) {
+          return {
+            ...army,
+            provinceId: targetProvinceId,
+            movesLeft: Math.max(0, army.movesLeft - 1),
+          };
+        }
+        return army;
+      });
+
+      const nextProvinces = { ...(state.provinces || INITIAL_PROVINCES) };
+      const movedArmy = armies.find(a => a.id === armyId);
+      if (movedArmy && nextProvinces[targetProvinceId]) {
+        const destProvince = nextProvinces[targetProvinceId];
+        const defenders = armies.filter(a => a.provinceId === targetProvinceId && a.faction !== movedArmy.faction);
+        if (defenders.length === 0) {
+          nextProvinces[targetProvinceId] = {
+            ...destProvince,
+            owner: movedArmy.faction,
+          };
+        }
+      }
+
+      newState = {
+        ...state,
+        armies: updatedArmies,
+        provinces: nextProvinces,
+      };
+      break;
+    }
     case 'NEXT_PHASE':
       if (state.phase === 'event') {
         newState = { ...state, phase: 'action', actionsLeft: 2 };
@@ -852,18 +941,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         tempState = checkCoalitionDissolve(tempState);
         tempState = autoFormCoalitionIfNeeded(tempState);
 
-        // Keep legacy stats field in sync for backward compatibility with old event triggers
-        if (tempState.activeCoalition) {
-          if (tempState.activeCoalition.activeId === 'republican_socialist') {
-            tempState.stats.republican_socialist_coalition_power = tempState.activeCoalition.cohesion;
-          } else if (tempState.activeCoalition.activeId === 'popular_front') {
-            tempState.stats.republican_socialist_coalition_power = tempState.activeCoalition.cohesion;
-          }
+        const mapTriggered = (state.civilWarStatus === 'not_started' && newCivilWarStatus === 'ongoing');
+        let finalProvinces = tempState.provinces || state.provinces || INITIAL_PROVINCES;
+        let finalArmies = tempState.armies || state.armies || INITIAL_ARMIES;
+        if (mapTriggered) {
+          const res = triggerCivilWarOnMap(finalProvinces, finalArmies);
+          finalProvinces = res.provinces;
+          finalArmies = res.armies;
         }
 
         newState = {
           ...state,
           ...tempState,
+          provinces: finalProvinces,
+          armies: finalArmies,
           phase: 'event',
           actionsLeft: 0,
           journal: newJournal,
