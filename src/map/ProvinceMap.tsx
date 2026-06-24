@@ -95,6 +95,7 @@ function getSegments(geometry: any): Segment[] {
 }
 
 const DIMENSIONS = { width: 800, height: 600 };
+const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
 
 export const ProvinceMap: React.FC<ProvinceMapProps> = ({ 
   provinces, 
@@ -1132,8 +1133,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
                     backgroundPosition: '0% 0%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#B56C51' 
@@ -1145,9 +1146,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '0% 50%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '0% 25%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#E09F3E' 
                   }} 
@@ -1158,8 +1159,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
                     backgroundPosition: '100% 0%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#4E8752' 
@@ -1171,8 +1172,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
                     backgroundPosition: '50% 0%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#4D8093' 
@@ -1184,9 +1185,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '50% 50%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '50% 25%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#8E9F76' 
                   }} 
@@ -1197,9 +1198,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '0% 50%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '50% 75%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#E5A93B' 
                   }} 
@@ -1210,9 +1211,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '0% 50%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '0% 75%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#DDA72F' 
                   }} 
@@ -1223,9 +1224,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '0% 100%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '0% 50%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#4A7A6E' 
                   }} 
@@ -1236,9 +1237,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '50% 100%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '50% 50%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#9E305C' 
                   }} 
@@ -1249,9 +1250,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '100% 50%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '100% 25%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#5E8075' 
                   }} 
@@ -1262,9 +1263,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '100% 100%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '100% 50%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#BCA374' 
                   }} 
@@ -1275,9 +1276,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 <span 
                   className="w-3.5 h-3.5 rounded-sm border border-black/20 inline-block shrink-0" 
                   style={{ 
-                    backgroundImage: "url('/data/cultural%20spirit.png')",
-                    backgroundSize: '300% 300%',
-                    backgroundPosition: '0% 0%',
+                    backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                    backgroundSize: '300% 500%',
+                    backgroundPosition: '100% 75%',
                     backgroundRepeat: 'no-repeat',
                     backgroundColor: '#5A9AD4' 
                   }} 
@@ -1434,9 +1435,9 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                                 className="w-5 h-5 rounded-full border border-black/30 shadow-sm inline-block shrink-0"
                                 title={coords.name}
                                 style={{
-                                  backgroundImage: "url('/data/cultural%20spirit.png')",
-                                  backgroundSize: '300% 300%',
-                                  backgroundPosition: `${coords.col * 50}% ${coords.row * 50}%`,
+                                  backgroundImage: `url(${BASE_URL}date/cultural%20spirit.png)`,
+                                  backgroundSize: '300% 500%',
+                                  backgroundPosition: `${coords.col * 50}% ${coords.row * 25}%`,
                                   backgroundRepeat: 'no-repeat',
                                 }}
                               />

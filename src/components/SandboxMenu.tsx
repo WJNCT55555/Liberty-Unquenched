@@ -238,6 +238,90 @@ export const SandboxMenu = () => {
                 </div>
               </div>
 
+              {/* Coup Progress Sandbox Control */}
+              <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '调试: 政变进度控制' : 'Debug: Coup Progress Control'}
+                </h3>
+                
+                <div className="flex flex-col gap-4 bg-ink/5 p-4 rounded-sm">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.coupSystemActive}
+                      onChange={(e) => {
+                        handleEdit('coupSystemActive', e.target.checked);
+                        if (!e.target.checked) {
+                          handleEdit('coupProgress', 0);
+                        }
+                      }}
+                      className="w-5 h-5 accent-cnt-red cursor-pointer"
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-display font-bold text-sm">
+                        {isZh ? '激活政变机制' : 'Activate Coup System'}
+                      </span>
+                      <span className="font-mono text-xs text-ink/75">
+                        {isZh ? '开启后，将启用每月政变进度累积和阶段政变事件（1933和1936剧本默认开启）' : 'Enables monthly coup progress and milestone coup events (enabled by default in 1933/1936 scenarios)'}
+                      </span>
+                    </div>
+                  </label>
+
+                  <div className="flex flex-col gap-1 border-t border-ink/10 pt-3">
+                    <div className="flex justify-between text-sm font-typewriter">
+                      <span>{isZh ? '当前政变进度' : 'Current Coup Progress'}</span>
+                      <span className="font-bold text-cnt-red">{state.coupProgress}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="100" 
+                      step="1"
+                      disabled={!state.coupSystemActive}
+                      value={state.coupProgress}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        handleEdit('coupProgress', val);
+                      }}
+                      className="w-full accent-cnt-red disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="flex justify-between text-[10px] font-mono text-ink/50 mt-1">
+                      <span>0% (稳定/Stable)</span>
+                      <span>50% (暗流/Tension)</span>
+                      <span>100% (爆发/Uprising)</span>
+                    </div>
+                  </div>
+
+                  {/* Reset triggers buttons */}
+                  <div className="flex flex-wrap gap-2 border-t border-ink/10 pt-3">
+                    <span className="text-[10px] font-bold text-ink-light uppercase w-full">
+                      {isZh ? '重置政变里程碑事件触发状态（可重新触发事件）' : 'Reset Coup Milestone Trigger Flags'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        dispatch({
+                          type: 'SANDBOX_EDIT',
+                          payload: {
+                            coupTriggered10: false,
+                            coupTriggered20: false,
+                            coupTriggered30: false,
+                            coupTriggered40: false,
+                            coupTriggered50: false,
+                            coupTriggered60: false,
+                            coupTriggered70: false,
+                            coupTriggered80: false,
+                            coupTriggered90: false,
+                            coupTriggered100: false,
+                          }
+                        });
+                      }}
+                      className="py-1 px-2.5 text-[10px] font-mono border border-ink/40 hover:bg-ink hover:text-paper transition-all"
+                    >
+                      {isZh ? '一键重置所有触发标记' : 'Reset All Milestone Flags'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Coalition Sandbox Controls */}
               <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
                 <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">

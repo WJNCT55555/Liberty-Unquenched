@@ -322,6 +322,44 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
 };
 
+// Chinese names for all provinces
+export const PROVINCE_NAMES_ZH: { [key: string]: string } = {
+  madrid: '马德里', barcelona: '巴塞罗那', valencia: '瓦伦西亚',
+  vizcaya: '比斯开', guipuzcoa: '吉普斯夸', asturias: '阿斯图里亚斯',
+  santander: '桑坦德', murcia: '穆尔西亚', malaga: '马拉加',
+  alicante: '阿利坎特', gerona: '赫罗纳', lerida: '莱里达',
+  tarragona: '塔拉戈纳', badajoz: '巴达霍斯', almeria: '阿尔梅里亚',
+  jaen: '哈恩', castellon: '卡斯特利翁', albacete: '阿尔瓦塞特',
+  ciudadreal: '雷阿尔城', cuenca: '昆卡', guadalajara: '瓜达拉哈拉',
+  toledo: '托莱多', navarra: '纳瓦拉', burgos: '布尔戈斯',
+  alava: '阿拉瓦', rioja: '拉里奥哈', sevilla: '塞维利亚',
+  coruna: '拉科鲁尼亚', lugo: '卢戈', orense: '奥伦塞',
+  pontevedra: '蓬特韦德拉', leon: '莱昂', zamora: '萨莫拉',
+  salamanca: '萨拉曼卡', avila: '阿维拉', segovia: '塞哥维亚',
+  valladolid: '巴利亚多利德', palencia: '帕伦西亚', soria: '索里亚',
+  zaragoza: '萨拉戈萨', huesca: '韦斯卡', teruel: '特鲁埃尔',
+  caceres: '卡塞雷斯', cadiz: '加的斯', huelva: '韦尔瓦',
+  cordoba: '科尔多瓦', granada: '格拉纳达', balears: '巴利阿里群岛',
+  oviedo: '奥维耶多', ceuta: '休达', melilla: '梅利利亚',
+  laspalmas: '拉斯帕尔马斯', santacruzdetenerife: '圣克鲁斯-德特内里费',
+  tetouan: '得土安', larache: '拉腊什', nador: '纳祖尔',
+  chefchaouen: '舍夫沙万', alhoceima: '胡塞马',
+  lisboa: '里斯本', porto: '波尔图', setubal: '塞图巴尔',
+  coimbra: '科英布拉', faro: '法鲁', beja: '贝雅',
+  evora: '埃武拉', portalegre: '波塔莱格雷', aveiro: '阿威罗',
+  braga: '布拉加', braganca: '布拉干萨', castelobranco: '布朗库堡',
+  guarda: '瓜达', leiria: '莱里亚', santarem: '圣塔伦',
+  vianadocastelo: '维亚纳堡', vilareal: '雷阿尔城(葡)', viseu: '维塞乌',
+};
+
+// Helper: get province display name based on language
+// Accepts either a full Province object (with id) or a minimal {name, nameZh} object
+export function getProvinceName(province: { name: string; nameZh?: string; id?: string } | undefined, lang: 'en' | 'zh'): string {
+  if (!province) return '';
+  if (lang === 'zh') return province.nameZh || (province.id && PROVINCE_NAMES_ZH[province.id]) || PROVINCE_NAMES_ZH[(province.name || '').toLowerCase()] || province.name;
+  return province.name;
+}
+
 export const PROVINCE_ADJACENCY: { [key: string]: string[] } = {
   madrid: ['toledo', 'guadalajara', 'cuenca', 'avila', 'segovia'],
   barcelona: ['tarragona', 'lerida', 'gerona'],
@@ -370,8 +408,28 @@ export const PROVINCE_ADJACENCY: { [key: string]: string[] } = {
   castellon: ['tarragona', 'teruel', 'valencia'],
   coruna: ['lugo', 'pontevedra'],
   lugo: ['coruna', 'orense', 'leon', 'asturias', 'pontevedra'],
-  orense: ['lugo', 'pontevedra', 'zamora', 'leon', 'braganca', 'vilareal'],
+  orense: ['lugo', 'pontevedra', 'zamora', 'leon', 'braganca', 'vilareal', 'braga'],
   pontevedra: ['coruna', 'lugo', 'orense', 'vianadocastelo'],
+
+  // --- PORTUGAL PROVINCES ADJACENCIES ---
+  lisboa: ['leiria', 'santarem', 'setubal'],
+  porto: ['vianadocastelo', 'braga', 'vilareal', 'viseu', 'aveiro'],
+  setubal: ['lisboa', 'santarem', 'evora', 'beja'],
+  coimbra: ['aveiro', 'viseu', 'castelobranco', 'leiria', 'santarem'],
+  faro: ['beja', 'huelva'],
+  beja: ['setubal', 'evora', 'badajoz', 'huelva', 'faro'],
+  evora: ['santarem', 'portalegre', 'beja', 'setubal', 'badajoz'],
+  portalegre: ['castelobranco', 'santarem', 'evora', 'caceres', 'badajoz'],
+  aveiro: ['porto', 'viseu', 'coimbra'],
+  braga: ['vianadocastelo', 'porto', 'vilareal', 'orense'],
+  braganca: ['vilareal', 'viseu', 'guarda', 'orense', 'zamora', 'salamanca'],
+  castelobranco: ['guarda', 'viseu', 'coimbra', 'santarem', 'portalegre', 'caceres'],
+  guarda: ['braganca', 'viseu', 'castelobranco', 'salamanca'],
+  leiria: ['coimbra', 'santarem', 'lisboa'],
+  santarem: ['leiria', 'coimbra', 'castelobranco', 'portalegre', 'evora', 'setubal', 'lisboa'],
+  vianadocastelo: ['braga', 'porto', 'pontevedra'],
+  vilareal: ['braga', 'porto', 'viseu', 'braganca', 'orense'],
+  viseu: ['porto', 'vilareal', 'braganca', 'guarda', 'coimbra', 'castelobranco', 'aveiro'],
 };
 
 // April 1931: The Army is still unified under the Republic.
@@ -504,15 +562,12 @@ export function getCultureGridCoords(provId: string, cultureGroup?: string, lang
   
   switch (cultureGroup) {
     case 'castilian':
-    case 'canarian':
       return { col: 0, row: 0, name: isZh ? '卡斯蒂利亚' : 'Castile' };
     case 'galician':
       return { col: 1, row: 0, name: isZh ? '加利西亚' : 'Galicia' };
     case 'basque':
       return { col: 2, row: 0, name: isZh ? '巴斯克' : 'Basque' };
     case 'catalan':
-    case 'valencia':
-    case 'aragonese':
       return { col: 0, row: 1, name: isZh ? '加泰罗尼亚' : 'Catalonia' };
     case 'andalusian':
       return { col: 1, row: 1, name: isZh ? '安达卢西亚' : 'Andalusia' };
@@ -525,6 +580,13 @@ export function getCultureGridCoords(provId: string, cultureGroup?: string, lang
     case 'moroccan_berber':
     case 'morocco':
       return { col: 2, row: 2, name: isZh ? '摩尔人' : 'Moors' };
+    case 'aragonese':
+      return { col: 0, row: 3, name: isZh ? '阿拉贡' : 'Aragonese' };
+    case 'valencia':
+    case 'valencian':
+      return { col: 1, row: 3, name: isZh ? '巴伦西亚' : 'Valencian' };
+    case 'canarian':
+      return { col: 2, row: 3, name: isZh ? '加那利' : 'Canarian' };
     default:
       return { col: 0, row: 0, name: isZh ? '卡斯蒂利亚' : 'Castile' };
   }
@@ -640,20 +702,66 @@ export const UI_COLORS = {
 };
 
 export const MAJOR_CITIES = [
-  { name: 'Madrid', coords: [-3.7038, 40.4168], isCapital: true },
-  { name: 'Barcelona', coords: [2.1734, 41.3851] },
-  { name: 'Valencia', coords: [-0.3763, 39.4699] },
-  { name: 'Sevilla', coords: [-5.9845, 37.3891] },
-  { name: 'Zaragoza', coords: [-0.8891, 41.6488] },
-  { name: 'Bilbao', coords: [-2.9350, 43.2630] },
-  { name: 'Málaga', coords: [-4.4203, 36.7213] },
-  { name: 'Lisboa', coords: [-9.1393, 38.7223], isCapital: true },
-  { name: 'Porto', coords: [-8.6291, 41.1579] },
-  { name: 'A Coruña', coords: [-8.4115, 43.3623] },
-  { name: 'Burgos', coords: [-3.6969, 42.3439] },
-  { name: 'Granada', coords: [-3.5986, 37.1773] },
-  { name: 'Cartagena', coords: [-0.9821, 37.6051] },
-  { name: 'Badajoz', coords: [-6.9706, 38.8794] },
-  { name: 'Oviedo', coords: [-5.8448, 43.3614] },
-  { name: 'Palma', coords: [2.6502, 39.5696] },
+  { name: 'Madrid', nameZh: '马德里', coords: [-3.7038, 40.4168], isCapital: true },
+  { name: 'Barcelona', nameZh: '巴塞罗那', coords: [2.1734, 41.3851] },
+  { name: 'Valencia', nameZh: '瓦伦西亚', coords: [-0.3763, 39.4699] },
+  { name: 'Sevilla', nameZh: '塞维利亚', coords: [-5.9845, 37.3891] },
+  { name: 'Zaragoza', nameZh: '萨拉戈萨', coords: [-0.8891, 41.6488] },
+  { name: 'Bilbao', nameZh: '毕尔巴鄂', coords: [-2.9350, 43.2630] },
+  { name: 'Málaga', nameZh: '马拉加', coords: [-4.4203, 36.7213] },
+  { name: 'Lisboa', nameZh: '里斯本', coords: [-9.1393, 38.7223], isCapital: true },
+  { name: 'Porto', nameZh: '波尔图', coords: [-8.6291, 41.1579] },
+  { name: 'A Coruña', nameZh: '拉科鲁尼亚', coords: [-8.4115, 43.3623] },
+  { name: 'Burgos', nameZh: '布尔戈斯', coords: [-3.6969, 42.3439] },
+  { name: 'Granada', nameZh: '格拉纳达', coords: [-3.5986, 37.1773] },
+  { name: 'Cartagena', nameZh: '卡塔赫纳', coords: [-0.9821, 37.6051] },
+  { name: 'Badajoz', nameZh: '巴达霍斯', coords: [-6.9706, 38.8794] },
+  { name: 'Oviedo', nameZh: '奥维耶多', coords: [-5.8448, 43.3614] },
+  { name: 'Palma', nameZh: '帕尔马', coords: [2.6502, 39.5696] },
 ];
+
+export function getCombatWidth(terrain: 'urban' | 'plains' | 'mountains' | 'forest'): number {
+  switch (terrain) {
+    case 'mountains':
+      return 2000;
+    case 'urban':
+      return 3000;
+    case 'forest':
+      return 4500;
+    case 'plains':
+    default:
+      return 6000;
+  }
+}
+
+export function getSupplyLimit(province: {
+  isCoastal: boolean;
+  strategicValue: number;
+  terrain?: 'urban' | 'plains' | 'mountains' | 'forest';
+  buildings?: { barracks?: number; fortress?: number; recruitingOffice?: number; ammoFactory?: number };
+}): number {
+  let baseLimit = 10000; // default for plains
+  if (province.terrain) {
+    switch (province.terrain) {
+      case 'urban':
+        baseLimit = 12000;
+        break;
+      case 'plains':
+        baseLimit = 10000;
+        break;
+      case 'forest':
+        baseLimit = 8000;
+        break;
+      case 'mountains':
+        baseLimit = 6000;
+        break;
+    }
+  }
+
+  const coastalBonus = province.isCoastal ? 3000 : 0;
+  const barracksLevel = province.buildings?.barracks || 0;
+  const barracksBonus = barracksLevel * 4000;
+  const strategicBonus = province.strategicValue * 500;
+
+  return baseLimit + coastalBonus + barracksBonus + strategicBonus;
+}

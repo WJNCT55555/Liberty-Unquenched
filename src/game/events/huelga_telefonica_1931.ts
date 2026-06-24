@@ -22,8 +22,7 @@ export const huelgaTelefonica1931: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15),
             workerControl: Math.min(100, state.stats.workerControl + 10),
-            republicanAuthority: Math.max(0, state.stats.republicanAuthority - 10),
-            tension: Math.min(100, state.stats.tension + 15)
+            republicanAuthority: Math.max(0, state.stats.republicanAuthority - 10)
           },
           partyRelations: {
             ...state.partyRelations,
@@ -47,8 +46,7 @@ export const huelgaTelefonica1931: GameEvent = {
         return {
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5),
-            tension: Math.min(100, state.stats.tension + 5)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5)
           },
           partyRelations: {
             ...state.partyRelations,

@@ -1,9 +1,19 @@
 import React from 'react';
-import { Province, Army } from '../map/types_map';
+import { Province, Army, MapFaction, ResourceSet } from '../map/types_map';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'PRR' | 'ERC' | 'Other';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
+
+export type RegionalStatus = 'direct' | 'autonomy' | 'independent';
+
+export interface RegionalStatuses {
+  andalusia: RegionalStatus;
+  catalonia: RegionalStatus;
+  basque: RegionalStatus;
+  galicia: RegionalStatus;
+  asturias: RegionalStatus;
+}
 
 export type JournalStatus = 'inactive' | 'active' | 'completed' | 'failed';
 
@@ -150,12 +160,21 @@ export interface GameState {
   mapSelectedProvinceId?: string | null;
   mapSelectedArmyId?: string | null;
   mapSelectedArmyIds?: string[];
+  mapCurrentPlayer?: MapFaction;
+  mapResources?: Record<MapFaction, ResourceSet>;
+  mapHistory?: string[];
+  mapAiConfig?: {
+    enabled: boolean;
+    aiFaction: MapFaction;
+    difficulty: 'easy' | 'normal' | 'hard';
+    confirmed?: boolean;
+  };
   scenario: '1931' | '1933' | '1936';
   difficulty: 'easy' | 'normal' | 'hard' | 'historical' | 'sandbox';
   language: 'en' | 'zh';
   year: number;
   month: number; // 1-12
-  phase: 'event' | 'action';
+  phase: 'event' | 'action' | 'war';
   actionsLeft: number;
   
   resources: number;
@@ -358,6 +377,21 @@ export interface GameState {
   fe_founded: boolean;
   poum_founded: boolean;
   falange_jons: boolean;
+  isCasasViejasTriggered: boolean;
+  isJabaliTriggered: boolean;
+  coupSystemActive: boolean;
+  molaStatus: 'republic' | 'nationalist';
+  queipoStatus: 'republic' | 'nationalist';
+  coupTriggered10: boolean;
+  coupTriggered20: boolean;
+  coupTriggered30: boolean;
+  coupTriggered40: boolean;
+  coupTriggered50: boolean;
+  coupTriggered60: boolean;
+  coupTriggered70: boolean;
+  coupTriggered80: boolean;
+  coupTriggered90: boolean;
+  coupTriggered100: boolean;
   
   durrutiAlive: boolean;
   sanjurjoStatus: 'alive' | 'dead';
@@ -371,11 +405,15 @@ export interface GameState {
   covert_ops_france: number;
   covert_ops_portugal: number;
   
+  regionalStatuses: RegionalStatuses;
+  
   isGameOver: boolean;
   ending: string | null;
   unlockedAchievementsThisRun: string[];
   
   journal: Record<string, JournalState>;
+  
+  civilWarChainStep?: number;
   
   activeAdvisors: (Advisor | null)[]; // Max 3
   advisorPool: Advisor[];

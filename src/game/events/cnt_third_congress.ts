@@ -21,7 +21,7 @@ As the radio waves of the closing rally dissipate into the night sky of the Iber
       text: 'The congress has closed, but the struggle continues.',
       textZh: '大会闭幕了，斗争仍在继续',
       effect: (state) => ({
-        pendingEvents: [{ ...elections1931Results }, ...state.pendingEvents]
+        pendingEvents: [{ ...elections1931Results }, ...state.pendingEvents.filter(e => e.id !== elections1931Results.id)]
       })
     }
   ]

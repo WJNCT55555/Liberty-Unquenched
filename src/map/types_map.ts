@@ -20,6 +20,35 @@ export interface Province {
   strategicValue: number; // 0-10
   terrain: 'urban' | 'plains' | 'mountains' | 'forest';
   fortification: number; // 0-3
+    buildings?: {
+    barracks?: number;
+    fortress?: number;
+    recruitingOffice?: number;
+    ammoFactory?: number;
+  };
+}
+
+export interface GameState {
+  turn: number;
+  date: string;
+  currentPlayer: MapFaction;
+  resources: {
+    [MapFaction.REPUBLICAN]: ResourceSet;
+    [MapFaction.NATIONALIST]: ResourceSet;
+    [MapFaction.PORTUGAL]: ResourceSet;
+  };
+  provinces: { [key: string]: Province };
+  armies: Army[];
+  selectedProvinceId: string | null;
+  selectedArmyId: string | null;
+  selectedArmyIds: string[];
+  history: string[];
+  aiConfig?: {
+    enabled: boolean;
+    aiFaction: MapFaction;
+    difficulty: 'easy' | 'normal' | 'hard';
+    confirmed?: boolean;
+  };
 }
 
 export interface ArmyComposition {
@@ -39,4 +68,12 @@ export interface Army {
   designedComposition: ArmyComposition; // Designed composition
   morale: number;    // Fighting spirit (0-100)
   militarization: number; // Experience/Efficiency (0-100)
+}
+
+export interface ResourceSet {
+  manpower: number;
+  industrialCapacity: number;
+  commandPoints: number; // 2 per turn
+  supplies: number;
+  tankReserve: number;
 }

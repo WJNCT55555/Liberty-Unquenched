@@ -108,9 +108,9 @@ export const elections1931Results: GameEvent = {
         let pmZh = '曼努埃尔·阿萨尼亚';
 
         if (cntSupported) {
-          nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents];
+          nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents.filter(e => e.id !== cabinetFormation1931.id)];
         } else {
-          nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents];
+          nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents.filter(e => e.id !== leftCabinetExcludesCNT.id)];
         }
 
         const baseState = {
@@ -165,7 +165,7 @@ export const elections1931Results: GameEvent = {
       },
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
-        let nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents];
+        let nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents.filter(e => e.id !== republicanCabinet1931.id)];
         let govType = 'Republican Cabinet';
         let govTypeZh = '共和派内阁';
         let pm = 'Alejandro Lerroux';
@@ -209,16 +209,16 @@ export const elections1931Results: GameEvent = {
           pm = 'Manuel Azaña';
           pmZh = '曼努埃尔·阿萨尼亚';
           if (cntSupported) {
-            nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents];
+            nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents.filter(e => e.id !== cabinetFormation1931.id)];
           } else {
-            nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents];
+            nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents.filter(e => e.id !== leftCabinetExcludesCNT.id)];
           }
         } else {
           govType = 'Republican Cabinet';
           govTypeZh = '共和派内阁';
           pm = 'Alejandro Lerroux';
           pmZh = '亚历杭德罗·勒鲁';
-          nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents];
+          nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents.filter(e => e.id !== republicanCabinet1931.id)];
         }
 
         return {
@@ -329,7 +329,7 @@ export const cabinetFormation1931: GameEvent = {
             ...state.stats,
             bureaucratization: Math.min(100, state.stats.bureaucratization + 20)
           },
-          pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents]
+          pendingEvents: [{ ...ministerAllocation }, ...state.pendingEvents.filter(e => e.id !== ministerAllocation.id)]
         };
       }
     }

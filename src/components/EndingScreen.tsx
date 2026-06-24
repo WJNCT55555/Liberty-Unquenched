@@ -3,6 +3,10 @@ import { useGame } from '../game/GameContext';
 import { ENDING_DETAILS } from '../game/endings';
 import { ACHIEVEMENTS } from '../game/achievements';
 import { motion } from 'motion/react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PARTY_COLORS } from '../game/constants';
+import { getPartySupport } from '../game/utils/coalition';
+import { Party, Faction } from '../game/types';
 
 const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -40,6 +44,77 @@ export const EndingScreen = () => {
 
   if (!endingDetail) return null;
 
+  const partyNames: Record<Party, { en: string, zh: string }> = {
+    PSOE: { en: 'PSOE', zh: '工人社会党 (PSOE)' },
+    IR: { en: 'IR', zh: '共和左翼 (IR)' },
+    UR: { en: 'UR', zh: '共和联盟 (UR)' },
+    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
+    PS: { en: 'PS', zh: '工团主义党 (PS)' },
+    FE: { 
+      en: state.falange_jons ? 'FE de las JONS' : 'Falange Española', 
+      zh: state.falange_jons ? '长枪党 (FE de las JONS)' : '西班牙长枪党 (FE)' 
+    },
+    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
+    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
+    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
+    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
+    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
+    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
+    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
+    Other: { en: 'Other', zh: '其他' }
+  };
+
+  const factionNames: Record<Faction, { en: string, zh: string }> = {
+    Treintistas: { en: 'Treintistas', zh: '三十人集团' },
+    Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
+    Faistas: { en: 'Faistas', zh: '无政府主义者' },
+    Puristas: { en: 'Puristas', zh: '纯粹派' },
+    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
+  };
+
+  const PARTIES: ('CNT_FAI' | Party)[] = [
+    'CNT_FAI',
+    'PSOE',
+    'IR',
+    'UR',
+    'PCE',
+    'PS',
+    'FE',
+    'POUM',
+    'AP',
+    'CT',
+    'RE',
+    'DLR',
+    'PRR',
+    'ERC',
+    'Other'
+  ];
+
+  const partyData = PARTIES.map(p => {
+    const value = getPartySupport(state, p);
+    return {
+      id: p,
+      name: p === 'CNT_FAI' ? (isZh ? 'CNT-FAI 工团' : 'CNT-FAI') : (isZh ? partyNames[p as Party]?.zh || p : partyNames[p as Party]?.en || p),
+      value,
+      color: PARTY_COLORS[p] || '#9ca3af'
+    };
+  }).filter(p => p.value > 0);
+
+  const factionsData = [
+    { name: isZh ? factionNames.Treintistas.zh : factionNames.Treintistas.en, value: state.factions.Treintistas.influence, color: '#4a4a4a' },
+    { name: isZh ? factionNames.Cenetistas.zh : factionNames.Cenetistas.en, value: state.factions.Cenetistas.influence, color: '#1a1a1a' },
+    { name: isZh ? factionNames.Faistas.zh : factionNames.Faistas.en, value: state.factions.Faistas.influence, color: '#cc0000' },
+    { name: isZh ? factionNames.Puristas.zh : factionNames.Puristas.en, value: state.factions.Puristas.influence, color: '#8b0000' },
+  ];
+
+  if (state.factions.Jabalistas && state.factions.Jabalistas.influence > 0) {
+    factionsData.push({
+      name: isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en,
+      value: state.factions.Jabalistas.influence,
+      color: '#b45309'
+    });
+  }
+
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-sm p-4 md:p-8 overflow-hidden">
       {/* Background noise/vignette */}
@@ -56,8 +131,8 @@ export const EndingScreen = () => {
         {/* Halftone texture overlay */}
         <div className="absolute inset-0 bg-halftone opacity-5 pointer-events-none mix-blend-multiply" />
 
-        {/* Inner red border */}
-        <div className="border-[4px] border-cnt-red p-6 md:p-8 relative overflow-hidden h-full flex flex-col">
+        {/* Inner red border - changed h-full to min-h-full to prevent cutoff, letting outer wrapper handle scrolling */}
+        <div className="border-[4px] border-cnt-red p-6 md:p-8 relative overflow-hidden min-h-full flex flex-col">
           
           {/* Diagonal graphic elements (Constructivist style) */}
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-cnt-red rotate-45 opacity-20 mix-blend-multiply pointer-events-none" />
@@ -90,43 +165,141 @@ export const EndingScreen = () => {
 
           {/* Typewriter Description */}
           <div className="relative z-10 mt-4 mb-8 flex-grow">
-            <div className="bg-paper-dark/40 p-5 md:p-6 border-l-[4px] border-ink font-typewriter text-base md:text-lg leading-relaxed text-ink/90 min-h-[140px] shadow-inner">
+            <div className="bg-paper-dark/40 p-5 md:p-6 border-l-[4px] border-ink font-typewriter text-base md:text-lg leading-relaxed text-ink/90 min-h-[140px] shadow-inner animate-fade-in">
               <TypewriterText text={isZh ? endingDetail.descriptionZh : endingDetail.description} delay={1200} />
             </div>
           </div>
 
-          {/* Achievements Unlocked This Run */}
-          {state.unlockedAchievementsThisRun && state.unlockedAchievementsThisRun.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 3 }}
-              className="relative z-10 mb-8 border-t-[4px] border-ink pt-4"
-            >
-              <h3 className="font-display text-2xl text-cnt-red mb-3 uppercase tracking-widest">
-                {isZh ? '本次行动解锁成就' : 'Achievements Unlocked'}
-              </h3>
-              <div className="flex flex-wrap gap-3">
+          {/* Game End Statistics (Solid Pie Charts) */}
+          <div className="relative z-10 mb-8 border-t-[4px] border-ink pt-6">
+            <h3 className="font-display text-2xl text-cnt-red mb-4 uppercase tracking-widest text-center md:text-left">
+              {isZh ? '终局政治格局统计' : 'Campaign Statistics'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Party Support Chart */}
+              <div className="flex flex-col bg-paper-dark border-2 border-ink p-4 shadow-[3px_3px_0px_#141414] rounded-none">
+                <span className="font-serif font-bold text-sm text-ink mb-3 uppercase tracking-wider text-center border-b border-ink/20 pb-1.5">
+                  {isZh ? '最终各党派支持率' : 'Final Party Support'}
+                </span>
+                <div className="h-[180px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={partyData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={0}
+                        outerRadius={65}
+                        paddingAngle={0}
+                        dataKey="value"
+                        stroke="#141414"
+                        strokeWidth={1}
+                      >
+                        {partyData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#f4f1ea', border: '2px solid #141414', borderRadius: 0, fontFamily: 'monospace', fontSize: '11px' }}
+                        itemStyle={{ color: '#141414' }}
+                        formatter={(value: any) => [`${Number(value).toFixed(1)}%`, '']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Inline Legend */}
+                <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 justify-center text-[10px] font-mono border-t border-ink/10 pt-2 max-h-[80px] overflow-y-auto">
+                  {partyData.map((p, idx) => (
+                    <div key={idx} className="flex items-center gap-1">
+                      <span className="w-2 h-2 border border-ink inline-block" style={{ backgroundColor: p.color }} />
+                      <span className="text-ink/80 text-[9px] font-semibold">{p.id}: {p.value.toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CNT Factions Chart */}
+              <div className="flex flex-col bg-paper-dark border-2 border-ink p-4 shadow-[3px_3px_0px_#141414] rounded-none">
+                <span className="font-serif font-bold text-sm text-ink mb-3 uppercase tracking-wider text-center border-b border-ink/20 pb-1.5">
+                  {isZh ? 'CNT 内部派系影响力' : 'CNT Faction Influence'}
+                </span>
+                <div className="h-[180px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={factionsData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={0}
+                        outerRadius={65}
+                        paddingAngle={0}
+                        dataKey="value"
+                        stroke="#141414"
+                        strokeWidth={1}
+                      >
+                        {factionsData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#f4f1ea', border: '2px solid #141414', borderRadius: 0, fontFamily: 'monospace', fontSize: '11px' }}
+                        itemStyle={{ color: '#141414' }}
+                        formatter={(value: any) => [`${value}%`, '']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Inline Legend */}
+                <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 justify-center text-[10px] font-mono border-t border-ink/10 pt-2">
+                  {factionsData.map((f, idx) => (
+                    <div key={idx} className="flex items-center gap-1">
+                      <span className="w-2 h-2 border border-ink inline-block" style={{ backgroundColor: f.color }} />
+                      <span className="text-ink/80 text-[9px] font-semibold">{f.name}: {f.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Campaign Achievements Section */}
+          <div className="relative z-10 mb-8 border-t-[4px] border-ink pt-6">
+            <h3 className="font-display text-2xl text-cnt-red mb-4 uppercase tracking-widest text-center md:text-left">
+              {isZh ? '本次革命成就勋章' : 'Campaign Achievements'}
+            </h3>
+            {state.unlockedAchievementsThisRun && state.unlockedAchievementsThisRun.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {state.unlockedAchievementsThisRun.map(id => {
                   const ach = ACHIEVEMENTS.find(a => a.id === id);
                   if (!ach) return null;
                   return (
-                    <div key={id} className="flex items-center gap-2 bg-paper-dark border-2 border-ink p-2 shadow-[2px_2px_0px_#141414]">
-                      {ach.icon.endsWith('.png') ? (
-                        <img src={ach.icon} alt={ach.title.en} className="w-12 h-12 object-contain shrink-0" />
-                      ) : (
-                        <span className="text-2xl shrink-0">{ach.icon}</span>
-                      )}
+                    <div key={id} className="flex items-center gap-3 bg-paper-dark border-2 border-ink p-3 shadow-[2px_2px_0px_#141414] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
+                      <div className="w-12 h-12 shrink-0 flex items-center justify-center bg-paper border border-ink/20">
+                        {ach.icon.endsWith('.png') ? (
+                          <img src={ach.icon} referrerPolicy="no-referrer" alt={ach.title.en} className="w-10 h-10 object-contain shrink-0" />
+                        ) : (
+                          <span className="text-2xl shrink-0">{ach.icon}</span>
+                        )}
+                      </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-sm leading-tight text-ink">{isZh ? ach.title.zh : ach.title.en}</span>
-                        <span className="text-[10px] opacity-80 leading-tight text-ink/80">{isZh ? ach.description.zh : ach.description.en}</span>
+                        <span className="font-bold text-sm leading-tight text-ink font-serif">{isZh ? ach.title.zh : ach.title.en}</span>
+                        <span className="text-[10px] opacity-80 leading-tight text-ink/80 font-typewriter mt-1">{isZh ? ach.description.zh : ach.description.en}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </motion.div>
-          )}
+            ) : (
+              <div className="bg-paper-dark border-2 border-dashed border-ink/30 p-6 text-center font-typewriter text-xs md:text-sm text-ink/60">
+                <p className="font-bold uppercase tracking-wider text-ink/80 mb-1">
+                  {isZh ? '—— 历史尘埃中的无名战士 ——' : '—— UNKNOWN SOLDIERS IN THE TIMELINE ——'}
+                </p>
+                <p>
+                  {isZh ? '本次行动中未能解锁任何成就。街垒已被清除，但自由的火种未曾熄灭。' : 'No campaign achievements were earned in this timeline. The barricades are cleared, but the flame of liberty still smolders.'}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Footer / Action */}
           <div className="relative z-10 mt-auto flex flex-col md:flex-row justify-between items-center md:items-end border-t-[4px] border-ink pt-4 gap-4">
@@ -150,3 +323,4 @@ export const EndingScreen = () => {
     </div>
   );
 };
+

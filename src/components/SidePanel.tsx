@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport, updateCoalitionState } from '../game/utils/coalition';
+import { MapFaction } from '../map/types_map';
 
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
   let totalSupport = 0;
@@ -270,6 +271,45 @@ export const SidePanel = () => {
                 {isZh ? '前线战况' : 'War Progress'}
               </div>
             </div>
+
+            {/* Spain Civil War Faction/Republican stats */}
+            {(() => {
+              const repResources = state.mapResources?.[MapFaction.REPUBLICAN] || {
+                manpower: 15000,
+                industrialCapacity: 100,
+                commandPoints: 2,
+                supplies: 8000,
+                tankReserve: 10
+              };
+              return (
+                <div className="flex flex-col gap-2 font-mono text-xs border-t border-b border-ink/10 py-3 my-1">
+                  <h4 className="font-display font-bold text-ink uppercase tracking-wider mb-1 text-[11px] text-cnt-red">
+                    {isZh ? '共和军军事资源' : 'Republican War Resources'}
+                  </h4>
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-1">
+                    <span className="text-ink-light">{isZh ? '人力' : 'Manpower'}</span>
+                    <span className="font-bold">{(repResources.manpower ?? 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-1">
+                    <span className="text-ink-light">{isZh ? '工业产量' : 'Industrial Cap.'}</span>
+                    <span className="font-bold">{(repResources.industrialCapacity ?? 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-1">
+                    <span className="text-ink-light">{isZh ? '指挥点' : 'Command Points'}</span>
+                    <span className="font-bold">{(repResources.commandPoints ?? 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-1">
+                    <span className="text-ink-light">{isZh ? '后勤物资' : 'Supplies'}</span>
+                    <span className="font-bold">{(repResources.supplies ?? 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1">
+                    <span className="text-ink-light">{isZh ? '坦克储备' : 'Tank Reserve'}</span>
+                    <span className="font-bold">{(repResources.tankReserve ?? 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Map View Button */}
             <button 
               onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
@@ -345,9 +385,6 @@ export const SidePanel = () => {
                   <span className="font-typewriter text-[9px] uppercase tracking-wider text-ink-light leading-none">
                     {isZh ? 'CNT立场' : 'CNT STANCE'}
                   </span>
-                  <span className="text-[8px] font-typewriter text-ink-light/50">
-                    {isZh ? '决定联盟执政地位' : 'Directs state legal authority'}
-                  </span>
                 </div>
                 <div className={`px-2 py-0.5 font-display text-[10px] uppercase border-2 font-bold rotate-[-1deg] shadow-[1px_1px_0px_#1a1a1a] transition-all duration-300 ${
                   state.cntStance === 'govern' ? 'bg-paper text-emerald-800 border-emerald-800' :
@@ -380,14 +417,9 @@ export const SidePanel = () => {
             if (!def) return null;
 
             const coalitionName = isZh ? def.nameZh : def.name;
-            const docStamp = isZh ? "【 西班牙内阁执政联盟公署 】" : "《 COMPROMISO DE COALICION GENERAL 》";
 
             return (
               <div className="flex flex-col gap-2.5 font-typewriter text-xs bg-paper-dark border border-ink/20 p-2.5 relative overflow-hidden my-3">
-                {/* Document Header Seal / Decorative */}
-                <div className="text-center text-[9px] tracking-widest font-bold text-ink/75 border-b border-ink/15 pb-2 select-none">
-                  {docStamp}
-                </div>
 
                 {/* Cohesion gauge with radial dots (halftone) and classic scale reference */}
                 <div className="flex flex-col gap-1 pb-1.5 border-b border-ink/10">
@@ -513,6 +545,48 @@ export const SidePanel = () => {
               );
             })}
           </div>
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title={isZh ? '地区问题' : 'Regional Issues'} defaultOpen={true}>
+        <div className="flex flex-col gap-2 text-xs">
+          {(() => {
+            const REGIONS_CONFIG = [
+              { id: 'andalusia', nameEn: 'Andalusia', nameZh: '安达卢西亚' },
+              { id: 'catalonia', nameEn: 'Catalonia', nameZh: '加泰罗尼亚' },
+              { id: 'basque', nameEn: 'Basque Country', nameZh: '巴斯克' },
+              { id: 'galicia', nameEn: 'Galicia', nameZh: '加利西亚' },
+              { id: 'asturias', nameEn: 'Asturias', nameZh: '阿斯图里亚斯' },
+            ] as const;
+
+            return (
+              <div className="flex flex-col gap-2 font-mono">
+                {REGIONS_CONFIG.map((region) => {
+                  const currentStatus = state.regionalStatuses?.[region.id] || 'direct';
+                  return (
+                    <div 
+                      key={region.id} 
+                      className="flex justify-between items-center p-2 bg-paper-dark/40 border border-ink/10 rounded-sm hover:border-ink/20 transition-all"
+                    >
+                      <span className="font-display font-medium uppercase tracking-wider text-xs text-ink/90">
+                        {isZh ? region.nameZh : region.nameEn}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-[2px] font-bold uppercase transition-all ${
+                        currentStatus === 'independent' ? 'bg-rose-50 text-rose-800 border border-rose-200 shadow-sm' :
+                        currentStatus === 'autonomy' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-sm' :
+                        'bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-sm'
+                      }`}>
+                        {isZh 
+                          ? (currentStatus === 'independent' ? '独立' : currentStatus === 'autonomy' ? '自治' : '直辖')
+                          : (currentStatus === 'independent' ? 'Independent' : currentStatus === 'autonomy' ? 'Autonomous' : 'Centralized')
+                        }
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </AccordionSection>
 

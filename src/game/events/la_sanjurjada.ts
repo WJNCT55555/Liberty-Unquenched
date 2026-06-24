@@ -13,6 +13,7 @@ export const laSanjurjada: GameEvent = {
       text: 'The Republic is taking root; let us accelerate our legislative reforms.',
       textZh: '共和已经深入人心，加紧共和国的立法建设。',
       effect: (state) => ({
+        coupSystemActive: true,
         domesticPolicy: {
           ...state.domesticPolicy,
           land_reform_progress: Math.min(100, state.domesticPolicy.land_reform_progress + 10),
@@ -29,6 +30,7 @@ export const laSanjurjada: GameEvent = {
       textZh: '我们必须照会在政府中的官员，强硬推行军官改革法案。',
       condition: (state) => state.isPRRevSFormed && state.cntStance === 'govern',
       effect: (state) => ({
+        coupSystemActive: true,
         domesticPolicy: {
           ...state.domesticPolicy,
           land_reform_law_enabled: true

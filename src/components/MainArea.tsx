@@ -18,7 +18,9 @@ export const MainArea = () => {
         <h2 className="font-display text-5xl uppercase text-ink opacity-20 tracking-widest">
           {state.phase === 'event' 
             ? (isZh ? '事件阶段' : 'Event Phase') 
-            : (isZh ? '行动阶段' : 'Action Phase')}
+            : state.phase === 'action'
+              ? (isZh ? '行动阶段' : 'Action Phase')
+              : (isZh ? '战争阶段' : 'War Phase')}
         </h2>
         {state.phase === 'action' && (
           <p className="font-typewriter text-lg font-bold text-cnt-red">
@@ -76,6 +78,29 @@ export const MainArea = () => {
                 {isZh ? '结束回合' : 'End Turn'}
               </button>
             )}
+          </motion.div>
+        ) : state.phase === 'war' ? (
+          <motion.div 
+            key="war-phase-prompt"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 flex flex-col justify-center items-center gap-6 text-center max-w-xl mx-auto"
+          >
+            <h3 className="font-display text-3xl uppercase text-cnt-red tracking-wider">
+              {isZh ? '西班牙内战：战争阶段' : 'Spanish Civil War: War Phase'}
+            </h3>
+            <p className="font-serif text-lg leading-relaxed text-ink/80">
+              {isZh 
+                ? '内战前线已燃起硝烟。在此阶段，你需要打开战略形势图，下达军事指令、调动军队及扩建行省设施。' 
+                : 'The front lines are ablaze. During this phase, you must access the Strategic Map View to issue military commands, relocate armies, and expand provincial infrastructure.'}
+            </p>
+            <button 
+              onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
+              className="px-8 py-3 bg-ink text-paper hover:bg-cnt-red transition-colors font-display text-lg uppercase tracking-wider border-2 border-black font-semibold shadow-[2px_2px_0_0_rgba(30,28,26,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              {isZh ? '打开战略形势图' : 'Open Strategic Map'}
+            </button>
           </motion.div>
         ) : null}
       </AnimatePresence>

@@ -5,8 +5,11 @@ import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
-import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../map/map_constants';
-import { initializeMapState, triggerCivilWarOnMap } from '../map/map_logic';
+import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth } from '../map/map_constants';
+import { MapFaction, Army, ResourceSet } from '../map/types_map';
+import { initializeMapState } from '../map/map_logic';
+import { calculateAiMoves } from '../map/lib/gameAi';
+import { civilWarSetup } from './events/civil_war/civil_war_setup';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -18,6 +21,500 @@ const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   return acc;
 }, {} as Record<string, any>);
 
+function resolveBattle(
+  armies: Army[],
+  provinces: Record<string, any>,
+  movedArmy: Army,
+  targetProvinceId: string,
+  isZh: boolean
+): { updatedArmies: Army[]; updatedProvinces: Record<string, any>; messages: string[] } {
+  const targetProvince = provinces[targetProvinceId];
+  if (!targetProvince) {
+    return { updatedArmies: armies, updatedProvinces: provinces, messages: [] };
+  }
+  const defenders = armies.filter(a => a.provinceId === targetProvinceId && a.faction !== movedArmy.faction);
+  
+  if (defenders.length === 0) {
+    const updatedProvinces = {
+      ...provinces,
+      [targetProvinceId]: {
+        ...targetProvince,
+        owner: movedArmy.faction,
+      }
+    };
+    const updatedArmies = armies.map(a => a.id === movedArmy.id ? { ...a, provinceId: targetProvinceId, movesLeft: Math.max(0, a.movesLeft - 1) } : a);
+    const msg = isZh 
+      ? `【移驻】${movedArmy.faction === MapFaction.REPUBLICAN ? '共和军' : '国民军'}占领了未设防的省份 ${targetProvince.name}。`
+      : `${movedArmy.faction} army captured undefended province ${targetProvince.name}.`;
+    return { updatedArmies, updatedProvinces, messages: [msg] };
+  }
+
+  const hasPortugalOrNeutral = movedArmy.faction === MapFaction.PORTUGAL || movedArmy.faction === MapFaction.NEUTRAL ||
+                               defenders.some(d => d.faction === MapFaction.PORTUGAL || d.faction === MapFaction.NEUTRAL);
+  if (hasPortugalOrNeutral) {
+    return { updatedArmies: armies, updatedProvinces: provinces, messages: [] };
+  }
+
+  const defender = defenders[0];
+  const attackerRoll = Math.floor(Math.random() * 9) + 1;
+  const defenderRoll = Math.floor(Math.random() * 9) + 1;
+
+  const terrain = targetProvince.terrain || 'plains';
+  const fort = targetProvince.fortification || 0;
+
+  let attackerTerrainMult = 1.0;
+  let defenderTerrainMult = 1.0;
+  let attackerTankMult = 1.0;
+
+  if (terrain === 'mountains') {
+    attackerTerrainMult -= 0.30;
+    attackerTankMult = 0.4;
+    defenderTerrainMult += 0.20 + (fort * 0.15);
+  } else if (terrain === 'urban') {
+    attackerTerrainMult -= 0.20;
+    attackerTankMult = 0.6;
+    defenderTerrainMult += 0.15 + (fort * 0.25);
+  } else if (terrain === 'forest') {
+    attackerTerrainMult -= 0.10;
+    attackerTankMult = 0.8;
+    defenderTerrainMult += 0.10 + (fort * 0.10);
+  } else if (terrain === 'plains') {
+    attackerTankMult = 1.35;
+  }
+
+  const attComp = movedArmy.composition;
+  const defComp = defender.composition;
+
+  const widthLimit = getCombatWidth(terrain as any || 'plains');
+
+  const attackerFrontline = attComp.infantry + attComp.tanks;
+  const attackerScale = attackerFrontline > widthLimit ? (widthLimit / attackerFrontline) : 1.0;
+  const effectiveAttInf = attComp.infantry * attackerScale;
+  const effectiveAttTank = attComp.tanks * attackerScale;
+
+  const defenderFrontline = defComp.infantry + defComp.tanks;
+  const defenderScale = defenderFrontline > widthLimit ? (widthLimit / defenderFrontline) : 1.0;
+  const effectiveDefInf = defComp.infantry * defenderScale;
+  const effectiveDefTank = defComp.tanks * defenderScale;
+
+  const attInfPower = effectiveAttInf * 1.0 * (terrain === 'urban' ? 1.25 : 1.0);
+  const attArtPower = attComp.artillery * 1.5;
+  const attTankPower = effectiveAttTank * 2.0 * attackerTankMult;
+
+  const defInfPower = effectiveDefInf * 1.0 * (terrain === 'urban' ? 1.3 : 1.15);
+  const defArtPower = defComp.artillery * 1.5;
+  const defTankPower = effectiveDefTank * 2.0 * (terrain === 'plains' ? 1.35 : terrain === 'mountains' ? 0.4 : 1.0);
+
+  const attTotalBaseSupport = attInfPower + attArtPower + attTankPower;
+  const defTotalBaseSupport = defInfPower + defArtPower + defTankPower;
+
+  const attackerPower = attTotalBaseSupport * (1 + movedArmy.morale / 100) * (1 + movedArmy.militarization / 100) * (attackerRoll + 3) * attackerTerrainMult;
+  const defenderPowerBase = defTotalBaseSupport * (1 + defender.morale / 100) * (1 + defender.militarization / 100) * (defenderRoll + 3) * defenderTerrainMult;
+  const fortressLvl = targetProvince.buildings?.fortress || 0;
+  const fortressCombatMult = 1.0 + (fortressLvl * 0.10);
+  const defenderPower = defenderPowerBase * fortressCombatMult;
+
+  const totalBaseLossAttacker = Math.floor(defenderPower * 0.08);
+  const totalBaseLossDefender = Math.floor(attackerPower * 0.11);
+
+  const attArtRatio = attComp.artillery / Math.max(1, movedArmy.manpower);
+  const defArtRatio = defComp.artillery / Math.max(1, defender.manpower);
+
+  const attackerLossReduction = Math.min(0.25, attArtRatio * 0.8);
+  const defenderLossReduction = Math.min(0.25, defArtRatio * 0.8);
+
+  let finalAttackerLosses = Math.max(100, Math.floor(totalBaseLossAttacker * (1 - attackerLossReduction)));
+  let finalDefenderLosses = Math.max(100, Math.floor(totalBaseLossDefender * (1 - defenderLossReduction)));
+
+  finalAttackerLosses = Math.min(movedArmy.manpower, finalAttackerLosses);
+  finalDefenderLosses = Math.min(defender.manpower, finalDefenderLosses);
+
+  const distributeLosses = (comp: { infantry: number; artillery: number; tanks: number }, totalLosses: number) => {
+    const totalUnits = comp.infantry + comp.artillery + comp.tanks;
+    if (totalUnits <= 0) return { infantry: 0, artillery: 0, tanks: 0 };
+
+    let infLoss = 0;
+    let artLoss = 0;
+    let tankLoss = 0;
+
+    const frontUnits = comp.infantry + comp.tanks;
+    if (frontUnits > 0) {
+      const infShare = comp.infantry / frontUnits;
+      const tankShare = comp.tanks / frontUnits;
+
+      const frontLosses = totalLosses * 0.85;
+      const backLosses = totalLosses * 0.15;
+
+      infLoss = Math.min(comp.infantry, Math.floor(frontLosses * infShare));
+      tankLoss = Math.min(comp.tanks, Math.floor(frontLosses * tankShare));
+      artLoss = Math.min(comp.artillery, Math.floor(backLosses));
+
+      let leftover = totalLosses - (infLoss + artLoss + tankLoss);
+      if (leftover > 0) {
+        const remInf = comp.infantry - infLoss;
+        const remArt = comp.artillery - artLoss;
+        const remTank = comp.tanks - tankLoss;
+        const remTotal = remInf + remArt + remTank;
+
+        if (remTotal > 0) {
+          infLoss += Math.min(remInf, Math.floor(leftover * (remInf / remTotal)));
+          artLoss += Math.min(remArt, Math.floor(leftover * (remArt / remTotal)));
+          tankLoss += Math.min(remTank, Math.floor(leftover * (remTank / remTotal)));
+        }
+      }
+    } else {
+      artLoss = Math.min(comp.artillery, totalLosses);
+    }
+
+    return {
+      infantry: Math.max(0, comp.infantry - infLoss),
+      artillery: Math.max(0, comp.artillery - artLoss),
+      tanks: Math.max(0, comp.tanks - tankLoss),
+    };
+  };
+
+  const nextAttComp = distributeLosses(attComp, finalAttackerLosses);
+  const nextDefComp = distributeLosses(defComp, finalDefenderLosses);
+
+  const nextAttManpower = nextAttComp.infantry + nextAttComp.artillery + nextAttComp.tanks;
+  const nextDefManpower = nextDefComp.infantry + nextDefComp.artillery + nextDefComp.tanks;
+
+  const attackerLostRatio = finalAttackerLosses / Math.max(1, movedArmy.manpower);
+  const defenderLostRatio = finalDefenderLosses / Math.max(1, defender.manpower);
+
+  const attMoraleLoss = Math.floor(10 + attackerLostRatio * 100 + Math.max(0, defenderRoll - attackerRoll) * 3);
+  const defMoraleLoss = Math.floor(15 + defenderLostRatio * 100 + Math.max(0, attackerRoll - defenderRoll) * 4);
+
+  let finalAttackerArmy: Army | null = {
+    ...movedArmy,
+    composition: nextAttComp,
+    manpower: nextAttManpower,
+    morale: Math.max(10, movedArmy.morale - attMoraleLoss),
+    movesLeft: 0,
+  };
+  if (finalAttackerArmy.manpower <= 150) {
+    finalAttackerArmy = null;
+  }
+
+  let finalDefenderArmy: Army | null = {
+    ...defender,
+    composition: nextDefComp,
+    manpower: nextDefManpower,
+    morale: Math.max(10, defender.morale - defMoraleLoss),
+  };
+  if (finalDefenderArmy.manpower <= 150) {
+    finalDefenderArmy = null;
+  }
+
+  const isVictory = defenderLostRatio >= attackerLostRatio;
+  const resultText = isVictory 
+    ? (isZh ? '进攻方胜利' : 'Attacker Victory') 
+    : (isZh ? '守军平局/获胜' : 'Defender Stalemate/Victory');
+
+  let defenderRetreated = false;
+  let defenderAnnihilated = false;
+  let retreatDestId = '';
+
+  if (finalDefenderArmy) {
+    if (isVictory || finalDefenderArmy.morale < 35) {
+      const defenderNeighbors = PROVINCE_ADJACENCY[targetProvinceId] || [];
+      const friendlyDestinations = defenderNeighbors.filter(pId => provinces[pId] && provinces[pId].owner === defender.faction);
+
+      if (friendlyDestinations.length > 0) {
+        retreatDestId = friendlyDestinations[0];
+        finalDefenderArmy.provinceId = retreatDestId;
+        finalDefenderArmy.morale = Math.max(10, finalDefenderArmy.morale - 10);
+        finalDefenderArmy.movesLeft = 0;
+        defenderRetreated = true;
+      } else {
+        finalDefenderArmy = null;
+        defenderAnnihilated = true;
+      }
+    }
+  }
+
+  const messages: string[] = [];
+  const terrainLabel = isZh 
+    ? (terrain === 'mountains' ? '山地' : terrain === 'urban' ? '城市' : terrain === 'forest' ? '森林' : '平原')
+    : terrain;
+
+  messages.push(
+    isZh 
+      ? `【交战：${targetProvince.name}（${terrainLabel}）】 ${resultText}！` +
+        `攻击方伤亡 ${finalAttackerLosses}人。` +
+        `防守方伤亡 ${finalDefenderLosses}人。`
+      : `BATTLE OF ${targetProvince.name.toUpperCase()} (${terrainLabel}): ${resultText}! ` +
+        `Attacker (rolled ${attackerRoll}) lost ${finalAttackerLosses}. ` +
+        `Defender (rolled ${defenderRoll}) lost ${finalDefenderLosses}.`
+  );
+
+  if (defenderRetreated) {
+    const destName = provinces[retreatDestId]?.name || retreatDestId;
+    messages.push(
+      isZh 
+        ? `【退却】防守方 Div. ${defender.id.slice(-4).toUpperCase()} 撤退至 ${destName}。`
+        : `[🛡️ Organized Retreat] Defeated Div. ${defender.id.slice(-4).toUpperCase()} retreated to ${destName}.`
+    );
+  } else if (defenderAnnihilated) {
+    messages.push(
+      isZh 
+        ? `【歼灭】防守方 Div. ${defender.id.slice(-4).toUpperCase()} 全军覆没！`
+        : `[💥 Annihilation] Defeated Div. ${defender.id.slice(-4).toUpperCase()} was completely annihilated!`
+    );
+  }
+
+  let updatedProvinces = { ...provinces };
+  let finalArmies = armies.map(a => {
+    if (a.id === movedArmy.id) {
+      return finalAttackerArmy;
+    }
+    if (a.id === defender.id) {
+      return finalDefenderArmy;
+    }
+    return a;
+  }).filter((a): a is Army => a !== null);
+
+  const defenderStillInProvince = finalArmies.some(a => a.id === defender.id && a.provinceId === targetProvinceId);
+  if (!defenderStillInProvince && finalAttackerArmy) {
+    finalArmies = finalArmies.map(a => a.id === movedArmy.id ? { ...a, provinceId: targetProvinceId } : a);
+    updatedProvinces[targetProvinceId] = { ...targetProvince, owner: movedArmy.faction };
+    messages.push(
+      isZh 
+        ? `【占领】突破成功，占领 ${targetProvince.name}！`
+        : `${movedArmy.faction} forces achieved a decisive breakthrough and won ${targetProvince.name}.`
+    );
+  }
+
+  return { updatedArmies: finalArmies, updatedProvinces, messages };
+}
+
+function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
+  let tempState = { ...state };
+  let mapResources = { ...tempState.mapResources };
+  let provinces = { ...(tempState.provinces || INITIAL_PROVINCES) };
+  let armies = [...(tempState.armies || INITIAL_ARMIES)];
+  let history = [...(tempState.mapHistory || [])];
+
+  // Set Nationalist command points to 2 for the AI turn to let them make decisions!
+  if (mapResources[MapFaction.NATIONALIST]) {
+    mapResources[MapFaction.NATIONALIST] = {
+      ...mapResources[MapFaction.NATIONALIST],
+      commandPoints: 2,
+    };
+  }
+
+  const aiState = {
+    ...tempState,
+    resources: mapResources,
+    provinces,
+    armies,
+  } as any;
+
+  // Let's get the difficulty. Difficulty from state could be easy, normal, hard, historical, sandbox.
+  // Let's map it to easy/normal/hard for AI.
+  let diff: 'easy' | 'normal' | 'hard' = 'normal';
+  if (state.difficulty === 'easy') diff = 'easy';
+  else if (state.difficulty === 'hard') diff = 'hard';
+
+  const aiActions = calculateAiMoves(aiState, MapFaction.NATIONALIST, diff);
+
+  aiActions.forEach(action => {
+    if (action.type === 'BUILD') {
+      const { provinceId, buildingType } = action.payload || {};
+      if (!provinceId || !buildingType) return;
+      const province = provinces[provinceId];
+      const playerRes = mapResources[MapFaction.NATIONALIST];
+      if (!province || !playerRes) return;
+
+      const currentBuildings = province.buildings || { barracks: 0, fortress: 0, recruitingOffice: 0, ammoFactory: 0 };
+      const currentLevel = currentBuildings[buildingType as keyof typeof currentBuildings] || 0;
+      const nextLevel = currentLevel + 1;
+
+      let cost = { supplies: 0, ic: 0, manpower: 0 };
+      if (buildingType === 'barracks') {
+        cost = { supplies: 120, ic: 80, manpower: 0 };
+      } else if (buildingType === 'fortress') {
+        if (nextLevel === 1) cost = { supplies: 150, ic: 100, manpower: 0 };
+        else if (nextLevel === 2) cost = { supplies: 250, ic: 180, manpower: 0 };
+        else cost = { supplies: 400, ic: 280, manpower: 0 };
+      } else if (buildingType === 'recruitingOffice') {
+        cost = { supplies: 100, ic: 60, manpower: 30 };
+      } else if (buildingType === 'ammoFactory') {
+        if (nextLevel === 1) cost = { supplies: 200, ic: 150, manpower: 0 };
+        else cost = { supplies: 300, ic: 220, manpower: 0 };
+      }
+
+      if (
+        playerRes.supplies >= cost.supplies &&
+        playerRes.industrialCapacity >= cost.ic &&
+        playerRes.manpower >= cost.manpower
+      ) {
+        mapResources[MapFaction.NATIONALIST] = {
+          ...playerRes,
+          supplies: Math.max(0, playerRes.supplies - cost.supplies),
+          industrialCapacity: Math.max(0, playerRes.industrialCapacity - cost.ic),
+          manpower: Math.max(0, playerRes.manpower - cost.manpower),
+        };
+        provinces[provinceId] = {
+          ...province,
+          buildings: {
+            ...currentBuildings,
+            [buildingType]: nextLevel,
+          },
+          ...(buildingType === 'fortress' ? { fortification: Math.min(3, nextLevel) } : {}),
+        };
+        const buildingName = isZh 
+          ? (buildingType === 'barracks' ? '兵营' : buildingType === 'fortress' ? '要塞' : buildingType === 'recruitingOffice' ? '征兵处' : '弹药厂')
+          : buildingType;
+        history.push(
+          isZh 
+            ? `【AI建设】国民军在 ${province.name} 建造了 ${buildingName}。`
+            : `[AI Build] Nationalist built ${buildingName} in ${province.name}.`
+        );
+      }
+    } else if (action.type === 'REINFORCE') {
+      const { armyId } = action.payload || {};
+      if (!armyId) return;
+      const army = armies.find(a => a.id === armyId);
+      const playerRes = mapResources[MapFaction.NATIONALIST];
+      if (!army || !playerRes) return;
+
+      const designedComp = army.designedComposition || army.composition;
+      const maxInfRestored = Math.max(0, Math.floor((designedComp.infantry - army.composition.infantry) * 0.5));
+      const maxArtRestored = Math.max(0, Math.floor((designedComp.artillery - army.composition.artillery) * 0.5));
+      const maxTnkRestored = Math.max(0, Math.floor((designedComp.tanks - army.composition.tanks) * 0.5));
+
+      const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
+      let scale = 1.0;
+      const targetManpower = totalMaxRestored;
+      const targetSupplies = Math.floor(maxInfRestored * 0.03 + maxArtRestored * 0.06 + maxTnkRestored * 1.2);
+      const targetIndustrial = Math.floor(maxArtRestored * 0.04 + maxTnkRestored * 0.08);
+      const targetTankReserve = maxTnkRestored;
+
+      if (targetManpower > 0) {
+        if (playerRes.manpower < targetManpower) scale = Math.min(scale, playerRes.manpower / targetManpower);
+        if (playerRes.supplies < targetSupplies) scale = Math.min(scale, playerRes.supplies / targetSupplies);
+        if (playerRes.industrialCapacity < targetIndustrial) scale = Math.min(scale, playerRes.industrialCapacity / targetIndustrial);
+        if (playerRes.tankReserve < targetTankReserve) scale = Math.min(scale, playerRes.tankReserve / targetTankReserve);
+      }
+
+      const actualInf = Math.floor(maxInfRestored * scale);
+      const actualArt = Math.floor(maxArtRestored * scale);
+      const actualTnk = Math.floor(maxTnkRestored * scale);
+      const actualTotal = actualInf + actualArt + actualTnk;
+
+      if (actualTotal > 0) {
+        mapResources[MapFaction.NATIONALIST] = {
+          ...playerRes,
+          manpower: Math.max(0, playerRes.manpower - actualTotal),
+          supplies: Math.max(0, playerRes.supplies - Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2)),
+          industrialCapacity: Math.max(0, playerRes.industrialCapacity - Math.floor(actualArt * 0.04 + actualTnk * 0.08)),
+          tankReserve: Math.max(0, playerRes.tankReserve - actualTnk),
+        };
+
+        armies = armies.map(a => {
+          if (a.id === armyId) {
+            const nextComposition = {
+              infantry: a.composition.infantry + actualInf,
+              artillery: a.composition.artillery + actualArt,
+              tanks: a.composition.tanks + actualTnk,
+            };
+            return {
+              ...a,
+              composition: nextComposition,
+              manpower: nextComposition.infantry + nextComposition.artillery + nextComposition.tanks,
+              morale: Math.min(100, a.morale + 20),
+            };
+          }
+          return a;
+        });
+
+        history.push(
+          isZh 
+            ? `【AI整编】国民军对 Division ${armyId.slice(-4).toUpperCase()} 补充了 ${actualTotal} 人。`
+            : `[AI Reinforce] Nationalist reinforced Div. ${armyId.slice(-4).toUpperCase()} with ${actualTotal} soldiers.`
+        );
+      }
+    } else if (action.type === 'RECRUIT') {
+      const { provinceId, composition } = action.payload || {};
+      if (!provinceId || !composition) return;
+      const { infantry, artillery, tanks } = composition;
+      const playerRes = mapResources[MapFaction.NATIONALIST];
+      if (!playerRes) return;
+
+      const reqManpower = infantry + artillery + tanks;
+      const reqSupplies = Math.floor(infantry * 0.03 + artillery * 0.06 + tanks * 1.2);
+      const reqIndustry = Math.floor(artillery * 0.04 + tanks * 0.08);
+      const reqTankReserve = tanks;
+
+      if (
+        playerRes.manpower >= reqManpower &&
+        playerRes.supplies >= reqSupplies &&
+        playerRes.industrialCapacity >= reqIndustry &&
+        playerRes.tankReserve >= reqTankReserve
+      ) {
+        mapResources[MapFaction.NATIONALIST] = {
+          ...playerRes,
+          manpower: Math.max(0, playerRes.manpower - reqManpower),
+          supplies: Math.max(0, playerRes.supplies - reqSupplies),
+          industrialCapacity: Math.max(0, playerRes.industrialCapacity - reqIndustry),
+          tankReserve: Math.max(0, playerRes.tankReserve - reqTankReserve),
+        };
+
+        const newArmyId = `army_rec_${Date.now()}_ai_${Math.floor(Math.random() * 1000)}`;
+        const newArmy: Army = {
+          id: newArmyId,
+          faction: MapFaction.NATIONALIST,
+          provinceId,
+          movesLeft: 0,
+          manpower: reqManpower,
+          maxManpower: reqManpower,
+          composition: { infantry, artillery, tanks },
+          designedComposition: { infantry, artillery, tanks },
+          morale: 60,
+          militarization: 10,
+        };
+        armies.push(newArmy);
+
+        const provName = provinces[provinceId]?.name || provinceId;
+        history.push(
+          isZh 
+            ? `【AI招募】国民军在 ${provName} 组建了 Div. ${newArmyId.slice(-4).toUpperCase()}。`
+            : `[AI Recruit] Nationalist raised Div. ${newArmyId.slice(-4).toUpperCase()} in ${provName}.`
+        );
+      }
+    } else if (action.type === 'MOVE') {
+      const { armyId, targetProvinceId } = action.payload || {};
+      if (!armyId || !targetProvinceId) return;
+      const movedArmy = armies.find(a => a.id === armyId);
+      const playerRes = mapResources[MapFaction.NATIONALIST];
+      if (!movedArmy || !playerRes) return;
+
+      if (playerRes.commandPoints >= 1) {
+        mapResources[MapFaction.NATIONALIST] = {
+          ...playerRes,
+          commandPoints: Math.max(0, playerRes.commandPoints - 1),
+        };
+
+        const res = resolveBattle(armies, provinces, movedArmy, targetProvinceId, isZh);
+        armies = res.updatedArmies;
+        provinces = res.updatedProvinces;
+        if (res.messages && res.messages.length > 0) {
+          history = [...res.messages, ...history];
+        }
+      }
+    }
+  });
+
+  return {
+    ...tempState,
+    mapResources,
+    provinces,
+    armies,
+    mapHistory: history,
+  };
+}
+
 export const INITIAL_STATE: GameState = {
   screen: 'start',
   currentView: 'standard',
@@ -26,6 +523,15 @@ export const INITIAL_STATE: GameState = {
   mapSelectedProvinceId: null,
   mapSelectedArmyId: null,
   mapSelectedArmyIds: [],
+  mapCurrentPlayer: MapFaction.REPUBLICAN,
+  mapResources: {
+    [MapFaction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
+    [MapFaction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
+    [MapFaction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
+    [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
+  },
+  mapHistory: [],
+  mapAiConfig: { enabled: true, aiFaction: MapFaction.NATIONALIST, difficulty: 'normal' },
   scenario: '1931',
   difficulty: 'normal',
   language: 'en',
@@ -226,8 +732,24 @@ export const INITIAL_STATE: GameState = {
   fe_founded: false,
   poum_founded: false,
   falange_jons: false,
+  isCasasViejasTriggered: false,
+  isJabaliTriggered: false,
+  coupSystemActive: false,
+  molaStatus: 'republic',
+  queipoStatus: 'republic',
+  coupTriggered10: false,
+  coupTriggered20: false,
+  coupTriggered30: false,
+  coupTriggered40: false,
+  coupTriggered50: false,
+  coupTriggered60: false,
+  coupTriggered70: false,
+  coupTriggered80: false,
+  coupTriggered90: false,
+  coupTriggered100: false,
   durrutiAlive: true,
   sanjurjoStatus: 'alive',
+  civilWarChainStep: 0,
   francoAfricaControl: false,
   cataloniaIndependent: false,
   hasArmoredCars: false,
@@ -236,6 +758,13 @@ export const INITIAL_STATE: GameState = {
   educationSecularized: false,
   covert_ops_france: 0,
   covert_ops_portugal: 0,
+  regionalStatuses: {
+    andalusia: 'direct',
+    catalonia: 'direct',
+    basque: 'direct',
+    galicia: 'direct',
+    asturias: 'direct',
+  },
   isGameOver: false,
   ending: null,
   unlockedAchievementsThisRun: [],
@@ -282,10 +811,18 @@ type GameAction =
   | { type: 'BUY_RESOURCES_URGENT' }
   | { type: 'DEBUG_TRIGGER_ENDING'; payload: string }
   | { type: 'SANDBOX_EDIT'; payload: Partial<GameState> }
+  | { type: 'SET_REGIONAL_STATUS'; payload: { region: 'andalusia' | 'catalonia' | 'basque' | 'galicia' | 'asturias'; status: 'direct' | 'autonomy' | 'independent' } }
   | { type: 'TOGGLE_MAP_VIEW' }
+  | { type: 'END_MAP_PLAYER_TURN' }
   | { type: 'SELECT_MAP_PROVINCE'; payload: string | null }
   | { type: 'SELECT_MAP_ARMY'; payload: { armyId: string | null; isShift: boolean } }
-  | { type: 'MOVE_MAP_ARMY'; payload: { armyId: string; targetProvinceId: string } };
+  | { type: 'MOVE_MAP_ARMY'; payload: { armyId: string; targetProvinceId: string } }
+  | { type: 'RECRUIT_MAP_ARMY'; payload: { provinceId: string; composition: { infantry: number; artillery: number; tanks: number } } }
+  | { type: 'REINFORCE_MAP_ARMY'; payload: { armyId: string } }
+  | { type: 'MERGE_MAP_ARMIES' }
+  | { type: 'DISBAND_MAP_ARMIES' }
+  | { type: 'SPLIT_MAP_ARMY'; payload: { armyId: string; composition: { infantry: number; artillery: number; tanks: number } } }
+  | { type: 'BUILD_MAP_BUILDING'; payload: { provinceId: string; buildingType: string } };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -365,13 +902,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         initialArmaments = 2;
       }
 
+      const startMapState = initializeMapState(action.payload.scenario, startCivilWarStatus);
       const startingEvents = INITIAL_EVENTS.filter(e => {
         const dateMatch = e.date?.year === startYear && e.date?.month === startMonth;
         const conditionMatch = e.condition ? e.condition({ 
           ...INITIAL_STATE, 
           year: startYear, 
           month: startMonth, 
-          civilWarStatus: startCivilWarStatus 
+          civilWarStatus: startCivilWarStatus,
+          ...startMapState
         }) : false;
         
         if (e.date) return dateMatch;
@@ -410,6 +949,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         fe_founded: feFounded,
         poum_founded: action.payload.scenario === '1936',
         civilWarStatus: startCivilWarStatus,
+        isCasasViejasTriggered: action.payload.scenario === '1933' || action.payload.scenario === '1936',
+        isJabaliTriggered: false,
+        coupSystemActive: action.payload.scenario === '1933' || action.payload.scenario === '1936',
         ...initializeMapState(action.payload.scenario, startCivilWarStatus),
         mapSelectedProvinceId: null,
         mapSelectedArmyId: null,
@@ -428,6 +970,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         war_bonds: start_bonds,
         military_spending: start_mil_spend,
         land_reform_compensation: start_land_comp,
+        regionalStatuses: {
+          andalusia: 'direct',
+          catalonia: (action.payload.scenario === '1933' || action.payload.scenario === '1936') ? 'autonomy' : 'direct',
+          basque: 'direct',
+          galicia: 'direct',
+          asturias: 'direct',
+        },
       };
       newState = initializeStartingCoalition(newState);
       break;
@@ -541,6 +1090,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState = { ...state, ...action.payload };
       }
       break;
+    case 'SET_REGIONAL_STATUS':
+      newState = {
+        ...state,
+        regionalStatuses: {
+          ...state.regionalStatuses,
+          [action.payload.region]: action.payload.status,
+        },
+      };
+      break;
     case 'TOGGLE_MAP_VIEW':
       newState = {
         ...state,
@@ -581,42 +1139,439 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'MOVE_MAP_ARMY': {
+      if (state.phase !== 'war') return state;
       const { armyId, targetProvinceId } = action.payload;
       const armies = state.armies || [];
-      const updatedArmies = armies.map(army => {
-        if (army.id === armyId) {
+      const movedArmy = armies.find(a => a.id === armyId);
+      if (!movedArmy) break;
+
+      const playerFaction = movedArmy.faction;
+      const isPlayer = playerFaction === MapFaction.REPUBLICAN;
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[playerFaction];
+
+      // If player is moving, they must have >= 1 CP
+      if (isPlayer && (!playerRes || playerRes.commandPoints < 1)) {
+        break;
+      }
+
+      // Deduct 1 CP for player
+      if (isPlayer && playerRes) {
+        mapResources[playerFaction] = {
+          ...playerRes,
+          commandPoints: Math.max(0, playerRes.commandPoints - 1),
+        };
+      }
+
+      // Resolve movement/combat
+      const isZh = state.language === 'zh';
+      const nextProvinces = { ...(state.provinces || INITIAL_PROVINCES) };
+      const res = resolveBattle(armies, nextProvinces, movedArmy, targetProvinceId, isZh);
+
+      let nextHistory = [...(state.mapHistory || [])];
+      if (res.messages && res.messages.length > 0) {
+        nextHistory = [...res.messages, ...nextHistory];
+      }
+
+      let updatedState: GameState = {
+        ...state,
+        mapResources,
+        armies: res.updatedArmies,
+        provinces: res.updatedProvinces,
+        mapHistory: nextHistory,
+      };
+
+      // Check if player has run out of CP
+      const updatedPlayerRes = mapResources[MapFaction.REPUBLICAN];
+      if (isPlayer && updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
+        // Set current player on map to Nationalist, and run the Nationalist AI turn!
+        updatedState.mapCurrentPlayer = MapFaction.NATIONALIST;
+        updatedState = executeNationalistAiTurn(updatedState, isZh);
+      }
+
+      newState = updatedState;
+      break;
+    }
+    case 'END_MAP_PLAYER_TURN': {
+      if (state.phase !== 'war') return state;
+      const isZh = state.language === 'zh';
+      let updatedState: GameState = {
+        ...state,
+        mapCurrentPlayer: MapFaction.NATIONALIST,
+      };
+      updatedState = executeNationalistAiTurn(updatedState, isZh);
+      newState = updatedState;
+      break;
+    }
+    case 'RECRUIT_MAP_ARMY': {
+      if (state.phase !== 'war') return state;
+      const { provinceId, composition } = action.payload;
+      const { infantry, artillery, tanks } = composition;
+
+      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[playerFaction];
+
+      if (!playerRes) break;
+
+      const reqManpower = infantry + artillery + tanks;
+      const reqSupplies = Math.floor(infantry * 0.03 + artillery * 0.06 + tanks * 1.2);
+      const reqIndustry = Math.floor(artillery * 0.04 + tanks * 0.08);
+      const reqTankReserve = tanks;
+
+      if (
+        playerRes.manpower < reqManpower ||
+        playerRes.supplies < reqSupplies ||
+        playerRes.industrialCapacity < reqIndustry ||
+        playerRes.tankReserve < reqTankReserve
+      ) {
+        break;
+      }
+
+      mapResources[playerFaction] = {
+        ...playerRes,
+        manpower: Math.max(0, playerRes.manpower - reqManpower),
+        supplies: Math.max(0, playerRes.supplies - reqSupplies),
+        industrialCapacity: Math.max(0, playerRes.industrialCapacity - reqIndustry),
+        tankReserve: Math.max(0, playerRes.tankReserve - reqTankReserve),
+      };
+
+      const newArmyId = `army_rec_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const newArmy: Army = {
+        id: newArmyId,
+        faction: playerFaction,
+        provinceId,
+        movesLeft: 0,
+        manpower: reqManpower,
+        maxManpower: reqManpower,
+        composition: { infantry, artillery, tanks },
+        designedComposition: { infantry, artillery, tanks },
+        morale: 60,
+        militarization: 10,
+      };
+
+      newState = {
+        ...state,
+        mapResources,
+        armies: [...(state.armies || []), newArmy],
+        mapSelectedArmyId: newArmyId,
+        mapSelectedArmyIds: [newArmyId],
+      };
+      break;
+    }
+    case 'REINFORCE_MAP_ARMY': {
+      if (state.phase !== 'war') return state;
+      const { armyId } = action.payload;
+      const armies = state.armies || [];
+      const army = armies.find(a => a.id === armyId);
+      if (!army) break;
+
+      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[playerFaction];
+      if (!playerRes) break;
+
+      const designedComp = army.designedComposition || army.composition;
+      const maxInfRestored = Math.max(0, Math.floor((designedComp.infantry - army.composition.infantry) * 0.5));
+      const maxArtRestored = Math.max(0, Math.floor((designedComp.artillery - army.composition.artillery) * 0.5));
+      const maxTnkRestored = Math.max(0, Math.floor((designedComp.tanks - army.composition.tanks) * 0.5));
+
+      const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
+      
+      let scale = 1.0;
+      const targetManpower = totalMaxRestored;
+      const targetSupplies = Math.floor(maxInfRestored * 0.03 + maxArtRestored * 0.06 + maxTnkRestored * 1.2);
+      const targetIndustrial = Math.floor(maxArtRestored * 0.04 + maxTnkRestored * 0.08);
+      const targetTankReserve = maxTnkRestored;
+
+      if (targetManpower > 0) {
+        if (playerRes.manpower < targetManpower) scale = Math.min(scale, playerRes.manpower / targetManpower);
+        if (playerRes.supplies < targetSupplies) scale = Math.min(scale, playerRes.supplies / targetSupplies);
+        if (playerRes.industrialCapacity < targetIndustrial) scale = Math.min(scale, playerRes.industrialCapacity / targetIndustrial);
+        if (playerRes.tankReserve < targetTankReserve) scale = Math.min(scale, playerRes.tankReserve / targetTankReserve);
+      }
+
+      const actualInf = Math.floor(maxInfRestored * scale);
+      const actualArt = Math.floor(maxArtRestored * scale);
+      const actualTnk = Math.floor(maxTnkRestored * scale);
+      const actualTotal = actualInf + actualArt + actualTnk;
+
+      if (actualTotal <= 0) break;
+
+      const costManpower = actualTotal;
+      const costSupplies = Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2);
+      const costIndustrial = Math.floor(actualArt * 0.04 + actualTnk * 0.08);
+      const costTankReserve = actualTnk;
+
+      mapResources[playerFaction] = {
+        ...playerRes,
+        manpower: Math.max(0, playerRes.manpower - costManpower),
+        supplies: Math.max(0, playerRes.supplies - costSupplies),
+        industrialCapacity: Math.max(0, playerRes.industrialCapacity - costIndustrial),
+        tankReserve: Math.max(0, playerRes.tankReserve - costTankReserve),
+      };
+
+      const updatedArmies = armies.map(a => {
+        if (a.id === armyId) {
+          const nextComposition = {
+            infantry: a.composition.infantry + actualInf,
+            artillery: a.composition.artillery + actualArt,
+            tanks: a.composition.tanks + actualTnk,
+          };
+          const nextManpower = nextComposition.infantry + nextComposition.artillery + nextComposition.tanks;
           return {
-            ...army,
-            provinceId: targetProvinceId,
-            movesLeft: Math.max(0, army.movesLeft - 1),
+            ...a,
+            composition: nextComposition,
+            manpower: nextManpower,
+            morale: Math.min(100, a.morale + 20),
           };
         }
-        return army;
+        return a;
       });
 
-      const nextProvinces = { ...(state.provinces || INITIAL_PROVINCES) };
-      const movedArmy = armies.find(a => a.id === armyId);
-      if (movedArmy && nextProvinces[targetProvinceId]) {
-        const destProvince = nextProvinces[targetProvinceId];
-        const defenders = armies.filter(a => a.provinceId === targetProvinceId && a.faction !== movedArmy.faction);
-        if (defenders.length === 0) {
-          nextProvinces[targetProvinceId] = {
-            ...destProvince,
-            owner: movedArmy.faction,
-          };
-        }
-      }
+      newState = {
+        ...state,
+        mapResources,
+        armies: updatedArmies,
+      };
+      break;
+    }
+    case 'MERGE_MAP_ARMIES': {
+      if (state.phase !== 'war') return state;
+      const selectedIds = state.mapSelectedArmyIds || [];
+      const armies = state.armies || [];
+      const mergeCandidates = armies.filter(a => selectedIds.includes(a.id));
+
+      if (mergeCandidates.length <= 1) break;
+
+      const primary = mergeCandidates[0];
+      const others = mergeCandidates.slice(1);
+      const otherIds = others.map(o => o.id);
+
+      let totalInf = primary.composition.infantry;
+      let totalArt = primary.composition.artillery;
+      let totalTnk = primary.composition.tanks;
+      let totalMaxInf = (primary.designedComposition || primary.composition).infantry;
+      let totalMaxArt = (primary.designedComposition || primary.composition).artillery;
+      let totalMaxTnk = (primary.designedComposition || primary.composition).tanks;
+
+      let weightedMoraleSum = primary.morale * primary.manpower;
+      let weightedMilSum = primary.militarization * primary.manpower;
+      let totalManpower = primary.manpower;
+
+      others.forEach(a => {
+        totalInf += a.composition.infantry;
+        totalArt += a.composition.artillery;
+        totalTnk += a.composition.tanks;
+
+        const designed = a.designedComposition || a.composition;
+        totalMaxInf += designed.infantry;
+        totalMaxArt += designed.artillery;
+        totalMaxTnk += designed.tanks;
+
+        weightedMoraleSum += a.morale * a.manpower;
+        weightedMilSum += a.militarization * a.manpower;
+        totalManpower += a.manpower;
+      });
+
+      const avgMorale = totalManpower > 0 ? Math.round(weightedMoraleSum / totalManpower) : primary.morale;
+      const avgMilitarization = totalManpower > 0 ? Math.round(weightedMilSum / totalManpower) : primary.militarization;
+
+      const mergedArmy: Army = {
+        ...primary,
+        manpower: totalManpower,
+        maxManpower: totalMaxInf + totalMaxArt + totalMaxTnk,
+        composition: { infantry: totalInf, artillery: totalArt, tanks: totalTnk },
+        designedComposition: { infantry: totalMaxInf, artillery: totalMaxArt, tanks: totalMaxTnk },
+        morale: Math.min(100, Math.max(0, avgMorale)),
+        militarization: Math.min(100, Math.max(0, avgMilitarization)),
+      };
+
+      const updatedArmies = armies
+        .filter(a => !otherIds.includes(a.id))
+        .map(a => (a.id === primary.id ? mergedArmy : a));
 
       newState = {
         ...state,
         armies: updatedArmies,
-        provinces: nextProvinces,
+        mapSelectedArmyId: primary.id,
+        mapSelectedArmyIds: [primary.id],
+      };
+      break;
+    }
+    case 'DISBAND_MAP_ARMIES': {
+      if (state.phase !== 'war') return state;
+      const selectedIds = state.mapSelectedArmyIds || [];
+      const armies = state.armies || [];
+      const disbandArmiesList = armies.filter(a => selectedIds.includes(a.id));
+
+      if (disbandArmiesList.length === 0) break;
+
+      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[playerFaction];
+
+      if (!playerRes) break;
+
+      let recoveredManpower = 0;
+      let recoveredTanks = 0;
+      let recoveredSupplies = 0;
+
+      disbandArmiesList.forEach(a => {
+        recoveredManpower += a.manpower;
+        recoveredTanks += a.composition.tanks;
+        recoveredSupplies += Math.floor(
+          a.composition.infantry * 0.01 + a.composition.artillery * 0.02 + a.composition.tanks * 0.4
+        );
+      });
+
+      mapResources[playerFaction] = {
+        ...playerRes,
+        manpower: playerRes.manpower + recoveredManpower,
+        tankReserve: playerRes.tankReserve + recoveredTanks,
+        supplies: playerRes.supplies + recoveredSupplies,
+      };
+
+      const remainingArmies = armies.filter(a => !selectedIds.includes(a.id));
+
+      newState = {
+        ...state,
+        mapResources,
+        armies: remainingArmies,
+        mapSelectedArmyId: null,
+        mapSelectedArmyIds: [],
+      };
+      break;
+    }
+    case 'SPLIT_MAP_ARMY': {
+      if (state.phase !== 'war') return state;
+      const { armyId, composition } = action.payload;
+      const { infantry: splitInf, artillery: splitArt, tanks: splitTnk } = composition;
+
+      const armies = state.armies || [];
+      const parent = armies.find(a => a.id === armyId);
+      if (!parent) break;
+
+      if (
+        parent.composition.infantry < splitInf ||
+        parent.composition.artillery < splitArt ||
+        parent.composition.tanks < splitTnk
+      ) {
+        break;
+      }
+
+      const parentInf = parent.composition.infantry - splitInf;
+      const parentArt = parent.composition.artillery - splitArt;
+      const parentTnk = parent.composition.tanks - splitTnk;
+      const parentNewManpower = parentInf + parentArt + parentTnk;
+
+      if (parentNewManpower <= 0) {
+        break;
+      }
+
+      const updatedArmies = armies.map(a => {
+        if (a.id === armyId) {
+          return {
+            ...a,
+            manpower: parentNewManpower,
+            composition: { infantry: parentInf, artillery: parentArt, tanks: parentTnk },
+            designedComposition: { infantry: parentInf, artillery: parentArt, tanks: parentTnk },
+          };
+        }
+        return a;
+      });
+
+      const newArmyId = `army_rec_${Date.now()}_split`;
+      const splitArmyTotal = splitInf + splitArt + splitTnk;
+      const splitArmy: Army = {
+        id: newArmyId,
+        faction: parent.faction,
+        provinceId: parent.provinceId,
+        movesLeft: parent.movesLeft,
+        manpower: splitArmyTotal,
+        maxManpower: splitArmyTotal,
+        composition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
+        designedComposition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
+        morale: parent.morale,
+        militarization: parent.militarization,
+      };
+
+      newState = {
+        ...state,
+        armies: [...updatedArmies, splitArmy],
+        mapSelectedArmyId: armyId,
+        mapSelectedArmyIds: [armyId],
+      };
+      break;
+    }
+    case 'BUILD_MAP_BUILDING': {
+      if (state.phase !== 'war') return state;
+      const { provinceId, buildingType } = action.payload;
+      const provinces = { ...(state.provinces || INITIAL_PROVINCES) };
+      const province = provinces[provinceId];
+      if (!province) break;
+
+      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[playerFaction];
+      if (!playerRes) break;
+
+      const currentBuildings = province.buildings || { barracks: 0, fortress: 0, recruitingOffice: 0, ammoFactory: 0 };
+      const currentLevel = currentBuildings[buildingType as keyof typeof currentBuildings] || 0;
+      const nextLevel = currentLevel + 1;
+
+      let cost = { supplies: 0, ic: 0, manpower: 0 };
+      if (buildingType === 'barracks') {
+        cost = { supplies: 120, ic: 80, manpower: 0 };
+      } else if (buildingType === 'fortress') {
+        if (nextLevel === 1) cost = { supplies: 150, ic: 100, manpower: 0 };
+        else if (nextLevel === 2) cost = { supplies: 250, ic: 180, manpower: 0 };
+        else cost = { supplies: 400, ic: 280, manpower: 0 };
+      } else if (buildingType === 'recruitingOffice') {
+        cost = { supplies: 100, ic: 60, manpower: 30 };
+      } else if (buildingType === 'ammoFactory') {
+        if (nextLevel === 1) cost = { supplies: 200, ic: 150, manpower: 0 };
+        else cost = { supplies: 300, ic: 220, manpower: 0 };
+      }
+
+      if (
+        playerRes.supplies < cost.supplies ||
+        playerRes.industrialCapacity < cost.ic ||
+        playerRes.manpower < cost.manpower
+      ) {
+        break;
+      }
+
+      mapResources[playerFaction] = {
+        ...playerRes,
+        supplies: Math.max(0, playerRes.supplies - cost.supplies),
+        industrialCapacity: Math.max(0, playerRes.industrialCapacity - cost.ic),
+        manpower: Math.max(0, playerRes.manpower - cost.manpower),
+      };
+
+      const nextBuildings = {
+        ...currentBuildings,
+        [buildingType]: nextLevel,
+      };
+
+      provinces[provinceId] = {
+        ...province,
+        buildings: nextBuildings,
+        ...(buildingType === 'fortress' ? { fortification: Math.min(3, nextLevel) } : {}),
+      };
+
+      newState = {
+        ...state,
+        mapResources,
+        provinces,
       };
       break;
     }
     case 'NEXT_PHASE':
       if (state.phase === 'event') {
         newState = { ...state, phase: 'action', actionsLeft: 2 };
+      } else if (state.phase === 'action' && state.civilWarStatus === 'ongoing') {
+        newState = { ...state, phase: 'war', currentView: 'map' };
       } else {
         // Next month
         let nextMonth = state.month + 1;
@@ -663,18 +1618,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         if (newCivilWarStatus === 'not_started') {
           const isHistoricalTrigger = nextYear === 1936 && nextMonth === 7;
           
-          let tensionThreshold = 80; // Default for normal / historical
-          if (state.difficulty === 'easy' || state.difficulty === 'sandbox') {
-            tensionThreshold = 95;
-          } else if (state.difficulty === 'hard') {
-            tensionThreshold = 70;
-          }
-          
-          const isTensionTrigger = state.stats.tension >= tensionThreshold;
-          
-          if (isHistoricalTrigger || isTensionTrigger) {
+          if (isHistoricalTrigger) {
             newSuperEvent = 'spanish_civil_war';
-            newCivilWarStatus = 'ongoing';
           }
         }
 
@@ -706,7 +1651,50 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
         newPendingEvents = [...newPendingEvents, ...monthlyEvents];
         
-        let tempState = {
+        // Map updates: resource income and move reset
+        const nextMapResources = { ...state.mapResources } as Record<MapFaction, ResourceSet>;
+        const updatedNextArmies = (state.armies || []).map(army => ({
+          ...army,
+          movesLeft: 2, // Reset movement limits
+        }));
+
+        Object.keys(nextMapResources).forEach(factionKey => {
+          const fac = factionKey as MapFaction;
+          const currentRes = nextMapResources[fac];
+          if (!currentRes) return;
+
+          const ownedProvinces = Object.values(state.provinces || INITIAL_PROVINCES).filter(
+            p => p.owner === fac
+          );
+
+          let monthlyManpower = 500;
+          let monthlySupplies = 250;
+          let monthlyIC = 50;
+
+          ownedProvinces.forEach(p => {
+            monthlyManpower += p.manpower * 8;
+            monthlySupplies += p.industry * 2.0;
+            monthlyIC += p.industry * 1.0;
+
+            const b = p.buildings || {};
+            if (b.recruitingOffice) {
+              monthlyManpower += 1500;
+            }
+            if (b.ammoFactory) {
+              monthlySupplies += b.ammoFactory === 1 ? 500 : 1200;
+            }
+          });
+
+          nextMapResources[fac] = {
+            manpower: currentRes.manpower + Math.floor(monthlyManpower),
+            supplies: currentRes.supplies + Math.floor(monthlySupplies),
+            industrialCapacity: Math.min(250, currentRes.industrialCapacity + Math.floor(monthlyIC * 0.2)), 
+            commandPoints: 2,
+            tankReserve: currentRes.tankReserve + (fac === MapFaction.REPUBLICAN ? 1 : 0),
+          };
+        });
+
+        let tempState: GameState = {
           ...state,
           month: nextMonth,
           year: nextYear,
@@ -716,6 +1704,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           internationalBrigades: newIntBrigades,
           internationalBrigadesFormed: newIntBrigadesFormed,
           prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0,
+          mapResources: nextMapResources,
+          armies: updatedNextArmies,
+          mapCurrentPlayer: MapFaction.REPUBLICAN,
         };
 
         // --- Core Economic Monthly Simulation ---
@@ -789,23 +1780,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const milLoyaltyFactor = (milSpendVal - 15) * 0.12;
         const newArmyLoyalty = Math.max(0, Math.min(100, (tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50) + milLoyaltyFactor));
 
-        let extraCoupRise = 0;
-        if (newArmyLoyalty < 40) {
-          extraCoupRise += (40 - newArmyLoyalty) * 0.08;
-        }
-
         // Adjust landowner class tension / reaction from expropriation (low compensation)
         if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
           if (compRateVal < 0.35) {
-            extraCoupRise += 0.4;
             tempState.stats.tension = Math.max(0, Math.min(100, tempState.stats.tension + 0.3));
-          } else if (compRateVal > 0.85) {
-            extraCoupRise -= 0.2;
           }
-        }
-
-        if (extraCoupRise !== 0) {
-          tempState.coupProgress = parseFloat(Math.max(0, Math.min(100, tempState.coupProgress + extraCoupRise)).toFixed(2));
         }
 
         // 5. Economic Growth Rate (clamped to 1% to 100%)
@@ -851,6 +1830,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           economy: parseFloat(newEconHealth.toFixed(1)),
           armyLoyalty: parseFloat(newArmyLoyalty.toFixed(1)),
         };
+
+        if (!tempState.coupSystemActive) {
+          tempState.coupProgress = 0;
+        } else {
+          const tension = tempState.stats.tension !== undefined ? tempState.stats.tension : 34;
+          const armyLoyalty = tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50;
+          const monthlyCoupDelta = 0.15 + (tension * 0.012) + ((100 - armyLoyalty) * 0.025);
+          tempState.coupProgress = parseFloat(Math.max(0, Math.min(100, tempState.coupProgress + monthlyCoupDelta)).toFixed(2));
+        }
 
         const updatedHistory = [
           ...(state.economyHistory || []),
@@ -941,14 +1929,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         tempState = checkCoalitionDissolve(tempState);
         tempState = autoFormCoalitionIfNeeded(tempState);
 
-        const mapTriggered = (state.civilWarStatus === 'not_started' && newCivilWarStatus === 'ongoing');
         let finalProvinces = tempState.provinces || state.provinces || INITIAL_PROVINCES;
         let finalArmies = tempState.armies || state.armies || INITIAL_ARMIES;
-        if (mapTriggered) {
-          const res = triggerCivilWarOnMap(finalProvinces, finalArmies);
-          finalProvinces = res.provinces;
-          finalArmies = res.armies;
-        }
 
         newState = {
           ...state,
@@ -1052,9 +2034,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
       break;
     }
-    case 'DISMISS_SUPER_EVENT':
-      newState = { ...state, superEvent: null };
+    case 'DISMISS_SUPER_EVENT': {
+      let extra = {};
+      if (state.superEvent === 'spanish_civil_war') {
+        extra = {
+          currentEvent: civilWarSetup,
+          phase: 'event'
+        };
+      }
+      newState = { ...state, superEvent: null, ...extra };
       break;
+    }
     case 'SELECT_EVENT': {
       const selectedEvent = state.pendingEvents.find(e => e.id === action.payload.eventId);
       if (selectedEvent) {
@@ -1275,6 +2265,81 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         (100 - armyLoyalty) * 0.4 + 
         revolutionaryFervor * 0.3
       ));
+    }
+
+    // Force coupProgress to 0 if the system is inactive
+    if (!newState.coupSystemActive) {
+      newState.coupProgress = 0;
+    } else {
+      // Level 10: 暗流未息
+      if (newState.coupProgress >= 10 && !newState.coupTriggered10) {
+        newState.coupTriggered10 = true;
+      }
+      // Level 20: 阴谋之网
+      if (newState.coupProgress >= 20 && !newState.coupTriggered20) {
+        newState.coupTriggered20 = true;
+      }
+      // Level 30: 莫拉登场
+      if (newState.coupProgress >= 30 && !newState.coupTriggered30) {
+        newState.coupTriggered30 = true;
+        if (newState.armedForces && newState.armedForces.regularArmy) {
+          newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 3);
+        }
+        newState.molaStatus = 'nationalist';
+      }
+      // Level 40: 密令扩散
+      if (newState.coupProgress >= 40 && !newState.coupTriggered40) {
+        newState.coupTriggered40 = true;
+        if (newState.armedForces && newState.armedForces.regularArmy) {
+          newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 10);
+        }
+      }
+      // Level 50: 非洲军团
+      if (newState.coupProgress >= 50 && !newState.coupTriggered50) {
+        newState.coupTriggered50 = true;
+        newState.africaArmyStatus = 'nationalist';
+      }
+      // Level 60: 凯波入局
+      if (newState.coupProgress >= 60 && !newState.coupTriggered60) {
+        newState.coupTriggered60 = true;
+        newState.queipoStatus = 'nationalist';
+      }
+      // Level 70: 外援暗流
+      if (newState.coupProgress >= 70 && !newState.coupTriggered70) {
+        newState.coupTriggered70 = true;
+        if (newState.relations) {
+          newState.relations.germany = Math.max(0, newState.relations.germany - 5);
+          newState.relations.italy = Math.max(0, newState.relations.italy - 5);
+        }
+      }
+      // Level 80: 佛朗哥倒戈
+      if (newState.coupProgress >= 80 && !newState.coupTriggered80) {
+        newState.coupTriggered80 = true;
+        if (newState.armedForces && newState.armedForces.regularArmy) {
+          newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 5);
+        }
+        newState.francoStatus = 'nationalist';
+      }
+      // Level 90: 箭在弦上
+      if (newState.coupProgress >= 90 && !newState.coupTriggered90) {
+        newState.coupTriggered90 = true;
+        if (newState.armedForces) {
+          if (newState.armedForces.regularArmy) {
+            newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 3);
+          }
+          if (newState.armedForces.guardiaNacional) {
+            newState.armedForces.guardiaNacional.loyalty = Math.max(0, newState.armedForces.guardiaNacional.loyalty - 3);
+          }
+          if (newState.armedForces.guardiaAsalto) {
+            newState.armedForces.guardiaAsalto.loyalty = Math.max(0, newState.armedForces.guardiaAsalto.loyalty - 3);
+          }
+        }
+      }
+      // Level 100: 国民军叛乱爆发
+      if (newState.coupProgress >= 100 && !newState.coupTriggered100) {
+        newState.coupTriggered100 = true;
+        newState.superEvent = 'spanish_civil_war';
+      }
     }
   }
 

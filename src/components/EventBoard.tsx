@@ -25,7 +25,7 @@ export const EventBoard: React.FC = () => {
       </p>
 
       <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
-        {state.pendingEvents.map((event) => (
+        {state.pendingEvents.filter((event, idx, self) => self.findIndex(e => e.id === event.id) === idx).map((event) => (
           <button
             key={event.id}
             onClick={() => dispatch({ type: 'SELECT_EVENT', payload: { eventId: event.id } })}

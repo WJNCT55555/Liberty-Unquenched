@@ -32,7 +32,7 @@ export const elections1933: GameEvent = {
             ...state.stats, 
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15)
           },
-          pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents]
+          pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents.filter(e => e.id !== elections1933Results.id)]
         };
       },
     },
@@ -54,7 +54,7 @@ export const elections1933: GameEvent = {
             ...state.stats, 
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10)
           },
-          pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents]
+          pendingEvents: [{ ...elections1933Results }, ...state.pendingEvents.filter(e => e.id !== elections1933Results.id)]
         };
       },
     },

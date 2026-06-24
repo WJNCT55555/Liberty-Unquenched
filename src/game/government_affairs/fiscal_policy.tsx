@@ -20,7 +20,6 @@ export const IncomeTaxAdjuster: React.FC = () => {
   let lowerClassSupport = 0;
   let middleClassSupport = 0;
   let upperClassSupport = 0;
-  let tensionChange = 0;
   let radicalDissentChange = 0;
 
   // Lower Tax Impacts
@@ -45,7 +44,6 @@ export const IncomeTaxAdjuster: React.FC = () => {
   // Upper Tax Impacts
   if (delta_upper > 0) {
     upperClassSupport -= delta_upper * 1.5;
-    tensionChange += delta_upper * 0.4;
     budgetChange += delta_upper * 0.25;
     radicalDissentChange -= delta_upper * 0.4;
   } else if (delta_upper < 0) {
@@ -154,14 +152,6 @@ export const IncomeTaxAdjuster: React.FC = () => {
               </span>
             </li>
           )}
-          {tensionChange !== 0 && (
-            <li className="flex justify-between">
-              <span>{isZh ? '• 全社会局势紧张度变动:' : '• Social Tension:'}</span>
-              <span className={tensionChange > 0 ? 'text-cnt-red font-bold animate-pulse' : 'text-green-700'}>
-                {tensionChange > 0 ? '+' : ''}{tensionChange.toFixed(1)}%
-              </span>
-            </li>
-          )}
           {radicalDissentChange !== 0 && (
             <li className="flex justify-between">
               <span>{isZh ? '• CNT 核心无政府主义派系 (Faistas, Puristas) 不满值变动:' : '• Anarchist Dissent:'}</span>
@@ -170,7 +160,7 @@ export const IncomeTaxAdjuster: React.FC = () => {
               </span>
             </li>
           )}
-          {budgetChange === 0 && lowerClassSupport === 0 && middleClassSupport === 0 && upperClassSupport === 0 && tensionChange === 0 && radicalDissentChange === 0 && (
+          {budgetChange === 0 && lowerClassSupport === 0 && middleClassSupport === 0 && upperClassSupport === 0 && radicalDissentChange === 0 && (
             <li className="text-ink-light italic text-center text-[10px] py-1">{isZh ? '数字无变化，尚未作出所得税率的改革调整。' : 'No changes staged yet.'}</li>
           )}
         </ul>
@@ -341,7 +331,6 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
         let working_class_support = 0;
         let middle_class_support = 0;
         let upper_class_support = 0;
-        let tension_acc = 0;
         let budget_flow = 0;
         let faistas_dissent = 0;
         let puristas_dissent = 0;
@@ -369,7 +358,6 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
         // Apply Upper class tax dynamic impacts
         if (delta_upper > 0) {
           upper_class_support -= delta_upper * 1.5;
-          tension_acc += delta_upper * 0.4;
           budget_flow += delta_upper * 0.25;
           faistas_dissent -= delta_upper * 0.4;
           puristas_dissent -= delta_upper * 0.4;
@@ -402,10 +390,6 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
           classes: newClasses,
           factions: newFactions,
           budget: Math.max(-30, state.budget + budget_flow),
-          stats: {
-            ...state.stats,
-            tension: Math.max(0, Math.min(100, state.stats.tension + tension_acc))
-          },
           // Clear temp variables
           temp_tax_lower: undefined,
           temp_tax_middle: undefined,

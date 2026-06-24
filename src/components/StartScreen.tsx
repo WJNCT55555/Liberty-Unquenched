@@ -116,8 +116,7 @@ export const StartScreen = () => {
                     title={isZh ? '1933年11月 - 黑色两年' : 'November 1933 - The Black Two Years'}
                     description={isZh ? '右翼 CEDA 联盟赢得大选。工人阶级愤怒值极高，CNT-FAI 面临被镇压的风险，需要为即将到来的1934年阿斯图里亚斯矿工起义做准备。' : 'The right-wing CEDA alliance wins the election. Worker anger is high, CNT-FAI faces repression. Prepare for the 1934 Asturias uprising.'}
                     selected={selectedScenario === '1933'}
-                    onClick={() => {}}
-                    disabled
+                    onClick={() => setSelectedScenario('1933')}
                   />
 
                   <ScenarioCard 
@@ -125,8 +124,7 @@ export const StartScreen = () => {
                     title={isZh ? '1936年7月 - 风暴前夕' : 'July 1936 - Eve of the Storm'}
                     description={isZh ? '人民阵线刚刚上台，右翼军官的政变迫在眉睫。开局即是高压状态，需要立即组织民兵武装保卫共和国并推行社会革命。' : 'The Popular Front has just taken power, a right-wing military coup is imminent. High pressure, organize militias to defend the Republic.'}
                     selected={selectedScenario === '1936'}
-                    onClick={() => {}}
-                    disabled
+                    onClick={() => setSelectedScenario('1936')}
                   />
                 </div>
               </div>
