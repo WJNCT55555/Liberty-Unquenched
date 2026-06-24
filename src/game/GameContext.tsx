@@ -5,7 +5,7 @@ import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
-import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth } from '../map/map_constants';
+import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth, isPortugalProvince } from '../map/map_constants';
 import { MapFaction, Army, ResourceSet } from '../map/types_map';
 import { initializeMapState } from '../map/map_logic';
 import { calculateAiMoves } from '../map/lib/gameAi';
@@ -1144,6 +1144,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const armies = state.armies || [];
       const movedArmy = armies.find(a => a.id === armyId);
       if (!movedArmy) break;
+
+      // Prevent Nationalist and Republican armies from entering Portugal
+      if (
+        (movedArmy.faction === MapFaction.REPUBLICAN || movedArmy.faction === MapFaction.NATIONALIST) &&
+        isPortugalProvince(targetProvinceId)
+      ) {
+        break;
+      }
 
       const playerFaction = movedArmy.faction;
       const isPlayer = playerFaction === MapFaction.REPUBLICAN;

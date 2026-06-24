@@ -7,8 +7,6 @@ import { burningConvents } from './burning_of_the_convents';
 import { manifestoOfThirty } from './manifesto_thirty';
 import { foundingSyndicalistParty } from './founding_syndicalist_party';
 import { cedaFormation } from './ceda_formation';
-import { sanjurjoFlight } from './civil_war/sanjurjo_flight';
-import { navyDecision } from './civil_war/navy_decision';
 import { cataloniaDefense } from './civil_war/catalonia_defense';
 import { aragonCouncil } from './civil_war/aragon_council';
 import { nationalistSurrender } from './civil_war/nationalist_surrender';
@@ -43,8 +41,6 @@ export const INITIAL_EVENTS = [
   constitution1931,
   foundingSyndicalistParty,
   cedaFormation,
-  sanjurjoFlight,
-  navyDecision,
   cataloniaDefense,
   aragonCouncil,
   nationalistSurrender,

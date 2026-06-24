@@ -765,3 +765,15 @@ export function getSupplyLimit(province: {
 
   return baseLimit + coastalBonus + barracksBonus + strategicBonus;
 }
+
+export const PORTUGUESE_PROVINCES = [
+  'lisboa', 'porto', 'setubal', 'coimbra', 'faro', 'beja', 'evora', 'portalegre',
+  'aveiro', 'braga', 'braganca', 'castelobranco', 'guarda', 'leiria', 'santarem',
+  'vianadocastelo', 'vilareal', 'viseu'
+];
+
+export function isPortugalProvince(provinceId: string): boolean {
+  if (!provinceId) return false;
+  return PORTUGUESE_PROVINCES.includes(provinceId.toLowerCase());
+}
+

@@ -6,7 +6,7 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Province, MapFaction as Faction, Army } from './types_map';
-import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, CultureGroup, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords } from './map_constants';
+import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, CultureGroup, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, isPortugalProvince } from './map_constants';
 import { ZoomIn, ZoomOut, RotateCcw, Swords, Map, Mountain, Users, Shield } from 'lucide-react';
 import * as d3 from 'd3';
 
@@ -787,7 +787,12 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
             const isHovered = hoveredProvince === p.provinceName;
             
             const selectedArmy = armies.find(a => a.id === selectedArmyId);
-            const isPossibleMove = selectedArmy && p.provinceId && PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(p.provinceId);
+            const isPossibleMove = selectedArmy && p.provinceId && 
+              PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(p.provinceId) &&
+              !(
+                (selectedArmy.faction === Faction.REPUBLICAN || selectedArmy.faction === Faction.NATIONALIST) &&
+                isPortugalProvince(p.provinceId)
+              );
 
             // Customize border stroke and width
             let strokeColor = 'rgba(0,0,0,0.2)';

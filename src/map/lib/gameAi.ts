@@ -4,7 +4,7 @@
  */
 
 import { GameState, MapFaction as Faction, Province, Army } from '../types_map';
-import { PROVINCE_ADJACENCY } from '../map_constants';
+import { PROVINCE_ADJACENCY, isPortugalProvince } from '../map_constants';
 
 export interface AiAction {
   type: 'BUILD' | 'REINFORCE' | 'RECRUIT' | 'MOVE' | 'END_TURN';
@@ -253,6 +253,13 @@ export function calculateAiMoves(
 
       const adj = PROVINCE_ADJACENCY[army.provinceId] || [];
       for (const targetId of adj) {
+        if (
+          (army.faction === Faction.REPUBLICAN || army.faction === Faction.NATIONALIST) &&
+          isPortugalProvince(targetId)
+        ) {
+          continue;
+        }
+
         const toProvince = state.provinces[targetId];
         if (!toProvince) continue;
 

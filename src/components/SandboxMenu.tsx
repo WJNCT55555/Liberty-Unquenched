@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../game/GameContext';
 import { X, Plus, Minus } from 'lucide-react';
 import { Faction } from '../game/types';
+import { MapFaction } from '../map/types_map';
 import { COALITION_DEFS } from '../game/coalitions';
 import { formCoalition } from '../game/utils/coalition';
 
@@ -27,6 +28,18 @@ export const SandboxMenu = () => {
     const newFactions = { ...state.factions };
     newFactions[faction] = { ...newFactions[faction], [key]: Math.max(0, Math.min(100, value)) };
     dispatch({ type: 'SANDBOX_EDIT', payload: { factions: newFactions } });
+  };
+
+  const handleMapResourceEdit = (faction: MapFaction, key: string, value: number) => {
+    if (!state.mapResources) return;
+    const nextMapResources = { ...state.mapResources };
+    if (nextMapResources[faction]) {
+      nextMapResources[faction] = {
+        ...nextMapResources[faction],
+        [key]: Math.max(0, value)
+      };
+      dispatch({ type: 'SANDBOX_EDIT', payload: { mapResources: nextMapResources } });
+    }
   };
 
   const handleMinisterChange = (role: string, value: any) => {
@@ -115,6 +128,52 @@ export const SandboxMenu = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Command Points Debug Adjustment */}
+              {state.mapResources && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-ink/10 pt-4">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1 text-cnt-red">
+                      {isZh ? '共和军指挥点' : 'Republican Command Points'}
+                    </h3>
+                    <div className="flex items-center justify-between bg-ink/5 p-3">
+                      <button 
+                        onClick={() => handleMapResourceEdit(MapFaction.REPUBLICAN, 'commandPoints', Math.max(0, (state.mapResources?.[MapFaction.REPUBLICAN]?.commandPoints ?? 0) - 1))} 
+                        className="p-2 hover:bg-ink hover:text-paper transition-colors"
+                      >
+                        <Minus className="w-5 h-5" />
+                      </button>
+                      <span className="font-display text-2xl">{state.mapResources?.[MapFaction.REPUBLICAN]?.commandPoints ?? 0}</span>
+                      <button 
+                        onClick={() => handleMapResourceEdit(MapFaction.REPUBLICAN, 'commandPoints', (state.mapResources?.[MapFaction.REPUBLICAN]?.commandPoints ?? 0) + 1)} 
+                        className="p-2 hover:bg-ink hover:text-paper transition-colors"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1 text-ink/70">
+                      {isZh ? '国民军指挥点' : 'Nationalist Command Points'}
+                    </h3>
+                    <div className="flex items-center justify-between bg-ink/5 p-3">
+                      <button 
+                        onClick={() => handleMapResourceEdit(MapFaction.NATIONALIST, 'commandPoints', Math.max(0, (state.mapResources?.[MapFaction.NATIONALIST]?.commandPoints ?? 0) - 1))} 
+                        className="p-2 hover:bg-ink hover:text-paper transition-colors"
+                      >
+                        <Minus className="w-5 h-5" />
+                      </button>
+                      <span className="font-display text-2xl">{state.mapResources?.[MapFaction.NATIONALIST]?.commandPoints ?? 0}</span>
+                      <button 
+                        onClick={() => handleMapResourceEdit(MapFaction.NATIONALIST, 'commandPoints', (state.mapResources?.[MapFaction.NATIONALIST]?.commandPoints ?? 0) + 1)} 
+                        className="p-2 hover:bg-ink hover:text-paper transition-colors"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Sandbox Card Options */}
               <div className="flex flex-col gap-4">

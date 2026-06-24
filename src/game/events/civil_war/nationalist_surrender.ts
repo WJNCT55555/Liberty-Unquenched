@@ -17,7 +17,7 @@ export const nationalistSurrender: GameEvent = {
     const nationalistProvinces = provincesList.filter(p => p.owner === MapFaction.NATIONALIST);
     const totalStrategicValue = nationalistProvinces.reduce((sum, p) => sum + (p.strategicValue || 0), 0);
 
-    return burgosNotNationalist && totalStrategicValue < 55;
+    return burgosNotNationalist && totalStrategicValue < 60;
   },
   options: [
     {

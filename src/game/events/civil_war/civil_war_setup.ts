@@ -72,7 +72,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     
     // 3. Zaragoza Division (rep_5)
     if (army.id === 'rep_5') {
-      const zaragozaNationalist = isOptionA ? true : (choices['step3_zaragoza'] === 'A' || choices['step3_zaragoza'] === 'C');
+      const zaragozaNationalist = isOptionA ? true : (choices['step3_zaragoza'] === 'A' || choices['step3_zaragoza'] === 'B' || choices['step3_zaragoza'] === 'C');
       if (zaragozaNationalist) {
         return {
           ...army,
@@ -317,7 +317,7 @@ export const civilWarStep1: GameEvent = {
     {
       text: '立刻利用我们的电台告知民众政变发生的消息',
       textZh: '立刻利用我们的电台告知民众政变发生的消息',
-      condition: (state) => (state.propaganda_timer || 0) <= 2, // Radio/propaganda condition representation
+      condition: (state) => (state.radio || 0) >= 2, // Radio condition representation
       effect: (state) => {
         const nextProvinces = { ...state.provinces };
         if (nextProvinces['granada']) nextProvinces['granada'] = { ...nextProvinces['granada'], owner: MapFaction.NATIONALIST };
