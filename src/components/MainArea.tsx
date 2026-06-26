@@ -47,7 +47,7 @@ export const MainArea = () => {
               <div className="flex flex-row gap-8 justify-center">
                 <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
                 <DeckView type="Governmental" onSelectOpen={setSelectedDeckForChoice} />
-                {state.civilWarStatus !== 'not_started' && (
+                {(state.civilWarStatus !== 'not_started' || state.militaryDeckEnabled) && (
                   <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
                 )}
               </div>

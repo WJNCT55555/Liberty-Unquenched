@@ -296,8 +296,7 @@ export const civilWarStep1: GameEvent = {
       text: '联合UGT，强行发起总罢工！',
       textZh: '联合UGT，强行发起总罢工！',
       condition: (state) => {
-        // If CNT and PSOE are friendly, or party relations or some general high support
-        return (state.partySupport?.PSOE || 0) + (state.partySupport?.Other || 0) >= 0; // Accessible
+        return (state.partyRelations?.PSOE ?? 0) >= 80;
       },
       effect: (state) => {
         const nextProvinces = { ...state.provinces };

@@ -65,7 +65,7 @@ export const SandboxMenu = () => {
     { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
     { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
     { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
-    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'State Minister (Foreign)', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
+    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
   ] as const;
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {

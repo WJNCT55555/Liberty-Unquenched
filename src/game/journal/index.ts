@@ -1,12 +1,16 @@
 import { landReformJournal } from './land_reform';
 import { regionalIssuesJournal } from './regional_issues';
 import { iberianDreamJournal } from './iberian_dream';
+import { uhpJournal } from './uhp';
+import { alianzaObreraJournal } from './alianza_obrera';
 import { JournalEntryDef } from '../types';
 
 export const JOURNAL_ENTRIES: JournalEntryDef[] = [
   landReformJournal,
   regionalIssuesJournal,
-  iberianDreamJournal
+  iberianDreamJournal,
+  uhpJournal,
+  alianzaObreraJournal
 ];
 
 export const getJournalEntryDef = (id: string): JournalEntryDef | undefined => {

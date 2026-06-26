@@ -6,7 +6,6 @@ import { PARTY_COLORS } from '../constants';
 import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
 import { formCoalition } from '../utils/coalition';
-import { huelgaTelefonica1931 } from './huelga_telefonica_1931';
 
 export const elections1931Results: GameEvent = {
   id: '1931_elections_results',
@@ -276,14 +275,8 @@ export const leftCabinetExcludesCNT: GameEvent = {
       text: 'They will soon feel the power of the organized working class.',
       textZh: '他们很快就会感受到有组织的工人阶级的力量。',
       effect: (state) => {
-        const alreadyPending = state.pendingEvents.some(e => e.id === huelgaTelefonica1931.id);
-        const updatedPending = alreadyPending 
-          ? state.pendingEvents 
-          : [{ ...huelgaTelefonica1931 }, ...state.pendingEvents];
-          
         return {
-          stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5) },
-          pendingEvents: updatedPending
+          stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5) }
         };
       }
     }

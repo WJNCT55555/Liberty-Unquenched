@@ -83,7 +83,7 @@ export const SidePanel = () => {
     pieData.push({
       name: isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en,
       value: state.factions.Jabalistas.influence,
-      color: '#b45309'
+      color: '#14532d'
     });
   }
 
@@ -371,6 +371,42 @@ export const SidePanel = () => {
 
       <AccordionSection title={isZh ? '国内政治' : 'Domestic Politics'} defaultOpen={true}>
         <div className="flex flex-col gap-2 text-xs font-mono">
+          {/* Next Election Date indicator */}
+          {(() => {
+            let nextElectionText = '';
+            if (state.civilWarStatus !== 'not_started') {
+              nextElectionText = isZh ? '已停摆 (内战爆发)' : 'Suspended (Civil War)';
+            } else {
+              const year = state.year;
+              const month = state.month;
+              
+              if (year < 1931 || (year === 1931 && month < 6)) {
+                nextElectionText = isZh ? '1931年6月 (制宪议会大选)' : 'June 1931 (Constituent Cortes)';
+              } else if (year < 1933 || (year === 1933 && month < 11)) {
+                if (state.isRepublicanSocialistDissolved) {
+                  nextElectionText = isZh ? '1933年11月 (因内阁危机提前大选)' : 'November 1933 (Early Election due to Cabinet Crisis)';
+                } else {
+                  nextElectionText = isZh ? '1935年6月 (四年期满)' : 'June 1935 (4-Year Term)';
+                }
+              } else if (year < 1936 || (year === 1936 && month < 2)) {
+                if (state.isCedaRadicalDissolved) {
+                  nextElectionText = isZh ? '1936年2月 (因丑闻与联盟瓦解提前大选)' : 'February 1936 (Early Election due to Scandal & Collapse)';
+                } else {
+                  nextElectionText = isZh ? '1937年11月 (四年期满)' : 'November 1937 (4-Year Term)';
+                }
+              } else {
+                nextElectionText = isZh ? '1940年2月 (四年期满)' : 'February 1940 (4-Year Term)';
+              }
+            }
+
+            return (
+              <div className="flex justify-between items-center border-b border-ink/20 pb-1.5 mb-1 text-[11px]">
+                <span className="text-ink-light font-bold uppercase tracking-wider">{isZh ? '下一次选举' : 'NEXT ELECTION'}</span>
+                <span className="font-bold text-accent">{nextElectionText}</span>
+              </div>
+            );
+          })()}
+
           {/* CNT立场 (Placed above government composition) - elevated to GameState top-level field */}
           {(() => {
             const stanceLabels: Record<string, { en: string; zh: string }> = {
@@ -519,10 +555,11 @@ export const SidePanel = () => {
               </div>
             );
           })()}
+        </div>
+      </AccordionSection>
 
-          <div className="mt-2 mb-1 font-bold text-[10px] uppercase tracking-wider text-ink-light">
-            {isZh ? '政党关系 (对CNT-FAI)' : 'Party Relations (to CNT-FAI)'}
-          </div>
+      <AccordionSection title={isZh ? '政党关系' : 'Party Relations'} defaultOpen={true}>
+        <div className="flex flex-col gap-2 text-xs font-mono">
           <div className="flex flex-col gap-1">
             {(Object.entries(state.partyRelations) as [Party, number][]).map(([party, value]) => {
               if (party === 'PS' && !state.ps_founded) return null;

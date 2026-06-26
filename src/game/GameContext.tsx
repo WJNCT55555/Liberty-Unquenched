@@ -728,12 +728,18 @@ export const INITIAL_STATE: GameState = {
   cntFaiInGovernment: false,
   pceInPower: false,
   pceAcceptsComintern: false,
+  militaryDeckEnabled: false,
   ps_founded: false,
   fe_founded: false,
   poum_founded: false,
   falange_jons: false,
   isCasasViejasTriggered: false,
   isJabaliTriggered: false,
+  uhp_attempt_triggered: false,
+  uhp_journal_activated: false,
+  alliance_obrera_activated: false,
+  isRepublicanSocialistDissolved: false,
+  isCedaRadicalDissolved: false,
   coupSystemActive: false,
   molaStatus: 'republic',
   queipoStatus: 'republic',
@@ -913,7 +919,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           ...startMapState
         }) : false;
         
-        if (e.date) return dateMatch;
+        if (e.date) {
+          return dateMatch && (e.condition ? conditionMatch : true);
+        }
         return conditionMatch;
       });
 
@@ -951,6 +959,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         civilWarStatus: startCivilWarStatus,
         isCasasViejasTriggered: action.payload.scenario === '1933' || action.payload.scenario === '1936',
         isJabaliTriggered: false,
+        isRepublicanSocialistDissolved: action.payload.scenario === '1933' || action.payload.scenario === '1936',
+        isCedaRadicalDissolved: action.payload.scenario === '1936',
         coupSystemActive: action.payload.scenario === '1933' || action.payload.scenario === '1936',
         ...initializeMapState(action.payload.scenario, startCivilWarStatus),
         mapSelectedProvinceId: null,
@@ -1646,7 +1656,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
           }) : false;
           
-          if (e.date) return dateMatch;
+          if (e.date) {
+            return dateMatch && (e.condition ? conditionMatch : true);
+          }
           return conditionMatch;
         });
 

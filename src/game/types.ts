@@ -372,6 +372,7 @@ export interface GameState {
   cntFaiInGovernment: boolean;
   pceInPower: boolean;
   pceAcceptsComintern: boolean;
+  militaryDeckEnabled: boolean;
   
   ps_founded: boolean;
   fe_founded: boolean;
@@ -379,6 +380,11 @@ export interface GameState {
   falange_jons: boolean;
   isCasasViejasTriggered: boolean;
   isJabaliTriggered: boolean;
+  uhp_attempt_triggered: boolean;
+  uhp_journal_activated: boolean;
+  alliance_obrera_activated: boolean;
+  isRepublicanSocialistDissolved: boolean;
+  isCedaRadicalDissolved: boolean;
   coupSystemActive: boolean;
   molaStatus: 'republic' | 'nationalist';
   queipoStatus: 'republic' | 'nationalist';

@@ -24,8 +24,11 @@ import { cataloniaAutonomy1932 } from './catalonia_autonomy_1932';
 import { nombelaScandal } from './nombela_scandal';
 import { naziPower1933 } from './nazi_power_1933';
 import { civilWarSetup } from './civil_war/civil_war_setup';
+import { defenseCommitteeFormation } from './defense_committee_formation';
+import { workersAllianceAttempt } from './workers_alliance_attempt';
+import { workersAllianceFormation } from './workers_alliance_formation';
 
-export { civilWarSetup };
+export { civilWarSetup, defenseCommitteeFormation, workersAllianceAttempt, workersAllianceFormation };
 
 export const INITIAL_EVENTS = [
   proclamationSecondRepublic,
@@ -62,5 +65,8 @@ export const INITIAL_EVENTS = [
   cataloniaAutonomy1932,
   nombelaScandal,
   naziPower1933,
-  civilWarSetup
+  civilWarSetup,
+  defenseCommitteeFormation,
+  workersAllianceAttempt,
+  workersAllianceFormation
 ];

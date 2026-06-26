@@ -795,7 +795,7 @@ export const foreignPolicy: Card = {
   descriptionZh: '掌握外交政策，我们可以引导其推进我们的政策。作为全国劳工联盟（CNT），我们将不得不在维持资产阶级共和国的国际生存与推进全球工团主义革命之间找到危险的平衡。（需要CNT掌管国务部/外交）',
   cost: 1,
   condition: (state: GameState) => {
-    return state.cntFaiInGovernment && state.ministers.estado === 'CNT' && (state.international_relations_timer || 0) <= 0;
+    return state.cntStance === 'govern' && state.ministers.estado === 'CNT' && (state.international_relations_timer || 0) <= 0;
   },
   effect: (state: GameState) => {
     return {

@@ -190,10 +190,15 @@ export function checkCoalitionDissolve(state: GameState): GameState {
       to: { year: state.year, month: state.month }
     });
 
+    const isRepSoc = coalition.activeId === 'republican_socialist';
+    const isCedaRad = coalition.activeId === 'ceda_radical';
+
     return {
       ...state,
       activeCoalition: null,
-      coalitionHistory: history
+      coalitionHistory: history,
+      isRepublicanSocialistDissolved: state.isRepublicanSocialistDissolved || isRepSoc,
+      isCedaRadicalDissolved: state.isCedaRadicalDissolved || isCedaRad
     };
   }
 

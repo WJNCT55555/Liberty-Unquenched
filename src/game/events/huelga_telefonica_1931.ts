@@ -4,6 +4,7 @@ import { adjustFactionInfluence } from '../utils';
 export const huelgaTelefonica1931: GameEvent = {
   id: 'huelga_telefonica_1931',
   date: { year: 1931, month: 7 },
+  condition: (state) => state.cntStance !== 'govern',
   title: 'The 1931 Telephone Strike',
   titleZh: '1931年电话公司大罢工',
   description: 

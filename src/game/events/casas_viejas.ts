@@ -78,6 +78,17 @@ export const casasViejas2Insurrection: GameEvent = {
           finance_minister_party: min.finance || 'PSOE',
           estado_minister_party: min.estado || 'PSOE',
           ministers: min,
+          activeCoalition: state.activeCoalition ? {
+            ...state.activeCoalition,
+            cohesion: 10,
+            memberContributions: {
+              ...state.activeCoalition.memberContributions,
+              PSOE: 10,
+              IR: 10,
+              UR: 10,
+              DLR: 10
+            }
+          } : null,
           currentEvent: generalStrikeFails
         };
       }
@@ -120,7 +131,18 @@ export const casasViejas2Insurrection: GameEvent = {
           labor_minister_party: min.labor,
           finance_minister_party: min.finance || 'PSOE',
           estado_minister_party: min.estado || 'PSOE',
-          ministers: min
+          ministers: min,
+          activeCoalition: state.activeCoalition ? {
+            ...state.activeCoalition,
+            cohesion: 10,
+            memberContributions: {
+              ...state.activeCoalition.memberContributions,
+              PSOE: 10,
+              IR: 10,
+              UR: 10,
+              DLR: 10
+            }
+          } : null
         };
       }
     }
@@ -176,7 +198,18 @@ export const casasViejas2Crackdown: GameEvent = {
           labor_minister_party: min.labor,
           finance_minister_party: min.finance || 'PSOE',
           estado_minister_party: min.estado || 'PSOE',
-          ministers: min
+          ministers: min,
+          activeCoalition: state.activeCoalition ? {
+            ...state.activeCoalition,
+            cohesion: 10,
+            memberContributions: {
+              ...state.activeCoalition.memberContributions,
+              PSOE: 10,
+              IR: 10,
+              UR: 10,
+              DLR: 10
+            }
+          } : null
         };
       }
     },
@@ -219,7 +252,18 @@ export const casasViejas2Crackdown: GameEvent = {
           labor_minister_party: min.labor,
           finance_minister_party: min.finance || 'PSOE',
           estado_minister_party: min.estado || 'PSOE',
-          ministers: min
+          ministers: min,
+          activeCoalition: state.activeCoalition ? {
+            ...state.activeCoalition,
+            cohesion: 10,
+            memberContributions: {
+              ...state.activeCoalition.memberContributions,
+              PSOE: 10,
+              IR: 10,
+              UR: 10,
+              DLR: 10
+            }
+          } : null
         };
       }
     }

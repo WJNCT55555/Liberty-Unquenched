@@ -111,7 +111,7 @@ export const EndingScreen = () => {
     factionsData.push({
       name: isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en,
       value: state.factions.Jabalistas.influence,
-      color: '#b45309'
+      color: '#14532d'
     });
   }
 
