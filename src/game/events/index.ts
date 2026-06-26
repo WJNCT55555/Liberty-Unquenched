@@ -27,8 +27,18 @@ import { civilWarSetup } from './civil_war/civil_war_setup';
 import { defenseCommitteeFormation } from './defense_committee_formation';
 import { workersAllianceAttempt } from './workers_alliance_attempt';
 import { workersAllianceFormation } from './workers_alliance_formation';
+import { crossroadsUprisingAlliance } from './crossroads_uprising_alliance';
+import { elections1936, elections1936Results } from './elections_1936';
+import { presidentialDissolutionOfCortes } from './presidential_dissolution';
+import { ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 } from './ramon_campaign_events';
+import { presidentialElectionDecision } from './presidential_election_decision';
+import { presidentialElectionPrimary } from './presidential_election_primary';
+import { presidentialElectionCandidateSelection } from './presidential_election_candidate_selection';
+import { presidentialElectionAutoResolve } from './presidential_election_auto_resolve';
+import { presidentialElectionCampaignMenu } from './presidential_election_campaign_menu';
+import { presidentialElectionResults, presidentialElectionResultsRound2 } from './presidential_election_results';
 
-export { civilWarSetup, defenseCommitteeFormation, workersAllianceAttempt, workersAllianceFormation };
+export { civilWarSetup, defenseCommitteeFormation, workersAllianceAttempt, workersAllianceFormation, crossroadsUprisingAlliance, elections1936, elections1936Results, presidentialDissolutionOfCortes, ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 };
 
 export const INITIAL_EVENTS = [
   proclamationSecondRepublic,
@@ -68,5 +78,19 @@ export const INITIAL_EVENTS = [
   civilWarSetup,
   defenseCommitteeFormation,
   workersAllianceAttempt,
-  workersAllianceFormation
+  workersAllianceFormation,
+  crossroadsUprisingAlliance,
+  elections1936,
+  elections1936Results,
+  presidentialDissolutionOfCortes,
+  ramonCampaignEvent1,
+  ramonCampaignEvent2,
+  ramonCampaignEvent3,
+  presidentialElectionDecision,
+  presidentialElectionPrimary,
+  presidentialElectionCandidateSelection,
+  presidentialElectionAutoResolve,
+  presidentialElectionCampaignMenu,
+  presidentialElectionResults,
+  presidentialElectionResultsRound2
 ];

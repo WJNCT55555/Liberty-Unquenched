@@ -5,6 +5,7 @@ import { laborRights } from './labor_rights';
 import { laborAffairs } from './labor_affairs';
 import { fiscalPolicy } from './fiscal_policy';
 import { foreignPolicy } from './foreign_policy';
+import { impeachPresident } from './impeach_president';
 
 export const GOVERNMENT_AFFAIRS = [
   supportAgrarianReform,
@@ -13,5 +14,6 @@ export const GOVERNMENT_AFFAIRS = [
   laborRights,
   laborAffairs,
   fiscalPolicy,
-  foreignPolicy
+  foreignPolicy,
+  impeachPresident
 ];

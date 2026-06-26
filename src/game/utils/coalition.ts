@@ -198,7 +198,8 @@ export function checkCoalitionDissolve(state: GameState): GameState {
       activeCoalition: null,
       coalitionHistory: history,
       isRepublicanSocialistDissolved: state.isRepublicanSocialistDissolved || isRepSoc,
-      isCedaRadicalDissolved: state.isCedaRadicalDissolved || isCedaRad
+      isCedaRadicalDissolved: state.isCedaRadicalDissolved || isCedaRad,
+      coalition_just_dissolved: true
     };
   }
 

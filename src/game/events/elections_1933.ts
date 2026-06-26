@@ -93,12 +93,22 @@ export const elections1933Results: GameEvent = {
       Other: { en: 'Other', zh: '其他' }
     };
 
+    const partyOrder: Party[] = ['PS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
+
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
       name: isZh ? partyNames[party as Party].zh : partyNames[party as Party].en,
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
-    })).filter(d => d.seats > 0);
+    }))
+    .filter(d => d.seats > 0)
+    .sort((a, b) => {
+      const indexA = partyOrder.indexOf(a.id as Party);
+      const indexB = partyOrder.indexOf(b.id as Party);
+      const finalIndexA = indexA === -1 ? 999 : indexA;
+      const finalIndexB = indexB === -1 ? 999 : indexB;
+      return finalIndexA - finalIndexB;
+    });
     
     const totalSeats = data.reduce((sum, d) => sum + d.seats, 0);
     const formatPct = (seats: number) => `${Math.round((seats / totalSeats) * 100)}%`;
@@ -155,8 +165,20 @@ export const elections1933Results: GameEvent = {
   },
   options: [
     {
-      text: 'A dark period begins. The "Bienio Negro" is upon us.',
-      textZh: '一段黑暗时期开始了。“黑色两年”（Bienio Negro）降临了。',
+      text: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const centerRightSeats = (cortes.DLR || 0) + (cortes.AP || 0);
+        const totalSeats = Object.values(cortes).reduce((sum, s) => sum + s, 0) || 1;
+        const pct = Math.round((centerRightSeats / totalSeats) * 100);
+        return `A dark period begins. The "Bienio Negro" is upon us. (Radical-CEDA: ${pct}%)`;
+      },
+      textZh: (state) => {
+        const cortes = state.cortes || calculateElectionResults(state);
+        const centerRightSeats = (cortes.DLR || 0) + (cortes.AP || 0);
+        const totalSeats = Object.values(cortes).reduce((sum, s) => sum + s, 0) || 1;
+        const pct = Math.round((centerRightSeats / totalSeats) * 100);
+        return `一段黑暗时期开始了。“黑色两年”（Bienio Negro）降临了。（激进党-CEDA得票率：${pct}%）`;
+      },
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
         

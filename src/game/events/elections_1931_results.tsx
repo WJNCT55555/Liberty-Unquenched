@@ -182,59 +182,6 @@ export const elections1931Results: GameEvent = {
           pendingEvents: nextEvents
         };
       }
-    },
-    {
-      text: 'A new era begins, but the state remains our enemy.',
-      textZh: '一个新时代开始了，但国家依然是我们的敌人。',
-      effect: (state) => {
-        const newCortes = calculateElectionResults(state);
-        
-        const repSocSeats = newCortes.PSOE + newCortes.IR;
-        const repSeats = newCortes.IR + newCortes.UR + newCortes.DLR;
-        const isRepSoc = repSocSeats >= repSeats;
-        
-        // Trigger cabinet formation if CNT tacitly supported
-        const cntSupported = state.cntStance === 'cooperate';
-
-        let nextEvents = state.pendingEvents;
-        let govType = state.government.type;
-        let govTypeZh = state.government.typeZh;
-        let pm = state.government.primeMinister;
-        let pmZh = state.government.primeMinisterZh;
-
-        if (isRepSoc) {
-          govType = 'Republican-Socialist Cabinet';
-          govTypeZh = '共和-社会党内阁';
-          pm = 'Manuel Azaña';
-          pmZh = '曼努埃尔·阿萨尼亚';
-          if (cntSupported) {
-            nextEvents = [{ ...cabinetFormation1931 }, ...state.pendingEvents.filter(e => e.id !== cabinetFormation1931.id)];
-          } else {
-            nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents.filter(e => e.id !== leftCabinetExcludesCNT.id)];
-          }
-        } else {
-          govType = 'Republican Cabinet';
-          govTypeZh = '共和派内阁';
-          pm = 'Alejandro Lerroux';
-          pmZh = '亚历杭德罗·勒鲁';
-          nextEvents = [{ ...republicanCabinet1931 }, ...state.pendingEvents.filter(e => e.id !== republicanCabinet1931.id)];
-        }
-
-        return {
-          cortes: newCortes,
-          government: {
-            ...state.government,
-            type: govType,
-            typeZh: govTypeZh,
-            primeMinister: pm,
-            primeMinisterZh: pmZh
-          },
-          stats: {
-            ...state.stats
-          },
-          pendingEvents: nextEvents
-        };
-      }
     }
   ]
 };

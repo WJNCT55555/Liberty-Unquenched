@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 } from '../events/ramon_campaign_events';
 
 export const ramonFranco: Advisor = {
   id: 'Ramón Franco',
@@ -73,6 +74,32 @@ export const ramonFranco: Advisor = {
       }),
       description: 'By sharing modern aviation wisdom with officers and organizing aerial volunteer units, we elevate our tactical preparedness.',
       descriptionZh: '通过向基层官兵传授航空战术并组织空中志愿飞行，有效提升了部队技术素养和民兵士气。',
+    },
+    {
+      id: 'ramon_franco_campaign_president',
+      title: 'Campaign for President',
+      titleZh: '竞选总统',
+      subtitle: 'Organize a massive regional campaign tour for his presidential bid.',
+      subtitleZh: '为他的总统竞选组织一场大规模的地方巡回宣传活动。',
+      unavailableSubtitle: (state) => state.journal?.journal_ramon_franco_presidency?.status !== 'active' ? 'Presidential campaign is not active.' : (state.advisorActionTimer > 0 ? `${state.advisorActionTimer} months before next action.` : 'Campaign limit reached (Max 3).'),
+      unavailableSubtitleZh: (state) => state.journal?.journal_ramon_franco_presidency?.status !== 'active' ? '总统竞选活动尚未开启。' : (state.advisorActionTimer > 0 ? `距离下一次行动还有 ${state.advisorActionTimer} 个月。` : '竞选宣传次数已达上限（最多3次）。'),
+      condition: (state) => state.journal?.journal_ramon_franco_presidency?.status === 'active' && state.advisorActionTimer <= 0 && (state.ramon_franco_campaign_count || 0) < 3,
+      effect: (state) => {
+        const count = (state.ramon_franco_campaign_count || 0) + 1;
+        let campaignEvent = ramonCampaignEvent1;
+        if (count === 2) {
+          campaignEvent = ramonCampaignEvent2;
+        } else if (count === 3) {
+          campaignEvent = ramonCampaignEvent3;
+        }
+        return {
+          ramon_franco_campaign_count: count,
+          advisorActionTimer: 6,
+          currentEvent: campaignEvent
+        };
+      },
+      description: 'Launch a coordinated series of federalist rallies and regional campaign events.',
+      descriptionZh: '发起一系列精心筹划的联邦主义集会与地方竞选演讲。',
     }
   ]
 };

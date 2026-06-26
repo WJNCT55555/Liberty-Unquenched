@@ -383,8 +383,14 @@ export interface GameState {
   uhp_attempt_triggered: boolean;
   uhp_journal_activated: boolean;
   alliance_obrera_activated: boolean;
+  crossroads_uprising_alliance_decided?: boolean;
+  crossroads_choice?: 'uprising' | 'popular_front';
   isRepublicanSocialistDissolved: boolean;
   isCedaRadicalDissolved: boolean;
+  dissolutionCount: number;
+  impeachPresidentAvailable: boolean;
+  isPresidentImpeached: boolean;
+  coalition_just_dissolved: boolean;
   coupSystemActive: boolean;
   molaStatus: 'republic' | 'nationalist';
   queipoStatus: 'republic' | 'nationalist';
@@ -407,6 +413,27 @@ export interface GameState {
   womensRightsReformed: boolean;
   internationalBrigadesArrived: boolean;
   educationSecularized: boolean;
+  
+  journal_ramon_franco_presidency_seen?: boolean;
+  ramonFrancoPresidentUnlocked?: boolean;
+  ramon_franco_campaign_count?: number;
+  
+  presidentElectionSeen?: boolean;
+  presidentElectionPhase?: 'primary' | 'general';
+  cntParticipatePresidential?: boolean;
+  presidentElectionLeftCandidate?: 'azana' | 'ramon_franco' | null;
+  presidentElectionActiveCandidate?: 'left' | 'martinez_barrio' | 'gil_robles' | null;
+  presidentElectionRound?: 1 | 2;
+  presidentialDissolutions?: number;
+  presidentImpeached?: boolean;
+  campaignLobbyVisited?: {
+    lobby_psoe?: boolean;
+    lobby_erc?: boolean;
+    lobby_street?: boolean;
+    lobby_resources?: boolean;
+    lobby_r2_martinez_barrio_switch?: boolean;
+    lobby_r2_gil_robles_allies?: boolean;
+  };
   
   covert_ops_france: number;
   covert_ops_portugal: number;

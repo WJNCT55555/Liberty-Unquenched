@@ -633,8 +633,8 @@ export const INITIAL_STATE: GameState = {
   government: {
     type: 'Provisional Government',
     typeZh: '临时政府',
-    president: 'None',
-    presidentZh: '无',
+    president: 'Niceto Alcalá-Zamora',
+    presidentZh: '尼塞托·阿尔卡拉-萨莫拉',
     primeMinister: 'Niceto Alcalá-Zamora',
     primeMinisterZh: '尼塞托·阿尔卡拉-萨莫拉',
   },
@@ -738,8 +738,14 @@ export const INITIAL_STATE: GameState = {
   uhp_attempt_triggered: false,
   uhp_journal_activated: false,
   alliance_obrera_activated: false,
+  crossroads_uprising_alliance_decided: false,
+  crossroads_choice: undefined,
   isRepublicanSocialistDissolved: false,
   isCedaRadicalDissolved: false,
+  dissolutionCount: 0,
+  impeachPresidentAvailable: false,
+  isPresidentImpeached: false,
+  coalition_just_dissolved: false,
   coupSystemActive: false,
   molaStatus: 'republic',
   queipoStatus: 'republic',
@@ -762,6 +768,25 @@ export const INITIAL_STATE: GameState = {
   womensRightsReformed: false,
   internationalBrigadesArrived: false,
   educationSecularized: false,
+  journal_ramon_franco_presidency_seen: false,
+  ramonFrancoPresidentUnlocked: false,
+  ramon_franco_campaign_count: 0,
+  presidentElectionSeen: false,
+  presidentElectionPhase: 'primary',
+  cntParticipatePresidential: false,
+  presidentElectionLeftCandidate: null,
+  presidentElectionActiveCandidate: null,
+  presidentElectionRound: 1,
+  presidentialDissolutions: 0,
+  presidentImpeached: false,
+  campaignLobbyVisited: {
+    lobby_psoe: false,
+    lobby_erc: false,
+    lobby_street: false,
+    lobby_resources: false,
+    lobby_r2_martinez_barrio_switch: false,
+    lobby_r2_gil_robles_allies: false
+  },
   covert_ops_france: 0,
   covert_ops_portugal: 0,
   regionalStatuses: {
@@ -961,6 +986,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         isJabaliTriggered: false,
         isRepublicanSocialistDissolved: action.payload.scenario === '1933' || action.payload.scenario === '1936',
         isCedaRadicalDissolved: action.payload.scenario === '1936',
+        dissolutionCount: action.payload.scenario === '1936' ? 2 : (action.payload.scenario === '1933' ? 1 : 0),
+        impeachPresidentAvailable: action.payload.scenario === '1936',
+        isPresidentImpeached: action.payload.scenario === '1936', // In July 1936, the impeachment has already completed and Azaña is president
+        presidentImpeached: action.payload.scenario === '1936',
+        presidentElectionSeen: action.payload.scenario === '1936',
+        coalition_just_dissolved: false,
+        government: {
+          type: action.payload.scenario === '1936' ? 'Popular Front Cabinet' : (action.payload.scenario === '1933' ? 'Radical-CEDA Coalition' : 'Provisional Government'),
+          typeZh: action.payload.scenario === '1936' ? '人民阵线内阁' : (action.payload.scenario === '1933' ? '激进党-CEDA联合政府' : '临时政府'),
+          president: action.payload.scenario === '1936' ? 'Manuel Azaña' : 'Niceto Alcalá-Zamora',
+          presidentZh: action.payload.scenario === '1936' ? '曼努埃尔·阿萨尼亚' : '尼塞托·阿尔卡拉-萨莫拉',
+          primeMinister: action.payload.scenario === '1936' ? 'Santiago Casares Quiroga' : (action.payload.scenario === '1933' ? 'Alejandro Lerroux' : 'Niceto Alcalá-Zamora'),
+          primeMinisterZh: action.payload.scenario === '1936' ? '圣地亚哥·卡萨雷斯·基罗加' : (action.payload.scenario === '1933' ? '亚历杭德罗·勒鲁' : '尼塞托·阿尔卡拉-萨莫拉'),
+        },
         coupSystemActive: action.payload.scenario === '1933' || action.payload.scenario === '1936',
         ...initializeMapState(action.payload.scenario, startCivilWarStatus),
         mapSelectedProvinceId: null,
@@ -1942,6 +1981,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         });
 
         // --- Core Political Party Alliance System Monthly Processing ---
+        if (tempState.cntStance === 'oppose') {
+          tempState.cntVotingRate = Math.max(0, tempState.cntVotingRate - 1);
+        }
         tempState.partySupport = updatePartySupport(tempState);
         if (tempState.activeCoalition) {
           tempState.activeCoalition = updateCoalitionState(tempState);
