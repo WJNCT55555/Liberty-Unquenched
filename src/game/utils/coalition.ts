@@ -24,7 +24,7 @@ export function getPartySupport(state: GameState, party: 'CNT_FAI' | Party): num
  */
 export function updatePartySupport(state: GameState): Record<Party, number> {
   const support: Partial<Record<Party, number>> = {};
-  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other'];
+  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other', 'PRRevS'];
   parties.forEach(p => {
     support[p] = getPartySupport(state, p);
   });
@@ -104,7 +104,7 @@ export function formCoalition(state: GameState, id: CoalitionId): GameState {
   }
 
   const contributions: Partial<Record<Party, number>> = {};
-  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other'];
+  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other', 'PRRevS'];
   parties.forEach(p => {
     contributions[p] = 80; // Starting average contribution is 80
   });

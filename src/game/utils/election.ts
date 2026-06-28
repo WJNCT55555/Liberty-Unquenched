@@ -4,7 +4,7 @@ import { getPartySupport } from './coalition';
 
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
   };
   let cntVotes = 0;
 
@@ -20,49 +20,38 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
       if (party === 'CNT_FAI') {
         cntVotes += rawVotes;
       } else {
-        votes[party as Party] += rawVotes;
+        if (party in votes) {
+          votes[party as Party] += rawVotes;
+        }
       }
     }
   }
 
   // 2. Handle CNT-FAI votes
-  const cntSupported = state.cntStance === 'cooperate' || state.cntStance === 'govern';
+  const cntVoteFraction = (state.cntVotingRate || 0) / 100;
+  const actualCntVotes = cntVotes * cntVoteFraction;
 
-  if (cntSupported) {
+  if (actualCntVotes > 0) {
     if (state.isPRRevSFormed) {
-      votes['PS'] += cntVotes;
+      votes['PRRevS'] += actualCntVotes;
     } else {
-      // Distribute CNT votes to left allies (PSOE, IR)
-      votes['PSOE'] += cntVotes * 0.7;
-      votes['IR'] += cntVotes * 0.3;
-    }
-  } else {
-    // When opposing, CNT does NOT completely abstain. Instead, they vote at cntVotingRate
-    const cntVoteFraction = (state.cntVotingRate || 0) / 100;
-    const actualCntVotes = cntVotes * cntVoteFraction;
+      const eligibleParties = (Object.keys(state.partyRelations) as Party[]).filter(p => {
+        if (p === 'PRRevS' || p === 'Other') return false;
+        const rel = state.partyRelations[p] || 0;
+        return rel > 60;
+      });
 
-    if (actualCntVotes > 0) {
-      if (state.isPRRevSFormed) {
-        votes['PS'] += actualCntVotes;
-      } else {
-        const pceSupport = getPartySupport(state, 'PCE');
-        const poumSupport = state.poum_founded ? getPartySupport(state, 'POUM') : 0;
-        const psoeSupport = getPartySupport(state, 'PSOE');
-        const irSupport = getPartySupport(state, 'IR');
-        const ercSupport = getPartySupport(state, 'ERC');
-        const totalLeftSupport = pceSupport + poumSupport + psoeSupport + irSupport + ercSupport;
-
-        if (totalLeftSupport > 0) {
-          votes['PCE'] += actualCntVotes * (pceSupport / totalLeftSupport);
-          if (state.poum_founded) {
-            votes['POUM'] += actualCntVotes * (poumSupport / totalLeftSupport);
-          }
-          votes['PSOE'] += actualCntVotes * (psoeSupport / totalLeftSupport);
-          votes['IR'] += actualCntVotes * (irSupport / totalLeftSupport);
-          votes['ERC'] += actualCntVotes * (ercSupport / totalLeftSupport);
+      if (eligibleParties.length > 0) {
+        const totalRelation = eligibleParties.reduce((sum, p) => sum + (state.partyRelations[p] || 0), 0);
+        if (totalRelation > 0) {
+          eligibleParties.forEach(p => {
+            const relation = state.partyRelations[p] || 0;
+            votes[p] += actualCntVotes * (relation / totalRelation);
+          });
         } else {
-          votes['PSOE'] += actualCntVotes * 0.7;
-          votes['IR'] += actualCntVotes * 0.3;
+          eligibleParties.forEach(p => {
+            votes[p] += actualCntVotes / eligibleParties.length;
+          });
         }
       }
     }
@@ -73,7 +62,7 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
 
 export function votesToSeats(votes: Record<Party, number>, totalSeats: number): Record<Party, number> {
   const seats: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
   };
 
   let totalValidVotes = 0;

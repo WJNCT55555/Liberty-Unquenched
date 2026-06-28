@@ -61,7 +61,8 @@ export const EndingScreen = () => {
     DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
     PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
     ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
-    Other: { en: 'Other', zh: '其他' }
+    Other: { en: 'Other', zh: '其他' },
+    PRRevS: { en: 'PRRevS', zh: '革命共和工团党 (PRRevS)' }
   };
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
@@ -87,7 +88,8 @@ export const EndingScreen = () => {
     'DLR',
     'PRR',
     'ERC',
-    'Other'
+    'Other',
+    'PRRevS'
   ];
 
   const partyData = PARTIES.map(p => {

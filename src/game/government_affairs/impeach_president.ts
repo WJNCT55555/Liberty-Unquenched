@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { presidentialElectionDecision } from '../events/presidential_election_decision';
+import { presidentialElectionDecision } from '../events';
 
 export const impeachPresident: Card = {
   id: 'impeach_president',

@@ -90,10 +90,11 @@ export const elections1933Results: GameEvent = {
       DLR: { en: 'PRR', zh: '激进党' }, // Merged PRR logic with DLR for simplicity
       PRR: { en: 'PRR', zh: '共和激进党 (勒鲁派)' },
       ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
-      Other: { en: 'Other', zh: '其他' }
+      Other: { en: 'Other', zh: '其他' },
+      PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
     };
 
-    const partyOrder: Party[] = ['PS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
+    const partyOrder: Party[] = ['PS', 'PRRevS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,

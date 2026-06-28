@@ -69,7 +69,8 @@ export const SidePanel = () => {
     DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
     PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
     ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
-    Other: { en: 'Other', zh: '其他' }
+    Other: { en: 'Other', zh: '其他' },
+    PRRevS: { en: 'PRRevS', zh: '革命共和工团党 (PRRevS)' }
   };
 
   const pieData = [
@@ -169,7 +170,8 @@ export const SidePanel = () => {
     DLR: { en: 'Conservative Republican party, defending property and order.', zh: '保守共和政党，捍卫财产与秩序。' },
     PRR: { en: 'Centrist Republican party, pursuing moderate reforms under the Republic.', zh: '中间派共和政党，主张在共和国框架下进行温和改革。' },
     ERC: { en: 'Catalan center-left nationalist party, friendly but prioritizes Catalan autonomy.', zh: '加泰罗尼亚中左翼民族主义政党，态度友好，但优先保障加泰罗尼亚自治。' },
-    Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' }
+    Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' },
+    PRRevS: { en: 'Our revolutionary syndicalist party representing the CNT in the Cortes.', zh: '我们在议会中代表 CNT 的革命共和工团党。' }
   };
 
   const getNationalisationText = (val: number, isZh: boolean) => {
@@ -638,7 +640,7 @@ export const SidePanel = () => {
               {(Object.entries(state.cortes) as [Party, number][])
                 .filter(([_, seats]) => seats > 0)
                 .sort((a, b) => {
-                  const order = ['PCE', 'POUM', 'PS', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'Other', 'AP', 'CT', 'RE', 'FE'];
+                  const order = ['PCE', 'POUM', 'PS', 'PRRevS', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'Other', 'AP', 'CT', 'RE', 'FE'];
                   return order.indexOf(a[0]) - order.indexOf(b[0]);
                 })
                 .map(([party, seats]) => (
@@ -1067,7 +1069,8 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
     DLR: { en: 'DLR', zh: '自由共和右翼' },
     PRR: { en: 'PRR', zh: '共和激进党' },
     ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
-    Other: { en: 'Other', zh: '其他' }
+    Other: { en: 'Other', zh: '其他' },
+    PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
   };
 
   const sortedSupport = (Object.entries(supportData) as [string, number][])

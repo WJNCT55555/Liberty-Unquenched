@@ -15,7 +15,8 @@ export const PARTY_COLORS: Record<string, string> = {
   DLR: '#AC0621',
   PRR: '#a21caf',
   ERC: '#fb923c',
-  Other: '#9ca3af'
+  Other: '#9ca3af',
+  PRRevS: '#4b5563'
 };
 
 export const CLASS_COLORS: Record<SocialClass, string> = {

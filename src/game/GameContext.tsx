@@ -607,14 +607,14 @@ export const INITIAL_STATE: GameState = {
     Jabalistas: { influence: 0, dissent: 0 },
   },
   classes: {
-    Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 2, Other: 3 } },
-    Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 15 } },
-    Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 20, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, PRR: 15, ERC: 5, Other: 40 } },
-    Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, PRR: 0, ERC: 0, Other: 0 } },
-    PequenaBurguesia: { support: { CNT_FAI: 2, PSOE: 5, PCE: 0, IR: 25, UR: 3, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 45, ERC: 10, Other: 0 } },
-    Intelectuales: { support: { CNT_FAI: 5, PSOE: 15, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 0, ERC: 10, Other: 5 } },
-    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 35, ERC: 10, Other: 10 } },
-    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 15, ERC: 0, Other: 15 } },
+    Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 2, Other: 3, PRRevS: 0 } },
+    Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 15, PRRevS: 0 } },
+    Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 20, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, PRR: 15, ERC: 5, Other: 40, PRRevS: 0 } },
+    Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0 } },
+    PequenaBurguesia: { support: { CNT_FAI: 2, PSOE: 5, PCE: 0, IR: 25, UR: 3, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 45, ERC: 10, Other: 0, PRRevS: 0 } },
+    Intelectuales: { support: { CNT_FAI: 5, PSOE: 15, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 0, ERC: 10, Other: 5, PRRevS: 0 } },
+    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 35, ERC: 10, Other: 10, PRRevS: 0 } },
+    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 15, ERC: 0, Other: 15, PRRevS: 0 } },
   },
   armedForces: {
     regularArmy: { manpower: 100000, loyalty: 50 },
@@ -653,6 +653,7 @@ export const INITIAL_STATE: GameState = {
     PRR: 35,
     ERC: 55,
     Other: 50,
+    PRRevS: 50,
   },
   domesticPolicy: {
     nationalisation_progress: 0,
@@ -772,7 +773,7 @@ export const INITIAL_STATE: GameState = {
   ramonFrancoPresidentUnlocked: false,
   ramon_franco_campaign_count: 0,
   presidentElectionSeen: false,
-  presidentElectionPhase: 'primary',
+  presidentElectionPhase: undefined,
   cntParticipatePresidential: false,
   presidentElectionLeftCandidate: null,
   presidentElectionActiveCandidate: null,
@@ -809,7 +810,7 @@ export const INITIAL_STATE: GameState = {
   militaryDeck: INITIAL_CARDS.filter(c => c.type === 'Military'),
   discard: [],
   partySupport: {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0
+    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
   },
   activeCoalition: null,
   coalitionHistory: [],
