@@ -81,9 +81,9 @@ export const ramonFranco: Advisor = {
       titleZh: '竞选总统',
       subtitle: 'Organize a massive regional campaign tour for his presidential bid.',
       subtitleZh: '为他的总统竞选组织一场大规模的地方巡回宣传活动。',
-      unavailableSubtitle: (state) => state.journal?.journal_ramon_franco_presidency?.status !== 'active' ? 'Presidential campaign is not active.' : (state.advisorActionTimer > 0 ? `${state.advisorActionTimer} months before next action.` : 'Campaign limit reached (Max 3).'),
-      unavailableSubtitleZh: (state) => state.journal?.journal_ramon_franco_presidency?.status !== 'active' ? '总统竞选活动尚未开启。' : (state.advisorActionTimer > 0 ? `距离下一次行动还有 ${state.advisorActionTimer} 个月。` : '竞选宣传次数已达上限（最多3次）。'),
-      condition: (state) => state.journal?.journal_ramon_franco_presidency?.status === 'active' && state.advisorActionTimer <= 0 && (state.ramon_franco_campaign_count || 0) < 3,
+      unavailableSubtitle: (state) => state.presidentElectionSeen ? 'Presidential election has already started.' : (state.advisorActionTimer > 0 ? `${state.advisorActionTimer} months before next action.` : 'Campaign limit reached (Max 3).'),
+      unavailableSubtitleZh: (state) => state.presidentElectionSeen ? '总统大选已经开启。' : (state.advisorActionTimer > 0 ? `距离下一次行动还有 ${state.advisorActionTimer} 个月。` : '竞选宣传次数已达上限（最多3次）。'),
+      condition: (state) => !state.presidentElectionSeen && state.advisorActionTimer <= 0 && (state.ramon_franco_campaign_count || 0) < 3,
       effect: (state) => {
         const count = (state.ramon_franco_campaign_count || 0) + 1;
         let campaignEvent = ramonCampaignEvent1;

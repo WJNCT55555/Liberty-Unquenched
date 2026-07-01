@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const agriculturalPolicy: Card = {
   id: 'agricultural_policy',
@@ -30,13 +30,9 @@ export const agriculturalPolicy: Card = {
             subtitle: 'Directly empower peasant unions to organize collective farms. This maximizes land reform and socialist fervor, but alienates yeomen and landowners.',
             subtitleZh: '直接授权农民工会组织集体农庄。这将极大推进土地改革并推高社会主义热情，但会引发自耕农和地主势力的强烈抵制。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
-              if (newClasses.Braceros) {
-                newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 15);
-              }
-              if (newClasses.Labradores) {
-                newClasses.Labradores.support.CNT_FAI = Math.max(0, (newClasses.Labradores.support.CNT_FAI || 0) - 10);
-              }
+              let newClasses = s.classes;
+              newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 15);
+              newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', -10);
               return {
                 agricultural_policy_timer: 6,
                 classes: newClasses,
@@ -58,10 +54,8 @@ export const agriculturalPolicy: Card = {
             subtitle: 'Enforce modern wage guarantees inside the rural sectors. Elevates the peasantry standard of living cooperatively through republican laws.',
             subtitleZh: '在农业部门全面强制执行保障性最低工资。通过共和国法律框架，有条不紊地提高劳工与佃农的生活水平。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
-              if (newClasses.Braceros) {
-                newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 8);
-              }
+              let newClasses = s.classes;
+              newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 8);
               const newFactions = adjustFactionInfluence(s.factions, 'Treintistas', 8);
               return {
                 agricultural_policy_timer: 6,

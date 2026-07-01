@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const foundingSyndicalistParty: GameEvent = {
   id: 'Founding of the Syndicalist Party',
@@ -14,12 +14,12 @@ export const foundingSyndicalistParty: GameEvent = {
       text: 'Perhaps we should take this opportunity to improve relations with the government...',
       textZh: '或许我们应当借此机会改善与政府的关系......',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         Object.keys(newClasses).forEach(cls => {
             const c = cls as keyof typeof newClasses;
             if (newClasses[c].support.CNT_FAI > 3) {
-                newClasses[c].support.CNT_FAI -= 3;
-                newClasses[c].support.PS += 3;
+                newClasses = adjustClassSupport(newClasses, c, 'CNT_FAI', -3);
+                newClasses = adjustClassSupport(newClasses, c, 'PS', 3);
             }
         });
         

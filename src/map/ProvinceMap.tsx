@@ -1093,6 +1093,10 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
           {mapMode === 'political' && (
             <>
               <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.WORKERS_ALLIANCE] }} />
+                <span>{lang === 'zh' ? '工人联盟自治政府' : "Workers' Alliance"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.REPUBLICAN] }} />
                 <span>{lang === 'zh' ? '共和国' : 'Republicans (Rep.)'}</span>
               </div>
@@ -1412,8 +1416,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 const prov = provinces[hoveredProvinceId];
                 const culture = PROVINCE_CULTURES[hoveredProvinceId];
                 const region = PROVINCE_REGIONS[hoveredProvinceId];
-                const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : '中立';
-                const factionName = lang === 'zh' ? factionNameCn : (prov.owner === Faction.REPUBLICAN ? 'Republicans' : prov.owner === Faction.NATIONALIST ? 'Nationalists' : prov.owner === Faction.PORTUGAL ? 'Portugal' : 'Neutral');
+                const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : prov.owner === Faction.WORKERS_ALLIANCE ? '工人联盟自治政府' : '中立';
+                const factionName = lang === 'zh' ? factionNameCn : (prov.owner === Faction.REPUBLICAN ? 'Republicans' : prov.owner === Faction.NATIONALIST ? 'Nationalists' : prov.owner === Faction.PORTUGAL ? 'Portugal' : prov.owner === Faction.WORKERS_ALLIANCE ? "Workers' Alliance" : 'Neutral');
                 const terrainLabels: Record<string, string> = lang === 'zh' 
                   ? { urban: '城市', plains: '平原', mountains: '山地', forest: '森林' }
                   : { urban: 'Urban', plains: 'Plains', mountains: 'Mountains', forest: 'Forest' };

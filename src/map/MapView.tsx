@@ -112,12 +112,14 @@ export const MapView: React.FC = () => {
               {isZh ? '退出地图，进入事件阶段' : 'Exit Map & Proceed'}
             </button>
           )}
-          <button
-            onClick={() => setShowWarSummary(true)}
-            className="px-4 py-2 bg-purple-700 text-white text-xs uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors"
-          >
-            {isZh ? '战争形势概览' : 'War Summary'}
-          </button>
+          {gameState.activeWar && (
+            <button
+              onClick={() => setShowWarSummary(true)}
+              className="px-4 py-2 bg-purple-700 text-white text-xs uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors"
+            >
+              {isZh ? '战争形势概览' : 'War Summary'}
+            </button>
+          )}
           <button
             onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
             className="px-4 py-2 bg-ink text-paper text-xs uppercase tracking-wider font-bold border border-ink hover:bg-paper hover:text-ink transition-colors"
@@ -167,6 +169,7 @@ export const MapView: React.FC = () => {
           resources={gameState.mapResources || sidebarState.resources}
           isZh={isZh}
           onClose={() => setShowWarSummary(false)}
+          activeWar={gameState.activeWar || undefined}
         />
       )}
     </div>

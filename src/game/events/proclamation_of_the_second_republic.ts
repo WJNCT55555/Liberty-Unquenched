@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const proclamationSecondRepublic: GameEvent = {
   id: 'proclamation of the second republic',
@@ -13,9 +13,8 @@ export const proclamationSecondRepublic: GameEvent = {
       text: 'Cautious Optimism (Favor Moderates)',
       textZh: '谨慎乐观（偏向温和派）',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.PequenaBurguesia.support.IR += 10;
-        newClasses.PequenaBurguesia.support.CNT_FAI -= 10;
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', 10);
         return {
           factions: adjustFactionInfluence(state.factions, 'Treintistas', 10),
           classes: newClasses,

@@ -96,9 +96,9 @@ export const presidentialElectionPrimary: GameEvent = {
       textZh: '拉蒙·佛朗哥。让伊比利亚之鹰起飞。',
       subtitle: 'A radical gamble. Federalism, regional autonomy, a Franco against Franco. The establishment will tremble.',
       subtitleZh: '一场激进的豪赌。联邦主义、区域自决、一个“反对佛朗哥的佛朗哥”。建制派会因此而颤抖。但这会让主流温和派感到极度不安。',
-      condition: (state) => state.ramonFrancoPresidentUnlocked === true,
-      unavailableSubtitle: () => 'Ramón Franco has not unlocked the "Iberian Eagle" campaign journal.',
-      unavailableSubtitleZh: () => '拉蒙·佛朗哥尚未完成"伊比利亚之鹰"竞选日志。',
+      condition: (state) => (state.ramon_franco_campaign_count || 0) >= 3,
+      unavailableSubtitle: () => 'Requires Ramón Franco to have completed all 3 presidential campaign events.',
+      unavailableSubtitleZh: () => '需要拉蒙·佛朗哥完成全部 3 次总统竞选宣传活动。',
       effect: (state) => {
         let f = { ...state.factions };
         f = adjustFactionInfluence(f, 'Jabalistas', 10);

@@ -8,6 +8,7 @@ export enum MapFaction {
   NATIONALIST = 'NATIONALIST',
   PORTUGAL = 'PORTUGAL',
   NEUTRAL = 'NEUTRAL',
+  WORKERS_ALLIANCE = 'WORKERS_ALLIANCE',
 }
 
 export interface Province {

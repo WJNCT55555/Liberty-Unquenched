@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const manifestoOfThirty: GameEvent = {
   id: 'The Manifesto of the Thirty',
@@ -55,9 +55,9 @@ While some have agreed with their positions, the more radical comrades and espec
         let newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions = adjustFactionInfluence(newFactions, 'Treintistas', -state.factions.Treintistas.influence);
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI -= 5;
-        newClasses.Intelectuales.support.CNT_FAI -= 3;
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);
+        newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', -3);
         
         // Remove Ángel Pestaña from pool and active
         const newPool = state.advisorPool.filter(a => a.id !== 'Ángel Pestaña');

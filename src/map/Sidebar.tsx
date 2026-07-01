@@ -373,11 +373,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (faction === Faction.REPUBLICAN) return '共和国';
       if (faction === Faction.NATIONALIST) return '国民军';
       if (faction === Faction.PORTUGAL) return '葡萄牙';
+      if (faction === Faction.WORKERS_ALLIANCE) return '工人联盟自治政府';
       return '中立';
     }
     if (faction === Faction.REPUBLICAN) return 'Republicans';
     if (faction === Faction.NATIONALIST) return 'Nationalists';
     if (faction === Faction.PORTUGAL) return 'Portugal';
+    if (faction === Faction.WORKERS_ALLIANCE) return "Workers' Alliance";
     return 'Neutral';
   };
 

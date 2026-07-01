@@ -21,12 +21,12 @@ export const uhpJournal: JournalEntryDef = {
   checkStatus: (state, entryState) => {
     if (entryState.status === 'completed' || entryState.status === 'failed') return null;
 
+    if (!state.uhp_journal_activated) return 'inactive';
+
     // Fail if PSOE enters a political coalition (Republican-Socialist Coalition or Popular Front)
     const isPsoeInCoalition = state.activeCoalition && 
       (state.activeCoalition.activeId === 'republican_socialist' || state.activeCoalition.activeId === 'popular_front');
     if (isPsoeInCoalition) return 'failed';
-
-    if (!state.uhp_journal_activated) return 'inactive';
 
     if ((state.partyRelations?.PSOE ?? 0) >= 70) return 'completed';
 

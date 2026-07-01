@@ -1,5 +1,5 @@
 import { Card } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const strike: Card = {
   id: 'strike',
@@ -98,13 +98,9 @@ export const strike: Card = {
           subtitle: 'Focus the strike on concrete economic and workplace demands: higher wages, safety standards, and shorter hours.',
           subtitleZh: '将罢工重点放在具体的经济和工作场所诉求上：更高的薪资、安全标准和缩短工时。',
           effect: (s) => {
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
-            if (newClasses.Obreros && newClasses.Obreros.support) {
-              newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 5);
-            }
-            if (newClasses.Braceros && newClasses.Braceros.support) {
-              newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 5);
-            }
+            let newClasses = s.classes;
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 5);
 
             return {
               classes: newClasses,

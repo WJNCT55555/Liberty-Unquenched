@@ -1,4 +1,5 @@
 import { GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const formationOfPRRevS: GameEvent = {
   id: 'formation_of_prrevs',
@@ -23,11 +24,11 @@ export const formationOfPRRevS: GameEvent = {
       subtitle: 'We must adapt to survive. The PRRevS will be our political arm.',
       subtitleZh: '我们必须适应才能生存。PRRevS 将成为我们的政治臂膀。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 15);
-        newClasses.Braceros.support.CNT_FAI = Math.max(0, newClasses.Braceros.support.CNT_FAI - 10);
-        newClasses.Labradores.support.CNT_FAI = Math.min(100, newClasses.Labradores.support.CNT_FAI + 8);
-        newClasses.PequenaBurguesia.support.CNT_FAI = Math.min(100, newClasses.PequenaBurguesia.support.CNT_FAI + 3);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -15);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -10);
+        newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 8);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3);
 
         return {
           classes: newClasses,

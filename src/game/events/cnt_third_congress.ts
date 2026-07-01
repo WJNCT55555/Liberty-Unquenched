@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 import { elections1931Results } from './elections_1931_results';
 
 export const cnt_third_congress_6: GameEvent = {
@@ -123,9 +123,9 @@ export const cnt_third_congress_4: GameEvent = {
       condition: (state) => state.resources >= 3,
       unavailableSubtitleZh: () => '需要至少3资源',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 5);
-        newClasses.Braceros.support.CNT_FAI = Math.max(0, newClasses.Braceros.support.CNT_FAI - 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -8);
         
         return {
           resources: state.resources - 3,
@@ -180,9 +180,9 @@ export const cnt_third_congress_3: GameEvent = {
       subtitle: '"Launch an open struggle in the countryside against the landlord system, the state treasury and sub-landlords, and cultivate the peasant masses into unionists and revolutionaries."',
       subtitleZh: '"在农村公开发起反对地主制、国库和次级地主的斗争，并培养农民群众成为工会和革命者。"',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + 5);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, newClasses.Braceros.support.CNT_FAI + 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 8);
         
         return {
           stats: {

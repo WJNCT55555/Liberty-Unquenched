@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const burningConvents: GameEvent = {
   id: 'burning of the convents',
@@ -15,12 +15,9 @@ export const burningConvents: GameEvent = {
       text: 'Condemn the Violence and Restore Order',
       textZh: '谴责暴力并恢复秩序',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        // 争取中产阶级和教会的支持，但会引起激进派不满
-        newClasses.Clero.support.IR += 5;
-        newClasses.Clero.support.UR -= 5;
-        newClasses.PequenaBurguesia.support.IR += 5;
-        newClasses.PequenaBurguesia.support.CNT_FAI -= 5;
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'IR', 5);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', 5);
         return {
           classes: newClasses,
           factions: adjustFactionInfluence(state.factions, 'Cenetistas', 10),

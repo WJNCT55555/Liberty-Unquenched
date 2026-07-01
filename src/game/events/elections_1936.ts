@@ -1,5 +1,5 @@
 import { GameEvent, Party } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 import { calculateElectionResults } from '../utils/election';
 import { formCoalition } from '../utils/coalition';
 
@@ -17,15 +17,15 @@ export const elections1936: GameEvent = {
       subtitle: 'Boosts Popular Front turnout significantly. Tens of thousands of workers will vote to empty the prisons.',
       subtitleZh: '大幅推高人民阵线的投票率。数万名工人将为了清空监狱而走向投票箱。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Workers mobilize heavily for Left parties
-        newClasses.Obreros.support.PSOE += 12;
-        newClasses.Obreros.support.PCE += 8;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', 12);
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 8);
         if (state.poum_founded) {
-          newClasses.Obreros.support.POUM += 5;
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'POUM', 5);
         }
-        newClasses.Campesinos.support.PSOE += 10;
-        newClasses.PequenaBurguesia.support.IR += 5;
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'PSOE', 10);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', 5);
 
         // Anarchist purists are displeased with electoral participation
         const newFactions = adjustFactionInfluence(state.factions, 'Faistas', 5);
@@ -48,14 +48,14 @@ export const elections1936: GameEvent = {
       subtitle: 'Maintains pure anarchist anti-electoral principles. This will likely hand victory to the right-wing National Front.',
       subtitleZh: '维持纯粹的无无政府主义反选举原则。这很可能将胜利拱手让给右翼的国家阵线。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Abstention severely drains Left vote share
-        newClasses.Obreros.support.PSOE -= 15;
-        newClasses.Obreros.support.PCE -= 10;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', -15);
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', -10);
         if (state.poum_founded) {
-          newClasses.Obreros.support.POUM -= 5;
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'POUM', -5);
         }
-        newClasses.Campesinos.support.PSOE -= 12;
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'PSOE', -12);
 
         // Faistas faction is happy
         const newFactions = adjustFactionInfluence(state.factions, 'Faistas', 15);

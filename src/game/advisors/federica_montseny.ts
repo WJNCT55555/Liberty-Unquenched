@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const federicaMontseny: Advisor = {
   id: 'Federica Montseny',
@@ -20,9 +20,9 @@ export const federicaMontseny: Advisor = {
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI += 5;
-        newClasses.PequenaBurguesia.support.CNT_FAI += 5;
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5);
         return {
           advisorActionTimer: 6,
           classes: newClasses,

@@ -1,4 +1,5 @@
 import { GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const birthOfFeDeLasJons: GameEvent = {
   id: 'The Birth of FE de las JONS',
@@ -12,12 +13,12 @@ export const birthOfFeDeLasJons: GameEvent = {
       text: 'Let us wait and see',
       textZh: '让我们静观其变',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         
         // FE de las JONS gains more support
-        newClasses.Latifundistas.support.FE = Math.min(100, newClasses.Latifundistas.support.FE + 5);
-        newClasses.PequenaBurguesia.support.FE = Math.min(100, newClasses.PequenaBurguesia.support.FE + 10);
-        newClasses.Clero.support.FE = Math.min(100, newClasses.Clero.support.FE + 5);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'FE', 5);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'FE', 10);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'FE', 5);
         
         return {
           classes: newClasses,

@@ -1,5 +1,8 @@
 import { Faction } from './types';
 
+export { adjustClassSupport, adjustSingleClassSupport } from './utils/classSupport';
+export type { ClassPoliticalForce } from './utils/classSupport';
+
 export function adjustFactionInfluence(
   factions: Record<Faction, { influence: number; dissent: number }>,
   targetFaction: Faction,

@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const cedaFormation: GameEvent = {
   id: 'ceda_formation',
@@ -16,17 +16,17 @@ export const cedaFormation: GameEvent = {
       subtitleZh: '消耗 1 资源。增加革命热情和左翼团结。',
       condition: (state) => state.resources >= 1,
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         
         // CEDA (AP) consolidates right-wing support
-        newClasses.Latifundistas.support.AP += 20;
-        newClasses.Clero.support.AP += 20;
-        newClasses.PequenaBurguesia.support.AP += 15;
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'AP', 20);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'AP', 20);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'AP', 15);
         
         // Drain some support from extreme right to CEDA for strategic voting
-        newClasses.Latifundistas.support.CT = Math.max(0, newClasses.Latifundistas.support.CT - 10);
-        newClasses.Latifundistas.support.RE = Math.max(0, newClasses.Latifundistas.support.RE - 10);
-        newClasses.Clero.support.CT = Math.max(0, newClasses.Clero.support.CT - 10);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'CT', -10);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'RE', -10);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'CT', -10);
 
         return {
           resources: state.resources - 1,
@@ -44,17 +44,17 @@ export const cedaFormation: GameEvent = {
       subtitle: 'Maintains our ideological purity but weakens the broader anti-fascist front.',
       subtitleZh: '保持我们的意识形态纯洁性，但会削弱更广泛的反法西斯阵线。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         
         // CEDA (AP) consolidates right-wing support
-        newClasses.Latifundistas.support.AP += 20;
-        newClasses.Clero.support.AP += 20;
-        newClasses.PequenaBurguesia.support.AP += 15;
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'AP', 20);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'AP', 20);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'AP', 15);
         
         // Drain some support from extreme right to CEDA for strategic voting
-        newClasses.Latifundistas.support.CT = Math.max(0, newClasses.Latifundistas.support.CT - 10);
-        newClasses.Latifundistas.support.RE = Math.max(0, newClasses.Latifundistas.support.RE - 10);
-        newClasses.Clero.support.CT = Math.max(0, newClasses.Clero.support.CT - 10);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'CT', -10);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'RE', -10);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'CT', -10);
 
         return {
           classes: newClasses,

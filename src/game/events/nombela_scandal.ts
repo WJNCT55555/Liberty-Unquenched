@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const nombelaScandal: GameEvent = {
   id: 'nombela_scandal',
@@ -18,9 +18,9 @@ export const nombelaScandal: GameEvent = {
       subtitle: 'Massively increases revolutionary fervor and worker control, but damages relations with moderate political entities.',
       subtitleZh: '大幅提高革命热情与工人控制度，但会对与温和派政治各方的关系造成损害。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 8);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 8);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 8);
 
         return {
           classes: newClasses,
@@ -91,9 +91,9 @@ export const nombelaScandal: GameEvent = {
       subtitle: 'Gains extensive support among landless peasants, but slightly strains economic indicators.',
       subtitleZh: '在底层失地雇农中赢得极高的威望与动员支持，但会让经济指标小幅下滑。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 15);
-        newClasses.Labradores.support.CNT_FAI = Math.min(100, (newClasses.Labradores.support.CNT_FAI || 0) + 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 15);
+        newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 8);
 
         return {
           classes: newClasses,

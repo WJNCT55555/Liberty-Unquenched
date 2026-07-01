@@ -42,6 +42,18 @@ export const SandboxMenu = () => {
     }
   };
 
+  const handleStatEdit = (key: string, value: number) => {
+    dispatch({
+      type: 'SANDBOX_EDIT',
+      payload: {
+        stats: {
+          ...state.stats,
+          [key]: value
+        }
+      }
+    });
+  };
+
   const handleMinisterChange = (role: string, value: any) => {
     const newMinisters = { ...state.ministers, [role]: value };
     const extraPayload: any = { ministers: newMinisters };
@@ -297,6 +309,43 @@ export const SandboxMenu = () => {
                 </div>
               </div>
 
+              {/* Revolutionary Stats Controls */}
+              <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1 text-cnt-red">
+                  {isZh ? '革命与社会控制' : 'Revolutionary & Social Control'}
+                </h3>
+                
+                <div className="flex flex-col gap-4 bg-ink/5 p-4 rounded-sm">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between text-sm font-typewriter">
+                      <span>{isZh ? '革命热情 (0-100)' : 'Revolutionary Fervor (0-100)'}</span>
+                      <span className="font-bold text-cnt-red">{state.stats.revolutionaryFervor}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="100" 
+                      value={state.stats.revolutionaryFervor}
+                      onChange={(e) => handleStatEdit('revolutionaryFervor', parseInt(e.target.value))}
+                      className="w-full accent-cnt-red"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 border-t border-ink/10 pt-3">
+                    <div className="flex justify-between text-sm font-typewriter">
+                      <span>{isZh ? '工人控制度 (0-100)' : 'Worker Control (0-100)'}</span>
+                      <span className="font-bold text-cnt-red">{state.stats.workerControl}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" max="100" 
+                      value={state.stats.workerControl}
+                      onChange={(e) => handleStatEdit('workerControl', parseInt(e.target.value))}
+                      className="w-full accent-cnt-red"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Coup Progress Sandbox Control */}
               <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
                 <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
@@ -378,6 +427,32 @@ export const SandboxMenu = () => {
                       {isZh ? '一键重置所有触发标记' : 'Reset All Milestone Flags'}
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Asturias Revolution Sandbox Control */}
+              <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1 text-cnt-red">
+                  {isZh ? '调试: 阿斯图里亚斯革命' : 'Debug: Asturias Revolution'}
+                </h3>
+                
+                <div className="flex flex-col gap-4 bg-ink/5 p-4 rounded-sm">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.forceAsturiasRevolutionNextMonth || false}
+                      onChange={(e) => handleEdit('forceAsturiasRevolutionNextMonth', e.target.checked)}
+                      className="w-5 h-5 accent-cnt-red cursor-pointer"
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-display font-bold text-sm">
+                        {isZh ? '下月强行触发阿斯图里亚斯革命' : 'Force Asturias Revolution Next Month'}
+                      </span>
+                      <span className="font-mono text-xs text-ink/75">
+                        {isZh ? '开启后，下个月度回合转换时将无视条件直接触发阿斯图里亚斯革命起义事件。' : 'Directly bypasses all requirements to trigger the Asturias Revolution event at the start of next month.'}
+                      </span>
+                    </div>
+                  </label>
                 </div>
               </div>
 

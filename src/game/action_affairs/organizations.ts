@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 import { media } from './media';
 
 export const organizationsCard: Card = {
@@ -45,12 +45,12 @@ export const organizationsCard: Card = {
           condition: (s: GameState) => s.resources >= 1,
           unavailableSubtitleZh: () => '资源不足。',
           effect: (s: GameState) => {
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
             const dissentModifier = 1 - ((s.stats.tension || 0) / 100); 
             const supportGain = Math.floor(5 * dissentModifier);
 
-            newClasses.Braceros.support.CNT_FAI = Math.min(100, newClasses.Braceros.support.CNT_FAI + supportGain);
-            newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + supportGain);
+            let newClasses = s.classes;
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', supportGain);
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportGain);
 
             return {
               resources: s.resources - 1,
@@ -138,11 +138,11 @@ export const organizationsCard: Card = {
           condition: (s: GameState) => s.resources >= 2 && !s.mujeres_libres_established,
           unavailableSubtitleZh: () => '资源不足或已成立。',
           effect: (s: GameState) => {
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
+            let newClasses = s.classes;
 
-            newClasses.Braceros.support.CNT_FAI = Math.min(100, newClasses.Braceros.support.CNT_FAI + 5);
-            newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + 3);
-            newClasses.Clero.support.CNT_FAI = Math.max(0, newClasses.Clero.support.CNT_FAI - 5);
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 5);
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3);
+            newClasses = adjustClassSupport(newClasses, 'Clero', 'CNT_FAI', -5);
 
             return {
               resources: s.resources - 2,

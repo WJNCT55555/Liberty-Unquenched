@@ -32,6 +32,8 @@ import { elections1936, elections1936Results } from './elections_1936';
 import { presidentialDissolutionOfCortes } from './presidential_dissolution';
 import { ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 } from './ramon_campaign_events';
 import { presidentialElectionDecision, presidentialElectionPrimary, presidentialElectionCandidateSelection, presidentialElectionAutoResolve, presidentialElectionCampaignMenu, presidentialElectionResults, presidentialElectionResultsRound2 } from './presidential_election_chain';
+import { asturiasRevolution, asturiasWarFailed } from './asturias_revolution';
+import { andalusiaFireEvent } from './andalusia_fire';
 
 export { 
   civilWarSetup, 
@@ -51,7 +53,10 @@ export {
   presidentialElectionAutoResolve,
   presidentialElectionCampaignMenu,
   presidentialElectionResults,
-  presidentialElectionResultsRound2
+  presidentialElectionResultsRound2,
+  asturiasRevolution,
+  asturiasWarFailed,
+  andalusiaFireEvent
 };
 
 export const INITIAL_EVENTS = [
@@ -106,5 +111,8 @@ export const INITIAL_EVENTS = [
   presidentialElectionAutoResolve,
   presidentialElectionCampaignMenu,
   presidentialElectionResults,
-  presidentialElectionResultsRound2
+  presidentialElectionResultsRound2,
+  asturiasRevolution,
+  asturiasWarFailed,
+  andalusiaFireEvent
 ];

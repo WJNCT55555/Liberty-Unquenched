@@ -347,6 +347,14 @@ export interface GameState {
   civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
   warProgress: number; // 0 (Republic Victory) to 100 (Nationalist Victory), 50 is stalemate
   
+  activeWar?: 'spanish_civil_war' | 'asturias_war' | null;
+  wars?: {
+    spanish_civil_war?: 'not_started' | 'ongoing' | 'won' | 'lost';
+    asturias_war?: 'not_started' | 'ongoing' | 'won' | 'lost' | 'failed';
+  };
+  asturiasWarTurns?: number;
+  forceAsturiasRevolutionNextMonth?: boolean;
+  
   // Super Events & Event Board
   superEvent: 'spanish_civil_war' | 'spanish_civil_war_ends' | 'abdication_alfonso' | null;
   pendingEvents: GameEvent[];
@@ -380,6 +388,7 @@ export interface GameState {
   falange_jons: boolean;
   isCasasViejasTriggered: boolean;
   isJabaliTriggered: boolean;
+  isAndalusiaFireTriggered?: boolean;
   uhp_attempt_triggered: boolean;
   uhp_journal_activated: boolean;
   alliance_obrera_activated: boolean;

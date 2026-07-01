@@ -1,4 +1,5 @@
 import { Advisor } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const orobonFernandez: Advisor = {
   id: 'orobon_fernandez',
@@ -46,8 +47,8 @@ export const orobonFernandez: Advisor = {
         const multiplier = 1 - (state.factions.Cenetistas.dissent / 100);
         const supportIncrease = 2 * multiplier;
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + supportIncrease);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportIncrease);
 
         return {
           ...state,

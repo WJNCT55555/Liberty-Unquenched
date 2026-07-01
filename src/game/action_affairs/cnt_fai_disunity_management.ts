@@ -1,4 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const cntFaiDisunityManagement: Card = {
   id: 'cnt_fai_disunity_management',
@@ -29,15 +30,15 @@ export const cntFaiDisunityManagement: Card = {
       subtitleZh: '镇压派系内斗，但这会疏远我们的基层群众。',
       effect: (s: GameState) => {
         const newFactions = JSON.parse(JSON.stringify(s.factions));
-        const newClasses = JSON.parse(JSON.stringify(s.classes));
+        let newClasses = s.classes;
         
         newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 5);
         newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 5);
         newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
         newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
         
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 4);
-        newClasses.Braceros.support.CNT_FAI = Math.max(0, newClasses.Braceros.support.CNT_FAI - 6);
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -4);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -6);
         
         return {
           factions: newFactions,

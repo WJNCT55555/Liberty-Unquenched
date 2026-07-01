@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const generalStrikeFails: GameEvent = {
   id: 'general_strike_fails',
@@ -40,12 +40,12 @@ export const casasViejas2Insurrection: GameEvent = {
       subtitle: 'Massive rise in revolutionary fervor and worker control; catastrophic relations with reformist parties and a major blow to state stability. Triggers structural response.',
       subtitleZh: '革命热情与工人控制度极大幅度提升；与改良派政党关系受到灾难性打击，并沉重打击国家体制稳定性。弹出总罢工结果子事件。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 15);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 20);
-        newClasses.Obreros.support.PSOE = Math.max(0, (newClasses.Obreros.support.PSOE || 0) - 10);
-        newClasses.Braceros.support.PSOE = Math.max(0, (newClasses.Braceros.support.PSOE || 0) - 15);
-        newClasses.PequenaBurguesia.support.CNT_FAI = Math.max(0, (newClasses.PequenaBurguesia.support.CNT_FAI || 0) - 10);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 15);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 20);
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', -10);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'PSOE', -15);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', -10);
 
         let min = { ...state.ministers };
         if (min.labor === 'CNT') min.labor = 'PSOE';
@@ -99,9 +99,9 @@ export const casasViejas2Insurrection: GameEvent = {
       subtitle: 'Boosts CNT influence and revolutionary fervor moderately without immediate risk of full economic paralysis.',
       subtitleZh: '温和提升 CNT 影响力和革命热情，避免直接导致全面经济瘫痪的风险。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 8);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 12);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 8);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 12);
 
         let min = { ...state.ministers };
         if (min.labor === 'CNT') min.labor = 'PSOE';
@@ -164,11 +164,11 @@ export const casasViejas2Crackdown: GameEvent = {
       subtitle: 'Severely damages Republican authority, shifts public opinion, and elevates Puristas alignment.',
       subtitleZh: '大幅削弱共和当局权威，扭转社会公众舆论，并极大提高净化派的政治存在感。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 12);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 15);
-        newClasses.Obreros.support.PSOE = Math.max(0, (newClasses.Obreros.support.PSOE || 0) - 8);
-        newClasses.Braceros.support.PSOE = Math.max(0, (newClasses.Braceros.support.PSOE || 0) - 12);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 12);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 15);
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', -8);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'PSOE', -12);
 
         let min = { ...state.ministers };
         if (min.labor === 'CNT') min.labor = 'PSOE';
@@ -219,9 +219,9 @@ export const casasViejas2Crackdown: GameEvent = {
       subtitle: 'A heavy blows to government authority and stable economy; boosts CNT solidarity across all internal groups.',
       subtitleZh: '对政府威信与经济稳定造成沉重打击；大幅凝聚 CNT 内部各派系的团结。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 10);
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 10);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 10);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 10);
 
         let min = { ...state.ministers };
         if (min.labor === 'CNT') min.labor = 'PSOE';
@@ -315,9 +315,9 @@ export const casasViejas2Peace: GameEvent = {
         newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 8);
         newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 10);
 
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Braceros.support.CNT_FAI = Math.min(100, (newClasses.Braceros.support.CNT_FAI || 0) + 15);
-        newClasses.Labradores.support.CNT_FAI = Math.min(100, (newClasses.Labradores.support.CNT_FAI || 0) + 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 15);
+        newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 8);
 
         return {
           factions: newFactions,

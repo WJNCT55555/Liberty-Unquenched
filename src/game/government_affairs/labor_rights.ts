@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const laborRights: Card = {
   id: 'labor_rights',
@@ -30,7 +30,7 @@ export const laborRights: Card = {
             subtitle: 'Enforce the standard 40-hour work week nationwide to guarantee humane hours and build union legitimacy.',
             subtitleZh: '在全国范围内推行40小时工作周制度，促进保障性标准，提升工会权威。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               let newFactions = JSON.parse(JSON.stringify(s.factions));
               
               newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 5);
@@ -40,9 +40,7 @@ export const laborRights: Card = {
               
               const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
               const bonus = Math.round(7 * (1 - overallDissent));
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.min(100, Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) + bonus));
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {
                 labor_rights_timer: 10,
@@ -65,7 +63,7 @@ export const laborRights: Card = {
             subtitle: 'Could we induce more hiring and reduce unemployment by reducing work hours?',
             subtitleZh: '我们能通过减少工时来促使更多招聘并降低失业率吗？',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               let newFactions = JSON.parse(JSON.stringify(s.factions));
               
               newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 5);
@@ -74,9 +72,7 @@ export const laborRights: Card = {
               
               const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
               const bonus = Math.round(6 * (1 - overallDissent));
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.min(100, Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) + bonus));
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {
                 labor_rights_timer: 10,
@@ -99,7 +95,7 @@ export const laborRights: Card = {
             subtitle: 'Enforce strict industrial safety standards to save worker lives on the shop floor.',
             subtitleZh: '强制执行严格的工业安全法规，旨在保护危险岗位工人的生命和健康安全。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               let newFactions = JSON.parse(JSON.stringify(s.factions));
               
               newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 5);
@@ -107,9 +103,7 @@ export const laborRights: Card = {
               
               const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
               const bonus = Math.round(5 * (1 - overallDissent));
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.min(100, Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) + bonus));
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {
                 labor_rights_timer: 10,

@@ -1,4 +1,5 @@
 import { GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const naziPower1933: GameEvent = {
   id: 'nazi_power_1933',
@@ -35,8 +36,8 @@ export const naziPower1933: GameEvent = {
       subtitle: 'Directly helps FAUD comrades; moderately boosts internal faction unity but risks high-tension diplomatic protests.',
       subtitleZh: '直接救助德国无政府工团主义（FAUD）流亡同志；温和提升内部派系统结度与威望，但会遭遇严重的外交抗议。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 5);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
         return {
           classes: newClasses,
           relations: {

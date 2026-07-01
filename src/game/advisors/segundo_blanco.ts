@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const segundoBlanco: Advisor = {
   id: 'Segundo Blanco',
@@ -11,28 +11,29 @@ export const segundoBlanco: Advisor = {
   image: 'img/Joan_Peiró.png',
   actions: [
     {
-      id: 'blanco_alliance_workers',
-      title: 'Asturian Workers Alliance',
-      titleZh: '缔结阿斯图里亚斯工盟',
-      subtitle: 'Build strong solidarity alliances with the socialist UGT syndicates.',
-      subtitleZh: '在基层推进与社会主义总工会（UGT）的行动联合，践行“无产阶级兄弟联盟”。',
+      id: 'blanco_promote_workers_alliance',
+      title: 'Promote Workers Alliance',
+      titleZh: '推动工人联盟',
+      subtitle: 'Increase industrial workers support for CNT by (2 × Neutralist Cohesion Coefficient), Workers Alliance progress +1.',
+      subtitleZh: '产业工人对 CNT 支持度 +(2 × 中立派凝聚力系数)，工人联盟进度 +1。',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 10);
-        newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 6);
+        const multiplier = 1 - (state.factions.Cenetistas.dissent / 100);
+        const supportIncrease = 2 * multiplier;
+        
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportIncrease);
+
         return {
           advisorActionTimer: 6,
-          factions: newFactions,
-          stats: {
-            ...state.stats
-          }
+          workersAllianceProgress: (state.workersAllianceProgress || 0) + 1,
+          classes: newClasses
         };
       },
-      description: 'By forming local pacts with socialist UGT branches, we have forged powerful mutual-defense and strike agreements that frighten the local bourgeoisie.',
-      descriptionZh: '通过与社会主义UGT地方工会缔结联合，我们构筑了基层联防与并肩罢工的钢铁同盟，使反动资产阶级和军阀胆战心惊。',
+      description: 'By working closely with local union committees, we foster a shared class consciousness across syndicalist and socialist ranks, paving the way for a unified proletarian alliance.',
+      descriptionZh: '通过同基层工会委员会紧密协作，我们在工团与社会主义队伍中培养了共同的阶级觉悟，为实现钢铁般坚固的无产阶级联盟扫清了障碍。',
     },
     {
       id: 'blanco_public_education',

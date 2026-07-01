@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const foundingOfPOUM: GameEvent = {
   id: 'Founding of POUM',
@@ -54,8 +54,8 @@ export const foundingOfPOUM: GameEvent = {
         
         const newFactions = adjustFactionInfluence(state.factions, 'Puristas', -3);
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 3);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -3);
         
         return {
           poum_founded: true,
@@ -74,8 +74,8 @@ export const foundingOfPOUM: GameEvent = {
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 5);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);
         
         return {
           poum_founded: true,
@@ -97,8 +97,8 @@ export const foundingOfPOUM: GameEvent = {
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 3);
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 2);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -2);
         
         return {
           poum_founded: true,
@@ -115,8 +115,8 @@ export const foundingOfPOUM: GameEvent = {
       effect: (state) => {
         const newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 3);
         
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - 5);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);
         
         return {
           poum_founded: true,

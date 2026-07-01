@@ -1,4 +1,5 @@
 import { Card, GameState } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const fundraising: Card = {
   id: 'fundraising',
@@ -63,9 +64,9 @@ export const fundraising: Card = {
           effect: (s: GameState) => {
             const newDues = s.dues + 1;
             const supportLoss = newDues >= 5 ? 3 * newDues : 3;
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
-            newClasses.Obreros.support.CNT_FAI = Math.max(0, newClasses.Obreros.support.CNT_FAI - supportLoss);
-            newClasses.Braceros.support.CNT_FAI = Math.max(0, newClasses.Braceros.support.CNT_FAI - supportLoss);
+            let newClasses = s.classes;
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -supportLoss);
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -supportLoss);
             return {
               dues: newDues,
               resources: s.resources + newDues,

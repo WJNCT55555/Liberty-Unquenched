@@ -1,4 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 const getOverallDissent = (state: GameState) => {
   const totalInfluence = Object.values(state.factions).reduce((acc, f) => acc + f.influence, 0);
@@ -24,9 +25,9 @@ export const media: Card = {
         subtitleZh: '这可能会让意识形态纯粹主义者不满，但它可能带来更多资金，并可能让中产阶级接触到自由社会主义思想。',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.PequenaBurguesia.support.CNT_FAI += 4 * dissentFactor;
-          newClasses.Intelectuales.support.CNT_FAI += 3 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
           
           const newFactions = JSON.parse(JSON.stringify(s.factions));
           newFactions.Faistas.dissent += 10;
@@ -47,9 +48,9 @@ export const media: Card = {
         subtitleZh: '我们的报纸将专注于革命斗争和工会组织。',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.Obreros.support.CNT_FAI += 4 * dissentFactor;
-          newClasses.Braceros.support.CNT_FAI += 2 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
           
           return {
             resources: s.resources - 1,
@@ -95,10 +96,10 @@ export const media: Card = {
         unavailableSubtitleZh: (s: GameState) => '需要至少 2 资源',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.PequenaBurguesia.support.CNT_FAI += 4 * dissentFactor;
-          newClasses.Intelectuales.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Obreros.support.CNT_FAI += 2 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
           
           const newFactions = JSON.parse(JSON.stringify(s.factions));
           newFactions.Faistas.dissent += 5;
@@ -127,10 +128,10 @@ export const media: Card = {
         unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.PequenaBurguesia.support.CNT_FAI += 5 * dissentFactor;
-          newClasses.Intelectuales.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Obreros.support.CNT_FAI += 3 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
           
           return {
             radio: s.radio + 1,
@@ -152,12 +153,12 @@ export const media: Card = {
         subtitleZh: '我们的网络现在已经大到足以通过地方捐助维持自身运转。',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.PequenaBurguesia.support.CNT_FAI += 5 * dissentFactor;
-          newClasses.Intelectuales.support.CNT_FAI += 4 * dissentFactor;
-          newClasses.Obreros.support.CNT_FAI += 4 * dissentFactor;
-          newClasses.Braceros.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Labradores.support.CNT_FAI += 2 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 4 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 2 * dissentFactor);
           
           return {
             radio: s.radio + 1,
@@ -181,12 +182,12 @@ export const media: Card = {
         unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.PequenaBurguesia.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Intelectuales.support.CNT_FAI += 2 * dissentFactor;
-          newClasses.Obreros.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Braceros.support.CNT_FAI += 2 * dissentFactor;
-          newClasses.Labradores.support.CNT_FAI += 2 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 2 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 2 * dissentFactor);
           
           return {
             radio: s.radio + 1,
@@ -212,11 +213,11 @@ export const media: Card = {
         unavailableSubtitleZh: (s: GameState) => '需要至少 3 资源',
         effect: (s: GameState) => {
           const dissentFactor = 1 - (getOverallDissent(s) / 100);
-          const newClasses = JSON.parse(JSON.stringify(s.classes));
-          newClasses.Intelectuales.support.CNT_FAI += 5 * dissentFactor;
-          newClasses.PequenaBurguesia.support.CNT_FAI += 3 * dissentFactor;
-          newClasses.Obreros.support.CNT_FAI += 2 * dissentFactor;
-          newClasses.Braceros.support.CNT_FAI += 1 * dissentFactor;
+          let newClasses = s.classes;
+          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 5 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
+          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 1 * dissentFactor);
           
           const newFactions = JSON.parse(JSON.stringify(s.factions));
           newFactions.Treintistas.dissent += 3;

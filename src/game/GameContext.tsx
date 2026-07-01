@@ -5,11 +5,11 @@ import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
-import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth, isPortugalProvince } from '../map/map_constants';
+import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth, isPortugalProvince, initializeMapState } from '../map/map_constants';
 import { MapFaction, Army, ResourceSet } from '../map/types_map';
-import { initializeMapState } from '../map/map_logic';
 import { calculateAiMoves } from '../map/lib/gameAi';
 import { civilWarSetup } from './events/civil_war/civil_war_setup';
+import { adjustClassSupport } from './utils';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -288,17 +288,125 @@ function resolveBattle(
   return { updatedArmies: finalArmies, updatedProvinces, messages };
 }
 
-function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
+function checkWarStatus(state: GameState, isZh: boolean): GameState {
+  if (state.activeWar === 'asturias_war') {
+    const provinces = state.provinces || {};
+    const armies = state.armies || [];
+    
+    // Check Workers' Alliance control
+    const hasAsturias = provinces['asturias']?.owner === MapFaction.WORKERS_ALLIANCE;
+    const hasOviedo = provinces['oviedo']?.owner === MapFaction.WORKERS_ALLIANCE;
+    
+    // Check if both are lost
+    if (!hasAsturias && !hasOviedo) {
+      // Defeat!
+      const nextWars = { ...(state.wars || { spanish_civil_war: 'not_started', asturias_war: 'not_started' }) };
+      nextWars.asturias_war = 'failed';
+      
+      const asturiasFailedEvent: GameEvent = {
+        id: 'asturias_war_failed',
+        title: isZh ? '工人联盟自治政府战败' : 'Defeat of Workers\' Alliance Government',
+        titleZh: '工人联盟自治政府战败',
+        description: isZh 
+          ? '由于反动派和政府军的联合残酷镇压，工人联盟自治政府在阿斯图里亚斯的革命阵地不幸失陷。成千上万的工人武装成员和矿工战士牺牲，起义宣告失败。全国的工人运动陷入低谷。' 
+          : 'Due to severe suppression by government and reactionary forces, the Workers\' Alliance Autonomous Government in Asturias has fallen. Thousands of armed workers and miners fell, and the uprising ended in defeat. The national labor movement suffers a severe blow.',
+        options: [
+          {
+            text: isZh ? '悲痛哀悼，积蓄力量' : 'Mourn and gather strength',
+            textZh: '悲痛哀悼，积蓄力量',
+            effect: (s) => ({
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 20)
+              }
+            })
+          },
+          {
+            text: isZh ? '怒斥暴行，誓言复仇' : 'Denounce atrocities, vow revenge',
+            textZh: '怒斥暴行，誓言复仇',
+            effect: (s) => ({
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 12),
+                tension: Math.min(100, (s.stats?.tension ?? 34) + 8)
+              }
+            })
+          }
+        ]
+      };
+      
+      return {
+        ...state,
+        activeWar: null,
+        wars: nextWars,
+        phase: 'event',
+        currentView: 'standard',
+        pendingEvents: [asturiasFailedEvent, ...(state.pendingEvents || [])],
+        currentEvent: asturiasFailedEvent
+      };
+    }
+    
+    // Check if won: Workers' Alliance controls madrid, malaga, zaragoza, valencia
+    const hasVictoryProvinces = 
+      provinces['madrid']?.owner === MapFaction.WORKERS_ALLIANCE &&
+      provinces['malaga']?.owner === MapFaction.WORKERS_ALLIANCE &&
+      provinces['zaragoza']?.owner === MapFaction.WORKERS_ALLIANCE &&
+      provinces['valencia']?.owner === MapFaction.WORKERS_ALLIANCE;
+    
+    if (hasVictoryProvinces) {
+      // Victory!
+      const nextWars = { ...(state.wars || { spanish_civil_war: 'not_started', asturias_war: 'not_started' }) };
+      nextWars.asturias_war = 'won';
+      
+      const asturiasVictoryEvent: GameEvent = {
+        id: 'asturias_war_victory',
+        title: isZh ? '工人联盟自治政府胜利！' : 'Victory of Workers\' Alliance Government!',
+        titleZh: '工人联盟自治政府胜利！',
+        description: isZh 
+          ? '这是一次震动全国的伟大无产阶级武装胜利！工人联盟自治政府不仅彻底击退了反动派守军，还稳固了对红色阿斯图里亚斯苏维埃的控制！全国工人阶级欢欣鼓舞，革命热情空前高涨！' 
+          : 'A magnificent proletarian victory that shakes the entire nation! The Workers\' Alliance Autonomous Government successfully repelled the reactionary forces and secured red Asturias! The working class is exultant, and revolutionary fervor soars!',
+        options: [
+          {
+            text: isZh ? '无产阶级红色政权万岁！' : 'Long live the Red Proletarian Power!',
+            textZh: '无产阶级红色政权万岁！',
+            effect: (s) => ({
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.min(100, (s.stats?.revolutionaryFervor ?? 10) + 25),
+                republicanAuthority: Math.max(0, (s.stats?.republicanAuthority ?? 50) - 15)
+              },
+              armaments: s.armaments + 3,
+              resources: s.resources + 2
+            })
+          }
+        ]
+      };
+      
+      return {
+        ...state,
+        activeWar: null,
+        wars: nextWars,
+        phase: 'event',
+        currentView: 'standard',
+        pendingEvents: [asturiasVictoryEvent, ...(state.pendingEvents || [])],
+        currentEvent: asturiasVictoryEvent
+      };
+    }
+  }
+  return state;
+}
+
+function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): GameState {
   let tempState = { ...state };
   let mapResources = { ...tempState.mapResources };
   let provinces = { ...(tempState.provinces || INITIAL_PROVINCES) };
   let armies = [...(tempState.armies || INITIAL_ARMIES)];
   let history = [...(tempState.mapHistory || [])];
 
-  // Set Nationalist command points to 2 for the AI turn to let them make decisions!
-  if (mapResources[MapFaction.NATIONALIST]) {
-    mapResources[MapFaction.NATIONALIST] = {
-      ...mapResources[MapFaction.NATIONALIST],
+  // Set AI command points to 2 for the AI turn to let them make decisions!
+  if (mapResources[aiFaction]) {
+    mapResources[aiFaction] = {
+      ...mapResources[aiFaction],
       commandPoints: 2,
     };
   }
@@ -311,19 +419,21 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
   } as any;
 
   // Let's get the difficulty. Difficulty from state could be easy, normal, hard, historical, sandbox.
-  // Let's map it to easy/normal/hard for AI.
   let diff: 'easy' | 'normal' | 'hard' = 'normal';
   if (state.difficulty === 'easy') diff = 'easy';
   else if (state.difficulty === 'hard') diff = 'hard';
 
-  const aiActions = calculateAiMoves(aiState, MapFaction.NATIONALIST, diff);
+  const aiActions = calculateAiMoves(aiState, aiFaction, diff);
+
+  const factionNameZh = aiFaction === MapFaction.REPUBLICAN ? '共和国政府军' : '国民军';
+  const factionNameEn = aiFaction === MapFaction.REPUBLICAN ? 'Republican' : 'Nationalist';
 
   aiActions.forEach(action => {
     if (action.type === 'BUILD') {
       const { provinceId, buildingType } = action.payload || {};
       if (!provinceId || !buildingType) return;
       const province = provinces[provinceId];
-      const playerRes = mapResources[MapFaction.NATIONALIST];
+      const playerRes = mapResources[aiFaction];
       if (!province || !playerRes) return;
 
       const currentBuildings = province.buildings || { barracks: 0, fortress: 0, recruitingOffice: 0, ammoFactory: 0 };
@@ -349,7 +459,7 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
         playerRes.industrialCapacity >= cost.ic &&
         playerRes.manpower >= cost.manpower
       ) {
-        mapResources[MapFaction.NATIONALIST] = {
+        mapResources[aiFaction] = {
           ...playerRes,
           supplies: Math.max(0, playerRes.supplies - cost.supplies),
           industrialCapacity: Math.max(0, playerRes.industrialCapacity - cost.ic),
@@ -368,15 +478,15 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
           : buildingType;
         history.push(
           isZh 
-            ? `【AI建设】国民军在 ${province.name} 建造了 ${buildingName}。`
-            : `[AI Build] Nationalist built ${buildingName} in ${province.name}.`
+            ? `【AI建设】${factionNameZh}在 ${province.name} 建造了 ${buildingName}。`
+            : `[AI Build] ${factionNameEn} built ${buildingName} in ${province.name}.`
         );
       }
     } else if (action.type === 'REINFORCE') {
       const { armyId } = action.payload || {};
       if (!armyId) return;
       const army = armies.find(a => a.id === armyId);
-      const playerRes = mapResources[MapFaction.NATIONALIST];
+      const playerRes = mapResources[aiFaction];
       if (!army || !playerRes) return;
 
       const designedComp = army.designedComposition || army.composition;
@@ -404,7 +514,7 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
       const actualTotal = actualInf + actualArt + actualTnk;
 
       if (actualTotal > 0) {
-        mapResources[MapFaction.NATIONALIST] = {
+        mapResources[aiFaction] = {
           ...playerRes,
           manpower: Math.max(0, playerRes.manpower - actualTotal),
           supplies: Math.max(0, playerRes.supplies - Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2)),
@@ -431,15 +541,15 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
 
         history.push(
           isZh 
-            ? `【AI整编】国民军对 Division ${armyId.slice(-4).toUpperCase()} 补充了 ${actualTotal} 人。`
-            : `[AI Reinforce] Nationalist reinforced Div. ${armyId.slice(-4).toUpperCase()} with ${actualTotal} soldiers.`
+            ? `【AI整编】${factionNameZh}对 Division ${armyId.slice(-4).toUpperCase()} 补充了 ${actualTotal} 人。`
+            : `[AI Reinforce] ${factionNameEn} reinforced Div. ${armyId.slice(-4).toUpperCase()} with ${actualTotal} soldiers.`
         );
       }
     } else if (action.type === 'RECRUIT') {
       const { provinceId, composition } = action.payload || {};
       if (!provinceId || !composition) return;
       const { infantry, artillery, tanks } = composition;
-      const playerRes = mapResources[MapFaction.NATIONALIST];
+      const playerRes = mapResources[aiFaction];
       if (!playerRes) return;
 
       const reqManpower = infantry + artillery + tanks;
@@ -453,7 +563,7 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
         playerRes.industrialCapacity >= reqIndustry &&
         playerRes.tankReserve >= reqTankReserve
       ) {
-        mapResources[MapFaction.NATIONALIST] = {
+        mapResources[aiFaction] = {
           ...playerRes,
           manpower: Math.max(0, playerRes.manpower - reqManpower),
           supplies: Math.max(0, playerRes.supplies - reqSupplies),
@@ -464,7 +574,7 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
         const newArmyId = `army_rec_${Date.now()}_ai_${Math.floor(Math.random() * 1000)}`;
         const newArmy: Army = {
           id: newArmyId,
-          faction: MapFaction.NATIONALIST,
+          faction: aiFaction,
           provinceId,
           movesLeft: 0,
           manpower: reqManpower,
@@ -479,19 +589,19 @@ function executeNationalistAiTurn(state: GameState, isZh: boolean): GameState {
         const provName = provinces[provinceId]?.name || provinceId;
         history.push(
           isZh 
-            ? `【AI招募】国民军在 ${provName} 组建了 Div. ${newArmyId.slice(-4).toUpperCase()}。`
-            : `[AI Recruit] Nationalist raised Div. ${newArmyId.slice(-4).toUpperCase()} in ${provName}.`
+            ? `【AI招募】${factionNameZh}在 ${provName} 组建了 Div. ${newArmyId.slice(-4).toUpperCase()}。`
+            : `[AI Recruit] ${factionNameEn} raised Div. ${newArmyId.slice(-4).toUpperCase()} in ${provName}.`
         );
       }
     } else if (action.type === 'MOVE') {
       const { armyId, targetProvinceId } = action.payload || {};
       if (!armyId || !targetProvinceId) return;
       const movedArmy = armies.find(a => a.id === armyId);
-      const playerRes = mapResources[MapFaction.NATIONALIST];
+      const playerRes = mapResources[aiFaction];
       if (!movedArmy || !playerRes) return;
 
       if (playerRes.commandPoints >= 1) {
-        mapResources[MapFaction.NATIONALIST] = {
+        mapResources[aiFaction] = {
           ...playerRes,
           commandPoints: Math.max(0, playerRes.commandPoints - 1),
         };
@@ -528,6 +638,7 @@ export const INITIAL_STATE: GameState = {
     [MapFaction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
     [MapFaction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
     [MapFaction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
+    [MapFaction.WORKERS_ALLIANCE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
     [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
   },
   mapHistory: [],
@@ -693,6 +804,13 @@ export const INITIAL_STATE: GameState = {
   tankTimer: 0,
   civilWarStatus: 'not_started',
   warProgress: 50,
+  activeWar: null,
+  wars: {
+    spanish_civil_war: 'not_started',
+    asturias_war: 'not_started',
+  },
+  asturiasWarTurns: 0,
+  forceAsturiasRevolutionNextMonth: false,
   leverage: 0,
   agriculture_minister_party: 'Right',
   labor_minister_party: 'Right',
@@ -736,6 +854,7 @@ export const INITIAL_STATE: GameState = {
   falange_jons: false,
   isCasasViejasTriggered: false,
   isJabaliTriggered: false,
+  isAndalusiaFireTriggered: false,
   uhp_attempt_triggered: false,
   uhp_journal_activated: false,
   alliance_obrera_activated: false,
@@ -1203,8 +1322,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         break;
       }
 
+      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
       const playerFaction = movedArmy.faction;
-      const isPlayer = playerFaction === MapFaction.REPUBLICAN;
+      const isPlayer = playerFaction === currentPlayerFaction;
       const mapResources = { ...state.mapResources };
       const playerRes = mapResources[playerFaction];
 
@@ -1240,24 +1360,30 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
 
       // Check if player has run out of CP
-      const updatedPlayerRes = mapResources[MapFaction.REPUBLICAN];
+      const updatedPlayerRes = mapResources[currentPlayerFaction];
       if (isPlayer && updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
-        // Set current player on map to Nationalist, and run the Nationalist AI turn!
-        updatedState.mapCurrentPlayer = MapFaction.NATIONALIST;
-        updatedState = executeNationalistAiTurn(updatedState, isZh);
+        const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
+        updatedState.mapCurrentPlayer = aiFaction;
+        updatedState = executeAiTurn(updatedState, aiFaction, isZh);
+        updatedState.mapCurrentPlayer = currentPlayerFaction;
       }
 
+      updatedState = checkWarStatus(updatedState, isZh);
       newState = updatedState;
       break;
     }
     case 'END_MAP_PLAYER_TURN': {
       if (state.phase !== 'war') return state;
       const isZh = state.language === 'zh';
+      const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
+      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
       let updatedState: GameState = {
         ...state,
-        mapCurrentPlayer: MapFaction.NATIONALIST,
+        mapCurrentPlayer: aiFaction,
       };
-      updatedState = executeNationalistAiTurn(updatedState, isZh);
+      updatedState = executeAiTurn(updatedState, aiFaction, isZh);
+      updatedState.mapCurrentPlayer = currentPlayerFaction;
+      updatedState = checkWarStatus(updatedState, isZh);
       newState = updatedState;
       break;
     }
@@ -1625,10 +1751,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
       break;
     }
-    case 'NEXT_PHASE':
+    case 'NEXT_PHASE': {
+      const isZh = state.language === 'zh';
       if (state.phase === 'event') {
         newState = { ...state, phase: 'action', actionsLeft: 2 };
-      } else if (state.phase === 'action' && state.civilWarStatus === 'ongoing') {
+      } else if (state.phase === 'action' && (state.civilWarStatus === 'ongoing' || state.activeWar)) {
         newState = { ...state, phase: 'war', currentView: 'map' };
       } else {
         // Next month
@@ -1702,6 +1829,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           return conditionMatch;
         });
 
+        if (state.forceAsturiasRevolutionNextMonth) {
+          const asturiasEventObj = INITIAL_EVENTS.find(e => e.id === 'asturias_revolution');
+          if (asturiasEventObj && !monthlyEvents.some(e => e.id === 'asturias_revolution') && !state.pendingEvents.some(pe => pe.id === 'asturias_revolution') && state.currentEvent?.id !== 'asturias_revolution') {
+            monthlyEvents.push(asturiasEventObj);
+          }
+        }
+
         if (state.difficulty === 'historical') {
           const hasHistoricalEvent = monthlyEvents.some(e => e.date);
           if (hasHistoricalEvent) {
@@ -1767,6 +1901,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           mapResources: nextMapResources,
           armies: updatedNextArmies,
           mapCurrentPlayer: MapFaction.REPUBLICAN,
+          asturiasWarTurns: state.activeWar === 'asturias_war' ? (state.asturiasWarTurns || 0) + 1 : (state.asturiasWarTurns || 0),
         };
 
         // --- Core Economic Monthly Simulation ---
@@ -1932,13 +2067,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           };
 
           if (tempState.domesticPolicy.mixed_jury_cnt_opposed) {
-            const newClasses = JSON.parse(JSON.stringify(tempState.classes));
-            if (newClasses.Obreros && newClasses.Obreros.support) {
-              const val = 5 / 12;
-              newClasses.Obreros.support.PSOE = Math.min(100, (newClasses.Obreros.support.PSOE || 0) + val);
-              newClasses.Obreros.support.CNT_FAI = Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) - val);
-            }
-            tempState.classes = newClasses;
+            tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PSOE', 5 / 12);
           }
         }
 
@@ -2025,9 +2154,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           civilWarStatus: newCivilWarStatus,
           hand: [],
           discard: newDiscard,
+          forceAsturiasRevolutionNextMonth: false,
         };
       }
+      newState = checkWarStatus(newState, isZh);
       break;
+    }
     case 'PLAY_CARD': {
       if (state.actionsLeft <= 0) return state;
       const cardPayload = action.payload;
@@ -2127,9 +2259,16 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         nextCurrentEvent = newStateAfterEvent.currentEvent;
       }
       
+      // Remove currentEvent from pendingEvents if it is present, avoiding double popups
+      const currentEventId = state.currentEvent?.id;
+      const nextPendingEvents = currentEventId
+        ? (newStateAfterEvent.pendingEvents || state.pendingEvents || []).filter(e => e.id !== currentEventId)
+        : (newStateAfterEvent.pendingEvents || state.pendingEvents || []);
+
       newState = {
         ...state,
         ...newStateAfterEvent,
+        pendingEvents: nextPendingEvents,
         currentEvent: nextCurrentEvent,
       };
       
@@ -2276,6 +2415,26 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   
   // Normalize values to prevent overflow/underflow (0-100)
   if (newState !== state) {
+    if (!newState.wars) {
+      newState.wars = {
+        spanish_civil_war: 'not_started',
+        asturias_war: 'not_started'
+      };
+    }
+    if (newState.civilWarStatus === 'ongoing') {
+      if (newState.wars.spanish_civil_war !== 'ongoing') {
+        newState.wars.spanish_civil_war = 'ongoing';
+      }
+      if (!newState.activeWar) {
+        newState.activeWar = 'spanish_civil_war';
+      }
+    } else if (newState.civilWarStatus === 'won' || newState.civilWarStatus === 'lost') {
+      newState.wars.spanish_civil_war = newState.civilWarStatus;
+      if (newState.activeWar === 'spanish_civil_war') {
+        newState.activeWar = null;
+      }
+    }
+
     if (newState.classes) {
       Object.keys(newState.classes).forEach(c => {
         const cls = c as keyof typeof newState.classes;

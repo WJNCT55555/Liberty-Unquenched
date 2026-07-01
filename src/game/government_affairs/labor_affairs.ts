@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const laborAffairs: Card = {
   id: 'labor_affairs',
@@ -30,18 +30,12 @@ export const laborAffairs: Card = {
             subtitle: 'Directly back the striking federations against the lockout. Elevates CNT popularity among urban workers but alienates the bourgeoisie and small business owners.',
             subtitleZh: '直接支持罢工联合会，反抗资方的闭厂停工。这将提升CNT在城市工人中的威望，但会彻底激怒资产阶级和小企业主。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               const newFactions = JSON.parse(JSON.stringify(s.factions));
               
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 10);
-              }
-              if (newClasses.Burguesia) {
-                newClasses.Burguesia.support.CNT_FAI = Math.max(0, (newClasses.Burguesia.support.CNT_FAI || 0) - 10);
-              }
-              if (newClasses.PequenaBurguesia) {
-                newClasses.PequenaBurguesia.support.CNT_FAI = Math.max(0, (newClasses.PequenaBurguesia.support.CNT_FAI || 0) - 5);
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 10);
+              newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', -10);
+              newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', -5);
               
               newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 5);
               newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 5);
@@ -64,18 +58,12 @@ export const laborAffairs: Card = {
             subtitle: 'Compromise with the business owners to end the lockouts and strikes swiftly. This pleases moderate ministers but Outrages the anarchist base.',
             subtitleZh: '与雇主达成共识，迅速扭转停工及罢工浪潮。这会取悦温和内阁，但会让无政府主义基本盘深感背叛。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               const newFactions = JSON.parse(JSON.stringify(s.factions));
               
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.max(0, (newClasses.Obreros.support.CNT_FAI || 0) - 12);
-              }
-              if (newClasses.Burguesia) {
-                newClasses.Burguesia.support.CNT_FAI = Math.min(100, (newClasses.Burguesia.support.CNT_FAI || 0) + 12);
-              }
-              if (newClasses.PequenaBurguesia) {
-                newClasses.PequenaBurguesia.support.CNT_FAI = Math.min(100, (newClasses.PequenaBurguesia.support.CNT_FAI || 0) + 6);
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -12);
+              newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', 12);
+              newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 6);
               
               newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 15);
               newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 15);
@@ -98,18 +86,12 @@ export const laborAffairs: Card = {
             subtitle: 'Arbitrate a balanced compromise, offering minor wage increases if the unions immediately call off the strike. A pragmatic path.',
             subtitleZh: '进行公正中介，提出适度提薪以促使各行各业即刻复工。这是高度务实、顾全大局的方案。',
             effect: (s: GameState) => {
-              const newClasses = JSON.parse(JSON.stringify(s.classes));
+              let newClasses = s.classes;
               const newFactions = JSON.parse(JSON.stringify(s.factions));
               
-              if (newClasses.Obreros) {
-                newClasses.Obreros.support.CNT_FAI = Math.min(100, (newClasses.Obreros.support.CNT_FAI || 0) + 4);
-              }
-              if (newClasses.Burguesia) {
-                newClasses.Burguesia.support.CNT_FAI = Math.max(0, (newClasses.Burguesia.support.CNT_FAI || 0) - 3);
-              }
-              if (newClasses.PequenaBurguesia) {
-                newClasses.PequenaBurguesia.support.CNT_FAI = Math.min(100, (newClasses.PequenaBurguesia.support.CNT_FAI || 0) + 3);
-              }
+              newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4);
+              newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', -3);
+              newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3);
               
               newFactions.Treintistas.dissent = Math.max(0, (newFactions.Treintistas.dissent || 0) - 8);
               newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 2);

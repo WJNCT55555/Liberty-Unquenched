@@ -1,4 +1,5 @@
 import { Card } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const aragonFront: Card = {
   id: 'aragon_front',
@@ -78,12 +79,13 @@ export const aragonFront: Card = {
           text: 'Negotiate with Church (+Church Support, +Yeoman Support, -Poor Peasant Support)',
           textZh: '与教会谈判协议：与当地乡村中的教会谈判达成互不侵犯协议。',
           effect: (s) => ({
-            classes: {
-              ...s.classes,
-              Church: { support: { ...s.classes.Clero.support, CNT_FAI: Math.min(100, s.classes.Clero.support.CNT_FAI + 10) } },
-              Yeoman: { support: { ...s.classes.Labradores.support, CNT_FAI: Math.min(100, s.classes.Labradores.support.CNT_FAI + 10) } },
-              PoorPeasants: { support: { ...s.classes.Braceros.support, CNT_FAI: Math.max(0, s.classes.Braceros.support.CNT_FAI - 10) } }
-            },
+            classes: (() => {
+              let newClasses = s.classes;
+              newClasses = adjustClassSupport(newClasses, 'Clero', 'CNT_FAI', 10);
+              newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 10);
+              newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -10);
+              return newClasses;
+            })(),
             currentEvent: {
               id: 'aragon_church_result',
               date: { year: s.year, month: s.month },

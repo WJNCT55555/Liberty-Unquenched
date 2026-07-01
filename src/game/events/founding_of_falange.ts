@@ -1,4 +1,5 @@
 import { GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const foundingOfFalange: GameEvent = {
   id: 'Founding of Falange Española',
@@ -12,12 +13,12 @@ export const foundingOfFalange: GameEvent = {
       text: 'Let us wait and see',
       textZh: '让我们静观其变',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         
         // FE gains some initial support from the Aristocracy, Middle Class, and Church
-        newClasses.Latifundistas.support.FE = Math.min(100, newClasses.Latifundistas.support.FE + 10);
-        newClasses.PequenaBurguesia.support.FE = Math.min(100, newClasses.PequenaBurguesia.support.FE + 5);
-        newClasses.Clero.support.FE = Math.min(100, newClasses.Clero.support.FE + 5);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'FE', 10);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'FE', 5);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'FE', 5);
         
         return {
           classes: newClasses,

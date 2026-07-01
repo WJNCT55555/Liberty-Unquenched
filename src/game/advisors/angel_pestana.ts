@@ -11,25 +11,29 @@ export const angelPestana: Advisor = {
     image: 'img/Ángel_Pestaña.png',
   actions: [
     {
-      id: 'Ángel Pestaña_action1',
-      title: 'Forge Republican Alliances',
-      titleZh: '建立共和国联盟',
-      subtitle: 'Improve relations with the Republican Left (IR).',
-      subtitleZh: '改善与共和左翼(IR)的关系。',
+      id: 'improve_relations_ir',
+      title: 'Improve Relations with Left Republicans',
+      titleZh: '改善与共和国左翼的关系',
+      subtitle: 'Improve IR relations with CNT by +5, and Republican Authority by +5.',
+      subtitleZh: 'IR与CNT关系 +5，共和国权威 +5。',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
-        newClasses.Obreros.support.IR += 10;
-        newClasses.PequenaBurguesia.support.IR += 10;
         return {
           advisorActionTimer: 6,
-          classes: newClasses
+          partyRelations: {
+            ...state.partyRelations,
+            IR: Math.min(100, (state.partyRelations?.IR ?? 0) + 5)
+          },
+          stats: {
+            ...state.stats,
+            republicanAuthority: Math.min(100, (state.stats?.republicanAuthority ?? 0) + 5)
+          }
         };
       },
-      description: 'By engaging in dialogue with moderate republicans, we have secured better conditions for our unions, though purists decry this as class collaboration.',
-      descriptionZh: '通过与温和的共和派对话，我们为工会争取到了更好的条件，尽管纯粹主义者谴责这是阶级合作。',
+      description: 'By engaging in constructive talks with Left Republicans, we have built mutual trust and strengthened the democratic authority of the Republic.',
+      descriptionZh: '通过与共和国左翼进行建设性的会谈，我们建立了互信，并巩固了共和国的民主权威。',
     },
 
     {

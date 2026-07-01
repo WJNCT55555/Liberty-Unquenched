@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, GameState, GameEvent } from '../types';
 import { useGame } from '../GameContext';
+import { adjustClassSupport } from '../utils';
 
 // Define the custom Adjuster components
 export const IncomeTaxAdjuster: React.FC = () => {
@@ -368,19 +369,19 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
           budget_flow -= Math.abs(delta_upper) * 0.20;
         }
 
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Working Class: Obreros + Braceros
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Obreros.support.CNT_FAI + working_class_support));
-        newClasses.Braceros.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Braceros.support.CNT_FAI + working_class_support));
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', working_class_support);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', working_class_support);
 
         // Middle Class: Labradores + PequenaBurguesia + Intelectuales
-        newClasses.Labradores.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Labradores.support.CNT_FAI + middle_class_support));
-        newClasses.PequenaBurguesia.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.PequenaBurguesia.support.CNT_FAI + middle_class_support));
-        newClasses.Intelectuales.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Intelectuales.support.CNT_FAI + middle_class_support));
+        newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', middle_class_support);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', middle_class_support);
+        newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', middle_class_support);
 
         // Upper Class: Burguesia + Latifundistas
-        newClasses.Burguesia.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Burguesia.support.CNT_FAI + upper_class_support));
-        newClasses.Latifundistas.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Latifundistas.support.CNT_FAI + upper_class_support));
+        newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', upper_class_support);
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'CNT_FAI', upper_class_support);
 
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.max(0, Math.min(100, newFactions.Faistas.dissent + faistas_dissent));
@@ -464,10 +465,10 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
           puristas_dissent += delta_consumption * 0.8;
         }
 
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Working Class: Obreros + Braceros
-        newClasses.Obreros.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Obreros.support.CNT_FAI + working_class_support));
-        newClasses.Braceros.support.CNT_FAI = Math.max(0, Math.min(100, newClasses.Braceros.support.CNT_FAI + working_class_support));
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', working_class_support);
+        newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', working_class_support);
 
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.max(0, Math.min(100, newFactions.Faistas.dissent + faistas_dissent));

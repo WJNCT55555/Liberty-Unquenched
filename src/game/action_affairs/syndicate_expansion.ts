@@ -1,5 +1,5 @@
 import { Card } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const syndicateExpansion: Card = {
   id: 'syndicate_expansion',
@@ -24,8 +24,8 @@ export const syndicateExpansion: Card = {
           subtitle: 'Focus on organizing in industrial hubs and factories.',
           subtitleZh: '专注于工业中心和工厂的组织工作，巩固城市无产阶级基础。',
           effect: (s) => {
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
-            newClasses.Obreros.support.CNT_FAI = Math.min(100, newClasses.Obreros.support.CNT_FAI + 10);
+            let newClasses = s.classes;
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 10);
             return {
               classes: newClasses,
               stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 5) },
@@ -39,8 +39,8 @@ export const syndicateExpansion: Card = {
           subtitle: 'Establish anarchist collectives in the countryside.',
           subtitleZh: '在农村地区建立无政府主义集体，争取贫苦农民的坚定支持。',
           effect: (s) => {
-            const newClasses = JSON.parse(JSON.stringify(s.classes));
-            newClasses.Braceros.support.CNT_FAI = Math.min(100, newClasses.Braceros.support.CNT_FAI + 10);
+            let newClasses = s.classes;
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 10);
             return {
               classes: newClasses,
               stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 5) },

@@ -14,6 +14,7 @@ interface WarSummaryProps {
   }>;
   isZh: boolean;
   onClose: () => void;
+  activeWar?: string;
 }
 
 export const WarSummary: React.FC<WarSummaryProps> = ({
@@ -22,66 +23,97 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
   resources,
   isZh,
   onClose,
+  activeWar,
 }) => {
+  const isAsturias = activeWar === 'asturias_war';
+  const f1 = isAsturias ? Faction.WORKERS_ALLIANCE : Faction.REPUBLICAN;
+  const f2 = isAsturias ? Faction.REPUBLICAN : Faction.NATIONALIST;
+
+  // Dynamic names
+  const f1Name = isZh 
+    ? (isAsturias ? '工人自治政府' : '共和派阵线') 
+    : (isAsturias ? "Workers' Alliance" : "REPUBLICAN FRONT");
+  const f1SubName = isZh
+    ? (isAsturias ? '「工农红军民兵」' : '「反法西斯同盟」')
+    : (isAsturias ? '"RED GUARDS"' : '"POPULAR COMBATANTS"');
+  const f1Title = isZh
+    ? (isAsturias ? '阿斯图里亚斯工人革命委员会' : '共和民主与工人民兵')
+    : (isAsturias ? "ASTURIAS REVOLUTIONARY COMMITTEE" : "THE PEOPLE’S ARMY");
+
+  const f2Name = isZh
+    ? (isAsturias ? '共和国政府军' : '国民派军人集团')
+    : (isAsturias ? "Republican Government" : "NATIONALIST JUNTA");
+  const f2SubName = isZh
+    ? (isAsturias ? '「政府宪兵与守备队」' : '「救国军事委员会」')
+    : (isAsturias ? '"GOVERNMENT FORCES"' : '"NATIONALIST JUNTA"');
+  const f2Title = isZh
+    ? (isAsturias ? '马德里中央政府军与内卫部队' : '常规军、摩洛哥军团与长枪党')
+    : (isAsturias ? "REPUBLICAN REGULAR GARRISONS" : "NATIONALIST ARMY");
+
+  const f1ColorClass = isAsturias ? 'bg-cnt-red' : 'bg-republic-purple';
+  const f1TextClass = isAsturias ? 'text-cnt-red' : 'text-republic-purple';
+  const f2ColorClass = isAsturias ? 'bg-blue-600' : 'bg-republic-yellow';
+  const f2TextClass = isAsturias ? 'text-blue-600' : 'text-republic-yellow';
+
   // 1. Calculate Province Stats & Strategic Values
-  let repStrategicValue = 0;
-  let natStrategicValue = 0;
-  let repProvincesCount = 0;
-  let natProvincesCount = 0;
-  let repTotalFactories = 0;
-  let natTotalFactories = 0;
+  let f1StrategicValue = 0;
+  let f2StrategicValue = 0;
+  let f1ProvincesCount = 0;
+  let f2ProvincesCount = 0;
+  let f1TotalFactories = 0;
+  let f2TotalFactories = 0;
 
   const provinceList = Object.values(provinces) as Province[];
   provinceList.forEach((prov) => {
-    if (prov.owner === Faction.REPUBLICAN) {
-      repStrategicValue += prov.strategicValue || 0;
-      repProvincesCount++;
-      repTotalFactories += prov.industry || 0;
-    } else if (prov.owner === Faction.NATIONALIST) {
-      natStrategicValue += prov.strategicValue || 0;
-      natProvincesCount++;
-      natTotalFactories += prov.industry || 0;
+    if (prov.owner === f1) {
+      f1StrategicValue += prov.strategicValue || 0;
+      f1ProvincesCount++;
+      f1TotalFactories += prov.industry || 0;
+    } else if (prov.owner === f2) {
+      f2StrategicValue += prov.strategicValue || 0;
+      f2ProvincesCount++;
+      f2TotalFactories += prov.industry || 0;
     }
   });
 
   // Prevent divide-by-zero
-  const totalSV = repStrategicValue + natStrategicValue || 1;
-  const repSVPercent = Math.round((repStrategicValue / totalSV) * 100);
-  const natSVPercent = 100 - repSVPercent;
+  const totalSV = f1StrategicValue + f2StrategicValue || 1;
+  const f1SVPercent = Math.round((f1StrategicValue / totalSV) * 100);
+  const f2SVPercent = 100 - f1SVPercent;
 
   // 2. Calculate Army Stats
-  let repDivisionsCount = 0;
-  let natDivisionsCount = 0;
+  let f1DivisionsCount = 0;
+  let f2DivisionsCount = 0;
 
-  let repInfantry = 0;
-  let repArtillery = 0;
-  let repTanks = 0;
-  let repActiveManpower = 0;
+  let f1Infantry = 0;
+  let f1Artillery = 0;
+  let f1Tanks = 0;
+  let f1ActiveManpower = 0;
 
-  let natInfantry = 0;
-  let natArtillery = 0;
-  let natTanks = 0;
-  let natActiveManpower = 0;
+  let f2Infantry = 0;
+  let f2Artillery = 0;
+  let f2Tanks = 0;
+  let f2ActiveManpower = 0;
 
   armies.forEach((army) => {
-    if (army.faction === Faction.REPUBLICAN) {
-      repDivisionsCount++;
-      repInfantry += army.composition.infantry || 0;
-      repArtillery += army.composition.artillery || 0;
-      repTanks += army.composition.tanks || 0;
-      repActiveManpower += army.manpower || 0;
-    } else if (army.faction === Faction.NATIONALIST) {
-      natDivisionsCount++;
-      natInfantry += army.composition.infantry || 0;
-      natArtillery += army.composition.artillery || 0;
-      natTanks += army.composition.tanks || 0;
-      natActiveManpower += army.manpower || 0;
+    if (army.faction === f1) {
+      f1DivisionsCount++;
+      f1Infantry += army.composition.infantry || 0;
+      f1Artillery += army.composition.artillery || 0;
+      f1Tanks += army.composition.tanks || 0;
+      f1ActiveManpower += army.manpower || 0;
+    } else if (army.faction === f2) {
+      f2DivisionsCount++;
+      f2Infantry += army.composition.infantry || 0;
+      f2Artillery += army.composition.artillery || 0;
+      f2Tanks += army.composition.tanks || 0;
+      f2ActiveManpower += army.manpower || 0;
     }
   });
 
   // Resources from context
-  const repRes = resources[Faction.REPUBLICAN] || { manpower: 0, industrialCapacity: 0, supplies: 0, tankReserve: 0 };
-  const natRes = resources[Faction.NATIONALIST] || { manpower: 0, industrialCapacity: 0, supplies: 0, tankReserve: 0 };
+  const f1Res = resources[f1] || { manpower: 0, industrialCapacity: 0, supplies: 0, tankReserve: 0 };
+  const f2Res = resources[f2] || { manpower: 0, industrialCapacity: 0, supplies: 0, tankReserve: 0 };
 
   // Balance ratios for specific metrics
   const getRatioPercent = (val1: number, val2: number) => {
@@ -90,10 +122,10 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
     return Math.round((val1 / total) * 100);
   };
 
-  const infRatio = getRatioPercent(repInfantry, natInfantry);
-  const artRatio = getRatioPercent(repArtillery, natArtillery);
-  const tankRatio = getRatioPercent(repTanks, natTanks);
-  const icRatio = getRatioPercent(repRes.industrialCapacity, natRes.industrialCapacity);
+  const infRatio = getRatioPercent(f1Infantry, f2Infantry);
+  const artRatio = getRatioPercent(f1Artillery, f2Artillery);
+  const tankRatio = getRatioPercent(f1Tanks, f2Tanks);
+  const icRatio = getRatioPercent(f1Res.industrialCapacity, f2Res.industrialCapacity);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 backdrop-blur-xs p-4 overflow-y-auto">
@@ -148,59 +180,59 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
               </span>
             </div>
             <div className="bg-cnt-red text-paper font-typewriter text-[10px] font-black px-3 py-1 uppercase tracking-wider transform -skew-x-12 border border-ink/20">
-              {isZh ? '共和派 vs 国民派' : 'REPUBLIC VS JUNTA'}
+              {f1Name} VS {f2Name}
             </div>
           </div>
 
-          {/* 1. Progress Bar: Total Strategic Value (Left Purple, Right Yellow) */}
+          {/* 1. Progress Bar: Total Strategic Value (Left Purple/Red, Right Yellow/Blue) */}
           <div className="bg-paper-dark/20 border-2 border-ink p-5 space-y-4 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-ink/5 rounded-full -mr-8 -mt-8" />
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-typewriter font-bold">
-              <div className="flex items-center gap-2 text-republic-purple">
+              <div className={`flex items-center gap-2 ${f1TextClass}`}>
                 <Star className="w-4 h-4 fill-current" />
                 <span className="uppercase text-sm">
-                  {isZh ? `共和军战线 [${repStrategicValue} 战略值]` : `REPUBLICAN [${repStrategicValue} SV]`}
+                  {f1Name} [{f1StrategicValue} {isZh ? '战略值' : 'SV'}]
                 </span>
               </div>
               <span className="text-ink/50 tracking-widest text-[10px] uppercase font-serif italic">
                 {isZh ? '── 全国战略控制权对比 ──' : '── BALANCE OF TOTAL STRATEGIC CONTROL ──'}
               </span>
-              <div className="flex items-center gap-2 text-republic-yellow">
+              <div className={`flex items-center gap-2 ${f2TextClass}`}>
                 <span className="uppercase text-sm">
-                  {isZh ? `[${natStrategicValue} 战略值] 国民军战线` : `[${natStrategicValue} SV] NATIONALIST`}
+                  [{f2StrategicValue} {isZh ? '战略值' : 'SV'}] {f2Name}
                 </span>
                 <Star className="w-4 h-4 fill-current" />
               </div>
             </div>
 
-            {/* Retro Balance Bar - Republic Purple vs Nationalist Yellow */}
+            {/* Retro Balance Bar - f1 vs f2 */}
             <div className="relative h-7 w-full bg-paper-dark border-2 border-ink overflow-hidden flex shadow-[3px_3px_0px_0px_rgba(26,26,26,0.15)]">
-              {/* Left Column (Republic) */}
+              {/* Left Column (f1) */}
               <div 
-                style={{ width: `${repSVPercent}%` }} 
-                className="h-full bg-republic-purple transition-all duration-700 flex items-center pl-3 border-r border-ink"
+                style={{ width: `${f1SVPercent}%` }} 
+                className={`h-full ${f1ColorClass} transition-all duration-700 flex items-center pl-3 border-r border-ink`}
               >
-                {repSVPercent > 12 && (
+                {f1SVPercent > 12 && (
                   <span className="text-xs font-typewriter font-black text-paper">
-                    {repSVPercent}%
+                    {f1SVPercent}%
                   </span>
                 )}
               </div>
-              {/* Right Column (Nationalist) */}
+              {/* Right Column (f2) */}
               <div 
-                style={{ width: `${natSVPercent}%` }} 
-                className="h-full bg-republic-yellow transition-all duration-700 flex items-center justify-end pr-3"
+                style={{ width: `${f2SVPercent}%` }} 
+                className={`h-full ${f2ColorClass} transition-all duration-700 flex items-center justify-end pr-3`}
               >
-                {natSVPercent > 12 && (
-                  <span className="text-xs font-typewriter font-black text-ink">
-                    {natSVPercent}%
+                {f2SVPercent > 12 && (
+                  <span className="text-xs font-typewriter font-black text-white">
+                    {f2SVPercent}%
                   </span>
                 )}
               </div>
               {/* Center pointer */}
               <div 
-                style={{ left: `${repSVPercent}%` }}
+                style={{ left: `${f1SVPercent}%` }}
                 className="absolute top-0 bottom-0 w-1.5 bg-cnt-red transform -translate-x-1/2 z-10"
               />
             </div>
@@ -215,23 +247,23 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
           {/* 2. Side-by-Side Comparison Blocks */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* REPUBLICAN FRONT */}
+            {/* F1 FRONT */}
             <div className="bg-paper-dark/10 border-2 border-ink p-5 space-y-6 relative overflow-hidden shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
               {/* Faction color accent rail */}
-              <div className="absolute top-0 left-0 w-2 h-full bg-republic-purple" />
+              <div className={`absolute top-0 left-0 w-2 h-full ${f1ColorClass}`} />
               
               {/* Faction Title Block */}
               <div className="border-b-2 border-ink/20 pb-4 pl-2">
                 <div className="flex justify-between items-center">
-                  <span className="bg-republic-purple text-paper font-typewriter text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider">
-                    {isZh ? '共和派阵线' : 'REPUBLICAN FRONT'}
+                  <span className={`${f1ColorClass} text-paper font-typewriter text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider`}>
+                    {f1Name}
                   </span>
                   <span className="font-typewriter text-[10px] text-ink/50 font-bold uppercase tracking-wider">
-                    {isZh ? '「反法西斯同盟」' : '"POPULAR COMBATANTS"'}
+                    {f1SubName}
                   </span>
                 </div>
                 <h3 className="font-display text-xl text-ink tracking-widest uppercase mt-2">
-                  {isZh ? '共和民主与工人民兵' : 'THE PEOPLE’S ARMY'}
+                  {f1Title}
                 </h3>
               </div>
 
@@ -242,18 +274,18 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Factory className="w-3.5 h-3.5 text-republic-purple" /> {isZh ? '工业动员 / 工厂' : 'INDUSTRIAL CAPACITY'}
+                      <Factory className={`w-3.5 h-3.5 ${f1TextClass}`} /> {isZh ? '工业动员 / 工厂' : 'INDUSTRIAL CAPACITY'}
                     </span>
-                    <span className="font-typewriter text-[10px] bg-republic-purple/15 text-republic-purple px-2 font-bold border border-republic-purple/30">
-                      {repProvincesCount} {isZh ? '省份' : 'Sectors'}
+                    <span className={`font-typewriter text-[10px] ${isAsturias ? 'bg-cnt-red/15 text-cnt-red border-cnt-red/30' : 'bg-republic-purple/15 text-republic-purple border-republic-purple/30'} px-2 font-bold border`}>
+                      {f1ProvincesCount} {isZh ? '省份' : 'Sectors'}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {repRes.industrialCapacity} <span className="text-xs font-typewriter font-medium">IC</span>
+                      {f1Res.industrialCapacity} <span className="text-xs font-typewriter font-medium">IC</span>
                     </span>
                     <span className="font-typewriter text-xs text-ink font-bold">
-                      {repTotalFactories} {isZh ? '核心军工厂' : 'Core Factories'}
+                      {f1TotalFactories} {isZh ? '核心军工厂' : 'Core Factories'}
                     </span>
                   </div>
                 </div>
@@ -262,18 +294,18 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-republic-purple" /> {isZh ? '动员兵源 / 在役数' : 'MANPOWER STATUS'}
+                      <Users className={`w-3.5 h-3.5 ${f1TextClass}`} /> {isZh ? '动员兵源 / 在役数' : 'MANPOWER STATUS'}
                     </span>
-                    <span className="font-typewriter text-[10px] bg-republic-purple/15 text-republic-purple px-2 font-bold border border-republic-purple/30">
-                      {repDivisionsCount} {isZh ? '军团' : 'Divisions'}
+                    <span className={`font-typewriter text-[10px] ${isAsturias ? 'bg-cnt-red/15 text-cnt-red border-cnt-red/30' : 'bg-republic-purple/15 text-republic-purple border-republic-purple/30'} px-2 font-bold border`}>
+                      {f1DivisionsCount} {isZh ? '军团' : 'Divisions'}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {repRes.manpower.toLocaleString()} <span className="text-xs font-typewriter font-medium">{isZh ? '储备' : 'Reserve'}</span>
+                      {f1Res.manpower.toLocaleString()} <span className="text-xs font-typewriter font-medium">{isZh ? '储备' : 'Reserve'}</span>
                     </span>
                     <span className="font-typewriter text-xs text-ink font-bold">
-                      {repActiveManpower.toLocaleString()} {isZh ? '前线在役' : 'Active Duty'}
+                      {f1ActiveManpower.toLocaleString()} {isZh ? '前线在役' : 'Active Duty'}
                     </span>
                   </div>
                 </div>
@@ -282,15 +314,15 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-republic-purple" /> {isZh ? '后勤补给物资' : 'LOGISTICS & MUNITIONS'}
+                      <Package className={`w-3.5 h-3.5 ${f1TextClass}`} /> {isZh ? '后勤补给物资' : 'LOGISTICS & MUNITIONS'}
                     </span>
-                    <span className="font-typewriter text-xs text-republic-purple font-bold">
-                      {isZh ? `装甲车辆: ${repRes.tankReserve}` : `Tanks Ready: ${repRes.tankReserve}`}
+                    <span className={`font-typewriter text-xs ${f1TextClass} font-bold`}>
+                      {isZh ? `装甲车辆: ${f1Res.tankReserve}` : `Tanks Ready: ${f1Res.tankReserve}`}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {repRes.supplies.toLocaleString()} <span className="text-xs font-typewriter font-medium">tons</span>
+                      {f1Res.supplies.toLocaleString()} <span className="text-xs font-typewriter font-medium">tons</span>
                     </span>
                     <span className="font-typewriter text-xs text-cnt-red font-bold">
                       {isZh ? '前线供应饱和' : 'Supplies Sustained'}
@@ -310,15 +342,15 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                   <div className="grid grid-cols-3 gap-2.5 text-center">
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '步兵主力' : 'Infantry'}</span>
-                      <span className="font-display text-lg font-black text-paper">{repInfantry.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f1Infantry.toLocaleString()}</span>
                     </div>
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '野战火炮' : 'Artillery'}</span>
-                      <span className="font-display text-lg font-black text-paper">{repArtillery.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f1Artillery.toLocaleString()}</span>
                     </div>
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '装甲/坦克' : 'Armor Units'}</span>
-                      <span className="font-display text-lg font-black text-paper">{repTanks.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f1Tanks.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -326,23 +358,23 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
               </div>
             </div>
 
-            {/* NATIONALIST FRONT */}
+            {/* F2 FRONT */}
             <div className="bg-paper-dark/10 border-2 border-ink p-5 space-y-6 relative overflow-hidden shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
               {/* Faction color accent rail */}
-              <div className="absolute top-0 left-0 w-2 h-full bg-republic-yellow" />
+              <div className={`absolute top-0 left-0 w-2 h-full ${f2ColorClass}`} />
               
               {/* Faction Title Block */}
               <div className="border-b-2 border-ink/20 pb-4 pl-2">
                 <div className="flex justify-between items-center">
-                  <span className="bg-republic-yellow text-ink font-typewriter text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider">
-                    {isZh ? '国民派军人集团' : 'NATIONALIST JUNTA'}
+                  <span className={`${f2ColorClass} text-white font-typewriter text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider`}>
+                    {f2Name}
                   </span>
                   <span className="font-typewriter text-[10px] text-ink/50 font-bold uppercase tracking-wider">
-                    {isZh ? '「救国军事委员会」' : '"NATIONALIST JUNTA"'}
+                    {f2SubName}
                   </span>
                 </div>
                 <h3 className="font-display text-xl text-ink tracking-widest uppercase mt-2">
-                  {isZh ? '常规军、摩洛哥军团与长枪党' : 'NATIONALIST ARMY'}
+                  {f2Title}
                 </h3>
               </div>
 
@@ -353,18 +385,18 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Factory className="w-3.5 h-3.5 text-republic-yellow" /> {isZh ? '工业动员 / 工厂' : 'INDUSTRIAL CAPACITY'}
+                      <Factory className={`w-3.5 h-3.5 ${f2TextClass}`} /> {isZh ? '工业动员 / 工厂' : 'INDUSTRIAL CAPACITY'}
                     </span>
-                    <span className="font-typewriter text-[10px] bg-republic-yellow/15 text-ink px-2 font-bold border border-republic-yellow/30">
-                      {natProvincesCount} {isZh ? '省份' : 'Sectors'}
+                    <span className={`font-typewriter text-[10px] ${isAsturias ? 'bg-republic-purple/15 text-republic-purple border-republic-purple/30' : 'bg-republic-yellow/15 text-ink border-republic-yellow/30'} px-2 font-bold border`}>
+                      {f2ProvincesCount} {isZh ? '省份' : 'Sectors'}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {natRes.industrialCapacity} <span className="text-xs font-typewriter font-medium">IC</span>
+                      {f2Res.industrialCapacity} <span className="text-xs font-typewriter font-medium">IC</span>
                     </span>
                     <span className="font-typewriter text-xs text-ink font-bold">
-                      {natTotalFactories} {isZh ? '核心军工厂' : 'Core Factories'}
+                      {f2TotalFactories} {isZh ? '核心军工厂' : 'Core Factories'}
                     </span>
                   </div>
                 </div>
@@ -373,18 +405,18 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-republic-yellow" /> {isZh ? '动员兵源 / 在役数' : 'MANPOWER STATUS'}
+                      <Users className={`w-3.5 h-3.5 ${f2TextClass}`} /> {isZh ? '动员兵源 / 在役数' : 'MANPOWER STATUS'}
                     </span>
-                    <span className="font-typewriter text-[10px] bg-republic-yellow/15 text-ink px-2 font-bold border border-republic-yellow/30">
-                      {natDivisionsCount} {isZh ? '军团' : 'Divisions'}
+                    <span className={`font-typewriter text-[10px] ${isAsturias ? 'bg-republic-purple/15 text-republic-purple border-republic-purple/30' : 'bg-republic-yellow/15 text-ink border-republic-yellow/30'} px-2 font-bold border`}>
+                      {f2DivisionsCount} {isZh ? '军团' : 'Divisions'}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {natRes.manpower.toLocaleString()} <span className="text-xs font-typewriter font-medium">{isZh ? '储备' : 'Reserve'}</span>
+                      {f2Res.manpower.toLocaleString()} <span className="text-xs font-typewriter font-medium">{isZh ? '储备' : 'Reserve'}</span>
                     </span>
                     <span className="font-typewriter text-xs text-ink font-bold">
-                      {natActiveManpower.toLocaleString()} {isZh ? '前线在役' : 'Active Duty'}
+                      {f2ActiveManpower.toLocaleString()} {isZh ? '前线在役' : 'Active Duty'}
                     </span>
                   </div>
                 </div>
@@ -393,15 +425,15 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 <div className="border border-ink/20 p-3 bg-paper-dark/30 hover:bg-paper-dark/50 transition-colors">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-typewriter text-[11px] text-ink/60 uppercase font-black tracking-wider flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-republic-yellow" /> {isZh ? '后勤补给物资' : 'LOGISTICS & MUNITIONS'}
+                      <Package className={`w-3.5 h-3.5 ${f2TextClass}`} /> {isZh ? '后勤补给物资' : 'LOGISTICS & MUNITIONS'}
                     </span>
-                    <span className="font-typewriter text-xs text-ink font-bold">
-                      {isZh ? `装甲车辆: ${natRes.tankReserve}` : `Tanks Ready: ${natRes.tankReserve}`}
+                    <span className={`font-typewriter text-xs ${f2TextClass} font-bold`}>
+                      {isZh ? `装甲车辆: ${f2Res.tankReserve}` : `Tanks Ready: ${f2Res.tankReserve}`}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="font-display text-xl font-black text-ink">
-                      {natRes.supplies.toLocaleString()} <span className="text-xs font-typewriter font-medium">tons</span>
+                      {f2Res.supplies.toLocaleString()} <span className="text-xs font-typewriter font-medium">tons</span>
                     </span>
                     <span className="font-typewriter text-xs text-ink-light font-bold">
                       {isZh ? '物资保障充沛' : 'Supplies Secured'}
@@ -421,15 +453,15 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                   <div className="grid grid-cols-3 gap-2.5 text-center">
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '步兵主力' : 'Infantry'}</span>
-                      <span className="font-display text-lg font-black text-paper">{natInfantry.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f2Infantry.toLocaleString()}</span>
                     </div>
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '野战火炮' : 'Artillery'}</span>
-                      <span className="font-display text-lg font-black text-paper">{natArtillery.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f2Artillery.toLocaleString()}</span>
                     </div>
                     <div className="bg-ink-light p-2 border border-paper/10">
                       <span className="block text-[9px] text-paper-dark uppercase tracking-wider">{isZh ? '装甲/坦克' : 'Armor Units'}</span>
-                      <span className="font-display text-lg font-black text-paper">{natTanks.toLocaleString()}</span>
+                      <span className="font-display text-lg font-black text-paper">{f2Tanks.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -444,13 +476,13 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
             
             {/* Rubber Stamp mark decoration */}
             <div className="absolute bottom-3 right-6 border-4 border-double border-cnt-red/35 text-cnt-red/35 font-display text-xs px-3.5 py-1.5 rounded tracking-widest uppercase rotate-12 select-none pointer-events-none hidden md:block">
-              {isZh ? '西班牙大本营核准' : 'APPROVED STAFF'}
+              {isZh ? '部参谋长签署' : 'APPROVED STAFF'}
             </div>
 
             <div className="flex items-center gap-2 border-b border-ink/20 pb-2">
               <Crosshair className="w-5 h-5 text-cnt-red" />
               <h4 className="font-display text-md tracking-wider font-black text-ink uppercase">
-                {isZh ? '双边总体对抗实力对比指数 (共和军 紫 vs 国民军 黄)' : 'MILITARY CAPACITY STRENGTH METRICS (REPUBLIC PURPLE VS JUNTA YELLOW)'}
+                {isZh ? `双边总体对抗实力对比指数 (${f1Name} vs ${f2Name})` : `MILITARY CAPACITY STRENGTH METRICS (${f1Name.toUpperCase()} VS ${f2Name.toUpperCase()})`}
               </h4>
             </div>
 
@@ -459,52 +491,52 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
               {/* Infantry Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] md:text-xs">
-                  <span className="font-bold">{isZh ? `共和军步兵: ${repInfantry.toLocaleString()}` : `REP Infantry: ${repInfantry.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f1Name}步兵: ${f1Infantry.toLocaleString()}` : `${f1Name} Infantry: ${f1Infantry.toLocaleString()}`}</span>
                   <span className="font-serif italic text-ink/60 font-medium">{isZh ? '步兵作战兵力对比' : 'INFANTRY STRENGTH'}</span>
-                  <span className="font-bold">{isZh ? `${natInfantry.toLocaleString()} :国民军步兵` : `${natInfantry.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f2Infantry.toLocaleString()} :${f2Name}步兵` : `${f2Infantry.toLocaleString()} :${f2Name}`}</span>
                 </div>
                 <div className="h-3 w-full bg-paper-dark border border-ink overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${infRatio}%` }} className="h-full bg-republic-purple border-r border-ink/40 transition-all duration-500" />
-                  <div style={{ width: `${100 - infRatio}%` }} className="h-full bg-republic-yellow transition-all duration-500" />
+                  <div style={{ width: `${infRatio}%` }} className={`h-full ${f1ColorClass} border-r border-ink/40 transition-all duration-500`} />
+                  <div style={{ width: `${100 - infRatio}%` }} className={`h-full ${f2ColorClass} transition-all duration-500`} />
                 </div>
               </div>
 
               {/* Artillery Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] md:text-xs">
-                  <span className="font-bold">{isZh ? `共和军火炮: ${repArtillery.toLocaleString()}` : `REP Artillery: ${repArtillery.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f1Name}火炮: ${f1Artillery.toLocaleString()}` : `${f1Name} Artillery: ${f1Artillery.toLocaleString()}`}</span>
                   <span className="font-serif italic text-ink/60 font-medium">{isZh ? '重武力火力对比' : 'ARTILLERY CAPACITY'}</span>
-                  <span className="font-bold">{isZh ? `${natArtillery.toLocaleString()} :国民军火炮` : `${natArtillery.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f2Artillery.toLocaleString()} :${f2Name}火炮` : `${f2Artillery.toLocaleString()} :${f2Name}`}</span>
                 </div>
                 <div className="h-3 w-full bg-paper-dark border border-ink overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${artRatio}%` }} className="h-full bg-republic-purple border-r border-ink/40 transition-all duration-500" />
-                  <div style={{ width: `${100 - artRatio}%` }} className="h-full bg-republic-yellow transition-all duration-500" />
+                  <div style={{ width: `${artRatio}%` }} className={`h-full ${f1ColorClass} border-r border-ink/40 transition-all duration-500`} />
+                  <div style={{ width: `${100 - artRatio}%` }} className={`h-full ${f2ColorClass} transition-all duration-500`} />
                 </div>
               </div>
 
               {/* Tanks Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] md:text-xs">
-                  <span className="font-bold">{isZh ? `共和军装甲: ${repTanks.toLocaleString()}` : `REP Armor: ${repTanks.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f1Name}装甲: ${f1Tanks.toLocaleString()}` : `${f1Name} Armor: ${f1Tanks.toLocaleString()}`}</span>
                   <span className="font-serif italic text-ink/60 font-medium">{isZh ? '战车装甲实力对比' : 'ARMORED TANK SCALE'}</span>
-                  <span className="font-bold">{isZh ? `${natTanks.toLocaleString()} :国民军装甲` : `${natTanks.toLocaleString()}`}</span>
+                  <span className="font-bold">{isZh ? `${f2Tanks.toLocaleString()} :${f2Name}装甲` : `${f2Tanks.toLocaleString()} :${f2Name}`}</span>
                 </div>
                 <div className="h-3 w-full bg-paper-dark border border-ink overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${tankRatio}%` }} className="h-full bg-republic-purple border-r border-ink/40 transition-all duration-500" />
-                  <div style={{ width: `${100 - tankRatio}%` }} className="h-full bg-republic-yellow transition-all duration-500" />
+                  <div style={{ width: `${tankRatio}%` }} className={`h-full ${f1ColorClass} border-r border-ink/40 transition-all duration-500`} />
+                  <div style={{ width: `${100 - tankRatio}%` }} className={`h-full ${f2ColorClass} transition-all duration-500`} />
                 </div>
               </div>
 
               {/* Industrial Capacity Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] md:text-xs">
-                  <span className="font-bold">{isZh ? `共和军工业: ${repRes.industrialCapacity}` : `REP IC: ${repRes.industrialCapacity}`}</span>
+                  <span className="font-bold">{isZh ? `${f1Name}工业: ${f1Res.industrialCapacity}` : `${f1Name} IC: ${f1Res.industrialCapacity}`}</span>
                   <span className="font-serif italic text-ink/60 font-medium">{isZh ? '工业动员潜能对比' : 'INDUSTRIAL RATIO'}</span>
-                  <span className="font-bold">{isZh ? `${natRes.industrialCapacity} :国民军工业` : `${natRes.industrialCapacity}`}</span>
+                  <span className="font-bold">{isZh ? `${f2Res.industrialCapacity} :${f2Name}工业` : `${f2Res.industrialCapacity} :${f2Name}`}</span>
                 </div>
                 <div className="h-3 w-full bg-paper-dark border border-ink overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${icRatio}%` }} className="h-full bg-republic-purple border-r border-ink/40 transition-all duration-500" />
-                  <div style={{ width: `${100 - icRatio}%` }} className="h-full bg-republic-yellow transition-all duration-500" />
+                  <div style={{ width: `${icRatio}%` }} className={`h-full ${f1ColorClass} border-r border-ink/40 transition-all duration-500`} />
+                  <div style={{ width: `${100 - icRatio}%` }} className={`h-full ${f2ColorClass} transition-all duration-500`} />
                 </div>
               </div>
 

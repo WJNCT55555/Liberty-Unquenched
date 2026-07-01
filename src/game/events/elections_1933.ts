@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 import { calculateElectionResults } from '../utils/election';
 
 export const elections1933: GameEvent = {
@@ -16,14 +16,14 @@ export const elections1933: GameEvent = {
       subtitle: 'A massive abstention campaign will likely lead to a right-wing victory.',
       subtitleZh: '大规模的弃权运动很可能导致右翼获胜。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Massive abstention hurts the left severely
-        newClasses.Obreros.support.PSOE -= 15;
-        newClasses.PequenaBurguesia.support.IR -= 5;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', -15);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', -5);
         
         // Right wing consolidates further due to clear path
-        newClasses.Latifundistas.support.AP += 10;
-        newClasses.Clero.support.AP += 10;
+        newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'AP', 10);
+        newClasses = adjustClassSupport(newClasses, 'Clero', 'AP', 10);
 
         return {
           classes: newClasses,
@@ -42,10 +42,10 @@ export const elections1933: GameEvent = {
       subtitle: 'Betrays our anti-electoral stance but might prevent a reactionary government.',
       subtitleZh: '背叛了我们的反选举立场，但可能会阻止一个反动政府的出现。',
       effect: (state) => {
-        const newClasses = JSON.parse(JSON.stringify(state.classes));
+        let newClasses = state.classes;
         // Supporting the left mitigates their losses
-        newClasses.Obreros.support.PSOE += 10;
-        newClasses.PequenaBurguesia.support.IR += 5;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PSOE', 10);
+        newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', 5);
         
         return {
           classes: newClasses,

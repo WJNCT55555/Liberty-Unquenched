@@ -1,5 +1,5 @@
 import { Card } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const supportAgrarianReform: Card = {
   id: 'support agrarian reform',
@@ -10,10 +10,10 @@ export const supportAgrarianReform: Card = {
   descriptionZh: '支持共和国的土地改革，改善与共和左翼(IR)和工人社会党(PSOE)的关系。',
   cost: 1,
   effect: (state) => {
-    const newClasses = JSON.parse(JSON.stringify(state.classes));
-    newClasses.Braceros.support.IR += 10;
-    newClasses.Braceros.support.PSOE += 5;
-    newClasses.Braceros.support.CNT_FAI -= 15;
+    let newClasses = state.classes;
+    newClasses = adjustClassSupport(newClasses, 'Braceros', 'IR', 10);
+    newClasses = adjustClassSupport(newClasses, 'Braceros', 'PSOE', 5);
+    newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -15);
     return {
       classes: newClasses,
       factions: adjustFactionInfluence(state.factions, 'Treintistas', 10)

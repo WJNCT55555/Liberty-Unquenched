@@ -692,6 +692,7 @@ export const FACTION_COLORS = {
   [Faction.NATIONALIST]: '#E2B04E', // Earthy Yellow (Historical look)
   [Faction.PORTUGAL]: '#738C6C', // Sage Green
   [Faction.NEUTRAL]: '#D4C9B3', // Beige/Parchment
+  [Faction.WORKERS_ALLIANCE]: '#C62828', // Revolutionary Crimson
 };
 
 export const UI_COLORS = {
@@ -775,5 +776,44 @@ export const PORTUGUESE_PROVINCES = [
 export function isPortugalProvince(provinceId: string): boolean {
   if (!provinceId) return false;
   return PORTUGUESE_PROVINCES.includes(provinceId.toLowerCase());
+}
+
+export const FLIPPED_PROVINCES = [
+  'sevilla', 'coruna', 'lugo', 'orense', 'pontevedra', 'leon', 'zamora', 
+  'salamanca', 'avila', 'segovia', 'valladolid', 'palencia', 'soria', 
+  'zaragoza', 'huesca', 'teruel', 'caceres', 'cadiz', 'huelva', 'cordoba', 
+  'granada', 'navarra', 'burgos', 'alava', 'rioja',
+  'balears', 'oviedo', 'ceuta', 'melilla', 'laspalmas', 'santacruzdetenerife',
+  'tetouan', 'larache', 'nador', 'chefchaouen', 'alhoceima'
+];
+
+export function initializeMapState(scenario: string, civilWarStatus: string) {
+  const provinces = { ...INITIAL_PROVINCES };
+  let armies = [...INITIAL_ARMIES];
+
+  if (scenario === '1936' || civilWarStatus === 'ongoing') {
+    // 1. Flip the 1936 provinces to Nationalist
+    FLIPPED_PROVINCES.forEach(id => {
+      if (provinces[id]) {
+        provinces[id] = {
+          ...provinces[id],
+          owner: Faction.NATIONALIST
+        };
+      }
+    });
+
+    // 2. Flip Morocco army to Nationalist
+    armies = armies.map(army => {
+      if (army.id === 'rep_africa') {
+        return {
+          ...army,
+          faction: Faction.NATIONALIST
+        };
+      }
+      return army;
+    });
+  }
+
+  return { provinces, armies };
 }
 
