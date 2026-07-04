@@ -45,22 +45,23 @@ export const EndingScreen = () => {
   if (!endingDetail) return null;
 
   const partyNames: Record<Party, { en: string, zh: string }> = {
+    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
+    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
     PSOE: { en: 'PSOE', zh: '工人社会党 (PSOE)' },
+    PS: { en: 'PS', zh: '工团主义党 (PS)' },
+    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
     IR: { en: 'IR', zh: '共和左翼 (IR)' },
     UR: { en: 'UR', zh: '共和联盟 (UR)' },
-    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
-    PS: { en: 'PS', zh: '工团主义党 (PS)' },
+    PNV: { en: 'PNV', zh: '巴斯克民族主义党 (PNV)' },
+    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
+    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
+    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
+    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
+    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
     FE: { 
       en: state.falange_jons ? 'FE de las JONS' : 'Falange Española', 
       zh: state.falange_jons ? '长枪党 (FE de las JONS)' : '西班牙长枪党 (FE)' 
     },
-    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
-    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
-    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
-    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
-    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
-    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
-    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
     Other: { en: 'Other', zh: '其他' },
     PRRevS: { en: 'PRRevS', zh: '革命共和工团党 (PRRevS)' }
   };
@@ -75,19 +76,20 @@ export const EndingScreen = () => {
 
   const PARTIES: ('CNT_FAI' | Party)[] = [
     'CNT_FAI',
+    'POUM',
+    'PCE',
     'PSOE',
+    'PS',
+    'ERC',
     'IR',
     'UR',
-    'PCE',
-    'PS',
-    'FE',
-    'POUM',
-    'AP',
-    'CT',
-    'RE',
-    'DLR',
+    'PNV',
     'PRR',
-    'ERC',
+    'DLR',
+    'AP',
+    'RE',
+    'CT',
+    'FE',
     'Other',
     'PRRevS'
   ];

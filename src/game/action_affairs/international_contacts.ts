@@ -1,5 +1,5 @@
-import { Card } from '../types';
-import { adjustFactionInfluence } from '../utils';
+﻿import { Card } from '../types';
+import { adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence, getDissentMultiplier } from '../utils';
 
 export const internationalContacts: Card = {
   id: 'international_contacts',
@@ -11,10 +11,9 @@ export const internationalContacts: Card = {
   cost: 1,
   condition: (state) => state.international_relations_timer <= 0,
   effect: (state) => {
-    const totalDissent = Object.values(state.factions).reduce((acc, f) => acc + f.dissent, 0) / 400;
+    const dissentMultiplier = getDissentMultiplier(state.factions);
     
     return {
-      actionsLeft: state.actionsLeft + 1,
       international_relations_timer: 9,
       currentEvent: {
         id: 'international_contacts_event',
@@ -30,6 +29,8 @@ export const internationalContacts: Card = {
             subtitle: 'Contact the CGT-SR and other French syndicalist groups to coordinate anti-fascist efforts.',
             subtitleZh: '联系法国总工会-革命工团派（CGT-SR）及其他工团主义团体，共同对抗法西斯主义在欧洲的扩张。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => ({
               resources: s.resources - 1,
               relations: {
@@ -47,6 +48,8 @@ export const internationalContacts: Card = {
             subtitle: 'Strengthen ties with the CGTP and Portuguese anarchists to support the Iberian movement.',
             subtitleZh: '加强与葡萄牙总工会（CGTP）及无政府主义者的联系，支撑伊比利亚自由共产主义运动。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => ({
               resources: s.resources - 1,
               relations: {
@@ -56,7 +59,7 @@ export const internationalContacts: Card = {
               factions: adjustFactionInfluence(
                 adjustFactionInfluence(s.factions, 'Faistas', 5),
                 'Puristas',
-                Math.round(5 * (1 - totalDissent))
+                Math.round(5 * dissentMultiplier)
               ),
               covert_ops_portugal: s.covert_ops_portugal + 1
             })
@@ -67,6 +70,8 @@ export const internationalContacts: Card = {
             subtitle: 'Learn clandestine tactics from those fighting Hitler and Mussolini\'s regimes.',
             subtitleZh: '从对抗希特勒和墨索里尼政权的斗争中学习秘密组织与街头战术，并接纳流亡同志。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => ({
               resources: s.resources - 1,
               relations: {
@@ -77,7 +82,7 @@ export const internationalContacts: Card = {
               factions: adjustFactionInfluence(
                 adjustFactionInfluence(s.factions, 'Faistas', 5),
                 'Cenetistas',
-                Math.round(3 * (1 - totalDissent))
+                Math.round(3 * dissentMultiplier)
               ),
               armedForces: {
                 ...s.armedForces,
@@ -94,6 +99,8 @@ export const internationalContacts: Card = {
             subtitle: 'Connect with organizations like the FORA in Argentina to build international solidarity.',
             subtitleZh: '与阿根廷FORA等拉丁美洲组织建立联系，获取国际声援与物资通道。',
             condition: (s) => s.resources >= 2,
+            unavailableSubtitle: () => 'Need at least 2 resources.',
+            unavailableSubtitleZh: () => '需要至少 2 资源。',
             effect: (s) => ({
               resources: s.resources - 2,
               relations: {
@@ -118,6 +125,8 @@ export const internationalContacts: Card = {
             subtitle: 'Reach out to the "Wobblies" across the Atlantic, though their influence is waning.',
             subtitleZh: '跨越大西洋联系“世界产业工人”，尽管他们的影响力正在减弱。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => ({
               resources: s.resources - 1
             })
@@ -128,9 +137,10 @@ export const internationalContacts: Card = {
             subtitle: 'Evaluate potential cooperation with Soviet-aligned labor organizations.',
             subtitleZh: '评估与苏联结盟的劳工组织合作的可能性，这可能会引起党内纯粹派的疑虑。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => {
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
-              newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 5);
+              const newFactions = adjustFactionDissent(s.factions, 'Puristas', 5);
               
               return {
                 resources: s.resources - 1,
@@ -153,12 +163,15 @@ export const internationalContacts: Card = {
             subtitle: 'Deepen our involvement in the AIT to unify the global anarchist movement.',
             subtitleZh: '深化我们在国际工人协会（AIT）中的参与，统一全球无政府主义运动。',
             condition: (s) => s.resources >= 1,
+            unavailableSubtitle: () => 'Need at least 1 resource.',
+            unavailableSubtitleZh: () => '需要至少 1 资源。',
             effect: (s) => {
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
-              newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
-              newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
-              newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 5);
-              newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 3);
+              const newFactions = adjustFactionDissents(s.factions, {
+                Faistas: -5,
+                Puristas: -5,
+                Cenetistas: -5,
+                Treintistas: -3
+              });
               
               return {
                 resources: s.resources - 1,
@@ -182,3 +195,4 @@ export const internationalContacts: Card = {
     };
   },
 };
+

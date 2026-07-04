@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustClassSupport, adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { media } from './media';
 
 export const organizationsCard: Card = {
@@ -27,11 +27,13 @@ export const organizationsCard: Card = {
           subtitle: 'Spread our ideas through the printed word and trigger Media options immediately.',
           subtitleZh: '通过印刷品传播我们的理念，直接跳转并触发媒体活动。',
           condition: (s: GameState) => s.resources >= 1,
+          unavailableSubtitle: () => 'Need at least 1 resource.',
           unavailableSubtitleZh: () => '资源不足。',
           effect: (s: GameState) => {
             const mediaResult = media.effect(s);
             return {
               resources: s.resources - 1,
+              // Intentionally bypasses the media cooldown so this funding action can jump directly into Media options.
               propaganda_timer: 0,
               currentEvent: mediaResult.currentEvent
             };
@@ -43,6 +45,7 @@ export const organizationsCard: Card = {
           subtitle: 'Provide a safety net for striking workers and their families.',
           subtitleZh: '为罢工工人及其家属提供安全网，增强群众的斗争底气。',
           condition: (s: GameState) => s.resources >= 1,
+          unavailableSubtitle: () => 'Need at least 1 resource.',
           unavailableSubtitleZh: () => '资源不足。',
           effect: (s: GameState) => {
             const dissentModifier = 1 - ((s.stats.tension || 0) / 100); 
@@ -64,13 +67,10 @@ export const organizationsCard: Card = {
           subtitle: 'Cultural centers to educate the workers and reduce factionalism.',
           subtitleZh: '建立文化中心以教育工人，通过文化认同减少内部派系分歧。',
           condition: (s: GameState) => s.resources >= 1,
+          unavailableSubtitle: () => 'Need at least 1 resource.',
           unavailableSubtitleZh: () => '资源不足。',
           effect: (s: GameState) => {
-            const newFactions = JSON.parse(JSON.stringify(s.factions));
-            
-            newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 6);
-            newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 6);
-            newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 6);
+            const newFactions = adjustFactionDissents(s.factions, { Faistas: -6, Treintistas: -6, Cenetistas: -6 });
 
             return {
               resources: s.resources - 1,
@@ -85,10 +85,10 @@ export const organizationsCard: Card = {
           subtitle: 'Prepare our defense committees for the inevitable conflict with the state.',
           subtitleZh: '让我们的防卫委员会为与国家机器之间不可避免的冲突做好准备。',
           condition: (s: GameState) => s.resources >= 1,
+          unavailableSubtitle: () => 'Need at least 1 resource.',
           unavailableSubtitleZh: () => '资源不足。',
           effect: (s: GameState) => {
-            const newFactions = JSON.parse(JSON.stringify(s.factions));
-            newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 6);
+            const newFactions = adjustFactionDissent(s.factions, 'Treintistas', 6);
 
             return {
               resources: s.resources - 1,
@@ -109,12 +109,11 @@ export const organizationsCard: Card = {
           subtitle: 'Mobilize the next generation of anarchists.',
           subtitleZh: '动员下一代无政府主义者，为组织注入新鲜血液。',
           condition: (s: GameState) => s.resources >= 2 && !s.fijl_established,
+          unavailableSubtitle: () => 'Need at least 2 resources or already established.',
           unavailableSubtitleZh: () => '资源不足或已成立。',
           effect: (s: GameState) => {
-            let newFactions = JSON.parse(JSON.stringify(s.factions));
-            
-            newFactions = adjustFactionInfluence(newFactions, 'Faistas', 5);
-            newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 3);
+            let newFactions = adjustFactionInfluence(s.factions, 'Faistas', 5);
+            newFactions = adjustFactionDissent(newFactions, 'Treintistas', 3);
 
             return {
               resources: s.resources - 2,
@@ -136,6 +135,7 @@ export const organizationsCard: Card = {
           subtitle: 'Empower women and challenge the reactionary influence of the Church.',
           subtitleZh: '赋予妇女权利，挑战教会的保守影响，扩大我们的社会基础。',
           condition: (s: GameState) => s.resources >= 2 && !s.mujeres_libres_established,
+          unavailableSubtitle: () => 'Need at least 2 resources or already established.',
           unavailableSubtitleZh: () => '资源不足或已成立。',
           effect: (s: GameState) => {
             let newClasses = s.classes;

@@ -10,8 +10,9 @@ export const impeachPresident: Card = {
   descriptionZh: '根据1931年宪法第81条，新选出的议会有权审查总统第二次解散议会的决定。如果议会认定第二次解散是不必要的或没有正当理由，则可以通过投票弹劾并罢免总统。由于总统已经两次解散了议会，我们现在可以行使这一宪法权力。',
   cost: 1,
   condition: (state) => {
-    // Available if the president has dissolved parliament at least twice, and is not yet impeached, and we are not in civil war
-    return state.impeachPresidentAvailable && !state.isPresidentImpeached && !state.civilWarStatus;
+    return state.impeachPresidentAvailable &&
+       !state.isPresidentImpeached &&
+       state.civilWarStatus === 'not_started';
   },
   effect: (state: GameState) => {
     return {
@@ -35,7 +36,6 @@ export const impeachPresident: Card = {
               
               return {
                 isPresidentImpeached: true,
-                presidentImpeached: true,
                 government: {
                   ...s.government,
                   president: 'Diego Martínez Barrio',
@@ -45,7 +45,6 @@ export const impeachPresident: Card = {
                 coupProgress: (s.coupProgress || 0) + 1,
                 stats: {
                   ...s.stats,
-                  tension: Math.min(100, s.stats.tension + 12),
                   revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10)
                 },
                 currentEvent: presidentialElectionDecision
@@ -64,10 +63,6 @@ export const impeachPresident: Card = {
               currentRelations.AP = Math.min(100, (currentRelations.AP ?? 0) + 10);
 
               return {
-                stats: {
-                  ...s.stats,
-                  tension: Math.max(0, s.stats.tension - 8)
-                },
                 partyRelations: currentRelations
               };
             }

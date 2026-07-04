@@ -103,11 +103,12 @@ export const elections1936Results: GameEvent = {
       DLR: { en: 'DLR', zh: '自由共和右翼' },
       PRR: { en: 'PRR', zh: '共和激进党 (勒鲁派)' },
       ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
+      PNV: { en: 'PNV', zh: '巴斯克民族主义党' },
       Other: { en: 'Other', zh: '其他' },
       PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
     };
 
-    const partyOrder: Party[] = ['PS', 'PRRevS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
+    const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
@@ -191,9 +192,28 @@ export const elections1936Results: GameEvent = {
       unavailableSubtitleZh: (state) => '人民阵线席位必须大于或等于国家阵线。',
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
+        const updatedMinisters = { ...state.ministers };
+        const hist1936: Record<string, string> = {
+          labor: 'ERC',
+          health: 'ERC',
+          justice: 'UR',
+          industry: 'Other',
+          interior: 'Other',
+          war: 'IR',
+          agriculture: 'IR',
+          finance: 'IR',
+          estado: 'UR',
+        };
+        for (const role of Object.keys(hist1936)) {
+          if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
+            updatedMinisters[role as keyof typeof updatedMinisters] = hist1936[role] as any;
+          }
+        }
+
         const baseState = {
           ...state,
           cortes: newCortes,
+          ministers: updatedMinisters,
           government: {
             ...state.government,
             type: 'Popular Front Cabinet',
@@ -203,7 +223,6 @@ export const elections1936Results: GameEvent = {
           },
           stats: {
             ...state.stats,
-            tension: Math.min(100, state.stats.tension + 15), // Polarization triggers military coup preparations
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
           }
         };
@@ -228,9 +247,16 @@ export const elections1936Results: GameEvent = {
       unavailableSubtitleZh: (state) => '国家阵线席位必须大于人民阵线。',
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
+        const updatedMinisters = { ...state.ministers };
+        for (const role of Object.keys(updatedMinisters)) {
+          if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
+            updatedMinisters[role as keyof typeof updatedMinisters] = 'Right';
+          }
+        }
         return {
           cortes: newCortes,
           cntStance: 'oppose' as const,
+          ministers: updatedMinisters,
           government: {
             ...state.government,
             type: 'National Front Government',
@@ -246,7 +272,6 @@ export const elections1936Results: GameEvent = {
           },
           stats: {
             ...state.stats,
-            tension: Math.min(100, state.stats.tension + 25),
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 30),
             workerControl: Math.max(0, state.stats.workerControl - 15)
           }

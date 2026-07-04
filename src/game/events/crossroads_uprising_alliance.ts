@@ -26,8 +26,7 @@ export const crossroadsUprisingAlliance: GameEvent = {
           crossroads_choice: 'uprising',
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15),
-            tension: Math.min(100, state.stats.tension + 10)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15)
           },
           partyRelations: {
             ...state.partyRelations,
@@ -68,9 +67,7 @@ export const crossroadsUprisingAlliance: GameEvent = {
           activeCoalition: nextState.activeCoalition,
           coalitionHistory: nextState.coalitionHistory,
           stats: {
-            ...nextState.stats,
-            // tension remains unchanged or increases slightly (cannot decrease)
-            tension: Math.max(state.stats.tension, nextState.stats.tension)
+            ...nextState.stats
           }
         };
       }

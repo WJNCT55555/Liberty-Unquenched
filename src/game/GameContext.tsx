@@ -10,6 +10,7 @@ import { MapFaction, Army, ResourceSet } from '../map/types_map';
 import { calculateAiMoves } from '../map/lib/gameAi';
 import { civilWarSetup } from './events/civil_war/civil_war_setup';
 import { adjustClassSupport } from './utils';
+import { INITIAL_CLASSES, INITIAL_PARTY_RELATIONS, SCENARIO_1933_CLASSES, SCENARIO_1936_CLASSES } from './parties';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -327,8 +328,7 @@ function checkWarStatus(state: GameState, isZh: boolean): GameState {
             effect: (s) => ({
               stats: {
                 ...s.stats,
-                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 12),
-                tension: Math.min(100, (s.stats?.tension ?? 34) + 8)
+                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 12)
               }
             })
           }
@@ -664,7 +664,6 @@ export const INITIAL_STATE: GameState = {
   labor_rights_timer: 0,
   labor_affairs_timer: 0,
   fiscal_policy_timer: 0,
-  finance_minister_party: 'Right',
   coupProgress: 0,
   economy_growth: 2.5,
   inflation_rate: 3.5,
@@ -717,16 +716,7 @@ export const INITIAL_STATE: GameState = {
     Puristas: { influence: 10, dissent: 20 },
     Jabalistas: { influence: 0, dissent: 0 },
   },
-  classes: {
-    Obreros: { support: { CNT_FAI: 35, PSOE: 50, PCE: 5, IR: 5, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 2, Other: 3, PRRevS: 0 } },
-    Braceros: { support: { CNT_FAI: 25, PSOE: 50, PCE: 0, IR: 10, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 15, PRRevS: 0 } },
-    Labradores: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 20, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 5, RE: 0, DLR: 0, PRR: 15, ERC: 5, Other: 40, PRRevS: 0 } },
-    Latifundistas: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 35, RE: 25, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0 } },
-    PequenaBurguesia: { support: { CNT_FAI: 2, PSOE: 5, PCE: 0, IR: 25, UR: 3, PS: 0, FE: 0, POUM: 0, AP: 10, CT: 0, RE: 0, DLR: 0, PRR: 45, ERC: 10, Other: 0, PRRevS: 0 } },
-    Intelectuales: { support: { CNT_FAI: 5, PSOE: 15, PCE: 0, IR: 25, UR: 10, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 0, DLR: 15, PRR: 0, ERC: 10, Other: 5, PRRevS: 0 } },
-    Burguesia: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 10, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 5, CT: 0, RE: 5, DLR: 20, PRR: 35, ERC: 10, Other: 10, PRRevS: 0 } },
-    Clero: { support: { CNT_FAI: 0, PSOE: 0, PCE: 0, IR: 0, UR: 5, PS: 0, FE: 0, POUM: 0, AP: 35, CT: 25, RE: 5, DLR: 0, PRR: 15, ERC: 0, Other: 15, PRRevS: 0 } },
-  },
+  classes: INITIAL_CLASSES,
   armedForces: {
     regularArmy: { manpower: 100000, loyalty: 50 },
     guardiaNacional: { manpower: 30000, loyalty: 40 },
@@ -749,36 +739,19 @@ export const INITIAL_STATE: GameState = {
     primeMinister: 'Niceto Alcalá-Zamora',
     primeMinisterZh: '尼塞托·阿尔卡拉-萨莫拉',
   },
-  partyRelations: {
-    PSOE: 60,
-    PCE: 50,
-    IR: 50,
-    UR: 40,
-    PS: 50,
-    FE: 30,
-    POUM: 50,
-    AP: 10,
-    CT: 0,
-    RE: 0,
-    DLR: 30,
-    PRR: 35,
-    ERC: 55,
-    Other: 50,
-    PRRevS: 50,
-  },
+  partyRelations: INITIAL_PARTY_RELATIONS,
   domesticPolicy: {
-    nationalisation_progress: 0,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
     max_hours_law: 0,
     min_wage: 0,
     workplace_safety: 0,
-    women_suffrage: 0,
+    political_rights: 0,
     religion_policy: 0,
-    abortion_rights: 0,
     education_institutions: 0,
+    language_policy: 0,
+    union_status: 0,
     land_reform_law_enabled: false,
-    mixed_jury_law_enabled: false,
     mixed_jury_cnt_opposed: false,
   },
   relations: {
@@ -803,7 +776,6 @@ export const INITIAL_STATE: GameState = {
   militiaReorgTimer: 0,
   tankTimer: 0,
   civilWarStatus: 'not_started',
-  warProgress: 50,
   activeWar: null,
   wars: {
     spanish_civil_war: 'not_started',
@@ -812,9 +784,6 @@ export const INITIAL_STATE: GameState = {
   asturiasWarTurns: 0,
   forceAsturiasRevolutionNextMonth: false,
   leverage: 0,
-  agriculture_minister_party: 'Right',
-  labor_minister_party: 'Right',
-  estado_minister_party: 'Right',
   ministers: {
     labor: 'Right',
     health: 'Right',
@@ -844,7 +813,6 @@ export const INITIAL_STATE: GameState = {
   cataloniaControl: 'republic',
   navyStatus: 'neutral',
   moscowGoldTransferred: false,
-  cntFaiInGovernment: false,
   pceInPower: false,
   pceAcceptsComintern: false,
   militaryDeckEnabled: false,
@@ -883,7 +851,6 @@ export const INITIAL_STATE: GameState = {
   sanjurjoStatus: 'alive',
   civilWarChainStep: 0,
   francoAfricaControl: false,
-  cataloniaIndependent: false,
   hasArmoredCars: false,
   womensRightsReformed: false,
   internationalBrigadesArrived: false,
@@ -897,8 +864,6 @@ export const INITIAL_STATE: GameState = {
   presidentElectionLeftCandidate: null,
   presidentElectionActiveCandidate: null,
   presidentElectionRound: 1,
-  presidentialDissolutions: 0,
-  presidentImpeached: false,
   campaignLobbyVisited: {
     lobby_psoe: false,
     lobby_erc: false,
@@ -929,7 +894,7 @@ export const INITIAL_STATE: GameState = {
   militaryDeck: INITIAL_CARDS.filter(c => c.type === 'Military'),
   discard: [],
   partySupport: {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
+    POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, Other: 0, PRRevS: 0
   },
   activeCoalition: null,
   coalitionHistory: [],
@@ -1001,7 +966,30 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       let start_mil_spend = 15;
       let start_land_comp = 100;
 
+      let startMinisters: GameState['ministers'] = {
+        labor: 'Right',
+        health: 'Right',
+        justice: 'Right',
+        industry: 'Right',
+        interior: 'Right',
+        war: 'Right',
+        agriculture: 'Right',
+        finance: 'Right',
+        estado: 'Right',
+      };
+
       if (action.payload.scenario === '1931') {
+        startMinisters = {
+          labor: 'PSOE',
+          health: 'PSOE',
+          justice: 'PSOE',
+          industry: 'Other',
+          interior: 'DLR',
+          agriculture: 'Other',
+          finance: 'PSOE',
+          estado: 'PRR',
+          war: 'Other',
+        };
         startYear = 1931;
         startMonth = 4;
         start_growth = 1.2;
@@ -1015,6 +1003,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_mil_spend = 15;
         start_land_comp = 100;
       } else if (action.payload.scenario === '1933') {
+        startMinisters = {
+          labor: 'PRR',
+          health: 'PRR',
+          justice: 'Other',
+          industry: 'Other',
+          interior: 'Other',
+          war: 'PRR',
+          agriculture: 'Other',
+          finance: 'PRR',
+          estado: 'Other',
+        };
         startYear = 1933;
         startMonth = 11;
         feFounded = true;
@@ -1029,6 +1028,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_mil_spend = 12;
         start_land_comp = 50;
       } else if (action.payload.scenario === '1936') {
+        startMinisters = {
+          labor: 'ERC',
+          health: 'ERC',
+          justice: 'UR',
+          industry: 'Other',
+          interior: 'Other',
+          war: 'IR',
+          agriculture: 'IR',
+          finance: 'IR',
+          estado: 'IR',
+        };
         startYear = 1936;
         startMonth = 7;
         startCivilWarStatus = 'ongoing';
@@ -1090,6 +1100,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
       newState = { 
         ...INITIAL_STATE, 
+        classes: action.payload.scenario === '1936' ? SCENARIO_1936_CLASSES : (action.payload.scenario === '1933' ? SCENARIO_1933_CLASSES : INITIAL_CLASSES),
+        ministers: startMinisters,
         language: state.language, 
         screen: 'game',
         scenario: action.payload.scenario,
@@ -1109,7 +1121,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         dissolutionCount: action.payload.scenario === '1936' ? 2 : (action.payload.scenario === '1933' ? 1 : 0),
         impeachPresidentAvailable: action.payload.scenario === '1936',
         isPresidentImpeached: action.payload.scenario === '1936', // In July 1936, the impeachment has already completed and Azaña is president
-        presidentImpeached: action.payload.scenario === '1936',
         presidentElectionSeen: action.payload.scenario === '1936',
         coalition_just_dissolved: false,
         government: {
@@ -1927,9 +1938,25 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         if (tempState.domesticPolicy.max_hours_law > 0) {
           monthlyExpenditures += 0.3;
         }
-        if (tempState.domesticPolicy.min_wage > 0) {
-          monthlyExpenditures += 0.2;
+        
+        let minWageExpenditure = 0;
+        switch (tempState.domesticPolicy.min_wage) {
+          case 1: minWageExpenditure = 0.05; break;
+          case 2: minWageExpenditure = 0.15; break;
+          case 3: minWageExpenditure = 0.3; break;
+          case 4: minWageExpenditure = 0.5; break;
+          default: minWageExpenditure = 0; break;
         }
+        monthlyExpenditures += minWageExpenditure;
+
+        let educationExpenditure = 0;
+        if (tempState.domesticPolicy.education_institutions === 2) {
+          educationExpenditure = 0.05;
+        } else if (tempState.domesticPolicy.education_institutions === 3) {
+          educationExpenditure = 0.1;
+        }
+        monthlyExpenditures += educationExpenditure;
+
         if (isCivilWar) {
           monthlyExpenditures += 3.5; // War efforts drain
         }
@@ -1976,11 +2003,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const newArmyLoyalty = Math.max(0, Math.min(100, (tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50) + milLoyaltyFactor));
 
         // Adjust landowner class tension / reaction from expropriation (low compensation)
-        if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
-          if (compRateVal < 0.35) {
-            tempState.stats.tension = Math.max(0, Math.min(100, tempState.stats.tension + 0.3));
-          }
-        }
 
         // 5. Economic Growth Rate (clamped to 1% to 100%)
         const econFactor = ((tempState.stats.economy !== undefined ? tempState.stats.economy : 50) - 50) / 15;
@@ -2059,8 +2081,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           };
         }
 
-        // Monthly action of Mixed Jury Law
-        if (tempState.domesticPolicy.mixed_jury_law_enabled) {
+        // Monthly action of Mixed Jury Law (integrated into Union Status level 2)
+        if (tempState.domesticPolicy.union_status === 2) {
           tempState.stats = {
             ...tempState.stats,
             revolutionaryFervor: Math.max(0, tempState.stats.revolutionaryFervor - 1)
@@ -2068,6 +2090,42 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
           if (tempState.domesticPolicy.mixed_jury_cnt_opposed) {
             tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PSOE', 5 / 12);
+          }
+        }
+
+        // Monthly action of Education System (教育制度)
+        if (tempState.domesticPolicy.education_institutions === 2) {
+          if (tempState.ateneos_established > 0) {
+            const level = tempState.ateneos_established;
+            tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'CNT_FAI', 0.05 * level);
+            tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01 * level);
+            tempState.classes = adjustClassSupport(tempState.classes, 'Braceros', 'CNT_FAI', 0.06 * level);
+          }
+        }
+
+        // Monthly action of Political Rights (政治权利)
+        if (tempState.domesticPolicy.political_rights === 1) {
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: parseFloat(Math.min(100, Math.max(0, tempState.stats.revolutionaryFervor + 0.5)).toFixed(2))
+          };
+        } else if (tempState.domesticPolicy.political_rights === 2) {
+          tempState.classes = adjustClassSupport(tempState.classes, 'PequenaBurguesia', 'PRR', 0.05);
+          tempState.classes = adjustClassSupport(tempState.classes, 'Clero', 'AP', 0.05);
+        } else if (tempState.domesticPolicy.political_rights === 3) {
+          tempState.classes = adjustClassSupport(tempState.classes, 'Labradores', 'PSOE', 0.05);
+          tempState.classes = adjustClassSupport(tempState.classes, 'PequenaBurguesia', 'PSOE', 0.05);
+          tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PCE', 0.05);
+        }
+
+        // Monthly action of Religion Policy (宗教权利)
+        if (tempState.domesticPolicy.religion_policy === 2) {
+          tempState.stats = {
+            ...tempState.stats,
+            republicanAuthority: parseFloat(Math.min(100, Math.max(0, tempState.stats.republicanAuthority + 0.05)).toFixed(2))
+          };
+          if (tempState.coupSystemActive) {
+            tempState.coupProgress = parseFloat(Math.min(100, Math.max(0, tempState.coupProgress + 0.1)).toFixed(2));
           }
         }
 
@@ -2445,6 +2503,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           });
         }
       });
+      newState.partySupport = updatePartySupport(newState);
     }
     if (newState.stats) {
       Object.keys(newState.stats).forEach(s => {

@@ -1,5 +1,5 @@
 import { Card } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionInfluence } from '../utils';
 
 export const syndicateExpansion: Card = {
   id: 'syndicate_expansion',
@@ -54,18 +54,7 @@ export const syndicateExpansion: Card = {
           subtitle: 'Address internal administrative issues instead of expanding.',
           subtitleZh: '处理内部行政和琐碎事务而非扩张，这会引发无休止的讨论并降低革命热情。',
           effect: (s) => {
-            const newFactions = JSON.parse(JSON.stringify(s.factions));
-            
-            // 遍历所有派系增加分歧。
-            // 注意：这里假设 faction 对象中控制分歧的属性为 `dissent`。如果你的数据结构中叫 `division` 或其他名字，请相应调整。
-            Object.keys(newFactions).forEach((factionKey) => {
-              if (newFactions[factionKey].dissent !== undefined) {
-                newFactions[factionKey].dissent = Math.min(100, newFactions[factionKey].dissent + 3);
-              } else {
-                // 如果没有初始值，直接赋值兜底
-                newFactions[factionKey].dissent = 3;
-              }
-            });
+            const newFactions = adjustAllActiveFactionDissent(s.factions, 3);
 
             return {
               factions: newFactions,

@@ -73,10 +73,6 @@ export const casasViejas2Insurrection: GameEvent = {
           },
           factions: adjustFactionInfluence(state.factions, 'Faistas', 15),
           cntStance: 'oppose' as const,
-          agriculture_minister_party: min.agriculture,
-          labor_minister_party: min.labor,
-          finance_minister_party: min.finance || 'PSOE',
-          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           activeCoalition: state.activeCoalition ? {
             ...state.activeCoalition,
@@ -127,10 +123,6 @@ export const casasViejas2Insurrection: GameEvent = {
           },
           factions: adjustFactionInfluence(state.factions, 'Cenetistas', 10),
           cntStance: 'oppose' as const,
-          agriculture_minister_party: min.agriculture,
-          labor_minister_party: min.labor,
-          finance_minister_party: min.finance || 'PSOE',
-          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           activeCoalition: state.activeCoalition ? {
             ...state.activeCoalition,
@@ -194,10 +186,6 @@ export const casasViejas2Crackdown: GameEvent = {
           },
           factions: adjustFactionInfluence(state.factions, 'Puristas', 12),
           cntStance: 'oppose' as const,
-          agriculture_minister_party: min.agriculture,
-          labor_minister_party: min.labor,
-          finance_minister_party: min.finance || 'PSOE',
-          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           activeCoalition: state.activeCoalition ? {
             ...state.activeCoalition,
@@ -248,10 +236,6 @@ export const casasViejas2Crackdown: GameEvent = {
           },
           factions: adjustFactionInfluence(state.factions, 'Cenetistas', 12),
           cntStance: 'oppose' as const,
-          agriculture_minister_party: min.agriculture,
-          labor_minister_party: min.labor,
-          finance_minister_party: min.finance || 'PSOE',
-          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           activeCoalition: state.activeCoalition ? {
             ...state.activeCoalition,

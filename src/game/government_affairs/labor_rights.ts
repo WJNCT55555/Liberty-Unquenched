@@ -11,7 +11,7 @@ export const laborRights: Card = {
   cost: 1,
   condition: (state: GameState) => {
     const isGov = state.cntStance === 'govern';
-    const isMinister = state.ministers.labor === 'CNT' || state.labor_minister_party === 'CNT';
+    const isMinister = state.ministers.labor === 'CNT';
     const isTimerZero = (state.labor_rights_timer || 0) <= 0;
     return isGov && isMinister && isTimerZero;
   },

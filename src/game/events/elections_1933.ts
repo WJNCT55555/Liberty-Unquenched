@@ -90,11 +90,12 @@ export const elections1933Results: GameEvent = {
       DLR: { en: 'PRR', zh: '激进党' }, // Merged PRR logic with DLR for simplicity
       PRR: { en: 'PRR', zh: '共和激进党 (勒鲁派)' },
       ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
+      PNV: { en: 'PNV', zh: '巴斯克民族主义党' },
       Other: { en: 'Other', zh: '其他' },
       PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
     };
 
-    const partyOrder: Party[] = ['PS', 'PRRevS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
+    const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
@@ -184,23 +185,30 @@ export const elections1933Results: GameEvent = {
         const newCortes = calculateElectionResults(state);
         
         // Ensure CNT is kicked out of government if they were in it
-        let min = { ...state.ministers };
-        if (min.labor === 'CNT') min.labor = 'PSOE';
-        if (min.health === 'CNT') min.health = 'PSOE';
-        if (min.justice === 'CNT') min.justice = 'PSOE';
-        if (min.industry === 'CNT') min.industry = 'PSOE';
-        if (min.interior === 'CNT') min.interior = 'IR';
-        if (min.agriculture === 'CNT') min.agriculture = 'PSOE';
-        if (min.finance === 'CNT') min.finance = 'PSOE';
-        if (min.estado === 'CNT') min.estado = 'PSOE';
+        const min = { ...state.ministers };
+        const hist1933: Record<string, string> = {
+          labor: 'PRR',
+          health: 'PRR',
+          justice: 'Other',
+          industry: 'Other',
+          interior: 'Other',
+          war: 'PRR',
+          agriculture: 'Other',
+          finance: 'PRR',
+          estado: 'Other',
+        };
+        for (const role of Object.keys(hist1933)) {
+          if (min[role as keyof typeof min] !== 'CNT') {
+            min[role as keyof typeof min] = hist1933[role] as any;
+          } else {
+            // Kick CNT out of government and set to historical
+            min[role as keyof typeof min] = hist1933[role] as any;
+          }
+        }
 
         return {
           cortes: newCortes,
           cntStance: 'oppose' as const,
-          agriculture_minister_party: min.agriculture,
-          labor_minister_party: min.labor,
-          finance_minister_party: min.finance || 'PSOE',
-          estado_minister_party: min.estado || 'PSOE',
           ministers: min,
           government: {
             ...state.government,

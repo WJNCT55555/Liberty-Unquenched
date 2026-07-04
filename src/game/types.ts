@@ -1,8 +1,10 @@
 import React from 'react';
 import { Province, Army, MapFaction, ResourceSet } from '../map/types_map';
+import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
-export type Party = 'PSOE' | 'PCE' | 'IR' | 'UR' | 'PS' | 'FE' | 'POUM' | 'AP' | 'CT' | 'RE' | 'DLR' | 'PRR' | 'ERC' | 'Other' | 'PRRevS';
+export type { Party };
+export type MinisterParty = 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other' | 'DLR' | 'ERC' | 'UR';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
 export type RegionalStatus = 'direct' | 'autonomy' | 'independent';
@@ -248,30 +250,27 @@ export interface GameState {
   latin_american_diaspora_mobilized?: boolean;
 
   leverage: number;
-  agriculture_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
-  labor_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-  finance_minister_party: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
-  estado_minister_party?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
   temp_tax_lower?: number;
   temp_tax_middle?: number;
   temp_tax_upper?: number;
   temp_tax_tariff?: number;
   temp_tax_consumption?: number;
+
   ministers: {
-    labor: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    health: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    justice: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    industry: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    interior: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    war: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right';
-    agriculture: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
-    finance?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
-    estado?: 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other';
+    labor: MinisterParty;
+    health: MinisterParty;
+    justice: MinisterParty;
+    industry: MinisterParty;
+    interior: MinisterParty;
+    war: MinisterParty;
+    agriculture: MinisterParty;
+    finance?: MinisterParty;
+    estado?: MinisterParty;
   };
 
   factions: Record<Faction, { influence: number; dissent: number }>;
   classes: Record<SocialClass, {
-    support: Record<'CNT_FAI' | Party, number>;
+    support: Record<'CNT_FAI' | Exclude<Party, 'PRRevS'>, number>;
   }>;
   
   armedForces: {
@@ -298,22 +297,21 @@ export interface GameState {
     primeMinister: string;
     primeMinisterZh: string;
   };
-  partyRelations: Record<Party, number>;
+  partyRelations: Record<Exclude<Party, 'PRRevS'>, number>;
 
   // Domestic Policy
   domesticPolicy: {
-    nationalisation_progress: number;
     land_reform_progress: number;
     regional_autonomy_progress: number;
     max_hours_law: number;
     min_wage: number;
     workplace_safety: number;
-    women_suffrage: number;
+    political_rights: number;
     religion_policy: number;
-    abortion_rights: number;
     education_institutions: number;
+    language_policy: number;
+    union_status: number;
     land_reform_law_enabled: boolean;
-    mixed_jury_law_enabled: boolean;
     mixed_jury_cnt_opposed: boolean;
   };
 
@@ -345,7 +343,6 @@ export interface GameState {
   tankTimer: number;
 
   civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
-  warProgress: number; // 0 (Republic Victory) to 100 (Nationalist Victory), 50 is stalemate
   
   activeWar?: 'spanish_civil_war' | 'asturias_war' | null;
   wars?: {
@@ -377,7 +374,6 @@ export interface GameState {
   navyStatus: 'republic' | 'nationalist' | 'anarchist' | 'neutral';
 
   moscowGoldTransferred: boolean;
-  cntFaiInGovernment: boolean;
   pceInPower: boolean;
   pceAcceptsComintern: boolean;
   militaryDeckEnabled: boolean;
@@ -417,7 +413,6 @@ export interface GameState {
   durrutiAlive: boolean;
   sanjurjoStatus: 'alive' | 'dead';
   francoAfricaControl: boolean;
-  cataloniaIndependent: boolean;
   hasArmoredCars: boolean;
   womensRightsReformed: boolean;
   internationalBrigadesArrived: boolean;
@@ -433,8 +428,6 @@ export interface GameState {
   presidentElectionLeftCandidate?: 'azana' | 'ramon_franco' | null;
   presidentElectionActiveCandidate?: 'left' | 'martinez_barrio' | 'gil_robles' | null;
   presidentElectionRound?: 1 | 2;
-  presidentialDissolutions?: number;
-  presidentImpeached?: boolean;
   campaignLobbyVisited?: {
     lobby_psoe?: boolean;
     lobby_erc?: boolean;

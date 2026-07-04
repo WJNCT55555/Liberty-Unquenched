@@ -21,8 +21,8 @@ export const juradosMixtos: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            mixed_jury_law_enabled: true,
-            mixed_jury_cnt_opposed: true
+            mixed_jury_cnt_opposed: true,
+            union_status: 2
           }
         };
       }
@@ -36,8 +36,8 @@ export const juradosMixtos: GameEvent = {
         return {
           domesticPolicy: {
             ...state.domesticPolicy,
-            mixed_jury_law_enabled: true,
-            mixed_jury_cnt_opposed: false
+            mixed_jury_cnt_opposed: false,
+            union_status: 2
           }
         };
       }

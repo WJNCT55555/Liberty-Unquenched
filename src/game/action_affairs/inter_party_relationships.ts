@@ -1,4 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
+import { adjustFactionDissents, getDissentMultiplier } from '../utils';
 
 export const cntInterPartyRelationships: Card = {
   id: 'inter_party_relationships',
@@ -16,8 +17,7 @@ export const cntInterPartyRelationships: Card = {
   effect: (state: GameState) => {
     const options: GameEvent['options'] = [];
 
-    const overallDissent = (state.factions.Treintistas.dissent + state.factions.Cenetistas.dissent + state.factions.Faistas.dissent + state.factions.Puristas.dissent) / 400;
-    const multiplier = 1 - overallDissent;
+    const multiplier = getDissentMultiplier(state.factions);
 
     // 选项1：加强与温和的共和激进党及自由共和右翼的联系
     if (state.resources >= 1) {
@@ -28,13 +28,10 @@ export const cntInterPartyRelationships: Card = {
         subtitleZh: '温和中间派的共和激进党与自由共和右翼',
         effect: (s: GameState) => {
           const newPartyRelations = { ...s.partyRelations };
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
+          const newFactions = adjustFactionDissents(s.factions, { Faistas: 5, Puristas: 8 });
 
-          newPartyRelations.UR = Math.min(100, Math.max(-100, newPartyRelations.UR + 5 * multiplier));
+          newPartyRelations.PRR = Math.min(100, Math.max(-100, newPartyRelations.PRR + 5 * multiplier));
           newPartyRelations.DLR = Math.min(100, Math.max(-100, newPartyRelations.DLR + 5 * multiplier));
-
-          newFactions.Faistas.dissent = Math.min(100, Math.max(0, newFactions.Faistas.dissent + 5));
-          newFactions.Puristas.dissent = Math.min(100, Math.max(0, newFactions.Puristas.dissent + 8));
 
           const newStats = { ...s.stats };
           newStats.revolutionaryFervor = Math.max(0, newStats.revolutionaryFervor - 8);
@@ -43,8 +40,7 @@ export const cntInterPartyRelationships: Card = {
             resources: s.resources - 1,
             partyRelations: newPartyRelations,
             factions: newFactions,
-            stats: newStats,
-            inter_party_relationships_timer: 6
+            stats: newStats
           };
         },
       });
@@ -59,18 +55,14 @@ export const cntInterPartyRelationships: Card = {
         subtitleZh: '对极右翼的反对是我们与共和左翼的共同诉求',
         effect: (s: GameState) => {
           const newPartyRelations = { ...s.partyRelations };
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
+          const newFactions = adjustFactionDissents(s.factions, { Faistas: 3, Puristas: 5 });
 
           newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR + 7 * multiplier));
-
-          newFactions.Faistas.dissent = Math.min(100, Math.max(0, newFactions.Faistas.dissent + 3));
-          newFactions.Puristas.dissent = Math.min(100, Math.max(0, newFactions.Puristas.dissent + 5));
 
           return {
             resources: s.resources - 1,
             partyRelations: newPartyRelations,
-            factions: newFactions,
-            inter_party_relationships_timer: 6
+            factions: newFactions
           };
         },
       });
@@ -90,8 +82,7 @@ export const cntInterPartyRelationships: Card = {
 
           return {
             resources: s.resources - 1,
-            partyRelations: newPartyRelations,
-            inter_party_relationships_timer: 6
+            partyRelations: newPartyRelations
           };
         },
       });
@@ -106,20 +97,17 @@ export const cntInterPartyRelationships: Card = {
         subtitleZh: '无产阶级的统一战线',
         effect: (s: GameState) => {
           const newPartyRelations = { ...s.partyRelations };
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
+          const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5 });
 
           newPartyRelations.PCE = Math.min(100, Math.max(-100, newPartyRelations.PCE + 6 * multiplier));
           if (s.poum_founded) {
             newPartyRelations.POUM = Math.min(100, Math.max(-100, newPartyRelations.POUM + 8 * multiplier));
           }
 
-          newFactions.Treintistas.dissent = Math.min(100, Math.max(0, newFactions.Treintistas.dissent + 5));
-
           return {
             resources: s.resources - 1,
             partyRelations: newPartyRelations,
-            factions: newFactions,
-            inter_party_relationships_timer: 6
+            factions: newFactions
           };
         },
       });
@@ -139,8 +127,7 @@ export const cntInterPartyRelationships: Card = {
 
           return {
             resources: s.resources - 1,
-            partyRelations: newPartyRelations,
-            inter_party_relationships_timer: 6
+            partyRelations: newPartyRelations
           };
         },
       });
@@ -158,6 +145,7 @@ export const cntInterPartyRelationships: Card = {
     });
 
     return {
+      inter_party_relationships_timer: 6,
       currentEvent: {
         id: 'inter_party_relationships_event',
         date: { year: state.year, month: state.month },
@@ -172,3 +160,4 @@ export const cntInterPartyRelationships: Card = {
     };
   },
 };
+

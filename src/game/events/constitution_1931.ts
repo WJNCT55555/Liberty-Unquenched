@@ -15,10 +15,9 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          women_suffrage: state.domesticPolicy.women_suffrage + 1,
+          political_rights: state.domesticPolicy.political_rights + 1,
           religion_policy: state.domesticPolicy.religion_policy + 2,
-          education_institutions: state.domesticPolicy.education_institutions + 1,
-          nationalisation_progress: state.domesticPolicy.nationalisation_progress + 1
+          education_institutions: state.domesticPolicy.education_institutions + 1
         },
         stats: {
           ...state.stats,         
@@ -33,10 +32,9 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          women_suffrage: state.domesticPolicy.women_suffrage + 1,
+          political_rights: state.domesticPolicy.political_rights + 1,
           religion_policy: state.domesticPolicy.religion_policy + 2,
-          education_institutions: state.domesticPolicy.education_institutions + 1,
-          nationalisation_progress: state.domesticPolicy.nationalisation_progress + 1
+          education_institutions: state.domesticPolicy.education_institutions + 1
         },
         stats: {
           ...state.stats,

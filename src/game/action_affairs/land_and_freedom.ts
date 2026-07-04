@@ -1,5 +1,5 @@
-import { Card } from '../types';
-import { adjustFactionInfluence } from '../utils';
+﻿import { Card } from '../types';
+import { adjustFactionInfluence, getDissentMultiplier } from '../utils';
 
 export const landAndFreedom: Card = {
   id: 'land_and_freedom',
@@ -25,12 +25,7 @@ export const landAndFreedom: Card = {
           subtitle: 'Abolish money and property inside the rural collectives. Work according to ability, receive according to need.',
           subtitleZh: '在农村集体中废除货币和私有财产。各尽所能，按需分配。',
           effect: (s) => {
-            const overallDissent = 
-              (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
-               s.factions.Cenetistas.influence * s.factions.Cenetistas.dissent +
-               s.factions.Faistas.influence * s.factions.Faistas.dissent +
-               s.factions.Puristas.influence * s.factions.Puristas.dissent) / 100;
-            const multiplier = 1 - (overallDissent / 100);
+            const multiplier = getDissentMultiplier(s.factions);
             return {
               stats: {
                 ...s.stats,
@@ -63,8 +58,8 @@ export const landAndFreedom: Card = {
         {
           text: 'Incautación ',
           textZh: '直接夺取',
-          subtitle: 'Seize the estates of the Latifundistas and the reactionaries immediately to supply our forces.',
-          subtitleZh: '立即没收大地主和反动派的庄园，以充实我们的武力和资源。',
+          subtitle: 'Commit our armed detachments to seize the estates of the Latifundistas and the reactionaries immediately.',
+          subtitleZh: '投入我们的武装力量，立即没收大地主和反动派的庄园。',
           effect: (s) => {
             return {
               armaments: Math.max(0, s.armaments - 1),
@@ -84,3 +79,4 @@ export const landAndFreedom: Card = {
     }
   }),
 };
+

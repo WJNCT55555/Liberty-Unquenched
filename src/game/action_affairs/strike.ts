@@ -1,5 +1,5 @@
-import { Card } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+﻿import { Card } from '../types';
+import { adjustAllActiveFactionDissent, adjustFactionInfluence, adjustClassSupport, getDissentMultiplier } from '../utils';
 
 export const strike: Card = {
   id: 'strike',
@@ -25,12 +25,7 @@ export const strike: Card = {
           subtitle: 'A controlled protest to show our strength without full escalation.',
           subtitleZh: '一场受控的示威，旨在展示力量而不至于全面升级冲突。',
           effect: (s) => {
-            const overallDissent = 
-              (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
-               s.factions.Cenetistas.influence * s.factions.Cenetistas.dissent +
-               s.factions.Faistas.influence * s.factions.Faistas.dissent +
-               s.factions.Puristas.influence * s.factions.Puristas.dissent) / 100;
-            const multiplier = 1 - (overallDissent / 100);
+            const multiplier = getDissentMultiplier(s.factions);
             return {
               stats: {
                 ...s.stats,
@@ -46,12 +41,7 @@ export const strike: Card = {
           subtitle: 'Mobilize the entire working class for revolution.',
           subtitleZh: '动员整个工人阶级投身革命，这将极大增强无政府派的影响力。',
           effect: (s) => {
-            const overallDissent = 
-              (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
-               s.factions.Cenetistas.influence * s.factions.Cenetistas.dissent +
-               s.factions.Faistas.influence * s.factions.Faistas.dissent +
-               s.factions.Puristas.influence * s.factions.Puristas.dissent) / 100;
-            const multiplier = 1 - (overallDissent / 100);
+            const multiplier = getDissentMultiplier(s.factions);
             return {
               stats: {
                 ...s.stats,
@@ -68,23 +58,10 @@ export const strike: Card = {
           subtitle: 'Demand the immediate release of political and social prisoners, cementing union solidarity.',
           subtitleZh: '要求立即释放政治与社会犯人，巩固各派系在重压之下的工会团结。',
           effect: (s) => {
-            const overallDissent = 
-              (s.factions.Treintistas.influence * s.factions.Treintistas.dissent +
-               s.factions.Cenetistas.influence * s.factions.Cenetistas.dissent +
-               s.factions.Faistas.influence * s.factions.Faistas.dissent +
-               s.factions.Puristas.influence * s.factions.Puristas.dissent) / 100;
-            const multiplier = 1 - (overallDissent / 100);
-
-            // Decrease dissent of CNT factions
-            const updatedFactions = JSON.parse(JSON.stringify(s.factions));
-            for (const f in updatedFactions) {
-              if (updatedFactions[f] && typeof updatedFactions[f].dissent === 'number') {
-                updatedFactions[f].dissent = Math.max(0, updatedFactions[f].dissent - 5);
-              }
-            }
+            const multiplier = getDissentMultiplier(s.factions);
 
             return {
-              factions: updatedFactions,
+              factions: adjustAllActiveFactionDissent(s.factions, -5),
               stats: {
                 ...s.stats,
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 8 * multiplier),

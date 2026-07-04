@@ -1034,7 +1034,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
       </svg>
       
       {/* Map Mode Dropdown */}
-      <div className="absolute top-4 left-4 z-50 flex items-center gap-2 bg-white/95 backdrop-blur border border-[#8B7355] rounded-md shadow-md px-3 py-2 text-xs font-serif font-bold text-[#8B7355]">
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-white/95 backdrop-blur border border-[#8B7355] rounded-md shadow-md px-3 py-2 text-xs font-serif font-bold text-[#8B7355]">
         <div className="flex items-center gap-1.5 shrink-0 text-[#8B7355]">
           {mapMode === 'political' && <Swords size={14} />}
           {mapMode === 'terrain' && <Mountain size={14} />}
@@ -1055,7 +1055,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
         </select>
       </div>
 
-      <div className="absolute top-16 left-4 z-50 flex flex-col gap-2">
+      <div className="absolute top-16 left-4 z-30 flex flex-col gap-2">
         <button 
           onClick={handleZoomIn}
           className="p-2 bg-white/80 hover:bg-white border border-accent rounded-md shadow-md text-accent transition-all hover:scale-105 active:scale-95"
@@ -1402,7 +1402,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="absolute top-4 right-4 z-50 bg-[#F2F0E6]/95 backdrop-blur text-[#2A2621] p-4 rounded-sm border-2 border-[#8B7355] font-serif shadow-xl pointer-events-none max-w-[240px]"
+            className="absolute top-4 right-4 z-30 bg-[#F2F0E6]/95 backdrop-blur text-[#2A2621] p-4 rounded-sm border-2 border-[#8B7355] font-serif shadow-xl pointer-events-none max-w-[240px]"
           >
             <div className="text-[#8B7355] font-bold border-b-2 border-[#8B7355]/30 pb-1 mb-2 uppercase tracking-tighter text-lg flex items-center justify-between">
               <span>{hoveredProvince}</span>

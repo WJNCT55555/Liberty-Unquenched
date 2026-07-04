@@ -43,7 +43,6 @@ export const ramonCampaignEvent2: GameEvent = {
         return {
           stats: {
             ...state.stats,
-            tension: Math.min(100, state.stats.tension + 8),
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 8),
             republicanAuthority: Math.max(0, state.stats.republicanAuthority - 5)
           }
@@ -71,8 +70,7 @@ export const ramonCampaignEvent3: GameEvent = {
           },
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5),
-            tension: Math.min(100, state.stats.tension + 5)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5)
           }
         };
       }

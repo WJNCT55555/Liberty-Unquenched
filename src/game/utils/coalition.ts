@@ -1,35 +1,9 @@
 import { GameState, CoalitionState, CoalitionId, Party, SocialClass } from '../types';
 import { COALITION_DEFS } from '../coalitions';
 import { CLASS_INFO } from '../constants';
+import { getPartySupport, updatePartySupport } from '../parties';
 
-/**
- * Calculates support percentage for a specific party dynamically based on class popular ratios
- */
-export function getPartySupport(state: GameState, party: 'CNT_FAI' | Party): number {
-  let totalSupport = 0;
-  for (const classId in state.classes) {
-    const classData = state.classes[classId as SocialClass];
-    if (!classData || !classData.support) continue;
-    
-    const pop = CLASS_INFO[classId as SocialClass]?.pop / 100 || 0.125;
-    const classTotalPoints = Object.values(classData.support).reduce((sum, val) => sum + val, 0) || 1;
-    const relativePercent = ((classData.support[party] || 0) / classTotalPoints) * 100;
-    totalSupport += pop * relativePercent;
-  }
-  return Number(totalSupport.toFixed(2));
-}
-
-/**
- * Recalculates all parties' support values in bulk
- */
-export function updatePartySupport(state: GameState): Record<Party, number> {
-  const support: Partial<Record<Party, number>> = {};
-  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other', 'PRRevS'];
-  parties.forEach(p => {
-    support[p] = getPartySupport(state, p);
-  });
-  return support as Record<Party, number>;
-}
+export { getPartySupport, updatePartySupport };
 
 /**
  * Re-evaluates cohesive power and average CNT-relation attitude for the active coalition
@@ -104,7 +78,7 @@ export function formCoalition(state: GameState, id: CoalitionId): GameState {
   }
 
   const contributions: Partial<Record<Party, number>> = {};
-  const parties: Party[] = ['PSOE', 'PCE', 'IR', 'UR', 'PS', 'FE', 'POUM', 'AP', 'CT', 'RE', 'DLR', 'PRR', 'ERC', 'Other', 'PRRevS'];
+  const parties: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
   parties.forEach(p => {
     contributions[p] = 80; // Starting average contribution is 80
   });

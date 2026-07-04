@@ -229,7 +229,6 @@ export const civilWarSetup: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.min(100, (state.stats?.revolutionaryFervor || 0) + 8),
             republicanAuthority: Math.min(100, (state.stats?.republicanAuthority || 0) + 3),
-            tension: Math.min(100, (state.stats?.tension || 0) + 8),
           },
           relations: {
             ...state.relations,
@@ -700,10 +699,6 @@ export const civilWarStep9: GameEvent = {
           ...state,
           provinces: nextProvinces,
           civilWarChainStep: 10,
-          stats: {
-            ...state.stats,
-            tension: Math.min(100, (state.stats?.tension || 0) + 8)
-          },
           currentEvent: civilWarStep10Result
         };
       }

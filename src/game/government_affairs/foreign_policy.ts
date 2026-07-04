@@ -1,4 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
+import { adjustClassSupport } from '../utils';
 
 export const gibraltarQuestionEvent: GameEvent = {
   id: 'gibraltar_question_event',
@@ -373,6 +374,8 @@ export const negotiateSovietEvent: GameEvent = {
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 7);
         newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 5);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 3);
         return {
           budget: Math.max(0, state.budget - 2),
           tankResearchProgress: Math.min(100, state.tankResearchProgress + 15),
@@ -381,10 +384,7 @@ export const negotiateSovietEvent: GameEvent = {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 6)
           },
-          partySupport: {
-            ...state.partySupport,
-            PCE: Math.min(100, (state.partySupport.PCE || 0) + 3)
-          },
+          classes: newClasses,
           currentEvent: negotiateSovietEvent
         };
       }
@@ -401,6 +401,8 @@ export const negotiateSovietEvent: GameEvent = {
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 6);
         newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 5);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 5);
         return {
           budget: Math.max(0, state.budget - 3),
           gold_reserves: Math.max(0, state.gold_reserves - 150),
@@ -412,10 +414,7 @@ export const negotiateSovietEvent: GameEvent = {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 5)
           },
-          partySupport: {
-            ...state.partySupport,
-            PCE: Math.min(100, (state.partySupport.PCE || 0) + 5)
-          },
+          classes: newClasses,
           currentEvent: negotiateSovietEvent
         };
       }
@@ -456,12 +455,11 @@ export const negotiateSovietEvent: GameEvent = {
         const newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 10);
         newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 8);
+        let newClasses = state.classes;
+        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', -5);
         return {
           factions: newFactions,
-          partySupport: {
-            ...state.partySupport,
-            PCE: Math.max(0, (state.partySupport.PCE || 0) - 5)
-          },
+          classes: newClasses,
           relations: {
             ...state.relations,
             ussr: Math.max(0, state.relations.ussr - 50),

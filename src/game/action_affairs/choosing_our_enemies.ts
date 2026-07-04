@@ -1,4 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
+import { adjustFactionDissents } from '../utils';
 
 export const cntChooseEnemies: Card = {
   id: 'choosing_our_enemies',
@@ -24,7 +25,7 @@ export const cntChooseEnemies: Card = {
       subtitleZh: '建立反对一切反动势力的统一战线。',
       effect: (s: GameState) => {
         const newPartyRelations = { ...s.partyRelations };
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
+        const newFactions = adjustFactionDissents(s.factions, { Faistas: -3, Cenetistas: -3 });
         const newStats = { ...s.stats };
 
         newPartyRelations.PCE = Math.min(100, Math.max(-100, newPartyRelations.PCE + 10));
@@ -40,17 +41,13 @@ export const cntChooseEnemies: Card = {
 
         newStats.armyLoyalty = Math.max(0, Math.min(100, newStats.armyLoyalty - 5));
         
-        newFactions.Faistas.dissent = Math.max(0, Math.min(100, newFactions.Faistas.dissent - 3));
-        newFactions.Cenetistas.dissent = Math.max(0, Math.min(100, newFactions.Cenetistas.dissent - 3));
-        
         newStats.revolutionaryFervor = Math.min(100, newStats.revolutionaryFervor + 3);
         
         return {
           partyRelations: newPartyRelations,
           factions: newFactions,
           stats: newStats,
-          coup_progress: Math.max(0, Math.min(100, s.stats.tension - 2)),
-          choose_enemies_timer: 18
+          coupProgress: Math.max(0, Math.min(100, s.stats.tension - 2))
         };
       },
     });
@@ -78,8 +75,7 @@ export const cntChooseEnemies: Card = {
 
         return {
           partyRelations: newPartyRelations,
-          stats: newStats,
-          choose_enemies_timer: 18
+          stats: newStats
         };
       },
     });
@@ -104,8 +100,7 @@ export const cntChooseEnemies: Card = {
 
         return {
           partyRelations: newPartyRelations,
-          stats: newStats,
-          choose_enemies_timer: 18
+          stats: newStats
         };
       },
     });
@@ -118,18 +113,16 @@ export const cntChooseEnemies: Card = {
       subtitleZh: '揭露他们虚伪的共和主义，打破他们的选举影响力。',
       effect: (s: GameState) => {
         const newPartyRelations = { ...s.partyRelations };
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
+        const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5 });
 
         newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR - 6));
         newPartyRelations.UR = Math.min(100, Math.max(-100, newPartyRelations.UR - 10));
+        newPartyRelations.PRR = Math.min(100, Math.max(-100, newPartyRelations.PRR - 10));
         newPartyRelations.PSOE = Math.min(100, Math.max(-100, newPartyRelations.PSOE - 5));
-
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 5);
 
         return {
           partyRelations: newPartyRelations,
-          factions: newFactions,
-          choose_enemies_timer: 18
+          factions: newFactions
         };
       },
     });
@@ -151,8 +144,7 @@ export const cntChooseEnemies: Card = {
         newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR + 3));
 
         return {
-          partyRelations: newPartyRelations,
-          choose_enemies_timer: 18
+          partyRelations: newPartyRelations
         };
       },
     });
@@ -174,8 +166,7 @@ export const cntChooseEnemies: Card = {
         newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR + 3));
 
         return {
-          partyRelations: newPartyRelations,
-          choose_enemies_timer: 18
+          partyRelations: newPartyRelations
         };
       },
     });
@@ -188,7 +179,7 @@ export const cntChooseEnemies: Card = {
       subtitleZh: '无论国家机器是什么颜色，绝不妥协。',
       effect: (s: GameState) => {
         const newPartyRelations = { ...s.partyRelations };
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
+        const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5, Puristas: -5 });
 
         newPartyRelations.PCE = Math.min(100, Math.max(-100, newPartyRelations.PCE - 5));
         if (s.poum_founded) {
@@ -203,13 +194,9 @@ export const cntChooseEnemies: Card = {
           newPartyRelations.FE = Math.min(100, Math.max(-100, newPartyRelations.FE - 3));
         }
 
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 5);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
-
         return {
           partyRelations: newPartyRelations,
-          factions: newFactions,
-          choose_enemies_timer: 18
+          factions: newFactions
         };
       },
     });
@@ -221,14 +208,10 @@ export const cntChooseEnemies: Card = {
       subtitle: 'Purge the union of those who would compromise with the state.',
       subtitleZh: '清除工会中那些企图与国家妥协的人。',
       effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 5);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 3);
+        const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5, Puristas: -3 });
 
         return {
-          factions: newFactions,
-          choose_enemies_timer: 18
+          factions: newFactions
         };
       },
     });
@@ -240,14 +223,10 @@ export const cntChooseEnemies: Card = {
       subtitle: 'We must silence the extremists who threaten our gains.',
       subtitleZh: '我们必须让那些威胁我们成果的极端分子闭嘴。',
       effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 5);
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 3);
+        const newFactions = adjustFactionDissents(s.factions, { Puristas: 5, Treintistas: -3 });
 
         return {
-          factions: newFactions,
-          choose_enemies_timer: 18
+          factions: newFactions
         };
       },
     });
@@ -259,14 +238,12 @@ export const cntChooseEnemies: Card = {
       subtitle: 'We are not ready to make this decision yet.',
       subtitleZh: '我们还没有准备好做出这个决定。',
       effect: (s: GameState) => {
-        return {
-          // 不设置冷却时间，或者设置较短的冷却时间？
-          // 按照要求，可能只是跳过
-        };
+        return {};
       },
     });
 
     return {
+      choose_enemies_timer: 18,
       currentEvent: {
         id: 'choosing_our_enemies_event',
         date: { year: state.year, month: state.month },

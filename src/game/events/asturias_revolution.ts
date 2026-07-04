@@ -25,8 +25,7 @@ export const asturiasWarFailed: GameEvent = {
       effect: (state) => ({
         stats: {
           ...state.stats,
-          revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 12),
-          tension: Math.min(100, state.stats.tension + 8)
+          revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 12)
         }
       })
     }

@@ -124,7 +124,11 @@ export const checkAchievements = (state: GameState): GameState => {
     state.factions.Puristas.influence
   );
   checkAndUnlock('A_DURRUTI', state.civilWarStatus === 'won' && state.durrutiAlive && isFaistasDominant);
-  checkAndUnlock('A_CATALONIA', state.cataloniaIndependent);
+  checkAndUnlock(
+    'A_CATALONIA',
+    state.regionalStatuses?.catalonia === 'independent' &&
+    (state.cataloniaControl === 'cnt_fai' || state.cataloniaControl === 'committee')
+  );
   checkAndUnlock('A_THEOLOGY', state.classes.Clero.support.CNT_FAI >= 40);
   checkAndUnlock('A_TIZNAOS', state.hasArmoredCars);
   checkAndUnlock('A_MUJERES', state.womensRightsReformed);

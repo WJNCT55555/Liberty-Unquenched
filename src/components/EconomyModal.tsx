@@ -318,7 +318,25 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   // Live Expenditures Calculation (including new variables)
   let estimatedExpenditures = 1.0; // Basic civil administration
   if (state.domesticPolicy.max_hours_law > 0) estimatedExpenditures += 0.3;
-  if (state.domesticPolicy.min_wage > 0) estimatedExpenditures += 0.2;
+  
+  let minWageCost = 0;
+  switch (state.domesticPolicy.min_wage) {
+    case 1: minWageCost = 0.05; break;
+    case 2: minWageCost = 0.15; break;
+    case 3: minWageCost = 0.30; break;
+    case 4: minWageCost = 0.50; break;
+    default: minWageCost = 0; break;
+  }
+  estimatedExpenditures += minWageCost;
+
+  let educationCost = 0;
+  if (state.domesticPolicy.education_institutions === 2) {
+    educationCost = 0.05;
+  } else if (state.domesticPolicy.education_institutions === 3) {
+    educationCost = 0.10;
+  }
+  estimatedExpenditures += educationCost;
+
   if (isCivilWar) estimatedExpenditures += 3.5;
 
   const milCost = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
@@ -536,10 +554,16 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       <span className="font-bold text-ink">0.30M ₧</span>
                     </div>
                   )}
-                  {state.domesticPolicy.min_wage > 0 && (
+                  {minWageCost > 0 && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                       <span>{isZh ? '・最低工资保障监察:' : '• Min Wage Compliance:'}</span>
-                      <span className="font-bold text-ink">0.20M ₧</span>
+                      <span className="font-bold text-ink">{minWageCost.toFixed(2)}M ₧</span>
+                    </div>
+                  )}
+                  {educationCost > 0 && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・教育制度财政拨款:' : '• Education Allocation:'}</span>
+                      <span className="font-bold text-ink">{educationCost.toFixed(2)}M ₧</span>
                     </div>
                   )}
                   {isCivilWar && (
@@ -606,7 +630,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       data={[
                         { label: isZh ? '政府行政' : 'Civil Admin', value: 1.0, color: '#64748b' },
                         { label: isZh ? '八小时工作' : 'Max Hours', value: state.domesticPolicy.max_hours_law > 0 ? 0.3 : 0, color: '#a855f7' },
-                        { label: isZh ? '最低工资' : 'Min Wage', value: state.domesticPolicy.min_wage > 0 ? 0.2 : 0, color: '#ec4899' },
+                        { label: isZh ? '最低工资' : 'Min Wage', value: minWageCost, color: '#ec4899' },
+                        { label: isZh ? '教育制度' : 'Education', value: educationCost, color: '#0ea5e9' },
                         { label: isZh ? '内战开销' : 'War Cost', value: isCivilWar ? 3.5 : 0, color: '#ef4444' },
                         { label: isZh ? '常备军费' : 'Defense Mil', value: milCost, color: '#b91c1c' },
                         { label: isZh ? '债务利息' : 'Debt Int', value: debtInterestCost, color: '#0f172a' },

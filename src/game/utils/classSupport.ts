@@ -1,6 +1,6 @@
 import { Party, SocialClass } from '../types';
 
-export type ClassPoliticalForce = 'CNT_FAI' | Party;
+export type ClassPoliticalForce = 'CNT_FAI' | Exclude<Party, 'PRRevS'>;
 
 /**
  * Adjusts the internal political alignment of a single social class with zero-sum normalization (sum remains 100%).

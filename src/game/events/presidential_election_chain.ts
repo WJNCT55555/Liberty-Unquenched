@@ -14,7 +14,7 @@ export const presidentialElectionDecision: GameEvent = {
   descriptionZh: '尼塞托·阿尔卡拉-萨莫拉已被弹劾罢免。议长迭戈·马丁内斯·巴里奥将担任临时总统，直至新总统经由940名选举人团成员——470名现任议员加上470名另行普选的选举人——选出。\n\n左翼阵营分裂为两股力量：曼努埃尔·阿萨尼亚代表着共和秩序与渐进改革，而——若CNT准备释放这头野兽——拉蒙·佛朗哥代表着极端联邦派的狂想。在中间地带站着临时总统马丁内斯·巴里奥本人，激进共和党的温和民主翼。右翼则统一在CEDA领袖吉尔-罗伯斯的旗下。\n\n全国委员会现在面临第一道门槛：我们是否介入并参与这场总统大选？',
   condition: (state) => {
     // Only triggers automatically if president has been impeached, civil war hasn't started, and we haven't seen it yet.
-    return state.presidentImpeached === true && 
+    return state.isPresidentImpeached === true && 
            state.civilWarStatus === 'not_started' && 
            state.presidentElectionSeen === false;
   },
@@ -629,7 +629,6 @@ function getWinnerEffects(state: GameState, winner: string) {
     };
   } else if (finalKey === 'left_ramon_franco') {
     const stats = { ...state.stats };
-    stats.tension = Math.min(100, (stats.tension || 0) + 10);
     stats.revolutionaryFervor = Math.min(100, (stats.revolutionaryFervor || 0) + 10);
     
     const dp = { ...state.domesticPolicy };
@@ -656,12 +655,11 @@ function getWinnerEffects(state: GameState, winner: string) {
     };
   } else if (finalKey === 'martinez_barrio') {
     const stats = { ...state.stats };
-    stats.tension = Math.max(0, (stats.tension || 0) - 5);
     stats.republicanAuthority = Math.min(100, (stats.republicanAuthority || 0) + 10);
     
     const dp = { ...state.domesticPolicy };
     dp.land_reform_progress = Math.min(100, (dp.land_reform_progress || 0) + 5);
-    dp.women_suffrage = Math.min(100, (dp.women_suffrage || 0) + 5);
+    dp.political_rights = Math.min(100, (dp.political_rights || 0) + 5);
     
     const pr = { ...state.partyRelations };
     pr.PRR = Math.min(100, (pr.PRR || 0) + 20);
@@ -683,7 +681,6 @@ function getWinnerEffects(state: GameState, winner: string) {
   } else {
     // gil_robles
     const stats = { ...state.stats };
-    stats.tension = Math.min(100, (stats.tension || 0) + 25);
     stats.revolutionaryFervor = Math.min(100, (stats.revolutionaryFervor || 0) + 30);
     stats.republicanAuthority = Math.max(0, (stats.republicanAuthority || 0) - 30);
     
@@ -692,7 +689,7 @@ function getWinnerEffects(state: GameState, winner: string) {
     dp.max_hours_law = Math.max(0, (dp.max_hours_law || 0) - 30);
     dp.min_wage = Math.max(0, (dp.min_wage || 0) - 30);
     dp.religion_policy = Math.max(0, (dp.religion_policy || 0) - 35);
-    dp.women_suffrage = Math.max(0, (dp.women_suffrage || 0) - 15);
+    dp.political_rights = Math.max(0, (dp.political_rights || 0) - 15);
     
     const pr = { ...state.partyRelations };
     pr.PSOE = Math.max(-100, (pr.PSOE || 0) - 35);

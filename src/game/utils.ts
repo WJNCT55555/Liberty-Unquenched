@@ -1,7 +1,72 @@
-import { Faction } from './types';
+﻿import { Faction } from './types';
 
 export { adjustClassSupport, adjustSingleClassSupport } from './utils/classSupport';
 export type { ClassPoliticalForce } from './utils/classSupport';
+
+type FactionState = Record<Faction, { influence: number; dissent: number }>;
+
+const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+
+export function isFactionActiveForDissent(factions: FactionState, faction: Faction): boolean {
+  return faction !== 'Jabalistas' || (factions.Jabalistas?.influence ?? 0) > 0;
+}
+
+export function getOverallFactionDissent(factions: FactionState): number {
+  const activeFactions = (Object.keys(factions) as Faction[])
+    .filter((faction) => isFactionActiveForDissent(factions, faction));
+  const totalInfluence = activeFactions.reduce((sum, faction) => sum + (factions[faction]?.influence ?? 0), 0);
+
+  if (totalInfluence <= 0) return 0;
+
+  return activeFactions.reduce(
+    (sum, faction) => sum + ((factions[faction]?.influence ?? 0) * (factions[faction]?.dissent ?? 0)),
+    0
+  ) / totalInfluence;
+}
+
+export function getDissentMultiplier(factions: FactionState): number {
+  return 1 - (getOverallFactionDissent(factions) / 100);
+}
+
+export function adjustFactionDissent(
+  factions: FactionState,
+  targetFaction: Faction,
+  delta: number
+): FactionState {
+  const newFactions = JSON.parse(JSON.stringify(factions)) as FactionState;
+  if (!newFactions[targetFaction]) return newFactions;
+  newFactions[targetFaction].dissent = clampPercent((newFactions[targetFaction].dissent ?? 0) + delta);
+  return newFactions;
+}
+
+export function adjustFactionDissents(
+  factions: FactionState,
+  deltas: Partial<Record<Faction, number>>
+): FactionState {
+  const newFactions = JSON.parse(JSON.stringify(factions)) as FactionState;
+
+  (Object.keys(deltas) as Faction[]).forEach((faction) => {
+    if (!newFactions[faction]) return;
+    newFactions[faction].dissent = clampPercent((newFactions[faction].dissent ?? 0) + (deltas[faction] ?? 0));
+  });
+
+  return newFactions;
+}
+
+export function adjustAllActiveFactionDissent(
+  factions: FactionState,
+  delta: number
+): FactionState {
+  const newFactions = JSON.parse(JSON.stringify(factions)) as FactionState;
+
+  (Object.keys(newFactions) as Faction[])
+    .filter((faction) => isFactionActiveForDissent(newFactions, faction))
+    .forEach((faction) => {
+      newFactions[faction].dissent = clampPercent((newFactions[faction].dissent ?? 0) + delta);
+    });
+
+  return newFactions;
+}
 
 export function adjustFactionInfluence(
   factions: Record<Faction, { influence: number; dissent: number }>,

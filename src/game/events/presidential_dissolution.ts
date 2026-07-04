@@ -9,7 +9,8 @@ export const presidentialDissolutionOfCortes: GameEvent = {
   description: 'With the collapse of the governing coalition, the legislative chamber has descended into complete paralysis. Exercising his constitutional authority under the Constitution of 1931, President Niceto Alcalá-Zamora has dissolved the Cortes and decreed early general elections. Spain is once again thrown into an intense electoral campaign, with polarized social forces preparing for a showdown at the ballot boxes.',
   descriptionZh: '随着执政联盟的崩溃，议会陷入了彻底的瘫痪。尼塞托·阿尔卡拉-萨莫拉总统行使1931年宪法赋予他的权力，正式宣布解散议会并提前举行大选。西班牙再次被推入激烈的选举浪潮中，社会各界政治力量纷纷重整旗鼓，准备在选票箱前一决胜负。',
   condition: (state) => {
-    return state.coalition_just_dissolved && !state.civilWarStatus && state.civilWarStatus !== 'ongoing';
+    // 只禁止内战进行中
+    return state.coalition_just_dissolved && state.civilWarStatus !== 'ongoing';
   },
   options: [
     {
@@ -29,10 +30,6 @@ export const presidentialDissolutionOfCortes: GameEvent = {
           coalition_just_dissolved: false,
           dissolutionCount: nextCount,
           impeachPresidentAvailable: state.impeachPresidentAvailable || canImpeach,
-          stats: {
-            ...state.stats,
-            tension: Math.min(100, state.stats.tension + 8)
-          },
           pendingEvents: [
             { ...electionEvent },
             ...state.pendingEvents.filter(e => e.id !== electionEvent.id)

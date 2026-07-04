@@ -1,11 +1,6 @@
-import { Card, GameState, GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+﻿import { Card, GameState, GameEvent } from '../types';
+import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionDissent, adjustFactionDissents, getDissentMultiplier } from '../utils';
 
-const getOverallDissent = (state: GameState) => {
-  const totalInfluence = Object.values(state.factions).reduce((acc, f) => acc + f.influence, 0);
-  if (totalInfluence === 0) return 0;
-  return Object.values(state.factions).reduce((acc, f) => acc + (f.influence * f.dissent), 0) / totalInfluence;
-};
 
 export const media: Card = {
   id: 'media',
@@ -24,14 +19,12 @@ export const media: Card = {
         subtitle: 'This might upset ideological purists, but it may bring in more funds and perhaps expose the middle class to libertarian socialist ideas.',
         subtitleZh: '这可能会让意识形态纯粹主义者不满，但它可能带来更多资金，并可能让中产阶级接触到自由社会主义思想。',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
           
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
-          newFactions.Faistas.dissent += 10;
-          newFactions.Puristas.dissent += 10;
+          const newFactions = adjustFactionDissents(s.factions, { Faistas: 10, Puristas: 10 });
           
           return {
             resources: s.resources + 1,
@@ -42,12 +35,15 @@ export const media: Card = {
         },
       },
       {
-        text: 'The purpose of our propaganda is to strengthen revolutionary mobilization.',
-        textZh: '我们宣传的目的是加强革命动员。',
+        text: 'The purpose of our propaganda is to strengthen revolutionary mobilization. (-1 resource)',
+        textZh: '我们宣传的目的是加强革命动员。 (-1 资源)',
         subtitle: 'Our newspapers will focus on the revolutionary struggle and union organizing.',
         subtitleZh: '我们的报纸将专注于革命斗争和工会组织。',
+        condition: (s: GameState) => s.resources >= 1,
+        unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
+        unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
@@ -65,11 +61,7 @@ export const media: Card = {
         subtitle: 'There will be space for all tendencies—Treintistas, Cenetistas, Faistas, and Puristas—to air their views.',
         subtitleZh: '所有派别——三十人集团、工团派、无政府主义者和纯粹派——都有空间发表自己的观点。',
         effect: (s: GameState) => {
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
-          newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 6);
-          newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 6);
-          newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 6);
-          newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 6);
+          const newFactions = adjustAllActiveFactionDissent(s.factions, -6);
           
           return { 
             factions: newFactions,
@@ -95,14 +87,13 @@ export const media: Card = {
         unavailableSubtitle: (s: GameState) => 'Need at least 2 resources',
         unavailableSubtitleZh: (s: GameState) => '需要至少 2 资源',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
           
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
-          newFactions.Faistas.dissent += 5;
+          const newFactions = adjustFactionDissent(s.factions, 'Faistas', 5);
           
           return {
             radio: 1,
@@ -127,7 +118,7 @@ export const media: Card = {
         unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
         unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
@@ -152,7 +143,7 @@ export const media: Card = {
         subtitle: 'Our network is now large enough to sustain itself through local contributions.',
         subtitleZh: '我们的网络现在已经大到足以通过地方捐助维持自身运转。',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 4 * dissentFactor);
@@ -181,7 +172,7 @@ export const media: Card = {
         unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
         unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 2 * dissentFactor);
@@ -212,15 +203,14 @@ export const media: Card = {
         unavailableSubtitle: (s: GameState) => 'Need at least 3 resources',
         unavailableSubtitleZh: (s: GameState) => '需要至少 3 资源',
         effect: (s: GameState) => {
-          const dissentFactor = 1 - (getOverallDissent(s) / 100);
+          const dissentFactor = getDissentMultiplier(s.factions);
           let newClasses = s.classes;
           newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 5 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
           newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 1 * dissentFactor);
           
-          const newFactions = JSON.parse(JSON.stringify(s.factions));
-          newFactions.Treintistas.dissent += 3;
+          const newFactions = adjustFactionDissent(s.factions, 'Treintistas', 3);
           
           return {
             cinema: 1,
@@ -245,10 +235,10 @@ export const media: Card = {
     });
 
     return {
-      actionsLeft: state.actionsLeft + 1,
       propaganda_timer: 6,
       currentEvent: {
         id: 'media_event',
+        date: { year: state.year, month: state.month },
         title: 'Media',
         titleZh: '媒体',
         description: `Together, the anarchists have built a propaganda network that spans cities and villages, including printing houses, community newspapers, street speeches and secret broadcasts. Nowadays, emerging media have also entered our field of vision. We can use this network to promote revolutionary propaganda......`,
@@ -258,4 +248,6 @@ export const media: Card = {
     };
   },
 };
+
+
 

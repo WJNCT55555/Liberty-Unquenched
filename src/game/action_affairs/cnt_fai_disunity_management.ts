@@ -1,5 +1,5 @@
-import { Card, GameState, GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+﻿import { Card, GameState, GameEvent } from '../types';
+import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionDissents, isFactionActiveForDissent } from '../utils';
 
 export const cntFaiDisunityManagement: Card = {
   id: 'cnt_fai_disunity_management',
@@ -15,7 +15,8 @@ export const cntFaiDisunityManagement: Card = {
       state.factions.Treintistas.dissent > 50 ||
       state.factions.Cenetistas.dissent > 30 ||
       state.factions.Faistas.dissent > 30 ||
-      state.factions.Puristas.dissent > 30
+      state.factions.Puristas.dissent > 30 ||
+      (isFactionActiveForDissent(state.factions, 'Jabalistas') && state.factions.Jabalistas.dissent > 30)
     );
   },
 
@@ -29,19 +30,12 @@ export const cntFaiDisunityManagement: Card = {
       subtitle: 'Suppress factional infighting at the cost of alienating our base.',
       subtitleZh: '镇压派系内斗，但这会疏远我们的基层群众。',
       effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
         let newClasses = s.classes;
-        
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 5);
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 5);
-        newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
-        
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -4);
         newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', -6);
         
         return {
-          factions: newFactions,
+          factions: adjustAllActiveFactionDissent(s.factions, -5),
           classes: newClasses
         };
       },
@@ -54,12 +48,9 @@ export const cntFaiDisunityManagement: Card = {
       subtitle: 'Adopt a more pragmatic line.',
       subtitleZh: '或许我们应当采取更务实的路线。',
       condition: (s) => s.factions.Treintistas.dissent > 30,
-      effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 7);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 5);
-        return { factions: newFactions };
-      },
+      effect: (s: GameState) => ({
+        factions: adjustFactionDissents(s.factions, { Treintistas: -7, Faistas: 5 })
+      }),
     });
 
     // 3. 向 Cenetistas 让步
@@ -69,14 +60,15 @@ export const cntFaiDisunityManagement: Card = {
       subtitle: 'Let us return to orthodox syndicalism.',
       subtitleZh: '让我们回归正统工团主义。',
       condition: (s) => s.factions.Cenetistas.dissent > 30,
-      effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 7);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 2);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 2);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 2);
-        return { factions: newFactions };
-      },
+      effect: (s: GameState) => ({
+        factions: adjustFactionDissents(s.factions, {
+          Cenetistas: -7,
+          Treintistas: 2,
+          Faistas: 2,
+          Puristas: 2,
+          ...(isFactionActiveForDissent(s.factions, 'Jabalistas') ? { Jabalistas: 2 } : {})
+        })
+      }),
     });
 
     // 4. 向 Faístas 让步
@@ -86,12 +78,9 @@ export const cntFaiDisunityManagement: Card = {
       subtitle: 'We must maintain our anarchist ideals.',
       subtitleZh: '我们应当保持无政府主义理想。',
       condition: (s) => s.factions.Faistas.dissent > 30,
-      effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-        newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 7);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 5);
-        return { factions: newFactions };
-      },
+      effect: (s: GameState) => ({
+        factions: adjustFactionDissents(s.factions, { Faistas: -7, Treintistas: 5 })
+      }),
     });
 
     // 5. 向 Puristas 让步
@@ -101,13 +90,9 @@ export const cntFaiDisunityManagement: Card = {
       subtitle: 'Rejecting all state collaboration is our bottom line.',
       subtitleZh: '拒绝一切国家合作是我们的底线。',
       condition: (s) => s.factions.Puristas.dissent > 30,
-      effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 7);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 5);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 5);
-        return { factions: newFactions };
-      },
+      effect: (s: GameState) => ({
+        factions: adjustFactionDissents(s.factions, { Puristas: -7, Cenetistas: 5, Treintistas: 5 })
+      }),
     });
 
     // 6. 无所作为
@@ -116,14 +101,9 @@ export const cntFaiDisunityManagement: Card = {
       textZh: '让他们吵吧......',
       subtitle: 'Free debate is the spirit of anarchism.',
       subtitleZh: '自由争辩才是无政府主义的精神。',
-      effect: (s: GameState) => {
-        const newFactions = JSON.parse(JSON.stringify(s.factions));
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 1);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 1);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 1);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 1);
-        return { factions: newFactions };
-      },
+      effect: (s: GameState) => ({
+        factions: adjustAllActiveFactionDissent(s.factions, 1)
+      }),
     });
 
     return {

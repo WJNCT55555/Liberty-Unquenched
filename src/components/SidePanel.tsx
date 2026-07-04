@@ -53,22 +53,23 @@ export const SidePanel = () => {
   };
 
   const partyNames: Record<Party, { en: string, zh: string }> = {
+    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
+    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
     PSOE: { en: 'PSOE', zh: '工人社会党 (PSOE)' },
+    PS: { en: 'PS', zh: '工团主义党 (PS)' },
+    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
     IR: { en: 'IR', zh: '共和左翼 (IR)' },
     UR: { en: 'UR', zh: '共和联盟 (UR)' },
-    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
-    PS: { en: 'PS', zh: '工团主义党 (PS)' },
+    PNV: { en: 'PNV', zh: '巴斯克民族主义党 (PNV)' },
+    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
+    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
+    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
+    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
+    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
     FE: { 
       en: state.falange_jons ? 'FE de las JONS' : 'Falange Española', 
       zh: state.falange_jons ? '长枪党 (FE de las JONS)' : '西班牙长枪党 (FE)' 
     },
-    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
-    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
-    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
-    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
-    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
-    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
-    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
     Other: { en: 'Other', zh: '其他' },
     PRRevS: { en: 'PRRevS', zh: '革命共和工团党 (PRRevS)' }
   };
@@ -157,19 +158,20 @@ export const SidePanel = () => {
   };
 
   const partyDescriptions: Record<Party, { en: string, zh: string }> = {
-    PSOE: { en: 'Competing for the worker base, delicate relationship.', zh: '竞争工人基础，关系微妙。' },
+    POUM: { en: 'Anti-Stalinist Marxist party, potential ally in revolution.', zh: '反斯大林主义的马克思主义政党，革命中的潜在盟友。' },
     PCE: { en: 'Ideological arch-nemesis, competing for revolutionary leadership.', zh: '意识形态宿敌，竞争革命领导权。' },
+    PSOE: { en: 'Competing for the worker base, delicate relationship.', zh: '竞争工人基础，关系微妙。' },
+    PS: { en: 'Ideologically close, but seen as "traitors" by CNT radicals.', zh: '意识形态较接近，但被 CNT 激进派视为“叛徒”。' },
+    ERC: { en: 'Catalan center-left nationalist party, friendly but prioritizes Catalan autonomy.', zh: '加泰罗尼亚中左翼民族主义政党，态度友好，但优先保障加泰罗尼亚自治。' },
     IR: { en: 'Sees CNT as a necessary but dangerous ally.', zh: '视 CNT 为必要但危险的盟友。' },
     UR: { en: 'More conservative, fears radical methods of the CNT.', zh: '较保守，恐惧 CNT 的激进手段。' },
-    PS: { en: 'Ideologically close, but seen as "traitors" by CNT radicals.', zh: '意识形态较接近，但被 CNT 激进派视为“叛徒”。' },
-    FE: { en: 'Party using syndicalism as a means but with opposite goals.', zh: '同样以工团作为手段的政党但目的相反。' },
-    POUM: { en: 'Anti-Stalinist Marxist party, potential ally in revolution.', zh: '反斯大林主义的马克思主义政党，革命中的潜在盟友。' },
-    AP: { en: 'Catholic conservative party, defending religion and property.', zh: '天主教保守政党，捍卫宗教与财产。' },
-    CT: { en: 'Traditionalist and Carlist party, deeply conservative.', zh: '传统主义与卡洛斯派政党，极其保守。' },
-    RE: { en: 'Monarchist party, seeking to restore the King.', zh: '君主主义政党，寻求恢复国王。' },
-    DLR: { en: 'Conservative Republican party, defending property and order.', zh: '保守共和政党，捍卫财产与秩序。' },
+    PNV: { en: 'Basque regionalist party, moderate and conservative but democratic.', zh: '巴斯克民族主义政党，温和保守但拥护民主。' },
     PRR: { en: 'Centrist Republican party, pursuing moderate reforms under the Republic.', zh: '中间派共和政党，主张在共和国框架下进行温和改革。' },
-    ERC: { en: 'Catalan center-left nationalist party, friendly but prioritizes Catalan autonomy.', zh: '加泰罗尼亚中左翼民族主义政党，态度友好，但优先保障加泰罗尼亚自治。' },
+    DLR: { en: 'Conservative Republican party, defending property and order.', zh: '保守共和政党，捍卫财产与秩序。' },
+    AP: { en: 'Catholic conservative party, defending religion and property.', zh: '天主教保守政党，捍卫宗教与财产。' },
+    RE: { en: 'Monarchist party, seeking to restore the King.', zh: '君主主义政党，寻求恢复国王。' },
+    CT: { en: 'Traditionalist and Carlist party, deeply conservative.', zh: '传统主义与卡洛斯派政党，极其保守。' },
+    FE: { en: 'Party using syndicalism as a means but with opposite goals.', zh: '同样以工团作为手段的政党但目的相反。' },
     Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' },
     PRRevS: { en: 'Our revolutionary syndicalist party representing the CNT in the Cortes.', zh: '我们在议会中代表 CNT 的革命共和工团党。' }
   };
@@ -214,10 +216,11 @@ export const SidePanel = () => {
     return isZh ? '全面' : 'Comprehensive';
   };
 
-  const getWomenSuffrageText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '无' : 'None';
-    if (val === 1) return isZh ? '有限' : 'Limited';
-    return isZh ? '完全' : 'Full';
+  const getPoliticalRightsText = (val: number, isZh: boolean) => {
+    if (val === 0) return isZh ? '无选举' : 'No Elections';
+    if (val === 1) return isZh ? '男性普选权' : 'Male Suffrage';
+    if (val === 2) return isZh ? '有限女性选举权' : 'Limited Women Suffrage';
+    return isZh ? '完全普选' : 'Universal Suffrage';
   };
 
   const getReligionPolicyText = (val: number, isZh: boolean) => {
@@ -227,17 +230,27 @@ export const SidePanel = () => {
     return isZh ? '国家无神论' : 'State Atheism';
   };
 
-  const getAbortionRightsText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '禁止' : 'Banned';
-    if (val === 1) return isZh ? '非刑事化' : 'Decriminalized';
-    return isZh ? '允许堕胎' : 'Legalized';
-  };
-
   const getEducationInstitutionsText = (val: number, isZh: boolean) => {
     if (val === 0) return isZh ? '教会学校' : 'Church Schools';
     if (val === 1) return isZh ? '传统教育' : 'Traditional Education';
     if (val === 2) return isZh ? '理性教育' : 'Rational Education';
     return isZh ? '现代教育' : 'Modern Education';
+  };
+
+  const getLanguagePolicyText = (val: number, isZh: boolean) => {
+    if (val === 0) return isZh ? '强制卡斯蒂利亚语' : 'Castilian Only';
+    if (val === 1) return isZh ? '有限承认' : 'Limited Recognition';
+    if (val === 2) return isZh ? '自治双轨' : 'Dual Track';
+    if (val === 3) return isZh ? '多语制' : 'Multilingualism';
+    return isZh ? '世界语' : 'Esperanto';
+  };
+
+  const getUnionStatusText = (val: number, isZh: boolean) => {
+    if (val === 0) return isZh ? '工会非法' : 'Union Outlawed';
+    if (val === 1) return isZh ? '结社自由' : 'Freedom of Association';
+    if (val === 2) return isZh ? '混合陪审团' : 'Mixed Jury';
+    if (val === 3) return isZh ? '集体谈判' : 'Collective Bargaining';
+    return isZh ? '委员会控制' : 'Committee Control';
   };
 
   const getPolicyColorClass = (val: number, maxVal: number) => {
@@ -253,26 +266,61 @@ export const SidePanel = () => {
       {state.civilWarStatus !== 'not_started' ? (
         <AccordionSection title={isZh ? '西班牙内战' : 'Spanish Civil War'} defaultOpen={true}>
           <div className="flex flex-col gap-4">
-            <div>
-              <div className="flex justify-between text-xs font-mono mb-1">
-                <span>{isZh ? '共和军推进' : 'Republic'}</span>
-                <span>{isZh ? '国民军推进' : 'Nationalist'}</span>
-              </div>
-              <div className="h-4 w-full bg-zinc-300 border border-ink relative">
-                <div 
-                  className="absolute top-0 bottom-0 left-0 bg-red-600 border-r border-ink transition-all duration-500" 
-                  style={{ width: `${100 - state.warProgress}%` }}
-                />
-                <div 
-                  className="absolute top-0 bottom-0 right-0 bg-blue-800 transition-all duration-500" 
-                  style={{ width: `${state.warProgress}%` }}
-                />
-                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-ink z-10" />
-              </div>
-              <div className="text-center text-xs font-mono mt-1 text-ink-light">
-                {isZh ? '前线战况' : 'War Progress'}
-              </div>
-            </div>
+            {(() => {
+              const provincesList = Object.values(state.provinces || {}) as any[];
+              const totalProvinces = provincesList.length;
+              let computedProgress = 50;
+              if (totalProvinces > 0) {
+                if (state.activeWar === 'asturias_war') {
+                  const workersCount = provincesList.filter(p => p.owner === MapFaction.WORKERS_ALLIANCE).length;
+                  const repCount = provincesList.filter(p => p.owner === MapFaction.REPUBLICAN).length;
+                  const totalActive = workersCount + repCount;
+                  if (totalActive > 0) {
+                    computedProgress = (repCount / totalActive) * 100;
+                  }
+                } else {
+                  const nationalistCount = provincesList.filter(p => p.owner === MapFaction.NATIONALIST).length;
+                  const republicanCount = provincesList.filter(p => p.owner === MapFaction.REPUBLICAN).length;
+                  const totalActive = nationalistCount + republicanCount;
+                  if (totalActive > 0) {
+                    computedProgress = (nationalistCount / totalActive) * 100;
+                  }
+                }
+              }
+
+              return (
+                <div>
+                  <div className="flex justify-between text-xs font-mono mb-1">
+                    <span>
+                      {state.activeWar === 'asturias_war' 
+                        ? (isZh ? '工农联盟' : 'Alliance') 
+                        : (isZh ? '共和军' : 'Republic')}
+                    </span>
+                    <span>
+                      {state.activeWar === 'asturias_war'
+                        ? (isZh ? '政府军' : 'Government')
+                        : (isZh ? '国民军' : 'Nationalist')}
+                    </span>
+                  </div>
+                  <div className="h-4 w-full bg-zinc-300 border border-ink relative">
+                    <div 
+                      className="absolute top-0 bottom-0 left-0 bg-red-600 border-r border-ink transition-all duration-500" 
+                      style={{ width: `${100 - computedProgress}%` }}
+                    />
+                    <div 
+                      className="absolute top-0 bottom-0 right-0 bg-blue-800 transition-all duration-500" 
+                      style={{ width: `${computedProgress}%` }}
+                    />
+                    <div className="absolute top-0 bottom-0 left-1/2 w-px bg-ink z-10" />
+                  </div>
+                  <div className="text-center text-xs font-mono mt-1 text-ink-light">
+                    {state.activeWar === 'asturias_war'
+                      ? (isZh ? '阿斯图里亚斯战况' : 'Asturias Front')
+                      : (isZh ? '前线战况 (控制省份比例)' : 'War Progress (Province Ratio)')}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Spain Civil War Faction/Republican stats */}
             {(() => {
@@ -330,11 +378,6 @@ export const SidePanel = () => {
       ) : (
         <AccordionSection title={isZh ? '西班牙地图' : 'Spain Map'} defaultOpen={true}>
           <div className="flex flex-col gap-4">
-            <div className="text-xs font-mono text-ink-light leading-relaxed">
-              {isZh 
-                ? '局势风起云涌。内战爆发后将实装战区划分与阵线对决图景。' 
-                : 'The situation is volatile. Regional sectors and frontlines will be fully simulated upon civil war onset.'}
-            </div>
             {/* Map View Button */}
             <button 
               onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
@@ -418,7 +461,7 @@ export const SidePanel = () => {
             };
             const stanceText = isZh ? stanceLabels[state.cntStance]?.zh : stanceLabels[state.cntStance]?.en;
             return (
-              <div className="flex justify-between items-center bg-paper-dark border border-ink/20 p-2 relative overflow-hidden mb-2" id="cnt-stance-indicator">
+              <div className="flex justify-between items-center bg-paper-dark p-2 relative overflow-hidden mb-2" id="cnt-stance-indicator">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-typewriter text-[9px] uppercase tracking-wider text-ink-light leading-none">
                     {isZh ? 'CNT立场' : 'CNT STANCE'}
@@ -457,7 +500,7 @@ export const SidePanel = () => {
             const coalitionName = isZh ? def.nameZh : def.name;
 
             return (
-              <div className="flex flex-col gap-2.5 font-typewriter text-xs bg-paper-dark border border-ink/20 p-2.5 relative overflow-hidden my-3">
+              <div className="flex flex-col gap-2.5 font-typewriter text-xs bg-paper-dark p-2.5 relative overflow-hidden my-3">
 
                 {/* Cohesion gauge with radial dots (halftone) and classic scale reference */}
                 <div className="flex flex-col gap-1 pb-1.5 border-b border-ink/10">
@@ -640,7 +683,7 @@ export const SidePanel = () => {
               {(Object.entries(state.cortes) as [Party, number][])
                 .filter(([_, seats]) => seats > 0)
                 .sort((a, b) => {
-                  const order = ['PCE', 'POUM', 'PS', 'PRRevS', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'Other', 'AP', 'CT', 'RE', 'FE'];
+                  const order = ['POUM', 'PCE', 'PRRevS', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'Other', 'AP', 'RE', 'CT', 'FE'];
                   return order.indexOf(a[0]) - order.indexOf(b[0]);
                 })
                 .map(([party, seats]) => (
@@ -974,16 +1017,17 @@ export const SidePanel = () => {
           {state.poum_founded && <AllianceBar name={isZh ? partyNames.POUM.zh : partyNames.POUM.en} value={calculatePartySupport(state, 'POUM')} color={PARTY_COLORS['POUM']} breakdown={getPartySupportBreakdown(state, 'POUM')} />}
           <AllianceBar name={isZh ? partyNames.PCE.zh : partyNames.PCE.en} value={calculatePartySupport(state, 'PCE')} color={PARTY_COLORS['PCE']} breakdown={getPartySupportBreakdown(state, 'PCE')} />
           <AllianceBar name={isZh ? partyNames.PSOE.zh : partyNames.PSOE.en} value={calculatePartySupport(state, 'PSOE')} color={PARTY_COLORS['PSOE']} breakdown={getPartySupportBreakdown(state, 'PSOE')} />
-          <AllianceBar name={isZh ? partyNames.IR.zh : partyNames.IR.en} value={calculatePartySupport(state, 'IR')} color={PARTY_COLORS['IR']} breakdown={getPartySupportBreakdown(state, 'IR')} />
+          {state.ps_founded && <AllianceBar name={isZh ? partyNames.PS.zh : partyNames.PS.en} value={calculatePartySupport(state, 'PS')} color={PARTY_COLORS['PS']} breakdown={getPartySupportBreakdown(state, 'PS')} />}
           <AllianceBar name={isZh ? partyNames.ERC.zh : partyNames.ERC.en} value={calculatePartySupport(state, 'ERC')} color={PARTY_COLORS['ERC']} breakdown={getPartySupportBreakdown(state, 'ERC')} />
+          <AllianceBar name={isZh ? partyNames.IR.zh : partyNames.IR.en} value={calculatePartySupport(state, 'IR')} color={PARTY_COLORS['IR']} breakdown={getPartySupportBreakdown(state, 'IR')} />
           <AllianceBar name={isZh ? partyNames.UR.zh : partyNames.UR.en} value={calculatePartySupport(state, 'UR')} color={PARTY_COLORS['UR']} breakdown={getPartySupportBreakdown(state, 'UR')} />
+          <AllianceBar name={isZh ? partyNames.PNV.zh : partyNames.PNV.en} value={calculatePartySupport(state, 'PNV')} color={PARTY_COLORS['PNV']} breakdown={getPartySupportBreakdown(state, 'PNV')} />
           <AllianceBar name={isZh ? partyNames.PRR.zh : partyNames.PRR.en} value={calculatePartySupport(state, 'PRR')} color={PARTY_COLORS['PRR']} breakdown={getPartySupportBreakdown(state, 'PRR')} />
           <AllianceBar name={isZh ? partyNames.DLR.zh : partyNames.DLR.en} value={calculatePartySupport(state, 'DLR')} color={PARTY_COLORS['DLR']} breakdown={getPartySupportBreakdown(state, 'DLR')} />
           <AllianceBar name={isZh ? partyNames.AP.zh : partyNames.AP.en} value={calculatePartySupport(state, 'AP')} color={PARTY_COLORS['AP']} breakdown={getPartySupportBreakdown(state, 'AP')} />
-          {state.fe_founded && <AllianceBar name={isZh ? partyNames.FE.zh : partyNames.FE.en} value={calculatePartySupport(state, 'FE')} color={PARTY_COLORS['FE']} breakdown={getPartySupportBreakdown(state, 'FE')} />}
-          <AllianceBar name={isZh ? partyNames.CT.zh : partyNames.CT.en} value={calculatePartySupport(state, 'CT')} color={PARTY_COLORS['CT']} breakdown={getPartySupportBreakdown(state, 'CT')} />
           <AllianceBar name={isZh ? partyNames.RE.zh : partyNames.RE.en} value={calculatePartySupport(state, 'RE')} color={PARTY_COLORS['RE']} breakdown={getPartySupportBreakdown(state, 'RE')} />
-          {state.ps_founded && <AllianceBar name={isZh ? partyNames.PS.zh : partyNames.PS.en} value={calculatePartySupport(state, 'PS')} color={PARTY_COLORS['PS']} breakdown={getPartySupportBreakdown(state, 'PS')} />}
+          <AllianceBar name={isZh ? partyNames.CT.zh : partyNames.CT.en} value={calculatePartySupport(state, 'CT')} color={PARTY_COLORS['CT']} breakdown={getPartySupportBreakdown(state, 'CT')} />
+          {state.fe_founded && <AllianceBar name={isZh ? partyNames.FE.zh : partyNames.FE.en} value={calculatePartySupport(state, 'FE')} color={PARTY_COLORS['FE']} breakdown={getPartySupportBreakdown(state, 'FE')} />}
           <AllianceBar name={isZh ? partyNames.Other.zh : partyNames.Other.en} value={calculatePartySupport(state, 'Other')} color={PARTY_COLORS['Other']} breakdown={getPartySupportBreakdown(state, 'Other')} />
         </div>
       </AccordionSection>
@@ -1056,19 +1100,20 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
   
   const partyNames: Record<'CNT_FAI' | Party, { en: string, zh: string }> = {
     CNT_FAI: { en: state.isPRRevSFormed ? 'PRRevS' : 'CNT-FAI', zh: state.isPRRevSFormed ? '革命共和工团党' : 'CNT-FAI' },
+    POUM: { en: 'POUM', zh: '马统工党' },
+    PCE: { en: 'PCE', zh: '共产党' },
     PSOE: { en: 'PSOE', zh: '工人社会党' },
+    PS: { en: 'PS', zh: '工团主义党' },
+    ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
     IR: { en: 'IR', zh: '共和左翼' },
     UR: { en: 'UR', zh: '共和联盟' },
-    PCE: { en: 'PCE', zh: '共产党' },
-    PS: { en: 'PS', zh: '工团主义党' },
-    FE: { en: 'FE', zh: '长枪党' },
-    POUM: { en: 'POUM', zh: '马统工党' },
-    AP: { en: 'AP', zh: '人民行动党' },
-    CT: { en: 'CT', zh: '传统主义者' },
-    RE: { en: 'RE', zh: '西班牙革新' },
-    DLR: { en: 'DLR', zh: '自由共和右翼' },
+    PNV: { en: 'PNV', zh: '巴斯克民族主义党' },
     PRR: { en: 'PRR', zh: '共和激进党' },
-    ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
+    DLR: { en: 'DLR', zh: '自由共和右翼' },
+    AP: { en: 'AP', zh: '人民行动党' },
+    RE: { en: 'RE', zh: '西班牙革新' },
+    CT: { en: 'CT', zh: '传统主义者' },
+    FE: { en: 'FE', zh: '长枪党' },
     Other: { en: 'Other', zh: '其他' },
     PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
   };
@@ -1372,6 +1417,51 @@ const PARTY_INFLUENCE_INFO: Record<string, {
     desc: {
       en: "Represents clerical reaction, landowners, and elements of the old regime. Actively hostile to agrarian reform, union leverage, and secularization.",
       zh: "代表着宗教守旧势力、大种植园地主与极保守军事势力门阀。积极反对土地分配、削弱工会权威，谋求全面回到旧社会秩序。"
+    }
+  },
+  DLR: {
+    name: { en: "DLR (Liberal Republican Right)", zh: "DLR (自由共和右翼 / 保守共和派)" },
+    dissent: { 
+      en: "Moderates political transitions, but keeping conservative republicans in power mildly increases dissent among revolutionary purists and anarchists.", 
+      zh: "有助于缓和宪政过渡时期的政治张力。但保留保守派共和党人执政会轻微增加革命纯粹派与无政府主义者的不信任与分歧度。" 
+    },
+    stability: { 
+      en: "Fosters constitutional stability and legal continuity. Provides reassurance to middle-class moderates, property owners, and legalistic elements.", 
+      zh: "有利于维护宪政秩序、法治统一与体制稳定性。能够显著安抚中产阶级温和派、有产者及体制内的守法力量。" 
+    },
+    desc: {
+      en: "A conservative republican party led by Alcalá-Zamora and Miguel Maura. Dedicated to a secular, democratic but conservative constitutional Republic.",
+      zh: "由阿尔卡拉-萨莫拉和米格尔·莫拉领导的保守派共和政党。致力于在尊重私有产权和基本秩序的前提下，建设一个世俗、民主但稳健的共和国。"
+    }
+  },
+  ERC: {
+    name: { en: "ERC (Catalan Republican Left)", zh: "ERC (加泰罗尼亚共和左翼)" },
+    dissent: { 
+      en: "Soothes regional autonomic expectations. However, conservative and highly centralized factions view their presence with concern, mildly increasing central friction.", 
+      zh: "极大安抚加泰罗尼亚及地方自治主义者的期盼。然而，强硬的中央集权派和保守势力会对联邦化的倾向深感戒备，中度推高中央政治分歧。" 
+    },
+    stability: { 
+      en: "Provides good stability in Catalonia and regional governments, though it might spark concerns of separatism among traditionalist military officers.", 
+      zh: "在区域自治管理和民主阵线上提供良好的稳定性。但会在军警保守派和传统主义国家机器中引发对国家分裂的担忧。" 
+    },
+    desc: {
+      en: "A left-wing Catalan nationalist and republican party. Champions Catalan autonomy, social progressivism, and secular democratic reforms.",
+      zh: "加泰罗尼亚左翼民族主义与共和派政党。坚定主张加泰罗尼亚自治，提倡社会进步主义和世俗化民主改革。"
+    }
+  },
+  UR: {
+    name: { en: "UR (Republican Union)", zh: "UR (共和联盟 / 温和左翼)" },
+    dissent: { 
+      en: "Provides a reliable constitutional bridge, satisfying moderate progressives and reformist union members alike.", 
+      zh: "作为稳健的宪政桥梁，有效满足温和进步派与改良主义工会代表的政治预期。" 
+    },
+    stability: { 
+      en: "Enhances constitutional stability by uniting centrist and left-wing republican sentiments behind legal continuity and moderate reforms.", 
+      zh: "通过团结中左翼共和派力量，维护法制延续性和稳步社会改良，显著提升宪政框架下的政府稳定性。" 
+    },
+    desc: {
+      en: "A center-left republican party formed by Martínez Barrio. Focused on constitutional stability, civil liberties, and moderate social progressivism.",
+      zh: "由马丁内斯·巴里奥领导的中左翼共和主义政党。致力于宪政稳定、公民自由 and 温和渐进的社会进步政策。"
     }
   },
   Other: {

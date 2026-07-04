@@ -11,7 +11,7 @@ export const agriculturalPolicy: Card = {
   cost: 1,
   condition: (state: GameState) => {
     const isGov = state.cntStance === 'govern';
-    const isMinister = state.ministers.agriculture === 'CNT' || state.agriculture_minister_party === 'CNT';
+    const isMinister = state.ministers.agriculture === 'CNT';
     const isTimerZero = (state.agricultural_policy_timer || 0) === 0;
     return isGov && isMinister && isTimerZero;
   },

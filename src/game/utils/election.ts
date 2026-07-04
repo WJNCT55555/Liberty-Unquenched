@@ -4,7 +4,7 @@ import { getPartySupport } from './coalition';
 
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
+    POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, Other: 0, PRRevS: 0
   };
   let cntVotes = 0;
 
@@ -62,7 +62,7 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
 
 export function votesToSeats(votes: Record<Party, number>, totalSeats: number): Record<Party, number> {
   const seats: Record<Party, number> = {
-    PSOE: 0, PCE: 0, IR: 0, UR: 0, PS: 0, FE: 0, POUM: 0, AP: 0, CT: 0, RE: 0, DLR: 0, PRR: 0, ERC: 0, Other: 0, PRRevS: 0
+    POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, Other: 0, PRRevS: 0
   };
 
   let totalValidVotes = 0;

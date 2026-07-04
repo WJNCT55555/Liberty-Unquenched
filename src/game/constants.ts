@@ -1,23 +1,7 @@
 import { Party, SocialClass } from './types';
+import { PARTY_COLORS } from './parties';
 
-export const PARTY_COLORS: Record<string, string> = {
-  CNT_FAI: '#cc0000',
-  PSOE: '#EF1C27',
-  IR: '#ffcc00',
-  UR: '#1e3a8a',
-  PCE: '#AC0621',
-  PS: '#4b5563',
-  FE: '#1e3a8a',
-  POUM: '#b91c1c',
-  AP: '#166534',
-  CT: '#FFFFFF',
-  RE: '#16166B',
-  DLR: '#AC0621',
-  PRR: '#a21caf',
-  ERC: '#fb923c',
-  Other: '#9ca3af',
-  PRRevS: '#4b5563'
-};
+export { PARTY_COLORS };
 
 export const CLASS_COLORS: Record<SocialClass, string> = {
   Obreros: '#ef4444',

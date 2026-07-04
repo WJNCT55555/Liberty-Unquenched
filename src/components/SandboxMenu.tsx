@@ -61,23 +61,19 @@ export const SandboxMenu = () => {
     if (anyCNT) {
       extraPayload.cntStance = 'govern';
     }
-    if (role === 'labor') extraPayload.labor_minister_party = value;
-    if (role === 'agriculture') extraPayload.agriculture_minister_party = value;
-    if (role === 'finance') extraPayload.finance_minister_party = value;
-    if (role === 'estado') extraPayload.estado_minister_party = value;
     dispatch({ type: 'SANDBOX_EDIT', payload: extraPayload });
   };
 
   const ministerRoles = [
-    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right'] },
-    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
-    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
-    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other'] },
+    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
   ] as const;
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
@@ -258,6 +254,9 @@ export const SandboxMenu = () => {
                               {opt === 'PRR' && (isZh ? 'PRR (激进共和党)' : 'PRR')}
                               {opt === 'Right' && (isZh ? 'Right (保守右翼)' : 'Right')}
                               {opt === 'Other' && (isZh ? 'Other (其他第三方)' : 'Other')}
+                              {opt === 'DLR' && (isZh ? 'DLR (共和自由右翼)' : 'DLR')}
+                              {opt === 'ERC' && (isZh ? 'ERC (加泰共和左翼)' : 'ERC')}
+                              {opt === 'UR' && (isZh ? 'UR (共和联盟)' : 'UR')}
                             </option>
                           ))}
                         </select>

@@ -32,11 +32,12 @@ export const elections1931Results: GameEvent = {
       DLR: { en: 'DLR', zh: '自由共和右翼' },
       PRR: { en: 'PRR', zh: '激进共和党' },
       ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
+      PNV: { en: 'PNV', zh: '巴斯克民族主义党' },
       Other: { en: 'Other', zh: '其他' },
       PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
     };
 
-    const partyOrder: Party[] = ['PS', 'PRRevS', 'POUM', 'PCE', 'PSOE', 'ERC', 'IR', 'UR', 'PRR', 'DLR', 'AP', 'FE', 'RE', 'CT', 'Other'];
+    const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
@@ -113,9 +114,28 @@ export const elections1931Results: GameEvent = {
           nextEvents = [{ ...leftCabinetExcludesCNT }, ...state.pendingEvents.filter(e => e.id !== leftCabinetExcludesCNT.id)];
         }
 
+        const updatedMinisters = { ...state.ministers };
+        const hist1931: Record<string, string> = {
+          labor: 'PSOE',
+          health: 'PSOE',
+          justice: 'PSOE',
+          industry: 'Other',
+          interior: 'DLR',
+          agriculture: 'Other',
+          finance: 'PSOE',
+          estado: 'PRR',
+          war: 'Other',
+        };
+        for (const role of Object.keys(hist1931)) {
+          if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
+            updatedMinisters[role as keyof typeof updatedMinisters] = hist1931[role] as any;
+          }
+        }
+
         const baseState = {
           ...state,
           cortes: newCortes,
+          ministers: updatedMinisters,
           government: {
             ...state.government,
             type: govType,
@@ -171,8 +191,27 @@ export const elections1931Results: GameEvent = {
         let pm = 'Alejandro Lerroux';
         let pmZh = '亚历杭德罗·勒鲁';
 
+        const updatedMinisters = { ...state.ministers };
+        const hist1931: Record<string, string> = {
+          labor: 'PSOE',
+          health: 'PSOE',
+          justice: 'PSOE',
+          industry: 'Other',
+          interior: 'DLR',
+          agriculture: 'Other',
+          finance: 'PSOE',
+          estado: 'PRR',
+          war: 'Other',
+        };
+        for (const role of Object.keys(hist1931)) {
+          if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
+            updatedMinisters[role as keyof typeof updatedMinisters] = hist1931[role] as any;
+          }
+        }
+
         return {
           cortes: newCortes,
+          ministers: updatedMinisters,
           government: {
             ...state.government,
             type: govType,
@@ -411,10 +450,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) =
 
         return {
           leverage: currentState.leverage - totalCost,
-          labor_minister_party: selected.labor ? 'CNT' : currentState.labor_minister_party,
-          agriculture_minister_party: selected.agriculture ? 'CNT' : currentState.agriculture_minister_party,
-          finance_minister_party: selected.finance ? 'CNT' : currentState.finance_minister_party,
-          estado_minister_party: selected.estado ? 'CNT' : currentState.estado_minister_party,
           ministers: newMinisters,
           stats: {
             ...currentState.stats,

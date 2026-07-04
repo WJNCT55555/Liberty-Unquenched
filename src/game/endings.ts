@@ -74,7 +74,7 @@ export const checkEndings = (state: GameState): GameState => {
     : 0;
 
   // 1. The Great Purge
-  if (state.partySupport['PCE'] > 80 && state.cntFaiInGovernment) {
+  if (state.partySupport['PCE'] > 80 && state.cntStance === 'govern') {
     triggeredEnding = ENDINGS.THE_GREAT_PURGE;
   }
   // 2. We Have Passed
@@ -90,7 +90,7 @@ export const checkEndings = (state: GameState): GameState => {
     triggeredEnding = ENDINGS.CHILDREN_OF_THE_PEOPLE;
   }
   // 5. The Popular Front
-  else if (state.civilWarStatus === 'won' && state.stats.revolutionaryFervor < 40 && state.cntFaiInGovernment) {
+  else if (state.civilWarStatus === 'won' && state.stats.revolutionaryFervor < 40 && state.cntStance === 'govern') {
     triggeredEnding = ENDINGS.POPULAR_FRONT;
   }
   // Generic Win (Fallback if won but no specific condition met)
