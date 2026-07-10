@@ -1,10 +1,17 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const cntInternalSplitMeta = {
+  category: 'cnt' as const,
+  flow: 'solo' as const,
+  series: ['cnt_internal_split'],
+};
 
 export const foundingSyndicalistParty: GameEvent = {
   id: 'Founding of the Syndicalist Party',
+  meta: cntInternalSplitMeta,
   date: { year: 1934, month: 7 },
-  condition: (state) => state.treintistasLeft,
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1934, 7) && state.treintistasLeft && !state.ps_founded,
   title: 'Founding of the Syndicalist Party',
   titleZh: '工团主义党成立',
   description: `If economic problems are not solved at the same time through better organization of wealth production and distribution, as well as the seizure of economic and political power by the productive classes, no political problem can be adequately solved. After Ángel Pestaña left the CNT, he founded the Syndicalist Party. His proposal was to contribute to the workers' movement by providing it with a political party that does not interfere in union work, can cooperate with unions but has complete autonomy.`,

@@ -1,4 +1,3 @@
-import { supportAgrarianReform } from './support_agrarian_reform';
 import { militaryPolicy } from './military_policy';
 import { agriculturalPolicy } from './agricultural_policy';
 import { laborRights } from './labor_rights';
@@ -8,7 +7,6 @@ import { foreignPolicy } from './foreign_policy';
 import { impeachPresident } from './impeach_president';
 
 export const GOVERNMENT_AFFAIRS = [
-  supportAgrarianReform,
   militaryPolicy,
   agriculturalPolicy,
   laborRights,

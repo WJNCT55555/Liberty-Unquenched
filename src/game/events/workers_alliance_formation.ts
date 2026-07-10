@@ -1,7 +1,15 @@
 import { GameEvent } from '../types';
 
+const uhpAsturiasMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['asturias', 'uhp'],
+  tags: ['journal'],
+};
+
 export const workersAllianceFormation: GameEvent = {
   id: 'workers_alliance_formation',
+  meta: uhpAsturiasMeta,
   title: 'Formation of the Workers\' Alliance',
   titleZh: '工人联盟宣告成立',
   description: 'Through tireless efforts and common class interest, the CNT and the socialist organizations have joined hands in the Workers\' Alliance (Alianza Obrera). A united proletariat stands ready to defend the social revolution and defeat any reactionary coup!',

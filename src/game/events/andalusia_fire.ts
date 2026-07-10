@@ -1,8 +1,16 @@
 import { GameEvent } from '../types';
 import { MapFaction } from '../../map/types_map';
 
+const asturiasMeta = {
+  category: 'war' as const,
+  flow: 'solo' as const,
+  series: ['asturias'],
+  tags: ['map'],
+};
+
 export const andalusiaFireEvent: GameEvent = {
   id: 'andalusia_fire',
+  meta: asturiasMeta,
   title: '安达卢西亚之火',
   titleZh: '安达卢西亚之火',
   description: '随着阿斯图里亚斯起义的坚持，革命的星火已在南方安达卢西亚大地上熊熊燃烧！加第斯和马拉加两个省份的革命工人与激进青年发起了罢工与武装起义，建立了工人自治联盟，积极响应北方的阿斯图里亚斯革命！',

@@ -1,16 +1,21 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const governmentCrisisMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['government_crisis'],
+};
 
 export const nombelaScandal: GameEvent = {
   id: 'nombela_scandal',
+  meta: governmentCrisisMeta,
+  date: { year: 1935, month: 11 },
   title: 'The Nombela Scandal',
   titleZh: '隆贝拉丑闻事件',
   description: 'Hot on the heels of the notorious Straperla roulette scandal, a second, even more devastating corruption bombshell has rocked the Radical-CEDA coalition. Antonio Nombela, a high-ranking civil servant in the colonies department, has publicly denounced Prime Minister Alejandro Lerroux’s cabinet. Nombela claims he was summarily dismissed after refusing to sign off on a fraudulent government indemnity of over 2.2 million pesetas to a West African shipping company owned by Antonio Tayá—a payout actively championed by Lerroux’s close political associates.\n\nNow, Nombela has presented damning written evidence of bribery and corruption directly to the Cortes. The public is absolutely furious, and the moral authority of Lerroux’s Radicals is irreversibly shattered. CEDA, led by Gil-Robles, is desperately trying to distance itself, while President Alcalá-Zamora is under massive pressure from the left and moderate republicans to dissolve the corrupt parliament altogether. How does the National Committee of the CNT capitalize on this major crisis?',
   descriptionZh: '继极具恶名的“斯查佩拉”（Straperla）轮盘赌贿赂丑闻爆发后，又一枚更具破坏力的腐败炸弹彻底引爆，将“激进党-CEDA”右翼执政党团推向了覆灭的边缘。殖民地事务部高级文官安东尼奥·隆贝拉（Antonio Nombela）发表公开声明，指控首相亚历杭德罗·勒鲁的内阁中饱私囊。隆贝拉透露，因其拒绝签字批准一笔支付给西非航运公司老板安东尼奥·塔亚、数额高达220万比塞塔的欺诈性政府赔偿金，他本人遭到了政府的免职。而这笔巨额赔偿是由勒鲁关系极近的政治同伙在幕后积极推动运转的。\n\n如今，隆贝拉已将受贿及官员腐败的关键书面罪证呈送至西班牙国会。全西班牙社会群情激愤，勒鲁麾下激进党的政权道德标准彻底破产。吉尔-罗夫莱斯领导的CEDA由于担心被波及，正竭力与其撇清干系；而阿尔卡拉-萨莫拉总统更是承受着来自左翼和温和派共和主义者的排山倒海般的压力，要求彻底解散这届腐败横行的议会。全劳联（CNT）全国委员会将如何在这场空前的反动政权合法性危机中采取行动？',
-  condition: (state) => 
-    state.year === 1935 && 
-    state.month === 11 && 
-    state.government.type === 'Radical-CEDA Government',
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1935, 11) && state.government.type === 'Radical-CEDA Government',
   options: [
     {
       text: 'Expose the decay of the bourgeois state! Prepare the workers for revolutionary action.',

@@ -1,7 +1,15 @@
 import { GameEvent } from '../../types';
 
+const civilWarMeta = {
+  category: 'war' as const,
+  flow: 'solo' as const,
+  series: ['civil_war'],
+  tags: ['map'],
+};
+
 export const cataloniaDefense: GameEvent = {
   id: 'catalonia_defense',
+  meta: civilWarMeta,
   title: 'The Catalan Uprising',
   titleZh: '保卫加泰罗尼亚',
   description: 'Anarchist militias erect barricades across Barcelona. Security forces join the resistance; Assault Guards share weapons with the anarchist defenders. Anarchist leaders meet with Lluís Companys, president of the Generalitat.',

@@ -1,4 +1,4 @@
-﻿import { Card, GameState, GameEvent } from '../types';
+import { Card, GameState, GameEvent } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionDissent, adjustFactionDissents, getDissentMultiplier } from '../utils';
 
 
@@ -76,7 +76,7 @@ export const media: Card = {
       },
     ];
 
-    // Radio Options
+    // Radio options
     if (state.radio === 0) {
       options.push({
         text: 'Why not fund a clandestine radio station? (-2 resources)',
@@ -136,7 +136,7 @@ export const media: Card = {
       });
     }
 
-    if (state.radio > 3 && state.radio <= 5 && state.year <= 1931) {
+    if (state.radio > 3 && state.radio <= 5) {
       options.push({
         text: 'We must keep on building up our radio network. (Self-sufficient)',
         textZh: '我们必须继续建立我们的广播网络。 (自给自足)',
@@ -162,37 +162,7 @@ export const media: Card = {
       });
     }
 
-    if (state.radio > 3 && (state.radio >= 6 || state.year >= 1932) && state.radio <= 9) {
-      options.push({
-        text: 'We should keep on supporting our radio network. (-1 resources)',
-        textZh: '我们应该继续支持我们的广播网络。 (-1 资源)',
-        subtitle: 'Maintain and upgrade our existing infrastructure to ensure clear signals.',
-        subtitleZh: '维护并升级我们现有的基础设施，以确保信号清晰。',
-        condition: (s: GameState) => s.resources >= 1,
-        unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
-        unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 2 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 2 * dissentFactor);
-          
-          return {
-            radio: s.radio + 1,
-            resources: s.resources - 1,
-            classes: newClasses,
-            socialism: s.socialism + 2 * dissentFactor,
-            nationalism: s.pacifism > 2 ? s.nationalism - 2 * dissentFactor * (s.pacifism - 2) : s.nationalism,
-            pro_republic: s.democratization > 2 ? s.pro_republic + 2 * dissentFactor * (s.democratization - 2) : s.pro_republic,
-          };
-        },
-      });
-    }
-
-    // Cinema Option
+    // Cinema option
     if (state.cinema === 0) {
       options.push({
         text: 'Anarchism on the Silver Screen (-3 resources)',
@@ -225,7 +195,7 @@ export const media: Card = {
       });
     }
 
-    // Final Option
+    // Final option
     options.push({
       text: 'We should not do anything with propaganda at the moment.',
       textZh: '目前我们不应该对宣传采取任何行动。',

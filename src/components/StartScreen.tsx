@@ -240,10 +240,25 @@ const MenuButton = ({ onClick, text, primary, disabled }: { onClick: () => void,
 const ScenarioCard = ({ id, title, description, selected, onClick, disabled }: { id: string, title: string, description: string, selected: boolean, onClick: () => void, disabled?: boolean }) => (
   <div 
     onClick={disabled ? undefined : onClick}
-    className={`relative p-4 border-2 transition-all duration-200 ${disabled ? 'opacity-50 cursor-not-allowed grayscale border-paper/20 bg-ink/50' : 'cursor-pointer'} ${selected ? 'border-cnt-red bg-cnt-red/10' : (!disabled && 'border-paper/30 hover:border-paper/60 hover:bg-paper/5')}`}
+    className={`group relative flex flex-col border-2 transition-all duration-200 overflow-hidden ${disabled ? 'opacity-50 cursor-not-allowed grayscale border-paper/20 bg-ink/50' : 'cursor-pointer'} ${selected ? 'border-cnt-red bg-cnt-red/10' : (!disabled && 'border-paper/30 hover:border-paper/60 hover:bg-paper/5')}`}
   >
-    <h4 className="font-display text-2xl text-paper mb-2">{title}</h4>
-    <p className="font-serif text-paper/70 text-sm leading-relaxed">{description}</p>
+    {/* Scenario Cover Image */}
+    <div className="w-full h-28 md:h-36 overflow-hidden relative border-b border-paper/10 bg-ink/40 shrink-0">
+      <img 
+        src={`${(import.meta as any).env.BASE_URL || '/'}img/SCENARIOS/${id}.png`} 
+        alt={title} 
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        referrerPolicy="no-referrer"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none mix-blend-multiply" />
+    </div>
+
+    {/* Content Area */}
+    <div className="p-4 flex-1 flex flex-col">
+      <h4 className="font-display text-2xl text-paper mb-2">{title}</h4>
+      <p className="font-serif text-paper/70 text-sm leading-relaxed flex-1">{description}</p>
+    </div>
+
     {disabled && (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="transform -rotate-12 border-4 border-cnt-red text-cnt-red font-display text-3xl px-4 py-1 opacity-80 mix-blend-screen">
@@ -252,7 +267,7 @@ const ScenarioCard = ({ id, title, description, selected, onClick, disabled }: {
       </div>
     )}
     {selected && (
-      <div className="absolute top-0 right-0 w-0 h-0 border-t-[30px] border-t-cnt-red border-l-[30px] border-l-transparent">
+      <div className="absolute top-0 right-0 w-0 h-0 border-t-[30px] border-t-cnt-red border-l-[30px] border-l-transparent z-10">
         <span className="absolute -top-[28px] -left-[14px] text-paper text-xs font-bold">✓</span>
       </div>
     )}

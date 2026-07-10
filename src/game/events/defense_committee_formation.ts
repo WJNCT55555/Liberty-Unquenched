@@ -1,7 +1,14 @@
 import { GameEvent } from '../types';
 
+const cntMilitaryMeta = {
+  category: 'cnt' as const,
+  flow: 'solo' as const,
+  tags: ['military'],
+};
+
 export const defenseCommitteeFormation: GameEvent = {
   id: 'defense_committee_formation',
+  meta: cntMilitaryMeta,
   title: 'Establishment of the Defense Committee',
   titleZh: '防御委员会成立',
   description: 'There can be no revolution without preparation. We have to put an end to the prejudice in favor of improvisation. This error, involving confidence in the creative instinct of the masses, has caused us to pay a heavy price. We cannot obtain by means of a process of spontaneous generation the indispensable means necessary for waging war on a State that has experience, heavy weaponry, and a greater capacity for offensive and defensive combat.',

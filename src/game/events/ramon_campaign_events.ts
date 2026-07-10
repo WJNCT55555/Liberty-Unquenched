@@ -1,8 +1,16 @@
 import { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
 
+const ramonCampaignMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['presidential_election', 'prrevs'],
+  tags: ['election'],
+};
+
 export const ramonCampaignEvent1: GameEvent = {
   id: 'ramon_campaign_event_1',
+  meta: ramonCampaignMeta,
   title: 'The Legend Takes Off: Ramón Franco’s Aerial Campaign',
   titleZh: '传奇启航：拉蒙·佛朗哥的空中竞选',
   description: 'Taking to the skies in his famous seaplane "Plus Ultra", Ramón Franco lands in regional capitals across Spain, addressing cheering crowds directly from the airfield. He demands a complete dismantling of centralized power, advocating for an "Iberian Union of Free Republics". He calls on the workers and regionalists to unite under the PRRevS banner.',
@@ -31,6 +39,7 @@ export const ramonCampaignEvent1: GameEvent = {
 
 export const ramonCampaignEvent2: GameEvent = {
   id: 'ramon_campaign_event_2',
+  meta: ramonCampaignMeta,
   title: 'The Rebel’s Broadside: Confronting the Center',
   titleZh: '叛逆者的炮轰：正面对决集权制',
   description: 'As the campaign gains momentum, Ramón Franco publishes a fiery manifesto in radical newspapers, accusing the Madrid political elite of treating Spain’s historical regions as colonies. "Gibraltar, Porto, Barcelona, and Seville must all be sovereign nodes of our federation!" His extreme ideas spark furious debates in the press, but deep-seated federalist feelings are stirred.',
@@ -54,6 +63,7 @@ export const ramonCampaignEvent2: GameEvent = {
 
 export const ramonCampaignEvent3: GameEvent = {
   id: 'ramon_campaign_event_3',
+  meta: ramonCampaignMeta,
   title: 'A Bold Union: The Final Rally in Barcelona',
   titleZh: '宏伟同盟：最后的巴塞罗那誓师大会',
   description: 'The final campaign rally takes place in Barcelona, organized jointly by the CNT and the regionalist Esquerra Republicana de Catalunya (ERC). Tens of thousands fill the arena. Ramón Franco stands shoulder-to-shoulder with Lluís Companys, promising that a PRRevS presidency will guarantee Catalonia’s absolute self-determination as a sovereign state within the Iberian Federation.',

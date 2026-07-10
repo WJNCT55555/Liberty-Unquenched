@@ -1,9 +1,17 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const cntInternalSplitMeta = {
+  category: 'cnt' as const,
+  flow: 'solo' as const,
+  series: ['cnt_internal_split'],
+};
 
 export const manifestoOfThirty: GameEvent = {
   id: 'The Manifesto of the Thirty',
+  meta: cntInternalSplitMeta,
   date: { year: 1931, month: 8 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 8) && !state.treintistasLeft,
   title: 'The Manifesto of the Thirty',
   titleZh: '三十人宣言',
   description: `The revolutionary rumblings of Durruti and Oliver, along with the crumbling authority of the more moderate National Committee, prompted its members and their allies to act. Thus in the final days of July they issued a manifesto, signed by, all in all, thirty syndicalists and "reformists", close to the Solidaridad circle.

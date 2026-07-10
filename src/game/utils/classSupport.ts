@@ -1,6 +1,31 @@
 import { Party, SocialClass } from '../types';
 
 export type ClassPoliticalForce = 'CNT_FAI' | Exclude<Party, 'PRRevS'>;
+export type ClassSupportAdjustment = {
+  socialClass: SocialClass;
+  force: ClassPoliticalForce;
+  delta: number;
+};
+
+let activeClassSupportTrace: ClassSupportAdjustment[] | null = null;
+
+export function collectClassSupportAdjustments<T>(callback: () => T): {
+  result: T;
+  adjustments: ClassSupportAdjustment[];
+} {
+  const previousTrace = activeClassSupportTrace;
+  const adjustments: ClassSupportAdjustment[] = [];
+  activeClassSupportTrace = adjustments;
+
+  try {
+    return {
+      result: callback(),
+      adjustments
+    };
+  } finally {
+    activeClassSupportTrace = previousTrace;
+  }
+}
 
 /**
  * Adjusts the internal political alignment of a single social class with zero-sum normalization (sum remains 100%).
@@ -141,11 +166,22 @@ export function adjustClassSupport(
   const newClasses = JSON.parse(JSON.stringify(classes)) as Record<SocialClass, { support: Record<ClassPoliticalForce, number> }>;
   
   if (newClasses[targetClass]) {
-    newClasses[targetClass].support = adjustSingleClassSupport(
+    const beforeTargetSupport = newClasses[targetClass].support[targetForce] || 0;
+    const adjustedSupport = adjustSingleClassSupport(
       newClasses[targetClass].support,
       targetForce,
       delta
     );
+    const actualDelta = (adjustedSupport[targetForce] || 0) - beforeTargetSupport;
+    newClasses[targetClass].support = adjustedSupport;
+
+    if (activeClassSupportTrace && Math.abs(actualDelta) >= 0.005) {
+      activeClassSupportTrace.push({
+        socialClass: targetClass,
+        force: targetForce,
+        delta: actualDelta
+      });
+    }
   }
   
   return newClasses;

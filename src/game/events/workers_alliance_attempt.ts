@@ -1,7 +1,15 @@
 import { GameEvent } from '../types';
 
+const uhpAsturiasMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['asturias', 'uhp'],
+  tags: ['journal'],
+};
+
 export const workersAllianceAttempt: GameEvent = {
   id: 'workers_alliance_attempt',
+  meta: uhpAsturiasMeta,
   title: 'An Attempt at Workers\' Alliance?',
   titleZh: '工人联盟的尝试？',
   description: 'With the CNT in opposition and the Republican-Socialist Coalition dissolved or non-existent, the working class stands at a crucial crossroads. Prominent theoreticians argue that only a coordinated revolutionary alliance can secure the future of the proletariat. Shall we begin the attempt to unify our revolutionary forces with the socialist left under the banner of "Uníos Hermanos Proletarios"?',

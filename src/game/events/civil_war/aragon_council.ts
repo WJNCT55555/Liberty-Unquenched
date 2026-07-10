@@ -1,7 +1,15 @@
 import { GameEvent } from '../../types';
 
+const civilWarMeta = {
+  category: 'war' as const,
+  flow: 'solo' as const,
+  series: ['civil_war'],
+  tags: ['map'],
+};
+
 export const aragonCouncil: GameEvent = {
   id: 'aragon_council',
+  meta: civilWarMeta,
 title: 'Formation of the Aragon Defense Council',
   titleZh: '阿拉贡地区防卫委员会成立',
   description: 'In the wake of the failed military uprising, anarchist militias establish the Aragon Defense Council in the eastern territories. This autonomous body claims control over local militias, economy, and collective agriculture.',

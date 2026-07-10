@@ -17,7 +17,7 @@ export const cntChooseEnemies: Card = {
   effect: (state: GameState) => {
     const options: GameEvent['options'] = [];
 
-    // 选项1：极右翼——君主派、天主教会和法西斯主义这是我们的敌人
+    // Option 1: The far right: monarchists, the Church, and fascists are our enemies
     options.push({
       text: 'The Far Right — Monarchists, the Church, and Fascists are our enemies',
       textZh: '极右翼——君主派、天主教会和法西斯主义这是我们的敌人',
@@ -47,12 +47,12 @@ export const cntChooseEnemies: Card = {
           partyRelations: newPartyRelations,
           factions: newFactions,
           stats: newStats,
-          coupProgress: Math.max(0, Math.min(100, s.stats.tension - 2))
+          coupProgress: Math.max(0, Math.min(100, (s.coupProgress || 0) + 20))
         };
       },
     });
 
-    // 选项2：君主派与天主教右翼——复辟派是我们的敌人
+    // Option 2: Monarchists and the Catholic right: restorationists are our enemies
     options.push({
       text: 'Monarchists & Catholic Right',
       textZh: '君主派与天主教右翼——复辟派是我们的敌人',
@@ -80,7 +80,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项3：全力打击法西斯分子
+    // Option 3: Strike the fascists with full force
     options.push({
       text: 'Strike the Fascists with full force',
       textZh: '全力打击法西斯分子',
@@ -105,7 +105,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项4：议会中的资产阶级共和派
+    // Option 4: The bourgeois republicans in parliament
     options.push({
       text: 'The Bourgeois Republicans in Parliament',
       textZh: '议会中的资产阶级共和派',
@@ -127,7 +127,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项5：斯大林主义者与西班牙共产党
+    // Option 5: Stalinists and the Spanish Communist Party
     options.push({
       text: 'Stalinists & PCE',
       textZh: '斯大林主义者与西班牙共产党',
@@ -149,7 +149,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项6：所有布尔什维克
+    // Option 6: All Bolsheviks
     options.push({
       text: 'All Bolsheviks',
       textZh: '所有布尔什维克',
@@ -171,7 +171,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项7：所有暴力机器的合作者都是我们的敌人
+    // Option 7: All collaborators of the state apparatus are our enemies
     options.push({
       text: 'All collaborators of the state apparatus are our enemies',
       textZh: '所有暴力机器的合作者都是我们的敌人',
@@ -201,7 +201,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项8：我们的内部敌人——亲政府的改良派
+    // Option 8: Our internal enemies: pro-government reformists
     options.push({
       text: 'Our internal enemies — the pro-government reformists',
       textZh: '我们的内部敌人——亲政府的改良派',
@@ -216,7 +216,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项9：我们的内部敌人——反共和的革命派
+    // Option 9: Our internal enemies: anti-republican revolutionaries
     options.push({
       text: 'Our internal enemies — the anti-republican revolutionaries',
       textZh: '我们的内部敌人——反共和的革命派',
@@ -231,7 +231,7 @@ export const cntChooseEnemies: Card = {
       },
     });
 
-    // 选项10：让我们晚点再讨论这个问题
+    // Option 10: Discuss this later
     options.push({
       text: 'Let us discuss this later',
       textZh: '让我们晚点再讨论这个问题',

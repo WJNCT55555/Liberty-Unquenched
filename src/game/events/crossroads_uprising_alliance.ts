@@ -2,8 +2,16 @@ import { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { formCoalition } from '../utils/coalition';
 
+const uhpAsturiasMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['asturias', 'uhp'],
+  tags: ['journal'],
+};
+
 export const crossroadsUprisingAlliance: GameEvent = {
   id: 'crossroads_uprising_alliance',
+  meta: uhpAsturiasMeta,
   title: 'Crossroads: Proletarian Uprising or Anti-Fascist Alliance?',
   titleZh: '十字路口：无产阶级起义还是反法西斯同盟？',
   description: 'With the workers mobilizing under the banner of UHP, we face a historical crossroads. Do we focus entirely on the revolutionary Workers\' Alliance to launch a social revolution and prepare for a proletarian uprising? Or do we pivot to a broad Anti-Fascist Alliance (Popular Front) with the bourgeois republicans (IR, ERC) and the PCE to win the upcoming elections and save the Republic?',

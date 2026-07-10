@@ -19,107 +19,114 @@ export const cntInterPartyRelationships: Card = {
 
     const multiplier = getDissentMultiplier(state.factions);
 
-    // 选项1：加强与温和的共和激进党及自由共和右翼的联系
-    if (state.resources >= 1) {
-      options.push({
-        text: 'Strengthen our bonds with the moderate Republican Radical Party and the Liberal-Republican Right.',
-        textZh: '加强与温和的共和激进党及自由共和右翼的联系',
-        subtitle: 'The moderate centrists of the Partido Republicano Radical and Derecha Liberal Republicano',
-        subtitleZh: '温和中间派的共和激进党与自由共和右翼',
-        effect: (s: GameState) => {
-          const newPartyRelations = { ...s.partyRelations };
-          const newFactions = adjustFactionDissents(s.factions, { Faistas: 5, Puristas: 8 });
+    // Option 1: Strengthen ties with moderate radicals and the liberal republican right
+    options.push({
+      text: 'Strengthen our bonds with the moderate Republican Radical Party and the Liberal-Republican Right.',
+      textZh: '加强与温和的共和激进党及自由共和右翼的联系',
+      subtitle: 'The moderate centrists of the Partido Republicano Radical and Derecha Liberal Republicano',
+      subtitleZh: '温和中间派的共和激进党与自由共和右翼',
+      condition: (s: GameState) => s.resources >= 1,
+      unavailableSubtitle: () => 'Need at least 1 resource.',
+      unavailableSubtitleZh: () => '需要至少 1 资源。',
+      effect: (s: GameState) => {
+        const newPartyRelations = { ...s.partyRelations };
+        const newFactions = adjustFactionDissents(s.factions, { Faistas: 5, Puristas: 8 });
 
-          newPartyRelations.PRR = Math.min(100, Math.max(-100, newPartyRelations.PRR + 5 * multiplier));
-          newPartyRelations.DLR = Math.min(100, Math.max(-100, newPartyRelations.DLR + 5 * multiplier));
+        newPartyRelations.PRR = Math.min(100, Math.max(-100, newPartyRelations.PRR + 5 * multiplier));
+        newPartyRelations.DLR = Math.min(100, Math.max(-100, newPartyRelations.DLR + 5 * multiplier));
 
-          const newStats = { ...s.stats };
-          newStats.revolutionaryFervor = Math.max(0, newStats.revolutionaryFervor - 8);
+        const newStats = { ...s.stats };
+        newStats.revolutionaryFervor = Math.max(0, newStats.revolutionaryFervor - 8);
 
-          return {
-            resources: s.resources - 1,
-            partyRelations: newPartyRelations,
-            factions: newFactions,
-            stats: newStats
-          };
-        },
-      });
-    }
+        return {
+          resources: s.resources - 1,
+          partyRelations: newPartyRelations,
+          factions: newFactions,
+          stats: newStats
+        };
+      },
+    });
 
-    // 选项2：加强与共和左翼联系
-    if (state.resources >= 1) {
-      options.push({
-        text: 'Strengthen ties with the Republican Left',
-        textZh: '加强与共和左翼联系',
-        subtitle: 'Opposition to the far-right is our common ground with the Republican Left',
-        subtitleZh: '对极右翼的反对是我们与共和左翼的共同诉求',
-        effect: (s: GameState) => {
-          const newPartyRelations = { ...s.partyRelations };
-          const newFactions = adjustFactionDissents(s.factions, { Faistas: 3, Puristas: 5 });
+    // Option 2: Strengthen ties with the Republican Left
+    options.push({
+      text: 'Strengthen ties with the Republican Left',
+      textZh: '加强与共和左翼联系',
+      subtitle: 'Opposition to the far-right is our common ground with the Republican Left',
+      subtitleZh: '对极右翼的反对是我们与共和左翼的共同诉求',
+      condition: (s: GameState) => s.resources >= 1,
+      unavailableSubtitle: () => 'Need at least 1 resource.',
+      unavailableSubtitleZh: () => '需要至少 1 资源。',
+      effect: (s: GameState) => {
+        const newPartyRelations = { ...s.partyRelations };
+        const newFactions = adjustFactionDissents(s.factions, { Faistas: 3, Puristas: 5 });
 
-          newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR + 7 * multiplier));
+        newPartyRelations.IR = Math.min(100, Math.max(-100, newPartyRelations.IR + 7 * multiplier));
 
-          return {
-            resources: s.resources - 1,
-            partyRelations: newPartyRelations,
-            factions: newFactions
-          };
-        },
-      });
-    }
+        return {
+          resources: s.resources - 1,
+          partyRelations: newPartyRelations,
+          factions: newFactions
+        };
+      },
+    });
 
-    // 选项3：尝试动用我们再UGT中的人脉
-    if (state.resources >= 1) {
-      options.push({
-        text: 'Try to use our connections in the UGT',
-        textZh: '尝试动用我们在UGT中的人脉',
-        subtitle: 'The UGT is a workers\' union like us, perhaps we can use this relationship to improve our ties with the PSOE',
-        subtitleZh: 'UGT与我们同属工人工团，或许我们可以凭借这一层关系改善我们与PSOE的关系',
-        effect: (s: GameState) => {
-          const newPartyRelations = { ...s.partyRelations };
+    // Option 3: Use our contacts in the UGT
+    options.push({
+      text: 'Try to use our connections in the UGT',
+      textZh: '尝试动用我们在UGT中的人脉',
+      subtitle: 'The UGT is a workers\' union like us, perhaps we can use this relationship to improve our ties with the PSOE',
+      subtitleZh: 'UGT与我们同属工人工团，或许我们可以凭借这一层关系改善我们与PSOE的关系',
+      condition: (s: GameState) => s.resources >= 1,
+      unavailableSubtitle: () => 'Need at least 1 resource.',
+      unavailableSubtitleZh: () => '需要至少 1 资源。',
+      effect: (s: GameState) => {
+        const newPartyRelations = { ...s.partyRelations };
 
-          newPartyRelations.PSOE = Math.min(100, Math.max(-100, newPartyRelations.PSOE + 7 * multiplier));
+        newPartyRelations.PSOE = Math.min(100, Math.max(-100, newPartyRelations.PSOE + 7 * multiplier));
 
-          return {
-            resources: s.resources - 1,
-            partyRelations: newPartyRelations
-          };
-        },
-      });
-    }
+        return {
+          resources: s.resources - 1,
+          partyRelations: newPartyRelations
+        };
+      },
+    });
 
-    // 选项4：或许我们应该与革命马克思主义者合作
-    if (state.resources >= 1) {
-      options.push({
-        text: 'Perhaps we should cooperate with the revolutionary Marxists',
-        textZh: '或许我们应该与革命马克思主义者合作',
-        subtitle: 'A united front of the proletariat',
-        subtitleZh: '无产阶级的统一战线',
-        effect: (s: GameState) => {
-          const newPartyRelations = { ...s.partyRelations };
-          const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5 });
+    // Option 4: Cooperate with revolutionary Marxists
+    options.push({
+      text: 'Perhaps we should cooperate with the revolutionary Marxists',
+      textZh: '或许我们应该与革命马克思主义者合作',
+      subtitle: 'A united front of the proletariat',
+      subtitleZh: '无产阶级的统一战线',
+      condition: (s: GameState) => s.resources >= 1,
+      unavailableSubtitle: () => 'Need at least 1 resource.',
+      unavailableSubtitleZh: () => '需要至少 1 资源。',
+      effect: (s: GameState) => {
+        const newPartyRelations = { ...s.partyRelations };
+        const newFactions = adjustFactionDissents(s.factions, { Treintistas: 5 });
 
-          newPartyRelations.PCE = Math.min(100, Math.max(-100, newPartyRelations.PCE + 6 * multiplier));
-          if (s.poum_founded) {
-            newPartyRelations.POUM = Math.min(100, Math.max(-100, newPartyRelations.POUM + 8 * multiplier));
-          }
+        newPartyRelations.PCE = Math.min(100, Math.max(-100, newPartyRelations.PCE + 6 * multiplier));
+        if (s.poum_founded) {
+          newPartyRelations.POUM = Math.min(100, Math.max(-100, newPartyRelations.POUM + 8 * multiplier));
+        }
 
-          return {
-            resources: s.resources - 1,
-            partyRelations: newPartyRelations,
-            factions: newFactions
-          };
-        },
-      });
-    }
+        return {
+          resources: s.resources - 1,
+          partyRelations: newPartyRelations,
+          factions: newFactions
+        };
+      },
+    });
 
-    // 选项5：改善与工团党的联系 (如果 PS 成立)
-    if (state.ps_founded && state.resources >= 1) {
+    // Option 5: Improve ties with the Syndicalist Party if PS has formed
+    if (state.ps_founded) {
       options.push({
         text: 'Improve ties with the Syndicalist Party',
         textZh: '改善与工团党（PS）的联系',
         subtitle: 'The Syndicalist Party shares our roots, we should work closer together',
         subtitleZh: '工团党与我们同宗同源，我们应该更紧密地合作',
+        condition: (s: GameState) => s.resources >= 1,
+        unavailableSubtitle: () => 'Need at least 1 resource.',
+        unavailableSubtitleZh: () => '需要至少 1 资源。',
         effect: (s: GameState) => {
           const newPartyRelations = { ...s.partyRelations };
 
@@ -133,7 +140,7 @@ export const cntInterPartyRelationships: Card = {
       });
     }
 
-    // 选项6：让我们晚点再讨论这个问题
+    // Option 6: Discuss this later
     options.push({
       text: 'Anarchists do not need hypocritical deals to make friends',
       textZh: '无政府主义者不需要虚伪的交易换取朋友',

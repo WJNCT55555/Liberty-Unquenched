@@ -1,10 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, isAtOrAfter } from '../utils';
+
+const cntLaborMeta = {
+  category: 'cnt' as const,
+  flow: 'solo' as const,
+};
 
 export const huelgaTelefonica1931: GameEvent = {
   id: 'huelga_telefonica_1931',
+  meta: cntLaborMeta,
   date: { year: 1931, month: 7 },
-  condition: (state) => state.cntStance !== 'govern',
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 7) && state.cntStance !== 'govern',
   title: 'The 1931 Telephone Strike',
   titleZh: '1931年电话公司大罢工',
   description: 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { GameState, Card, Advisor, GameEvent } from './types';
+import { GameState, Card, Advisor, GameEvent, EventHistory } from './types';
 import { initializeStartingCoalition, updatePartySupport, updateCoalitionState, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils/coalition';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
@@ -9,7 +9,7 @@ import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth, 
 import { MapFaction, Army, ResourceSet } from '../map/types_map';
 import { calculateAiMoves } from '../map/lib/gameAi';
 import { civilWarSetup } from './events/civil_war/civil_war_setup';
-import { adjustClassSupport } from './utils';
+import { adjustClassSupport, shouldQueueEvent } from './utils';
 import { INITIAL_CLASSES, INITIAL_PARTY_RELATIONS, SCENARIO_1933_CLASSES, SCENARIO_1936_CLASSES } from './parties';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
@@ -21,6 +21,40 @@ const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   };
   return acc;
 }, {} as Record<string, any>);
+
+const createEmptyEventHistory = (): EventHistory => ({
+  triggered: [],
+  resolved: [],
+});
+
+const appendEventHistoryId = (
+  history: EventHistory | undefined,
+  bucket: keyof EventHistory,
+  eventId?: string | null
+): EventHistory => {
+  const base = history || createEmptyEventHistory();
+  if (!eventId || base[bucket].includes(eventId)) {
+    return base;
+  }
+
+  return {
+    ...base,
+    [bucket]: [...base[bucket], eventId],
+  };
+};
+
+const isBeforeYearMonth = (date: { year: number; month: number }, year: number, month: number) =>
+  date.year < year || (date.year === year && date.month < month);
+
+const createLegacySaveEventHistory = (state: Pick<GameState, 'year' | 'month'>): EventHistory => ({
+  triggered: [],
+  resolved: INITIAL_EVENTS
+    .filter((event) => event.date && isBeforeYearMonth(event.date, state.year, state.month))
+    .map((event) => event.id),
+});
+
+const getEventTriggerMode = (difficulty: GameState['difficulty']) =>
+  difficulty === 'historical' ? 'historical' : 'nonHistorical';
 
 function resolveBattle(
   armies: Army[],
@@ -655,6 +689,8 @@ export const INITIAL_STATE: GameState = {
   dues: 2,
   fundraising_timer: 0,
   propaganda_timer: 0,
+  mitin_popular_timer: 0,
+  prrevs_campaign_timer: 0,
   organizations_timer: 0,
   international_relations_timer: 0,
   choose_enemies_timer: 0,
@@ -797,6 +833,10 @@ export const INITIAL_STATE: GameState = {
   },
   superEvent: null,
   pendingEvents: [],
+  eventHistory: {
+    triggered: [],
+    resolved: [],
+  },
   treintistasLeft: false,
   commercialized_propaganda: 0,
   campaign_propaganda: 0,
@@ -1064,21 +1104,22 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
 
       const startMapState = initializeMapState(action.payload.scenario, startCivilWarStatus);
-      const startingEvents = INITIAL_EVENTS.filter(e => {
-        const dateMatch = e.date?.year === startYear && e.date?.month === startMonth;
-        const conditionMatch = e.condition ? e.condition({ 
-          ...INITIAL_STATE, 
-          year: startYear, 
-          month: startMonth, 
-          civilWarStatus: startCivilWarStatus,
-          ...startMapState
-        }) : false;
-        
-        if (e.date) {
-          return dateMatch && (e.condition ? conditionMatch : true);
-        }
-        return conditionMatch;
-      });
+      const startEventState = {
+        ...INITIAL_STATE,
+        scenario: action.payload.scenario,
+        difficulty: action.payload.difficulty,
+        year: startYear,
+        month: startMonth,
+        civilWarStatus: startCivilWarStatus,
+        ...startMapState
+      } as GameState;
+      const startingEvents = INITIAL_EVENTS.filter(e => shouldQueueEvent(e, startEventState, {
+        mode: getEventTriggerMode(action.payload.difficulty),
+        date: { year: startYear, month: startMonth },
+        pendingEvents: [],
+        currentEvent: null,
+        respectHistory: false,
+      }));
 
       const initialHistory = [];
       let tempY = startYear;
@@ -1217,6 +1258,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         advisorPool: hydrateAdvisors(action.payload.advisorPool || []) as Advisor[],
         pendingEvents: hydrateEvents(action.payload.pendingEvents || []),
         currentEvent: action.payload.currentEvent ? hydrateEvents([action.payload.currentEvent])[0] : null,
+        eventHistory: action.payload.eventHistory || createLegacySaveEventHistory(action.payload),
       };
       break;
     }
@@ -1819,38 +1861,26 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           }
         }
 
-        // Add other regular events based on date or condition
-        let monthlyEvents = INITIAL_EVENTS.filter(e => {
-          // Skip if already pending or current
-          if (state.pendingEvents.some(pe => pe.id === e.id)) return false;
-          if (state.currentEvent?.id === e.id) return false;
+        const eventCheckState = {
+          ...state,
+          month: nextMonth,
+          year: nextYear,
+          civilWarStatus: newCivilWarStatus,
+          prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
+        } as GameState;
 
-          const dateMatch = e.date ? (e.date.year === nextYear && e.date.month === nextMonth) : false;
-          const conditionMatch = e.condition ? e.condition({ 
-            ...state, 
-            month: nextMonth, 
-            year: nextYear, 
-            civilWarStatus: newCivilWarStatus,
-            prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
-          }) : false;
-          
-          if (e.date) {
-            return dateMatch && (e.condition ? conditionMatch : true);
-          }
-          return conditionMatch;
-        });
+        // Add other regular events based on date or condition
+        let monthlyEvents = INITIAL_EVENTS.filter(e => shouldQueueEvent(e, eventCheckState, {
+          mode: getEventTriggerMode(state.difficulty),
+          date: { year: nextYear, month: nextMonth },
+          pendingEvents: state.pendingEvents,
+          currentEvent: state.currentEvent,
+        }));
 
         if (state.forceAsturiasRevolutionNextMonth) {
           const asturiasEventObj = INITIAL_EVENTS.find(e => e.id === 'asturias_revolution');
           if (asturiasEventObj && !monthlyEvents.some(e => e.id === 'asturias_revolution') && !state.pendingEvents.some(pe => pe.id === 'asturias_revolution') && state.currentEvent?.id !== 'asturias_revolution') {
             monthlyEvents.push(asturiasEventObj);
-          }
-        }
-
-        if (state.difficulty === 'historical') {
-          const hasHistoricalEvent = monthlyEvents.some(e => e.date);
-          if (hasHistoricalEvent) {
-            monthlyEvents = monthlyEvents.filter(e => e.date);
           }
         }
 
@@ -2191,6 +2221,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           actionsLeft: 0,
           journal: newJournal,
           fundraising_timer: Math.max(0, state.fundraising_timer - 1),
+          mitin_popular_timer: Math.max(0, (state.mitin_popular_timer || 0) - 1),
+          prrevs_campaign_timer: Math.max(0, (state.prrevs_campaign_timer || 0) - 1),
           organizations_timer: Math.max(0, state.organizations_timer - 1),
           international_relations_timer: Math.max(0, state.international_relations_timer - 1),
           choose_enemies_timer: Math.max(0, state.choose_enemies_timer - 1),
@@ -2289,13 +2321,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'DISMISS_SUPER_EVENT': {
       let extra = {};
+      let eventHistory = state.eventHistory || createEmptyEventHistory();
       if (state.superEvent === 'spanish_civil_war') {
+        eventHistory = appendEventHistoryId(eventHistory, 'triggered', civilWarSetup.id);
         extra = {
           currentEvent: civilWarSetup,
           phase: 'event'
         };
       }
-      newState = { ...state, superEvent: null, ...extra };
+      newState = { ...state, superEvent: null, eventHistory, ...extra };
       break;
     }
     case 'SELECT_EVENT': {
@@ -2304,12 +2338,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState = {
           ...state,
           currentEvent: selectedEvent,
-          pendingEvents: state.pendingEvents.filter(e => e.id !== action.payload.eventId)
+          pendingEvents: state.pendingEvents.filter(e => e.id !== action.payload.eventId),
+          eventHistory: appendEventHistoryId(state.eventHistory, 'triggered', selectedEvent.id)
         };
       }
       break;
     }
-    case 'RESOLVE_EVENT':
+    case 'RESOLVE_EVENT': {
       const newStateAfterEvent = action.payload(state);
       
       let nextCurrentEvent = null;
@@ -2322,12 +2357,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const nextPendingEvents = currentEventId
         ? (newStateAfterEvent.pendingEvents || state.pendingEvents || []).filter(e => e.id !== currentEventId)
         : (newStateAfterEvent.pendingEvents || state.pendingEvents || []);
+      let nextEventHistory = appendEventHistoryId(
+        newStateAfterEvent.eventHistory || state.eventHistory,
+        'resolved',
+        currentEventId
+      );
+      if (nextCurrentEvent) {
+        nextEventHistory = appendEventHistoryId(nextEventHistory, 'triggered', nextCurrentEvent.id);
+      }
 
       newState = {
         ...state,
         ...newStateAfterEvent,
         pendingEvents: nextPendingEvents,
         currentEvent: nextCurrentEvent,
+        eventHistory: nextEventHistory,
       };
       
       // If no current event and no pending events, move to action phase automatically if we were in event phase
@@ -2336,6 +2380,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState.actionsLeft = 2;
       }
       break;
+    }
     case 'ADD_ADVISOR': {
       const { advisor, slotIndex } = action.payload;
       const newActive = [...state.activeAdvisors];

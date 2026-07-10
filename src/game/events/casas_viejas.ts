@@ -1,8 +1,15 @@
 import { GameEvent } from '../types';
 import { adjustFactionInfluence, adjustClassSupport } from '../utils';
 
+const casasViejasMeta = {
+  category: 'politics' as const,
+  flow: 'inline' as const,
+  series: ['casas_viejas', 'government_crisis'],
+};
+
 export const generalStrikeFails: GameEvent = {
   id: 'general_strike_fails',
+  meta: casasViejasMeta,
   title: 'The Collapsed Strike: General Strike Fails',
   titleZh: '瓦解的罢工：总罢工失败',
   description:
@@ -27,6 +34,7 @@ export const generalStrikeFails: GameEvent = {
 
 export const casasViejas2Insurrection: GameEvent = {
   id: 'casas_viejas_2_insurrection',
+  meta: casasViejasMeta,
   title: 'The Ashes of Seisdedos: Insurrection Massacre',
   titleZh: '塞斯德多斯的余烬：起义惨案',
   description:
@@ -143,6 +151,7 @@ export const casasViejas2Insurrection: GameEvent = {
 
 export const casasViejas2Crackdown: GameEvent = {
   id: 'casas_viejas_2_crackdown',
+  meta: casasViejasMeta,
   title: 'The Blood of Casas Viejas: Preventive Slaughter',
   titleZh: '卡萨斯-维耶哈斯之血：防范性杀戮',
   description:
@@ -256,6 +265,7 @@ export const casasViejas2Crackdown: GameEvent = {
 
 export const casasViejas2Peace: GameEvent = {
   id: 'casas_viejas_2_peace',
+  meta: casasViejasMeta,
   title: 'The Truce of Casas Viejas: A Compromised Peace',
   titleZh: '卡萨斯-维耶哈斯的休战：充满妥协的和平',
   description:
@@ -328,6 +338,7 @@ export const casasViejas2Peace: GameEvent = {
 
 export const casasViejas1: GameEvent = {
   id: 'casas_viejas_1',
+  meta: casasViejasMeta,
   title: 'The Fire of Casas Viejas: Outbreak',
   titleZh: '卡萨斯-维耶哈斯之火：暴动爆发',
   description:

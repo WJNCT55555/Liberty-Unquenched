@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const newsMeta = {
+  category: 'news' as const,
+  flow: 'solo' as const,
+};
 
 export const foundingOfPOUM: GameEvent = {
   id: 'Founding of POUM',
+  meta: newsMeta,
   date: { year: 1935, month: 9 },
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1935, 9) && !state.poum_founded,
   title: 'The Founding of the Workers\' Party of Marxist Unification (POUM)',
   titleZh: '马克思主义统一工人党（POUM）的成立',
   description: `In a small house in the Hortà district of Barcelona, Joaquín Maurín’s Iberian Communist Federation and Andrés Nin’s Communist Left of Spain have secretly merged to form the Workers' Party of Marxist Unification (POUM). Rejecting both Stalinist bureaucracy and bourgeois democracy, POUM calls for a genuine socialist revolution based on workers' councils and agrarian collectivization. Though small, its cadre of experienced revolutionaries poses a potent ideological challenge to the official Communist Party (PCE) within the leftist camp.`,

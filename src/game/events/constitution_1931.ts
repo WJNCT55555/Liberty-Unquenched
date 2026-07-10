@@ -1,9 +1,17 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionInfluence, isAtOrAfter } from '../utils';
+
+const lawMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  tags: ['law'],
+};
 
 export const constitution1931: GameEvent = {
   id: '1931_constitution',
+  meta: lawMeta,
   date: { year: 1931, month: 12 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 12),
   title: 'The Constitution of 1931',
   titleZh: '1931年宪法',
   description: 'The Constituent Cortes has finally approved the new Constitution of the Spanish Republic. It is a highly progressive document, establishing a "democratic republic of workers of all classes," introducing women\'s suffrage, civil marriage, and allowing for the expropriation of private property for social utility. However, its fierce anti-clerical articles have deeply alienated the Church and the right-wing. Furthermore, the accompanying "Law for the Defense of the Republic" gives the government sweeping powers to suspend civil liberties and crush strikes—a direct threat to the CNT.',

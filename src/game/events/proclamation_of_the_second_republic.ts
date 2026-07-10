@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const republicNewsMeta = {
+  category: 'news' as const,
+  flow: 'solo' as const,
+};
 
 export const proclamationSecondRepublic: GameEvent = {
   id: 'proclamation of the second republic',
+  meta: republicNewsMeta,
   date: { year: 1931, month: 4 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 4),
   title: 'Proclamation of the Second Republic',
   titleZh: '第二共和国宣告成立',
   description: 'In the long-awaited local elections on 12 April, the Republican parties won a landslide victory. Mass spontaneous celebrations broke out across the country, signifying that the era of the monarchy was drawing to a close. Protesters virtually besieged the Royal Palace in Madrid. On the advice of his closest aides, Alfonso XIII of the Bourbon dynasty decided to go into exile, and the Republic was proclaimed amid widespread jubilation. How should the CNT-FAI respond?',

@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport } from '../utils';
 
 export const agriculturalPolicy: Card = {
   id: 'agricultural_policy',
@@ -63,10 +63,8 @@ export const agriculturalPolicy: Card = {
                 factions: newFactions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  min_wage: Math.min(100, s.domesticPolicy.min_wage + 10)
-                },
-                stats: {
-                  ...s.stats
+                  // This option represents a legal reform; the exact law-step value may be revised later.
+                  min_wage: Math.min(100, s.domesticPolicy.min_wage + 1)
                 }
               };
             }
@@ -77,15 +75,13 @@ export const agriculturalPolicy: Card = {
             subtitle: 'Ensure minimal disruption to food production and safeguard the coalition by coordinating reforms with moderate Republican parties.',
             subtitleZh: '与温和的共和派政党协商步调，最大程度避免日常粮食生产混乱，稳固内阁合作。然而这会被激进派视为投降。',
             effect: (s: GameState) => {
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
-              newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 10);
-              newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 10);
+              const newFactions = adjustFactionDissents(s.factions, {
+                Faistas: 10,
+                Puristas: 10
+              });
               return {
                 agricultural_policy_timer: 6,
-                factions: newFactions,
-                stats: {
-                  ...s.stats
-                }
+                factions: newFactions
               };
             }
           }

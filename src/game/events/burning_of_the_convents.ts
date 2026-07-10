@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const newsMeta = {
+  category: 'news' as const,
+  flow: 'solo' as const,
+};
 
 export const burningConvents: GameEvent = {
   id: 'burning of the convents',
+  meta: newsMeta,
   date: { year: 1931, month: 5 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 5),
   title: 'The May Riots: Burning of the Convents',
   titleZh: '五月骚乱：焚烧修道院',
   description: 

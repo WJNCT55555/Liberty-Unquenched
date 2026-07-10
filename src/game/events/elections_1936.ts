@@ -1,11 +1,20 @@
 import { GameEvent, Party } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 import { calculateElectionResults } from '../utils/election';
 import { formCoalition } from '../utils/coalition';
+
+const election1936Meta = {
+  category: 'politics' as const,
+  flow: 'inline' as const,
+  series: ['elections', 'election_1936'],
+  tags: ['election'],
+};
 
 export const elections1936: GameEvent = {
   id: '1936_general_elections',
   date: { year: 1936, month: 2 },
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1936, 2),
+  meta: election1936Meta,
   title: '1936 General Elections',
   titleZh: '1936年大选',
   description: 'By early 1936, after the collapse of the Radical-CEDA coalition (Bienio Negro) amidst massive scandals and political instability, general elections have been called. Spain is intensely polarized. On the Left, a broad coalition, the "Popular Front" (Frente Popular), has been forged. They demand immediate amnesty for the tens of thousands of political prisoners jailed after the October 1934 revolution. On the Right, the "National Front" rallies to save Christian civilization from marxism and anarchy. The CNT holds the balance of power. Historically, we advocate for total electoral abstention. But if we abstain, the Right wins and our comrades remain imprisoned. If we support the Popular Front, we can achieve amnesty, but at the cost of class compromise. What shall be our stance?',
@@ -81,6 +90,7 @@ import { PARTY_COLORS } from '../constants';
 
 export const elections1936Results: GameEvent = {
   id: '1936_elections_results',
+  meta: election1936Meta,
   title: 'Results of the 1936 General Elections',
   titleZh: '1936年大选结果',
   description: 'The results are in. The nation is fractured down the middle. In a high-stakes climate, millions of citizens flooded the voting booths. The final seat distribution in the Cortes will decide the fate of Spain.',

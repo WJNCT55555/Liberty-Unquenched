@@ -1,9 +1,34 @@
-﻿import { Faction } from './types';
+import { Faction } from './types';
 
-export { adjustClassSupport, adjustSingleClassSupport } from './utils/classSupport';
-export type { ClassPoliticalForce } from './utils/classSupport';
+export { adjustClassSupport, adjustSingleClassSupport, collectClassSupportAdjustments } from './utils/classSupport';
+export * from './utils/eventTrigger';
+export type { ClassPoliticalForce, ClassSupportAdjustment } from './utils/classSupport';
 
 type FactionState = Record<Faction, { influence: number; dissent: number }>;
+export type FactionInfluenceAdjustment = {
+  faction: Faction;
+  delta: number;
+};
+
+let activeFactionInfluenceTrace: FactionInfluenceAdjustment[] | null = null;
+
+export function collectFactionInfluenceAdjustments<T>(callback: () => T): {
+  result: T;
+  adjustments: FactionInfluenceAdjustment[];
+} {
+  const previousTrace = activeFactionInfluenceTrace;
+  const adjustments: FactionInfluenceAdjustment[] = [];
+  activeFactionInfluenceTrace = adjustments;
+
+  try {
+    return {
+      result: callback(),
+      adjustments
+    };
+  } finally {
+    activeFactionInfluenceTrace = previousTrace;
+  }
+}
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 
@@ -74,6 +99,7 @@ export function adjustFactionInfluence(
   delta: number
 ): Record<Faction, { influence: number; dissent: number }> {
   const newFactions = JSON.parse(JSON.stringify(factions)) as Record<Faction, { influence: number; dissent: number }>;
+  let intendedTargetDelta = 0;
   
   if (delta > 0) {
     let remainingDelta = delta;
@@ -111,6 +137,7 @@ export function adjustFactionInfluence(
     }
     
     newFactions[targetFaction].influence += actualIncrease;
+    intendedTargetDelta = actualIncrease;
   } else if (delta < 0) {
     let remainingDelta = -delta;
     
@@ -139,6 +166,7 @@ export function adjustFactionInfluence(
     }
     
     newFactions[targetFaction].influence -= actualDecrease;
+    intendedTargetDelta = -actualDecrease;
   }
   
   // Round to integers
@@ -164,6 +192,13 @@ export function adjustFactionInfluence(
       }
       newFactions[largest].influence += diff;
     }
+  }
+
+  if (activeFactionInfluenceTrace && Math.abs(intendedTargetDelta) >= 0.005) {
+    activeFactionInfluenceTrace.push({
+      faction: targetFaction,
+      delta: intendedTargetDelta
+    });
   }
 
   return newFactions;

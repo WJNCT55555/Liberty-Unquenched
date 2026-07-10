@@ -1,4 +1,4 @@
-﻿import { Card } from '../types';
+import { Card } from '../types';
 import { adjustFactionInfluence, getDissentMultiplier } from '../utils';
 
 export const landAndFreedom: Card = {
@@ -60,6 +60,9 @@ export const landAndFreedom: Card = {
           textZh: '直接夺取',
           subtitle: 'Commit our armed detachments to seize the estates of the Latifundistas and the reactionaries immediately.',
           subtitleZh: '投入我们的武装力量，立即没收大地主和反动派的庄园。',
+          condition: (s) => s.armaments >= 1,
+          unavailableSubtitle: () => 'Need at least 1 armament.',
+          unavailableSubtitleZh: () => '需要至少 1 军备。',
           effect: (s) => {
             return {
               armaments: Math.max(0, s.armaments - 1),

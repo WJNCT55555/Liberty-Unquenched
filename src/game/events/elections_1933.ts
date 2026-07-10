@@ -1,10 +1,19 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 import { calculateElectionResults } from '../utils/election';
+
+const election1933Meta = {
+  category: 'politics' as const,
+  flow: 'inline' as const,
+  series: ['elections', 'election_1933'],
+  tags: ['election'],
+};
 
 export const elections1933: GameEvent = {
   id: '1933_general_elections',
   date: { year: 1933, month: 11 },
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1933, 11),
+  meta: election1933Meta,
   title: '1933 General Elections',
   titleZh: '1933年大选',
   description: 'With the collapse of the Republican-Socialist coalition, President Alcalá-Zamora has dissolved the Cortes and called for new elections. The political landscape has shifted dramatically since 1931. The right, now united under CEDA, is mobilizing aggressively. The left is fragmented, with the PSOE running alone in many districts. Women will vote for the first time in national elections. Once again, the CNT must decide: do we abstain, or do we intervene to stop the reactionary tide?',
@@ -68,6 +77,7 @@ import { PARTY_COLORS } from '../constants';
 
 export const elections1933Results: GameEvent = {
   id: '1933_elections_results',
+  meta: election1933Meta,
   title: 'Results of the 1933 General Elections',
   titleZh: '1933年大选结果',
   description: 'The results are in. The electoral system, designed to reward broad coalitions, has this time severely punished the divided left and rewarded the united right. CEDA has emerged as the largest party in the Cortes, followed closely by Lerroux\'s Radicals. The socialists have suffered a catastrophic defeat in terms of seats, despite maintaining significant popular support. Spain has swung sharply to the right.',

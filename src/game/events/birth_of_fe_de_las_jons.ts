@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+import { adjustClassSupport, isAtOrAfter } from '../utils';
+
+const newsMeta = {
+  category: 'news' as const,
+  flow: 'solo' as const,
+};
 
 export const birthOfFeDeLasJons: GameEvent = {
   id: 'The Birth of FE de las JONS',
+  meta: newsMeta,
   date: { year: 1934, month: 2 },
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1934, 2) && state.fe_founded && !state.falange_jons,
   title: 'The Birth of FE de las JONS',
   titleZh: '长枪党与JONS的合并',
   description: `The Falange Española has officially merged with the Juntas de Ofensiva Nacional-Sindicalista (JONS). This union brings together José Antonio's aristocratic appeal and Ledesma's radical, violent national-syndicalist rhetoric under a single banner: FE de las JONS. Emboldened by their new unity, fascist militias have begun aggressively targeting leftist workers and union leaders in the streets.`,

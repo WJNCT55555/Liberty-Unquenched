@@ -3,11 +3,19 @@ import { GameEvent, GameState } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { calculatePresidentialVotes } from '../utils/election';
 
+const presidentialElectionMeta = {
+  category: 'politics' as const,
+  flow: 'inline' as const,
+  series: ['presidential_election'],
+  tags: ['election'],
+};
+
 // ==========================================
 // 1. MAIN DECISION: THE PRESIDENTIAL ELECTION
 // ==========================================
 export const presidentialElectionDecision: GameEvent = {
   id: 'presidential_election_decision',
+  meta: presidentialElectionMeta,
   title: 'The Presidential Election',
   titleZh: '共和国总统选举',
   description: 'Niceto Alcalá-Zamora has been impeached and removed from office. Speaker Diego Martínez Barrio is acting as interim president until a new president is chosen by an electoral college of 940 members — the 470 current deputies of the Cortes and 470 newly elected electors.\n\nThe left-wing camp is split between two camps: Manuel Azaña, representing republican order and stable reforms, and — if the CNT is ready to unleash this beast — Ramón Franco with his radical Iberian federalist dream. In the center stands interim president Martínez Barrio of the moderate democratic wing of the Radical Republicans. On the right, the forces are united under José María Gil-Robles of CEDA.\n\nThe CNT National Committee now faces the first major threshold: shall we intervene and participate in this state election?',
@@ -63,6 +71,7 @@ export const presidentialElectionDecision: GameEvent = {
 // ==========================================
 export const presidentialElectionPrimary: GameEvent = {
   id: 'presidential_election_primary',
+  meta: presidentialElectionMeta,
   title: 'Left Primary Selection',
   titleZh: '左翼阵营初选',
   description: 'The Left must unite behind a single presidential candidate. Manuel Azaña represents the path of republican order, constitutionalism, and stable governance in cooperation with the PSOE and IR. Ramón Franco, if backed, represents a radical decentralized vision — an Iberian federalist republic that shatters centralized power. Our decision here determines who represents the Left in the three-way general election.',
@@ -124,6 +133,7 @@ export const presidentialElectionPrimary: GameEvent = {
 // ==========================================
 export const presidentialElectionCandidateSelection: GameEvent = {
   id: 'presidential_election_candidate_selection',
+  meta: presidentialElectionMeta,
   title: 'Endorsing a Presidential Candidate',
   titleZh: '大选候选人背书',
   description: 'With the Left candidate chosen, we now face the three-way general election. The CNT National Committee must decide where our underground networks, street mobs, and workers\' assemblies will throw their support. The Left is our natural class ally — but Diego Martínez Barrio represents the moderate center that refused to bow to CEDA. José María Gil-Robles, on the other hand, is the leader of the authoritarian clerical Right... supporting him would shock our base, but perhaps it is a necessary deal, or a way to provoke the revolution.',
@@ -204,7 +214,8 @@ export const presidentialElectionCandidateSelection: GameEvent = {
 // ==========================================
 export const presidentialElectionCampaignMenu: GameEvent = {
   id: 'presidential_election_campaign_menu',
-  title: (state) => `Campaign Lobby — Round ${state.presidentElectionRound || 1}`,
+  meta: presidentialElectionMeta,
+  title: (state) => `Campaign Lobby – Round ${state.presidentElectionRound || 1}`,
   titleZh: (state) => `大选竞选大厅 — 第 ${state.presidentElectionRound || 1} 轮`,
   description: 'The political machine of Spain is operating at its maximum. Behind the closed doors of parliamentary offices, in smoke-filled cafes, and in the restless streets of working-class neighborhoods, the future of the republic is being bought, sold, and negotiated. How will we mobilize our network and resources to swing the vote?',
   descriptionZh: '西班牙的政治机器正在全速运转。在议会大厅关闭的门后、在充满雪茄烟雾的咖啡馆里、以及在工人阶级居民区动荡不宁的街头，共和国的未来正在被交易、说服和妥协。我们该如何动员自己的网络和资源来扭转局势？',
@@ -443,7 +454,8 @@ export const presidentialElectionCampaignMenu: GameEvent = {
 // ==========================================
 export const presidentialElectionResults: GameEvent = {
   id: 'presidential_election_results',
-  title: 'Presidential General Election — First Round Results',
+  meta: presidentialElectionMeta,
+  title: 'Presidential General Election – First Round Results',
   titleZh: '总统大选第一轮计票结果',
   description: 'The ballots of Spain\'s general election for the presidency are being counted. Under the bicameral design, the Cortes deputies and elector delegations have completed their voting. The results will determine if a direct 2/3 majority can be achieved, or if we must proceed to a secondary runoff.',
   descriptionZh: '大选的第一轮投计票结果已经出炉。在宪法设计下，议会议员票与普选选举人票汇聚在此处。大选第一轮计票将判断是否有人能夺得2/3的绝对多数，否则将举行第二轮简单多数决。',
@@ -488,7 +500,8 @@ export const presidentialElectionResults: GameEvent = {
 // ==========================================
 export const presidentialElectionResultsRound2: GameEvent = {
   id: 'presidential_election_results_round2',
-  title: 'Presidential General Election — Second Round Runoff Results',
+  meta: presidentialElectionMeta,
+  title: 'Presidential General Election – Second Round Runoff Results',
   titleZh: '总统大选第二轮最终计票结果',
   description: 'The final runoff ballots are being tallied. Under the rules of the Second Republic, the candidate with the highest total of combined deputy and elector votes in the second round is elected President. No further stalling is possible.',
   descriptionZh: '第二轮决胜轮的最终投计票工作已经宣告结束。在简单多数制下，得票最高者将直接宣誓就职第二共和国新一任总统，大局已定。',
@@ -513,6 +526,7 @@ export const presidentialElectionResultsRound2: GameEvent = {
 // ==========================================
 export const presidentialElectionAutoResolve: GameEvent = {
   id: 'presidential_election_auto_resolve',
+  meta: presidentialElectionMeta,
   title: 'Presidential Election: Abstention Path',
   titleZh: '总统选举：弃权路线',
   description: 'The CNT has stood aside, refusing to participate in the presidential election. In our absence, the 470 deputies of the Cortes and the 470 newly elected electors convene to cast their votes based on the prevailing strength of each political party.',

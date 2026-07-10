@@ -2,6 +2,20 @@ import { GameEvent, GameState } from '../../types';
 import { MapFaction, Province, Army } from '../../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../../../map/map_constants';
 
+const civilWarSetupRootMeta = {
+  category: 'war' as const,
+  flow: 'inline' as const,
+  series: ['civil_war', 'civil_war_setup'],
+  tags: ['external', 'map']
+};
+
+const civilWarSetupNodeMeta = {
+  category: 'war' as const,
+  flow: 'inline' as const,
+  series: ['civil_war', 'civil_war_setup'],
+  tags: ['map']
+};
+
 // Helper to project armies based on choice log
 export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, choices: Record<string, string>) {
   let baseArmies = state.armies ? [...state.armies] : [...INITIAL_ARMIES];
@@ -186,6 +200,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
 // Global choices store in state, let's keep track using custom temporary fields
 export const civilWarSetup: GameEvent = {
   id: 'civil_war_setup',
+  meta: civilWarSetupRootMeta,
   title: '内战爆发：局势设置',
   titleZh: '内战爆发：局势设置',
   description: '西班牙的天空笼罩在乌云之下。军官团发起了旨在推翻共和国政府的武装叛乱。尽管政变在马德里和巴塞罗那受挫，但在全国引发了骨肉相残的全面冲突。我们该如何应对这场骨肉相残冲突的混乱开局？',
@@ -268,8 +283,9 @@ export const civilWarSetup: GameEvent = {
 // 1. Sevilla's Trick
 export const civilWarStep1: GameEvent = {
   id: 'cw_step1_sevilla_trick',
-  title: '七月十八日—塞维利亚的诡计',
-  titleZh: '七月十八日—塞维利亚的诡计',
+  meta: civilWarSetupNodeMeta,
+  title: '塞维利亚的诡计',
+  titleZh: '塞维利亚的诡计',
   description: '安达卢西亚首府塞维利亚。凯波·德·利亚诺将军——这位被政府疏忽的阴谋家——用假名潜入城中。他尚未暴露，正密谋夺取广播电台。安达卢西亚的工人没有武器，而省长还在为驻军的忠诚打包票。',
   descriptionZh: '安达卢西亚首府塞维利亚。凯波·德·利亚诺将军——这位被政府疏忽的阴谋家——用假名潜入城中。他尚未暴露，正密谋夺取广播电台。安达卢西亚的工人没有武器，而省长还在为驻军的忠诚打包票。',
   options: [
@@ -350,6 +366,7 @@ export const civilWarStep1: GameEvent = {
 // 2. Sevilla Result
 export const civilWarStep2Result: GameEvent = {
   id: 'cw_step2_sevilla_result',
+  meta: civilWarSetupNodeMeta,
   title: '塞维利亚的诡计：结果',
   titleZh: '塞维利亚的诡计：结果',
   description: '正在加载结果...',
@@ -384,10 +401,11 @@ export const civilWarStep2Result: GameEvent = {
 // 3. Andalusia's Two Ends
 export const civilWarStep3: GameEvent = {
   id: 'cw_step3_andalusia_ends',
-  title: '七月十七至十八日—安达卢西亚的两端',
-  titleZh: '七月十七至十八日—安达卢西亚的两端',
-  description: '安达卢西亚陷入两面夹击。西端——马拉加。帕特克索特将军的叛军在七月十八日晚占领了市中心，但次日清晨却做出了匪夷所思的决定：命令叛军撤回兵营。工人抓住了这个千载难逢的机会。东端——科尔多瓦和格拉纳达。同日下午六点，科尔多瓦驻军举起了叛旗；格拉纳达的突击卫队参与叛乱。工人未获武器——这是安达卢西亚最黑暗的时刻。',
-  descriptionZh: '安达卢西亚陷入两面夹击。西端——马拉加。帕特克索特将军的叛军在七月十八日晚占领了市中心，但次日清晨却做出了匪夷所思的决定：命令叛军撤回兵营。工人抓住了这个千载难逢的机会。东端——科尔多瓦和格拉纳达。同日下午六点，科尔多瓦驻军举起了叛旗；格拉纳达的突击卫队参与叛乱。工人未获武器——这是安达卢西亚最黑暗的时刻。',
+  meta: civilWarSetupNodeMeta,
+  title: '安达卢西亚的两端',
+  titleZh: '安达卢西亚的两端',
+  description: '安达卢西亚陷入两面夹击。西端——马拉加。帕特克索特将军的叛军一度占领了市中心，但次日清晨却做出了匪夷所思的决定：命令叛军撤回兵营。工人抓住了这个千载难逢的机会。东端——科尔多瓦和格拉纳达。同日下午六点，科尔多瓦驻军举起了叛旗；格拉纳达的突击卫队参与叛乱。工人未获武器——这是安达卢西亚最黑暗的时刻。',
+  descriptionZh: '安达卢西亚陷入两面夹击。西端——马拉加。帕特克索特将军的叛军一度占领了市中心，但次日清晨却做出了匪夷所思的决定：命令叛军撤回兵营。工人抓住了这个千载难逢的机会。东端——科尔多瓦和格拉纳达。同日下午六点，科尔多瓦驻军举起了叛旗；格拉纳达的突击卫队参与叛乱。工人未获武器——这是安达卢西亚最黑暗的时刻。',
   options: [
     {
       text: '静观其变（历史选项）',
@@ -465,6 +483,7 @@ export const civilWarStep3: GameEvent = {
 // 4. Andalusia Result
 export const civilWarStep4Result: GameEvent = {
   id: 'cw_step4_andalusia_result',
+  meta: civilWarSetupNodeMeta,
   title: '安达卢西亚：结果',
   titleZh: '安达卢西亚：结果',
   description: '正在加载结果...',
@@ -497,8 +516,9 @@ export const civilWarStep4Result: GameEvent = {
 // 5. Zaragoza's Trust Crisis
 export const civilWarStep5: GameEvent = {
   id: 'cw_step5_zaragoza_trust',
-  title: '七月十八日—萨拉戈萨的信任危机',
-  titleZh: '七月十八日—萨拉戈萨的信任危机',
+  meta: civilWarSetupNodeMeta,
+  title: '萨拉戈萨的信任危机',
+  titleZh: '萨拉戈萨的信任危机',
   description: '萨拉戈萨，阿拉贡首府，CNT的北方堡垒。当地驻军指挥官卡瓦内利亚斯将军自称忠于共和国，并承诺"提防法西斯活动"。CNT萨拉戈萨分会的领导人正在与他谈判。但三十公里外的兵营里，长枪党徒和乡绅正被秘密编入叛军。',
   descriptionZh: '萨拉戈萨，阿拉贡首府，CNT的北方堡垒。当地驻军指挥官卡瓦内利亚斯将军自称忠于共和国，并承诺"提防法西斯活动"。CNT萨拉戈萨分会的领导人正在与他谈判。但三十公里外的兵营里，长枪党徒和乡绅正被秘密编入叛军。',
   options: [
@@ -566,6 +586,7 @@ export const civilWarStep5: GameEvent = {
 // 6. Zaragoza Result
 export const civilWarStep6Result: GameEvent = {
   id: 'cw_step6_zaragoza_result',
+  meta: civilWarSetupNodeMeta,
   title: '萨拉戈萨的信任危机：结果',
   titleZh: '萨拉戈萨的信任危机：结果',
   description: '正在加载结果...',
@@ -598,8 +619,9 @@ export const civilWarStep6Result: GameEvent = {
 // 7. Midnight of Old Castile
 export const civilWarStep7: GameEvent = {
   id: 'cw_step7_old_castile',
-  title: '七月十九日—旧卡斯蒂利亚的午夜',
-  titleZh: '七月十九日—旧卡斯蒂利亚的午夜',
+  meta: civilWarSetupNodeMeta,
+  title: '旧卡斯蒂利亚的午夜',
+  titleZh: '旧卡斯蒂利亚的午夜',
   description: '旧卡斯蒂利亚。在巴利亚多利德和布尔戈斯，叛乱在深夜骤然爆发。更可怕的是，国民卫队与突击卫队携手加入了起义，甚至在睡梦中逮捕了当地的工人领袖。工人们发现本该保护他们的警察已全部倒戈，这是旧卡斯蒂利亚最彻底的背叛。',
   descriptionZh: '旧卡斯蒂利亚。在巴利亚多利德和布尔戈斯，叛乱在深夜骤然爆发。更可怕的是，国民卫队与突击卫队携手加入了起义，甚至在睡梦中逮捕了当地的工人领袖。工人们发现本该保护他们的警察已全部倒戈，这是旧卡斯蒂利亚最彻底的背叛。',
   options: [
@@ -653,6 +675,7 @@ export const civilWarStep7: GameEvent = {
 // 8. Old Castile Result
 export const civilWarStep8Result: GameEvent = {
   id: 'cw_step8_old_castile_result',
+  meta: civilWarSetupNodeMeta,
   title: '旧卡斯蒂利亚的午夜：结果',
   titleZh: '旧卡斯蒂利亚的午夜：结果',
   description: '正在加载结果...',
@@ -683,8 +706,9 @@ export const civilWarStep8Result: GameEvent = {
 // 9. Carlist Crusade of Navarre
 export const civilWarStep9: GameEvent = {
   id: 'cw_step9_navarra',
-  title: '七月十九日—纳瓦拉的十字军',
-  titleZh: '七月十九日—纳瓦拉的十字军',
+  meta: civilWarSetupNodeMeta,
+  title: '纳瓦拉的十字军',
+  titleZh: '纳瓦拉的十字军',
   description: '纳瓦拉——卡洛斯派的传统堡垒——热情地欢迎了叛军。红色的贝雷帽与绿色的十字臂章随处可见，成千上万的"呼啸兵"（Requetés）自愿军背着行囊从山上涌入城市，支持莫拉将军发起保卫信仰的圣战，准备向马德里进军。',
   descriptionZh: '纳瓦拉——卡洛斯派的传统堡垒——热情地欢迎了叛军。红色的贝雷帽与绿色的十字臂章随处可见，成千上万的"呼啸兵"（Requetés）自愿军背着行囊从山上涌入城市，支持莫拉将军发起保卫信仰的圣战，准备向马德里进军。',
   options: [
@@ -709,6 +733,7 @@ export const civilWarStep9: GameEvent = {
 // 10. Navarre Result
 export const civilWarStep10Result: GameEvent = {
   id: 'cw_step10_navarra_result',
+  meta: civilWarSetupNodeMeta,
   title: '纳瓦拉的卡洛斯派十字军：结果',
   titleZh: '纳瓦拉的卡洛斯派十字军：结果',
   description: '纳瓦拉的呼啸兵如潮水般涌入莫拉的部队。红色贝雷帽成为叛军在北方战场最令人生畏的标志。布尔戈斯和潘普洛纳变成了国民军的精神首都——十字军的热忱在此燃烧得最为炽烈。但这股极端的卡洛斯圣战狂热也让同属叛军的世俗长枪党感到戒备。',
@@ -731,8 +756,9 @@ export const civilWarStep10Result: GameEvent = {
 // 11. Basque's Choice
 export const civilWarStep11: GameEvent = {
   id: 'cw_step11_basque',
-  title: '七月十八至二十一日—巴斯克的抉择',
-  titleZh: '七月十八至二十一日—巴斯克的抉择',
+  meta: civilWarSetupNodeMeta,
+  title: '巴斯克的抉择',
+  titleZh: '巴斯克的抉择',
   description: '巴斯克地区。毕尔巴鄂驻军首领犹豫不决，而巴斯克民族主义党（PNV）公开发表广播与宣言全力谴责政变，支持共和国。但在圣塞瓦斯蒂安，洛约拉兵营的叛军突然发动起义，国民警卫队倒戈并强攻全劳联大楼，局势万分危急。',
   descriptionZh: '巴斯克地区。毕尔巴鄂驻军首领犹豫不决，而巴斯克民族主义党（PNV）公开发表广播与宣言全力谴责政变，支持共和国。但在圣塞瓦斯蒂安，洛约拉兵营的叛军突然发动起义，国民警卫队倒戈并强攻全劳联大楼，局势万分危急。',
   options: [
@@ -806,6 +832,7 @@ export const civilWarStep11: GameEvent = {
 // 12. Basque Result
 export const civilWarStep12Result: GameEvent = {
   id: 'cw_step12_basque_result',
+  meta: civilWarSetupNodeMeta,
   title: '巴斯克的抉择：结果',
   titleZh: '巴斯克的抉择：结果',
   description: '正在加载结果...',
@@ -838,10 +865,11 @@ export const civilWarStep12Result: GameEvent = {
 // 13. Barcelona Barricades
 export const civilWarStep13: GameEvent = {
   id: 'cw_step13_barcelona',
-  title: '七月十九日—巴塞罗那街垒',
-  titleZh: '七月十九日—巴塞罗那街垒',
-  description: '加泰罗尼亚的黎明。七月十九日破晓，戈戴德将军率领叛军企图一举夺取巴塞罗那。但他面对的不是一盘散沙——CNT-FAI已经武装了三万名工人。杜鲁蒂、加西亚·奥利弗和阿斯卡索指挥着武装工人与突击卫队并肩冲锋。',
-  descriptionZh: '加泰罗尼亚的黎明。七月十九日破晓，戈戴德将军率领叛军企图一举夺取巴塞罗那。但他面对的不是一盘散沙——CNT-FAI已经武装了三万名工人。杜鲁蒂、加西亚·奥利弗 and 阿斯卡索指挥着武装工人与突击卫队并肩冲锋。',
+  meta: civilWarSetupNodeMeta,
+  title: '巴塞罗那街垒',
+  titleZh: '巴塞罗那街垒',
+  description: '加泰罗尼亚的黎明。破晓时分，戈戴德将军率领叛军企图一举夺取巴塞罗那。但他面对的不是一盘散沙——CNT-FAI已经武装了三万名工人。杜鲁蒂、加西亚·奥利弗和阿斯卡索指挥着武装工人与突击卫队并肩冲锋。',
+  descriptionZh: '加泰罗尼亚的黎明。破晓时分，戈戴德将军率领叛军企图一举夺取巴塞罗那。但他面对的不是一盘散沙——CNT-FAI已经武装了三万名工人。杜鲁蒂、加西亚·奥利弗 and 阿斯卡索指挥着武装工人与突击卫队并肩冲锋。',
   options: [
     {
       text: '筑起街垒，与突击卫队协同行动（历史选项）',
@@ -867,6 +895,7 @@ export const civilWarStep13: GameEvent = {
 // 14. Barcelona Result
 export const civilWarStep14Result: GameEvent = {
   id: 'cw_step14_barcelona_result',
+  meta: civilWarSetupNodeMeta,
   title: '巴塞罗那街垒：结果',
   titleZh: '巴塞罗那街垒：结果',
   description: '工人的冲锋与突击卫队的火力相互配合。政变军官戈戴德下午在电台宣布投降。巴塞罗那守住了，但革命被「规范」了——全劳联和UGT分享权力，加泰罗尼亚反法西斯民兵中央委员会成立。共和国在加泰罗尼亚的权威得以保留。',
@@ -889,8 +918,9 @@ export const civilWarStep14Result: GameEvent = {
 // 15. Madrid Montana Barracks
 export const civilWarStep15: GameEvent = {
   id: 'cw_step15_madrid',
-  title: '七月十九日—马德里蒙塔尼亚兵营',
-  titleZh: '七月十九日—马德里蒙塔尼亚兵营',
+  meta: civilWarSetupNodeMeta,
+  title: '马德里蒙塔尼亚兵营',
+  titleZh: '马德里蒙塔尼亚兵营',
   description: '马德里。范胡尔将军（Fanjul）坐镇蒙塔尼亚兵营——叛军在首都的主要据点。但他犹豫了，没有趁夜突围，而是向外面的群众开火。这一公开挑衅激起了全城的怒火。社会党希尔中校在炮兵公园向群众发放了五千支步枪。',
   descriptionZh: '马德里。范胡尔将军（Fanjul）坐镇蒙塔尼亚兵营——叛军在首都的主要据点。但他犹豫了，没有趁夜突围，而是向外面的群众开火。这一公开挑衅激起了全城的怒火。社会党希尔中校在炮兵公园向群众发放了五千支步枪。',
   options: [
@@ -959,6 +989,7 @@ export const civilWarStep15: GameEvent = {
 // 16. Madrid Result
 export const civilWarStep16Result: GameEvent = {
   id: 'cw_step16_madrid_result',
+  meta: civilWarSetupNodeMeta,
   title: '马德里蒙塔尼亚兵营：结果',
   titleZh: '马德里蒙塔尼亚兵营：结果',
   description: '正在加载结果...',
@@ -991,8 +1022,9 @@ export const civilWarStep16Result: GameEvent = {
 // 17. Oviedo's Betrayal
 export const civilWarStep17: GameEvent = {
   id: 'cw_step17_oviedo',
-  title: '七月十九日—奥维耶多的背叛',
-  titleZh: '七月十九日—奥维耶多的背叛',
+  meta: civilWarSetupNodeMeta,
+  title: '奥维耶多的背叛',
+  titleZh: '奥维耶多的背叛',
   description: '阿斯图里亚斯，矿工的家园。驻军首领阿兰达上校口头上坚称对政府效忠，甚至主张派矿工纵队坐火车前去增援马德里。然而，就在三千名大意无备的矿工登上火车出发后，阿兰达露出了狰狞的面目：他立刻下令封锁省会，宣布归顺叛军，将大炮架向了市政厅。',
   descriptionZh: '阿斯图里亚斯，矿工的家园。驻军首领阿兰达上校口头上坚称对政府效忠，甚至主张派矿工纵队坐火车前去增援马德里。然而，就在三千名大意无备的矿工登上火车出发后，阿兰达露出了狰狞的面目：他立刻下令封锁省会，宣布归顺叛军，将大炮架向了市政厅。',
   options: [
@@ -1057,6 +1089,7 @@ export const civilWarStep17: GameEvent = {
 // 18. Oviedo Result
 export const civilWarStep18Result: GameEvent = {
   id: 'cw_step18_oviedo_result',
+  meta: civilWarSetupNodeMeta,
   title: '奥维耶多的背叛：结果',
   titleZh: '奥维耶多的背叛：结果',
   description: '正在加载结果...',
@@ -1089,8 +1122,9 @@ export const civilWarStep18Result: GameEvent = {
 // 19. Struggle in Galicia
 export const civilWarStep19: GameEvent = {
   id: 'cw_step19_galicia',
-  title: '七月十九日—加利西亚的抗争',
-  titleZh: '七月十九日—加利西亚的抗争',
+  meta: civilWarSetupNodeMeta,
+  title: '加利西亚的抗争',
+  titleZh: '加利西亚的抗争',
   description: '西班牙西北角的加利西亚拥有极其现代化的费罗尔军港（Ferrol）以及拉科鲁尼亚等出海口。在这里，第8步兵师发起叛乱，而维哥的工会和费罗尔的海军军械厂工人正在筑起防线，企图保住这条大西洋大后方的生命补给线。',
   descriptionZh: '西班牙西北角的加利西亚拥有极其现代化的费罗尔军港（Ferrol）以及拉科鲁尼亚等出海口。在这里，第8步兵师发起叛乱，而维哥的工会和费罗尔的海军军械厂工人正在筑起防线，企图保住这条大西洋大后方的生命补给线。',
   options: [
@@ -1164,6 +1198,7 @@ export const civilWarStep19: GameEvent = {
 // 20. Galicia Result
 export const civilWarStep20Result: GameEvent = {
   id: 'cw_step20_galicia_result',
+  meta: civilWarSetupNodeMeta,
   title: '加利西亚的抗争：结果',
   titleZh: '加利西亚的抗争：结果',
   description: '正在加载结果...',
@@ -1196,8 +1231,9 @@ export const civilWarStep20Result: GameEvent = {
 // 21. Valencia's Silence
 export const civilWarStep21: GameEvent = {
   id: 'cw_step21_valencia',
-  title: '七月十九至二十日—瓦伦西亚的静默',
-  titleZh: '七月十九至二十日—瓦伦西亚的静默',
+  meta: civilWarSetupNodeMeta,
+  title: '瓦伦西亚的静默',
+  titleZh: '瓦伦西亚的静默',
   description: '列万特首府瓦伦西亚。政变的叛乱阴谋暗中流传，第3步兵师蠢蠢欲动，省长和军官各执一词。全劳联与人民阵线正对峙胶着，城市中的政治真空和武装分配问题导致了全城的死静。三方势力彼此角力，剑拔弩张。',
   descriptionZh: '列万特首府瓦伦西亚。政变的叛乱阴谋暗中流传，第3步兵师蠢蠢欲动，省长和军官各执一词。全劳联与人民阵线正对峙胶着，城市中的政治真空和武装分配问题导致了全城的死静。三方势力彼此角力，剑拔弩张。',
   options: [
@@ -1280,6 +1316,7 @@ export const civilWarStep21: GameEvent = {
 // 22. Valencia Result
 export const civilWarStep22Result: GameEvent = {
   id: 'cw_step22_valencia_result',
+  meta: civilWarSetupNodeMeta,
   title: '瓦伦西亚的静默：结果',
   titleZh: '瓦伦西亚的静默：结果',
   description: '正在加载结果...',
@@ -1312,8 +1349,9 @@ export const civilWarStep22Result: GameEvent = {
 // 23. Fall of Balearic Islands
 export const civilWarStep23: GameEvent = {
   id: 'cw_step23_balears',
-  title: '七月十九至二十日—巴利阿里群岛的陷落',
-  titleZh: '七月十九至二十日—巴利阿里群岛的陷落',
+  meta: civilWarSetupNodeMeta,
+  title: '巴利阿里群岛的陷落',
+  titleZh: '巴利阿里群岛的陷落',
   description: '地中海上的巴利阿里群岛。马略卡岛驻军首先举起叛旗，控制了全岛。梅诺卡岛由于共和水兵们的英勇制止得以留在政府手中。帕尔马港升起了起义红黄旗，意大利法西斯随即开始以此为基地派遣战机和远征军支援叛军。这严重威胁了地中海沿岸的安全。',
   descriptionZh: '地中海上的巴利阿里群岛。马略卡岛驻军首先举起叛旗，控制了全岛。梅诺卡岛由于共和水兵们的英勇制止得以留在政府手中。帕尔马港升起了起义红黄旗，意大利法西斯随即开始以此为基地派遣战机和远征军支援叛军。这严重威胁了地中海沿岸的安全。',
   options: [
@@ -1340,9 +1378,9 @@ export const civilWarStep23: GameEvent = {
 };
 
 // 24. Balearic Result
-export const civilWarStep12_2Result = 'cw_step24_balears_result';
 export const civilWarStep24Result: GameEvent = {
-  id: civilWarStep12_2Result,
+  id: 'cw_step24_balears_result',
+  meta: civilWarSetupNodeMeta,
   title: '巴利阿里群岛的陷落：结果',
   titleZh: '巴利阿里群岛的陷落：结果',
   description: '马略卡岛和伊比萨岛的抵抗迅速被扑灭。意大利的萨伏亚-马切蒂轰炸机在马略卡机场降落，使地中海航线落入敌手。但唯有梅诺卡岛仍如磐石般拒绝倒戈，扼守着共和国地中海最关键的前哨阵地。',
@@ -1365,8 +1403,9 @@ export const civilWarStep24Result: GameEvent = {
 // 25. Sanjurjo's Flight
 export const civilWarStep25: GameEvent = {
   id: 'cw_step25_sanjurjo',
-  title: '七月二十日—桑胡尔霍的飞行',
-  titleZh: '七月二十日—桑胡尔霍的飞行',
+  meta: civilWarSetupNodeMeta,
+  title: '桑胡尔霍的飞行',
+  titleZh: '桑胡尔霍的飞行',
   description: '政变的总策划者、传奇将领桑胡尔霍（"里夫之狮"）计划从葡萄牙埃什托里尔机场起飞，前往布尔戈斯亲自主持叛军联合军事政府。然而，他坚称要携带巨大的豪华军礼服皮箱登机，这超重了安萨尔多双翼机的额定运载极限。',
   descriptionZh: '政变的总策划者、传奇将领桑胡尔霍（"里夫之狮"）计划从葡萄牙埃什托里尔机场起飞，前往布尔戈斯亲自主持叛军联合军事政府。然而，他坚称要携带巨大的豪华军礼服皮箱登机，这超重了安萨尔多双翼机的额定运载极限。',
   options: [
@@ -1405,6 +1444,7 @@ export const civilWarStep25: GameEvent = {
 // 26. Sanjurjo Result
 export const civilWarStep26Result: GameEvent = {
   id: 'cw_step26_sanjurjo_result',
+  meta: civilWarSetupNodeMeta,
   title: '桑胡尔霍的飞行：结果',
   titleZh: '桑胡尔霍的飞行：结果',
   description: '正在加载结果...',
@@ -1445,8 +1485,9 @@ export const civilWarStep26Result: GameEvent = {
 // 27. Franco Takes Over African Army
 export const civilWarStep27: GameEvent = {
   id: 'cw_step27_franco_africa',
-  title: '七月二十日—佛朗哥接管非洲军团',
-  titleZh: '七月二十日—佛朗哥接管非洲军团',
+  meta: civilWarSetupNodeMeta,
+  title: '佛朗哥接管非洲军团',
+  titleZh: '佛朗哥接管非洲军团',
   description: '西属摩洛哥。桑胡尔霍之死令国民军高层大受震动。佛朗哥将军飞抵得土安，准备接管西班牙最强悍、最具杀伤力的精锐：非洲殖民军。三万五千名训练有素的外籍军团和摩尔人士兵，正手握武器，等待宣誓向谁效忠。',
   descriptionZh: '西属摩洛哥。桑胡尔霍之死令国民军高层大受震动。佛朗哥将军飞抵得土安，准备接管西班牙最强悍、最具杀伤力的精锐：非洲殖民军。三万五千名训练有素的外籍军团和摩尔人士兵，正手握武器，等待宣誓向谁效忠。',
   options: [
@@ -1498,6 +1539,7 @@ export const civilWarStep27: GameEvent = {
 // 28. Franco Result
 export const civilWarStep28Result: GameEvent = {
   id: 'cw_step28_franco_result',
+  meta: civilWarSetupNodeMeta,
   title: '佛朗哥接管非洲军团：结果',
   titleZh: '佛朗哥接管非洲军团：结果',
   description: '正在加载结果...',
@@ -1530,8 +1572,9 @@ export const civilWarStep28Result: GameEvent = {
 // 29. Republican Navy's Decision
 export const civilWarStep29: GameEvent = {
   id: 'cw_step29_navy',
-  title: '七月二十日—共和国海军的抉择',
-  titleZh: '七月二十日—共和国海军的抉择',
+  meta: civilWarSetupNodeMeta,
+  title: '共和国海军的抉择',
+  titleZh: '共和国海军的抉择',
   description: '直布罗陀海峡。绝大多数海军高级军官支持政变，但工人出身的基层水手和机舱工人展现了惊人的凝聚力，在听到广播后发动武装起义，迅速制服或处决了倒戈军官，夺回了战列舰和巡洋舰的控制权。海军的站位至关重要。',
   descriptionZh: '直布罗陀海峡。绝大多数海军高级军官支持政变，但工人出身的基层水手和机舱工人展现了惊人的凝聚力，在听到广播后发动武装起义，迅速制服或处决了倒戈军官，夺回了战列舰和巡洋舰的控制权。海军的站位至关重要。',
   options: [
@@ -1589,6 +1632,7 @@ export const civilWarStep29: GameEvent = {
 // 30. Navy Result
 export const civilWarStep30Result: GameEvent = {
   id: 'cw_step30_navy_result',
+  meta: civilWarSetupNodeMeta,
   title: '海军起义：结果',
   titleZh: '海军起义：结果',
   description: '正在加载结果...',
@@ -1621,8 +1665,9 @@ export const civilWarStep30Result: GameEvent = {
 // 31. Summary and Complete Setup
 export const civilWarStep31: GameEvent = {
   id: 'cw_step31_summary',
-  title: '七月二十日晚—内战开幕',
-  titleZh: '七月二十日晚—内战开幕',
+  meta: civilWarSetupNodeMeta,
+  title: '内战开幕',
+  titleZh: '内战开幕',
   description: '军事政变未能一举颠覆共和，但和平时代就此决裂。无数的街垒被铸起，战线已然明确。无数人的命运，无论将军还是水兵、工人和农民，都被狂风巨浪撕扯，被推入前所未有的漩涡。残酷的内战拉开了序幕。',
   descriptionZh: '军事政变未能一举颠覆共和，但和平时代就此决裂。无数的街垒被铸起，战线已然明确。无数人的命运，无论将军还是水兵、工人和农民，都被狂风巨浪撕扯，被推入前所未有的漩涡。残酷的内战拉开了序幕。',
   options: [

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, GameState, GameEvent } from '../types';
 import { useGame } from '../GameContext';
-import { adjustClassSupport } from '../utils';
+import { adjustClassSupport, adjustFactionDissents } from '../utils';
 
 // Define the custom Adjuster components
 export const IncomeTaxAdjuster: React.FC = () => {
@@ -320,6 +320,8 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
     {
       text: 'Submit and Authorize Adjusted Income Tax Rates',
       textZh: '提交并批准通过所得税率调整法案',
+      subtitle: 'Apply the staged income tax rates and return to the fiscal policy menu.',
+      subtitleZh: '落实当前暂定的所得税率，并返回财政政策菜单。',
       effect: (state: GameState) => {
         const initial_lower = state.temp_tax_lower ?? state.tax_lower_class;
         const initial_middle = state.temp_tax_middle ?? state.tax_middle_class;
@@ -383,9 +385,10 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
         newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', upper_class_support);
         newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'CNT_FAI', upper_class_support);
 
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, Math.min(100, newFactions.Faistas.dissent + faistas_dissent));
-        newFactions.Puristas.dissent = Math.max(0, Math.min(100, newFactions.Puristas.dissent + puristas_dissent));
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: faistas_dissent,
+          Puristas: puristas_dissent
+        });
 
         return {
           classes: newClasses,
@@ -402,6 +405,8 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
     {
       text: 'Cancel and Discard Staged Income Tax Changes',
       textZh: '放弃本次所得税率修改并返回',
+      subtitle: 'Restore the previous income tax rates and return to the fiscal policy menu.',
+      subtitleZh: '恢复原有所得税率，并返回财政政策菜单。',
       effect: (state: GameState) => ({
         // Restore values
         tax_lower_class: state.temp_tax_lower ?? state.tax_lower_class,
@@ -428,6 +433,8 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
     {
       text: 'Submit and Codify Tariff and Consumption Tax Rates',
       textZh: '提交并批准通过关税与消费税率法案',
+      subtitle: 'Apply the staged tariff and consumption tax rates and return to the fiscal policy menu.',
+      subtitleZh: '落实当前暂定的关税与消费税率，并返回财政政策菜单。',
       effect: (state: GameState) => {
         const initial_tariff = state.temp_tax_tariff ?? state.tax_tariff;
         const initial_consumption = state.temp_tax_consumption ?? state.tax_consumption;
@@ -470,9 +477,10 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', working_class_support);
         newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', working_class_support);
 
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, Math.min(100, newFactions.Faistas.dissent + faistas_dissent));
-        newFactions.Puristas.dissent = Math.max(0, Math.min(100, newFactions.Puristas.dissent + puristas_dissent));
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: faistas_dissent,
+          Puristas: puristas_dissent
+        });
 
         return {
           classes: newClasses,
@@ -494,6 +502,8 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
     {
       text: 'Cancel and Discard Tariff and Consumption Tax Changes',
       textZh: '放弃本次关税消费税修改并返回',
+      subtitle: 'Restore the previous tariff and consumption tax rates and return to the fiscal policy menu.',
+      subtitleZh: '恢复原有关税与消费税率，并返回财政政策菜单。',
       effect: (state: GameState) => ({
         // Restore values
         tax_tariff: state.temp_tax_tariff ?? state.tax_tariff,
@@ -517,6 +527,8 @@ export const fiscalPolicyEvent: GameEvent = {
     {
       text: 'Reform Income Taxes (Proceed to submenu)',
       textZh: '向无产阶级免税倾斜：改革所得税法案（进入所得税率子菜单）',
+      subtitle: 'Open the income tax adjustment panel and stage changes before approval.',
+      subtitleZh: '打开所得税率调整面板，在批准前暂存修改。',
       effect: (state: GameState) => ({
         // Ensure starting values are backed up if not already
         temp_tax_lower: state.temp_tax_lower ?? state.tax_lower_class,
@@ -528,6 +540,8 @@ export const fiscalPolicyEvent: GameEvent = {
     {
       text: 'Modify Import Tariffs & Consumption Taxes (Proceed to submenu)',
       textZh: '促进公社工业与减负大众：调整关税与消费税（进入子菜单）',
+      subtitle: 'Open the tariff and consumption tax panel and stage changes before approval.',
+      subtitleZh: '打开关税与消费税调整面板，在批准前暂存修改。',
       effect: (state: GameState) => ({
         // Ensure starting values are backed up if not already
         temp_tax_tariff: state.temp_tax_tariff ?? state.tax_tariff,

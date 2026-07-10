@@ -4,6 +4,8 @@ import { Card, GameEvent } from '../game/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { EventBoard } from './EventBoard';
+import { EffectPreviewTooltip } from './EffectPreviewTooltip';
+import { getOptionEffectPreview } from '../game/effectPreview';
 
 export const MainArea = () => {
   const { state, dispatch } = useGame();
@@ -149,13 +151,15 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
       <div className="flex flex-col gap-4">
         {event.options.map((opt, idx) => {
           const isAvailable = !opt.condition || opt.condition(state);
+          const showEffectPreview = state.difficulty === 'easy' || state.difficulty === 'sandbox';
+          const previewLines = showEffectPreview ? getOptionEffectPreview(state, opt) : [];
           return (
+            <div key={idx} className="relative group">
             <button
-              key={idx}
               disabled={!isAvailable}
               onClick={() => dispatch({ type: 'RESOLVE_EVENT', payload: opt.effect })}
               className={cn(
-                "text-left p-4 border transition-colors font-typewriter text-sm uppercase tracking-wider relative group overflow-hidden",
+                "w-full text-left p-4 border transition-colors font-typewriter text-sm uppercase tracking-wider relative overflow-hidden",
                 isAvailable 
                   ? "border-ink hover:bg-ink hover:text-paper" 
                   : "border-ink-light opacity-50 cursor-not-allowed"
@@ -187,6 +191,8 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
                 <div className="absolute inset-0 bg-cnt-red transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-0 opacity-20"></div>
               )}
             </button>
+            <EffectPreviewTooltip lines={previewLines} isZh={isZh} />
+            </div>
           );
         })}
       </div>

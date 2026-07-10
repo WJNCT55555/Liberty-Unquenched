@@ -1,8 +1,16 @@
 import { GameEvent } from '../../types';
 import { MapFaction } from '../../../map/types_map';
 
+const civilWarTerminalMeta = {
+  category: 'war' as const,
+  flow: 'solo' as const,
+  series: ['civil_war'],
+  tags: ['map', 'terminal'],
+};
+
 export const republicanSurrender: GameEvent = {
   id: 'republican_surrender',
+  meta: civilWarTerminalMeta,
   title: 'Republican Surrender',
   titleZh: '共和国投降',
   description: 'With Madrid, Barcelona, and Valencia all fallen to the nationalist rebels, and the remaining republican-controlled zones reduced to fragments with no strategic strength, the republican cabinet realizes that further bloodshed is pointless. A formal surrender document has been signed. The Second Spanish Republic has fallen.',

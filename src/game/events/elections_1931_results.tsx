@@ -7,8 +7,16 @@ import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
 import { formCoalition } from '../utils/coalition';
 
+const election1931Meta = {
+  category: 'politics' as const,
+  flow: 'inline' as const,
+  series: ['elections', 'election_1931'],
+  tags: ['election'],
+};
+
 export const elections1931Results: GameEvent = {
   id: '1931_elections_results',
+  meta: election1931Meta,
   title: 'Results of the 1931 General Elections',
   titleZh: '1931年大选结果',
   description: 'The votes have been counted. The Republican-Socialist Conjunction has secured a resounding victory, ensuring that the Constituent Cortes will have a strong left-leaning mandate to draft the new constitution. However, the exact composition of the parliament depends heavily on the turnout of the working class.',
@@ -228,6 +236,7 @@ export const elections1931Results: GameEvent = {
 
 export const republicanCabinet1931: GameEvent = {
   id: '1931_republican_cabinet',
+  meta: election1931Meta,
   title: (state) => {
     const cortes = state.cortes || calculateElectionResults(state);
     const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
@@ -253,6 +262,7 @@ export const republicanCabinet1931: GameEvent = {
 
 export const leftCabinetExcludesCNT: GameEvent = {
   id: '1931_left_cabinet_excludes_cnt',
+  meta: election1931Meta,
   title: 'Azaña Forms Government',
   titleZh: '阿萨尼亚组建政府',
   description: 'The Republican-Socialist coalition has secured a majority. However, due to our abstention and hostility during the elections, they have no intention of including the CNT in their plans. We are firmly in the opposition.',
@@ -272,6 +282,7 @@ export const leftCabinetExcludesCNT: GameEvent = {
 
 export const cabinetFormation1931: GameEvent = {
   id: '1931_cabinet_formation',
+  meta: election1931Meta,
   title: 'The Republican-Socialist Cabinet',
   titleZh: '共和-社会党内阁',
   description: 'With a massive majority secured thanks to the tacit support of the CNT, Manuel Azaña and Largo Caballero have approached our leadership. They recognize that without our workers, their mandate would be weak. In an unprecedented move, they have offered the CNT a place in the cabinet to ensure labor peace during the drafting of the constitution.',
@@ -540,6 +551,7 @@ const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) =
 
 export const ministerAllocation: GameEvent = {
   id: 'minister_allocation',
+  meta: election1931Meta,
   title: 'Ministerial Allocation',
   titleZh: '部长分配',
   description: 'We have agreed to join the cabinet. We now have political leverage to demand specific ministries. The more powerful the ministry, the more leverage it requires. What shall we demand?',

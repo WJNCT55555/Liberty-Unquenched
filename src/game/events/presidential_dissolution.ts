@@ -2,8 +2,16 @@ import { GameEvent } from '../types';
 import { elections1933 } from './elections_1933';
 import { elections1936 } from './elections_1936';
 
+const presidentialDissolutionMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['government_crisis', 'elections'],
+  tags: ['election'],
+};
+
 export const presidentialDissolutionOfCortes: GameEvent = {
   id: 'presidential_dissolution_of_cortes',
+  meta: presidentialDissolutionMeta,
   title: 'President Alcalá-Zamora Dissolves the Cortes!',
   titleZh: '阿尔卡拉-萨莫拉总统宣布解散议会！',
   description: 'With the collapse of the governing coalition, the legislative chamber has descended into complete paralysis. Exercising his constitutional authority under the Constitution of 1931, President Niceto Alcalá-Zamora has dissolved the Cortes and decreed early general elections. Spain is once again thrown into an intense electoral campaign, with polarized social forces preparing for a showdown at the ballot boxes.',

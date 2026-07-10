@@ -1,5 +1,11 @@
 import { Card, GameState, GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+import { adjustClassSupport, adjustFactionDissents } from '../utils';
+
+const concludeForeignPolicy = (changes: Partial<GameState>): Partial<GameState> => ({
+  ...changes,
+  international_relations_timer: 2,
+  currentEvent: null
+});
 
 export const gibraltarQuestionEvent: GameEvent = {
   id: 'gibraltar_question_event',
@@ -9,35 +15,38 @@ export const gibraltarQuestionEvent: GameEvent = {
   descriptionZh: '英国的直系前哨直布罗陀耸立在西班牙的咽喉地带。我们的外交团队就边控、海运中立和共同防御协议提出了谈判。然而，任何对大英帝国的妥协都将在我们内部的无政府工团主义各派系中引发生意想不到的分裂。',
   options: [
     {
-      text: 'Compromise on transit and guarantee British commercial interests (Return)',
-      textZh: '在过境边防上做出妥协，确保大英帝国的贸易利益（返回）',
+      text: 'Compromise on transit and guarantee British commercial interests',
+      textZh: '在过境边防上做出妥协，确保大英帝国的贸易利益',
       subtitle: 'Improves relations with the UK and brings dynamic foreign exchange, but severely angers anarchist purists.',
       subtitleZh: '改善英西关系并注入急需的外汇，但这会引发无政府主义纯粹派的强烈愤慨。',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 10);
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 5);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Puristas: 10,
+          Faistas: 5
+        });
+        return concludeForeignPolicy({
+          factions: newFactions,
           relations: {
             ...state.relations,
             uk: Math.min(100, state.relations.uk + 8)
           },
           foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 10),
-          gibraltar_resolved: true,
-          currentEvent: negotiateUKEvent
-        };
+          gibraltar_resolved: true
+        });
       }
     },
     {
-      text: 'Assert Spanish sovereignty and demand demilitarization (Return)',
-      textZh: '宣示西班牙主权，抗议自决抗英要求撤军（返回）',
+      text: 'Assert Spanish sovereignty and demand demilitarization',
+      textZh: '宣示西班牙主权，抗议自决抗英要求撤军',
       subtitle: 'Rallies the anarchist purists (FAI) and boosts revolutionary fervor, but catastrophically damages relations with Great Britain.',
       subtitleZh: '凝聚FAI无政府纯粹派并提高革命热情，但会破坏英西外交关系。',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 5);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 8);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -5,
+          Puristas: -8
+        });
+        return concludeForeignPolicy({
+          factions: newFactions,
           relations: {
             ...state.relations,
             uk: Math.max(0, state.relations.uk - 15)
@@ -46,14 +55,15 @@ export const gibraltarQuestionEvent: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 8)
           },
-          gibraltar_resolved: true,
-          currentEvent: negotiateUKEvent
-        };
+          gibraltar_resolved: true
+        });
       }
     },
     {
       text: 'Cancel and return',
       textZh: '取消并返回',
+      subtitle: 'Leave the Gibraltar question unresolved and return to the UK talks.',
+      subtitleZh: '暂不处理直布罗陀问题，返回英国谈判页面。',
       effect: () => ({
         currentEvent: negotiateUKEvent
       })
@@ -74,17 +84,17 @@ export const negotiateUKEvent: GameEvent = {
       subtitle: 'The British government is extremely hostile to libertarian communism; efforts yield minimal success.',
       subtitleZh: '英国政府对自由意志共产主义极为敌视，外交努力收效甚微',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 5);
-        newFactions.Cenetistas.dissent = Math.min(100, (newFactions.Cenetistas.dissent || 0) + 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Puristas: 5,
+          Cenetistas: 2
+        });
+        return concludeForeignPolicy({
           factions: newFactions,
           relations: {
             ...state.relations,
             uk: Math.min(100, state.relations.uk + 3)
-          },
-          currentEvent: negotiateUKEvent
-        };
+          }
+        });
       }
     },
     {
@@ -96,10 +106,11 @@ export const negotiateUKEvent: GameEvent = {
       unavailableSubtitle: () => 'Insufficient budget (needs 1), UK-Spanish relations below 30, or public debt below 200M.',
       unavailableSubtitleZh: () => '预算不足（需要1）、英西关系低于30、或公共债务未达200M暂无谈判筹码',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 4);
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Puristas: 4,
+          Faistas: 2
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
           public_debt: Math.max(0, (state.public_debt ?? 500) - 35),
           foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 5),
@@ -108,15 +119,18 @@ export const negotiateUKEvent: GameEvent = {
           relations: {
             ...state.relations,
             uk: Math.min(100, state.relations.uk + 4)
-          },
-          currentEvent: negotiateUKEvent
-        };
+          }
+        });
       }
     },
     {
       text: 'Raise the Gibraltar Question',
       textZh: '谈谈直布罗陀问题',
+      subtitle: 'Open a focused negotiation over Gibraltar, border controls, and British shipping guarantees.',
+      subtitleZh: '进入直布罗陀、边境管控与英国航运保证的专项谈判。',
       condition: (state) => !state.gibraltar_resolved,
+      unavailableSubtitle: () => 'The Gibraltar question has already been settled.',
+      unavailableSubtitleZh: () => '直布罗陀问题已经处理完毕。',
       effect: () => ({
         currentEvent: gibraltarQuestionEvent
       })
@@ -124,6 +138,8 @@ export const negotiateUKEvent: GameEvent = {
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the UK talks and return to the foreign policy council.',
+      subtitleZh: '离开英国谈判，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -141,12 +157,13 @@ export const negotiateFranceEvent: GameEvent = {
     {
       text: 'Improve diplomatic relations',
       textZh: '改善与法国的外交关系',
-      effect: (state) => ({
+      subtitle: 'Use routine diplomatic channels to improve French relations and conclude this policy review.',
+      subtitleZh: '通过常规外交渠道改善法国关系，并结束本次外交政策评议。',
+      effect: (state) => concludeForeignPolicy({
         relations: {
           ...state.relations,
           france: Math.min(100, state.relations.france + 5)
-        },
-        currentEvent: negotiateFranceEvent
+        }
       })
     },
     {
@@ -155,13 +172,14 @@ export const negotiateFranceEvent: GameEvent = {
       subtitle: '-2 Budget -- Formally conclude a mutual defense pact with Blum’s Popular Front government to coordinate against German/Italian intervention.',
       subtitleZh: '-2 预算 -- 正式与法国人民阵线政府缔结反法西斯共同防御协定，协调对德意干涉的联合应对',
       condition: (state) => state.budget >= 2 && state.relations.france >= 55 && state.year >= 1936 && state.civilWarStatus === 'ongoing',
-      unavailableSubtitle: () => 'Requires: 2 Budget, France relations >= 55, year >= 1936, and search for active Civil War.',
+      unavailableSubtitle: () => 'Requires: 2 Budget, France relations >= 55, year >= 1936, and an active Civil War.',
       unavailableSubtitleZh: () => '预算不足（需要2）、法西关系低于55、法国人民阵线尚未执政(1936前)或内战未爆发',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 3);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -3,
+          Puristas: -2
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 2),
           armaments: state.armaments + 1,
           foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 5),
@@ -176,9 +194,8 @@ export const negotiateFranceEvent: GameEvent = {
           stats: {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 2)
-          },
-          currentEvent: negotiateFranceEvent
-        };
+          }
+        });
       }
     },
     {
@@ -190,10 +207,11 @@ export const negotiateFranceEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 2 Resources and an active Civil War.',
       unavailableSubtitleZh: () => '资源不足（需要2）或内战尚未爆发，和平时期无需军火走私',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 3);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -3,
+          Puristas: -2
+        });
+        return concludeForeignPolicy({
           resources: Math.max(0, state.resources - 2),
           armaments: state.armaments + 2,
           coalition_dissent: (state.coalition_dissent || 0) + 2,
@@ -201,9 +219,8 @@ export const negotiateFranceEvent: GameEvent = {
           relations: {
             ...state.relations,
             france: Math.min(100, state.relations.france + 2)
-          },
-          currentEvent: negotiateFranceEvent
-        };
+          }
+        });
       }
     },
     {
@@ -214,7 +231,7 @@ export const negotiateFranceEvent: GameEvent = {
       condition: (state) => state.budget >= 1 && state.civilWarStatus === 'ongoing' && !state.andorra_secured,
       unavailableSubtitle: () => 'Requires 1 Budget, active Civil War, and Andorra not yet secured.',
       unavailableSubtitleZh: () => '预算不足（需要1）、内战未爆发、或安道尔通道已确保',
-      effect: (state) => ({
+      effect: (state) => concludeForeignPolicy({
         budget: Math.max(0, state.budget - 1),
         relations: {
           ...state.relations,
@@ -228,13 +245,14 @@ export const negotiateFranceEvent: GameEvent = {
             ...state.armedForces.militias,
             cntFai: (state.armedForces.militias.cntFai || 0) + 2000
           }
-        },
-        currentEvent: negotiateFranceEvent
+        }
       })
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the French talks and return to the foreign policy council.',
+      subtitleZh: '离开法国谈判，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -252,12 +270,13 @@ export const negotiateUSAEvent: GameEvent = {
     {
       text: 'Improve relations with the United States',
       textZh: '改善与美国的关系',
-      effect: (state) => ({
+      subtitle: 'Use cautious diplomatic outreach to improve relations with Washington.',
+      subtitleZh: '通过谨慎外交接触改善与华盛顿的关系。',
+      effect: (state) => concludeForeignPolicy({
         relations: {
           ...state.relations,
           usa: Math.min(100, state.relations.usa + 4)
-        },
-        currentEvent: negotiateUSAEvent
+        }
       })
     },
     {
@@ -268,15 +287,14 @@ export const negotiateUSAEvent: GameEvent = {
       condition: (state) => state.budget >= 1 && (state.public_debt ?? 500) >= 300 && state.relations.usa >= 35,
       unavailableSubtitle: () => 'Requires 1 Budget, public debt >= 300M, and USA relations >= 35.',
       unavailableSubtitleZh: () => '预算不足（需要1）、公共债务低于300无谈判筹码、或美西关系恶劣',
-      effect: (state) => ({
+      effect: (state) => concludeForeignPolicy({
         budget: Math.max(0, state.budget - 1),
         public_debt: Math.max(0, (state.public_debt ?? 500) - 25),
         relations: {
           ...state.relations,
           usa: Math.min(100, state.relations.usa + 3)
         },
-        foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 3),
-        currentEvent: negotiateUSAEvent
+        foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 3)
       })
     },
     {
@@ -288,9 +306,10 @@ export const negotiateUSAEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires: 2 Budget, USA relations >= 40, and no active general US arms embargo.',
       unavailableSubtitleZh: () => '预算不足（需要2）、美西关系低于40、或美国已启动全面禁运',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -2
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 2),
           relations: {
             ...state.relations,
@@ -298,9 +317,8 @@ export const negotiateUSAEvent: GameEvent = {
           },
           armaments: state.armaments + 3,
           coalition_dissent: (state.coalition_dissent || 0) + 1,
-          factions: newFactions,
-          currentEvent: negotiateUSAEvent
-        };
+          factions: newFactions
+        });
       }
     },
     {
@@ -311,7 +329,7 @@ export const negotiateUSAEvent: GameEvent = {
       condition: (state) => state.relations.usa >= 30,
       unavailableSubtitle: () => 'Requires USA relations >= 30.',
       unavailableSubtitleZh: () => '美西关系低于30，出访缺乏外交基础',
-      effect: (state) => ({
+      effect: (state) => concludeForeignPolicy({
         relations: {
           ...state.relations,
           usa: Math.min(100, state.relations.usa + 2),
@@ -321,13 +339,14 @@ export const negotiateUSAEvent: GameEvent = {
         stats: {
           ...state.stats,
           republicanAuthority: Math.min(100, state.stats.republicanAuthority + 2)
-        },
-        currentEvent: negotiateUSAEvent
+        }
       })
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the American talks and return to the foreign policy council.',
+      subtitleZh: '离开美国谈判，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -348,18 +367,18 @@ export const negotiateSovietEvent: GameEvent = {
       subtitle: 'Critical for heavy armaments, but severely alienates FAI purists.',
       subtitleZh: '这对获取重武器至关重要，但极易激怒党内无政府主义纯粹派（FAI）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 5);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 4);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 5,
+          Puristas: 4
+        });
+        return concludeForeignPolicy({
           factions: newFactions,
           coalition_dissent: Math.max(0, (state.coalition_dissent || 0) - 1),
           relations: {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 5)
-          },
-          currentEvent: negotiateSovietEvent
-        };
+          }
+        });
       }
     },
     {
@@ -371,12 +390,13 @@ export const negotiateSovietEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 2 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 2）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 7);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 5);
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 7,
+          Puristas: 5
+        });
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 3);
-        return {
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 2),
           tankResearchProgress: Math.min(100, state.tankResearchProgress + 15),
           factions: newFactions,
@@ -384,9 +404,8 @@ export const negotiateSovietEvent: GameEvent = {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 6)
           },
-          classes: newClasses,
-          currentEvent: negotiateSovietEvent
-        };
+          classes: newClasses
+        });
       }
     },
     {
@@ -398,12 +417,13 @@ export const negotiateSovietEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires: 3 Budget, 150 Gold, and Moscow gold transfer not yet completed.',
       unavailableSubtitleZh: () => '预算不足（需要3）、黄金储备低于150M、或莫斯科黄金已转移',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 6);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 5);
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 6,
+          Puristas: 5
+        });
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 5);
-        return {
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 3),
           gold_reserves: Math.max(0, state.gold_reserves - 150),
           moscowGoldTransferred: true,
@@ -414,9 +434,8 @@ export const negotiateSovietEvent: GameEvent = {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 5)
           },
-          classes: newClasses,
-          currentEvent: negotiateSovietEvent
-        };
+          classes: newClasses
+        });
       }
     },
     {
@@ -428,9 +447,10 @@ export const negotiateSovietEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 1 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 1）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 2
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
           resources: state.resources + 1,
           economy_growth: state.economy_growth + 0.5,
@@ -438,9 +458,8 @@ export const negotiateSovietEvent: GameEvent = {
           relations: {
             ...state.relations,
             ussr: Math.min(100, state.relations.ussr + 3)
-          },
-          currentEvent: negotiateSovietEvent
-        };
+          }
+        });
       }
     },
     {
@@ -452,26 +471,28 @@ export const negotiateSovietEvent: GameEvent = {
       unavailableSubtitle: () => 'Trials have not occurred yet (before August 1936).',
       unavailableSubtitleZh: () => '莫斯科审判尚未发生(1936年8月前)或我们选择保持外交沉默',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 10);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 8);
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -10,
+          Puristas: -8
+        });
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', -5);
-        return {
+        return concludeForeignPolicy({
           factions: newFactions,
           classes: newClasses,
           relations: {
             ...state.relations,
             ussr: Math.max(0, state.relations.ussr - 50),
             internationalSocialists: Math.max(0, state.relations.internationalSocialists - 5)
-          },
-          currentEvent: negotiateSovietEvent
-        };
+          }
+        });
       }
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the Soviet talks and return to the foreign policy council.',
+      subtitleZh: '离开苏联谈判，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -495,18 +516,18 @@ export const negotiateGermanyEvent: GameEvent = {
       unavailableSubtitle: () => 'German Nazi regime has not yet taken power (before 1933).',
       unavailableSubtitleZh: () => '魏玛共和国尚存(1933年前)，暂无需与纳粹政权进行特殊外交克制',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 4);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 3);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 4,
+          Puristas: 3
+        });
+        return concludeForeignPolicy({
           factions: newFactions,
           relations: {
             ...state.relations,
             germany: Math.min(100, state.relations.germany + 2),
             ussr: Math.max(0, state.relations.ussr - 3)
-          },
-          currentEvent: negotiateGermanyEvent
-        };
+          }
+        });
       }
     },
     {
@@ -518,25 +539,27 @@ export const negotiateGermanyEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 1 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 1）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 5);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 4);
-        newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 3);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -5,
+          Puristas: -4,
+          Cenetistas: -3
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
           factions: newFactions,
           relations: {
             ...state.relations,
             germany: Math.max(0, state.relations.germany - 6),
             internationalSocialists: Math.min(100, state.relations.internationalSocialists + 4)
-          },
-          currentEvent: negotiateGermanyEvent
-        };
+          }
+        });
       }
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the German file and return to the foreign policy council.',
+      subtitleZh: '离开德国议题，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -554,13 +577,14 @@ export const focusLatinAmericaEvent: GameEvent = {
     {
       text: 'Strengthen ties with the Hispanic world',
       textZh: '加强与西语裔世界的纽带',
-      effect: (state) => ({
+      subtitle: 'Cultivate cultural and diplomatic ties with Mexico and the wider socialist diaspora.',
+      subtitleZh: '加强与墨西哥及更广泛社会主义流亡网络的文化与外交纽带。',
+      effect: (state) => concludeForeignPolicy({
         relations: {
           ...state.relations,
           mexico: Math.min(100, state.relations.mexico + 5),
           internationalSocialists: Math.min(100, state.relations.internationalSocialists + 3)
-        },
-        currentEvent: focusLatinAmericaEvent
+        }
       })
     },
     {
@@ -572,9 +596,10 @@ export const focusLatinAmericaEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 1 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 1）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 4);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -4
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
           coalition_dissent: (state.coalition_dissent || 0) + 2,
           factions: newFactions,
@@ -582,9 +607,8 @@ export const focusLatinAmericaEvent: GameEvent = {
             ...state.relations,
             mexico: Math.min(100, state.relations.mexico + 3),
             usa: Math.max(0, state.relations.usa - 4)
-          },
-          currentEvent: focusLatinAmericaEvent
-        };
+          }
+        });
       }
     },
     {
@@ -593,15 +617,16 @@ export const focusLatinAmericaEvent: GameEvent = {
       subtitle: 'Mexico is our stalwart comrade, directly shipping about 20,000 rifles to the Republican camp.',
       subtitleZh: '墨西哥是我们最坚定的革命盟友，他们不离不弃——卡德纳斯总统直接向共和国输送约2万支步枪',
       condition: (state) => state.relations.mexico < 90,
-      effect: (state) => ({
+      unavailableSubtitle: () => 'Mexico relations are already at 90 or higher.',
+      unavailableSubtitleZh: () => '墨西哥关系已经达到 90 或更高。',
+      effect: (state) => concludeForeignPolicy({
         armaments: state.armaments + 1,
         foreign_exchange: Math.min(1000, (state.foreign_exchange ?? 180) + 3),
         relations: {
           ...state.relations,
           mexico: Math.min(100, state.relations.mexico + 10),
           internationalSocialists: Math.min(100, state.relations.internationalSocialists + 2)
-        },
-        currentEvent: focusLatinAmericaEvent
+        }
       })
     },
     {
@@ -613,15 +638,15 @@ export const focusLatinAmericaEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 1 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 1）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 4);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 3);
-        newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 2);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -4,
+          Puristas: -3,
+          Cenetistas: -2
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
-          factions: newFactions,
-          currentEvent: focusLatinAmericaEvent
-        };
+          factions: newFactions
+        });
       }
     },
     {
@@ -630,7 +655,9 @@ export const focusLatinAmericaEvent: GameEvent = {
       subtitle: 'Call upon anti-fascist volunteers from Argentina, Cuba, and Mexico; brings substantial manpower and monetary flows.',
       subtitleZh: '呼吁美洲的反法西斯志愿者与流亡者前来参战——阿根廷、古巴、墨西哥的侨民捐款与人力的洪流',
       condition: (state) => state.civilWarStatus === 'ongoing' && !state.latin_american_diaspora_mobilized,
-      effect: (state) => ({
+      unavailableSubtitle: () => 'Requires an active Civil War and the diaspora not already mobilized.',
+      unavailableSubtitleZh: () => '需要内战已经爆发，且拉美侨民尚未被动员。',
+      effect: (state) => concludeForeignPolicy({
         latin_american_diaspora_mobilized: true,
         budget: state.budget + 3,
         coalition_dissent: (state.coalition_dissent || 0) + 1,
@@ -644,13 +671,14 @@ export const focusLatinAmericaEvent: GameEvent = {
             ...state.armedForces.militias,
             cntFai: (state.armedForces.militias.cntFai || 0) + 5000
           }
-        },
-        currentEvent: focusLatinAmericaEvent
+        }
       })
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the Latin America agenda and return to the foreign policy council.',
+      subtitleZh: '离开拉美议题，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -671,16 +699,16 @@ export const discussPortugalEvent: GameEvent = {
       subtitle: 'Highly challenging; Catholic and traditionalist elements are fiercely hostiles to us.',
       subtitleZh: '极其困难，天主教传统与萨拉查"新国家"体制对共和国西班牙根深蒂固的敌视',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 3);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 3
+        });
+        return concludeForeignPolicy({
           factions: newFactions,
           relations: {
             ...state.relations,
             portugal: Math.min(100, state.relations.portugal + 3)
-          },
-          currentEvent: discussPortugalEvent
-        };
+          }
+        });
       }
     },
     {
@@ -692,24 +720,26 @@ export const discussPortugalEvent: GameEvent = {
       unavailableSubtitle: () => 'Requires 1 Budget.',
       unavailableSubtitleZh: () => '预算不足（需要 1）',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 5);
-        newFactions.Puristas.dissent = Math.max(0, (newFactions.Puristas.dissent || 0) - 4);
-        return {
+        const newFactions = adjustFactionDissents(state.factions, {
+          Faistas: -5,
+          Puristas: -4
+        });
+        return concludeForeignPolicy({
           budget: Math.max(0, state.budget - 1),
           covert_ops_portugal: (state.covert_ops_portugal || 0) + 2,
           factions: newFactions,
           relations: {
             ...state.relations,
             portugal: Math.max(0, state.relations.portugal - 5)
-          },
-          currentEvent: discussPortugalEvent
-        };
+          }
+        });
       }
     },
     {
       text: 'Return to Foreign Policy menu',
       textZh: '返回外交政策主菜单',
+      subtitle: 'Leave the Portuguese agenda and return to the foreign policy council.',
+      subtitleZh: '离开葡萄牙议题，返回外交政策主菜单。',
       effect: () => ({
         currentEvent: foreignPolicyEvent
       })
@@ -727,6 +757,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Negotiate with the United Kingdom',
       textZh: '与英国进行谈判',
+      subtitle: 'Open the UK file: debt, Gibraltar, and relations with London.',
+      subtitleZh: '打开英国议题：债务、直布罗陀与伦敦关系。',
       effect: () => ({
         currentEvent: negotiateUKEvent
       })
@@ -734,6 +766,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Negotiate with France',
       textZh: '与法国进行谈判',
+      subtitle: 'Open the French file: anti-fascist coordination, arms channels, and Andorra.',
+      subtitleZh: '打开法国议题：反法西斯协作、军火通道与安道尔。',
       effect: () => ({
         currentEvent: negotiateFranceEvent
       })
@@ -741,6 +775,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Negotiate with the United States',
       textZh: '与美国进行谈判',
+      subtitle: 'Open the American file: debt, petroleum, aircraft, and hemispheric diplomacy.',
+      subtitleZh: '打开美国议题：债务、石油、飞机与美洲外交。',
       effect: () => ({
         currentEvent: negotiateUSAEvent
       })
@@ -748,6 +784,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Negotiate with the Soviet Union',
       textZh: '与苏联进行谈判',
+      subtitle: 'Open the Soviet file: arms, gold, trade, and ideological consequences.',
+      subtitleZh: '打开苏联议题：军备、黄金、贸易与意识形态后果。',
       effect: () => ({
         currentEvent: negotiateSovietEvent
       })
@@ -755,6 +793,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Negotiate with Germany',
       textZh: '与德国进行谈判',
+      subtitle: 'Open the German file: official restraint or underground resistance support.',
+      subtitleZh: '打开德国议题：官方克制或地下抵抗援助。',
       effect: () => ({
         currentEvent: negotiateGermanyEvent
       })
@@ -762,6 +802,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Turn our attention to Latin America',
       textZh: '让我们目光转向拉美',
+      subtitle: 'Open the Latin America file: Mexico, diaspora, and anarchist networks.',
+      subtitleZh: '打开拉美议题：墨西哥、侨民与无政府主义网络。',
       effect: () => ({
         currentEvent: focusLatinAmericaEvent
       })
@@ -769,6 +811,8 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Address options regarding Portugal',
       textZh: '谈谈在我们半岛上的邻居——葡萄牙',
+      subtitle: 'Open the Portuguese file: Salazar, CGT contacts, and Iberian security.',
+      subtitleZh: '打开葡萄牙议题：萨拉查、CGT 联系与伊比利亚安全。',
       effect: () => ({
         currentEvent: discussPortugalEvent
       })
@@ -776,10 +820,9 @@ export const foreignPolicyEvent: GameEvent = {
     {
       text: 'Maintain general policies with no sudden adjustments',
       textZh: '我们暂时不调整我们的外交政策',
-      effect: () => ({
-        international_relations_timer: 6,
-        currentEvent: null
-      })
+      subtitle: 'End the foreign policy council and trigger the standard diplomatic cooldown.',
+      subtitleZh: '结束外交政策评议，并触发标准外交冷却。',
+      effect: () => concludeForeignPolicy({})
     }
   ]
 };

@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+import { adjustClassSupport, isAtOrAfter } from '../utils';
+
+const newsMeta = {
+  category: 'news' as const,
+  flow: 'solo' as const,
+};
 
 export const foundingOfFalange: GameEvent = {
   id: 'Founding of Falange Española',
+  meta: newsMeta,
   date: { year: 1933, month: 10 },
+  condition: (state) => isAtOrAfter(state, 1933, 10) && !state.fe_founded,
   title: 'The Founding of Falange Española',
   titleZh: '西班牙长枪党的成立',
   description: `José Antonio Primo de Rivera, son of the former dictator, has officially founded the Falange Española at the Teatro de la Comedia in Madrid. Denouncing both liberal capitalism and Marxist socialism, he advocates for a totalitarian, national-syndicalist state. The fascist threat in Spain is no longer just a fringe idea; it is now an organized political force.`,

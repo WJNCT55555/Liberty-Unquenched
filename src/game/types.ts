@@ -132,8 +132,35 @@ export interface CoalitionDef {
   dissolveThreshold: number;
 }
 
+export type EventCategory = 'news' | 'cnt' | 'politics' | 'war' | 'other';
+export type EventFlow = 'solo' | 'inline';
+
+export interface GameEventMeta {
+  category: EventCategory;
+  flow: EventFlow;
+  series?: string[];
+  tags?: string[];
+}
+
+export interface EffectPreviewLine {
+  label?: string;
+  labelZh?: string;
+  value?: number;
+  suffix?: string;
+  suffixZh?: string;
+  text?: string;
+  textZh?: string;
+  tone?: 'positive' | 'negative' | 'neutral';
+}
+
+export interface EventHistory {
+  triggered: string[];
+  resolved: string[];
+}
+
 export interface GameEvent {
   id: string;
+  meta?: GameEventMeta;
   date?: { year: number; month: number };
   condition?: (state: GameState) => boolean;
   title: string | ((state: GameState) => string);
@@ -150,6 +177,7 @@ export interface GameEvent {
     unavailableSubtitle?: (state: GameState) => string;
     unavailableSubtitleZh?: (state: GameState) => string;
     condition?: (state: GameState) => boolean;
+    effectPreview?: (state: GameState) => EffectPreviewLine[];
     effect: (state: GameState) => Partial<GameState>;
   }[];
 }
@@ -184,6 +212,8 @@ export interface GameState {
   dues: number;
   fundraising_timer: number;
   propaganda_timer: number;
+  mitin_popular_timer: number;
+  prrevs_campaign_timer: number;
   organizations_timer: number;
   international_relations_timer: number;
   choose_enemies_timer: number;
@@ -355,6 +385,7 @@ export interface GameState {
   // Super Events & Event Board
   superEvent: 'spanish_civil_war' | 'spanish_civil_war_ends' | 'abdication_alfonso' | null;
   pendingEvents: GameEvent[];
+  eventHistory: EventHistory;
 
   // Story Flags
   treintistasLeft: boolean;

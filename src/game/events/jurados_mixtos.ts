@@ -1,8 +1,17 @@
 import { GameEvent } from '../types';
+import { isAtOrAfter } from '../utils';
+
+const lawMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  tags: ['law'],
+};
 
 export const juradosMixtos: GameEvent = {
   id: 'jurados_mixtos',
+  meta: lawMeta,
   date: { year: 1931, month: 11 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 11),
   title: 'Jurados Mixtos',
   titleZh: '混合陪审团',
   description: 'First, resolve potential conflicts and disputes between workers and employers, whether these conflicts and disputes are personal or collective in nature, as well as strikes or stoppages resulting from these; second, regulate working conditions in factories and workshops—including working hours, wages, dismissals, and work conditions—covering various industries and professions; finally, check compliance with social laws, agreements reached by juries themselves, and approved collective labor agreements.',

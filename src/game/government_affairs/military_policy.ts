@@ -1,4 +1,5 @@
-import { Card, GameState, GameEvent } from '../types';
+import { Card, GameState } from '../types';
+import { adjustFactionDissent } from '../utils';
 
 export const militaryPolicy: Card = {
   id: 'military_policy',
@@ -7,7 +8,7 @@ export const militaryPolicy: Card = {
   type: 'Government',
   description: 'With the CNT holding the Ministry of War, we must decide our approach towards the army and defense.',
   descriptionZh: '由于CNT控制了战争部（国防部），我们必须决定对军队和国防的政策。',
-  cost: 1, // Add standard action point cost if applicable
+  cost: 1,
   condition: (state) => state.cntStance === 'govern' && state.ministers.war === 'CNT' && (state.military_policy_timer || 0) <= 0,
   effect: (state: GameState) => {
     return {
@@ -36,13 +37,7 @@ export const militaryPolicy: Card = {
                   manpower: s.armedForces.regularArmy.manpower + 20000
                 }
               },
-              factions: {
-                ...s.factions,
-                Faistas: {
-                  ...s.factions.Faistas,
-                  dissent: Math.min(100, s.factions.Faistas.dissent + 5)
-                }
-              },
+              factions: adjustFactionDissent(s.factions, 'Faistas', 5),
               partyRelations: {
                 ...s.partyRelations,
                 PCE: Math.max(-100, s.partyRelations.PCE - 5)
@@ -85,8 +80,8 @@ export const militaryPolicy: Card = {
           {
             text: 'Maintain Current Policy',
             textZh: '维持现有军事策略',
-            subtitle: '',
-            subtitleZh: '无',
+            subtitle: 'Avoid any new military directive for now; the War Ministry review still enters cooldown.',
+            subtitleZh: '暂不发布新的军事指令；战争部政策审查仍会进入冷却。',
             effect: (s: GameState) => ({
               military_policy_timer: 6
             })

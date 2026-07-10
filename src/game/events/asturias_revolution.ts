@@ -2,8 +2,16 @@ import { GameEvent } from '../types';
 import { MapFaction } from '../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES, isPortugalProvince } from '../../map/map_constants';
 
+const asturiasInlineMeta = {
+  category: 'war' as const,
+  flow: 'inline' as const,
+  series: ['asturias'],
+  tags: ['map'],
+};
+
 export const asturiasWarFailed: GameEvent = {
   id: 'asturias_war_failed',
+  meta: asturiasInlineMeta,
   title: '阿斯图里亚斯战争失败',
   titleZh: '阿斯图里亚斯战争失败',
   description: '阿斯图里亚斯的矿工武装起义不幸失败，政府军与反动武装残酷地镇压了起义。成千上万的同志被捕、被流放或被无情地处决。这对全国的革命热情和工人阶级运动造成了沉重的打击。',
@@ -34,6 +42,7 @@ export const asturiasWarFailed: GameEvent = {
 
 export const asturiasRevolution: GameEvent = {
   id: 'asturias_revolution',
+  meta: asturiasInlineMeta,
   title: '阿斯图里亚斯革命爆发',
   titleZh: '阿斯图里亚斯革命爆发',
   description: '随着右翼CEDA党加入勒鲁政府，激进的右翼化政策彻底激怒了全国的工人阶级。在“联合无产阶级兄弟”（UHP）的伟大口号下，阿斯图里亚斯的矿工们率先发起了武装起义！他们夺取了军火库，控制了矿区，建立起革命委员会，并向反动政权宣战！这场伟大的无产阶级风暴，我们应当如何应对？',

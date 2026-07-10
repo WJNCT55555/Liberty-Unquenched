@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+
+const politicsMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+};
 
 export const cedaFormation: GameEvent = {
   id: 'ceda_formation',
+  meta: politicsMeta,
   date: { year: 1933, month: 3 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1933, 3),
   title: 'The Rise of CEDA',
   titleZh: 'CEDA 的崛起',
   description: 'Under the leadership of José María Gil-Robles, various Catholic, conservative, and right-wing groups have united to form the Spanish Confederation of Autonomous Right-wing Groups (CEDA). This marks a dangerous turning point. CEDA is a massive mass party that aims to use the democratic system to dismantle the Republic from within and establish a Catholic corporatist state. The right is no longer fractured; it is organized, funded, and hungry for power.',

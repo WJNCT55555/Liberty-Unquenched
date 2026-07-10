@@ -4,8 +4,15 @@ import { ramonFranco } from '../advisors/ramon_franco';
 import { eduardoBarriobero } from '../advisors/eduardo_barriobero';
 import { pedroVallina } from '../advisors/pedro_vallina';
 
+const prrevsMeta = {
+  category: 'politics' as const,
+  flow: 'solo' as const,
+  series: ['prrevs'],
+};
+
 export const jabaliEvent: GameEvent = {
   id: 'jabali',
+  meta: prrevsMeta,
   title: 'Jabalí?',
   titleZh: '野猪议员？',
   description: 'The "Jabalíes" (Wild Boars) are a group of extremely radical republican deputies in the Cortes. Passionate, rowdy, and uncompromising, they reject any centralized status quo, demanding complete autonomy for the regions and a total transformation of social relations. Some of our members want to align with them to tear the old, centralized, conservative structure of Spanish society apart.',

@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { presidentialElectionDecision } from '../events';
+import { presidentialElectionDecision } from '../events/presidential_election_chain';
 
 export const impeachPresident: Card = {
   id: 'impeach_president',
@@ -38,6 +38,7 @@ export const impeachPresident: Card = {
                 isPresidentImpeached: true,
                 government: {
                   ...s.government,
+                  // Martinez Barrio served as interim president during the presidential election process.
                   president: 'Diego Martínez Barrio',
                   presidentZh: '迭戈·马丁内斯·巴里奥'
                 },
@@ -63,6 +64,7 @@ export const impeachPresident: Card = {
               currentRelations.AP = Math.min(100, (currentRelations.AP ?? 0) + 10);
 
               return {
+                impeachPresidentAvailable: false,
                 partyRelations: currentRelations
               };
             }

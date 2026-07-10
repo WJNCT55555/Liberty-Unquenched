@@ -1,4 +1,4 @@
-﻿import { Card, GameState, GameEvent } from '../types';
+import { Card, GameState, GameEvent } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionDissents, isFactionActiveForDissent } from '../utils';
 
 export const cntFaiDisunityManagement: Card = {
@@ -23,7 +23,7 @@ export const cntFaiDisunityManagement: Card = {
   effect: (state: GameState) => {
     const options: GameEvent['options'] = [];
 
-    // 1. 强制纪律
+    // 1. Enforce discipline
     options.push({
       text: 'Enforce revolutionary discipline',
       textZh: '强化纪律',
@@ -41,25 +41,29 @@ export const cntFaiDisunityManagement: Card = {
       },
     });
 
-    // 2. 向 Treintistas 让步
+    // 2. Make concessions to the Treintistas
     options.push({
       text: 'Make concessions to the Treintistas',
       textZh: '向三十人集团让步',
       subtitle: 'Adopt a more pragmatic line.',
       subtitleZh: '或许我们应当采取更务实的路线。',
       condition: (s) => s.factions.Treintistas.dissent > 30,
+      unavailableSubtitle: () => 'Requires Treintistas dissent above 30.',
+      unavailableSubtitleZh: () => '需要三十人集团分歧度高于 30。',
       effect: (s: GameState) => ({
         factions: adjustFactionDissents(s.factions, { Treintistas: -7, Faistas: 5 })
       }),
     });
 
-    // 3. 向 Cenetistas 让步
+    // 3. Make concessions to the Cenetistas
     options.push({
       text: 'Make concessions to the Cenetistas',
       textZh: '向主流工团主义让步',
       subtitle: 'Let us return to orthodox syndicalism.',
       subtitleZh: '让我们回归正统工团主义。',
       condition: (s) => s.factions.Cenetistas.dissent > 30,
+      unavailableSubtitle: () => 'Requires Cenetistas dissent above 30.',
+      unavailableSubtitleZh: () => '需要主流工团派分歧度高于 30。',
       effect: (s: GameState) => ({
         factions: adjustFactionDissents(s.factions, {
           Cenetistas: -7,
@@ -71,31 +75,35 @@ export const cntFaiDisunityManagement: Card = {
       }),
     });
 
-    // 4. 向 Faístas 让步
+    // 4. Make concessions to the Faistas
     options.push({
       text: 'Make concessions to the Faístas',
       textZh: '向无政府主义者让步',
       subtitle: 'We must maintain our anarchist ideals.',
       subtitleZh: '我们应当保持无政府主义理想。',
       condition: (s) => s.factions.Faistas.dissent > 30,
+      unavailableSubtitle: () => 'Requires Faístas dissent above 30.',
+      unavailableSubtitleZh: () => '需要无政府主义者分歧度高于 30。',
       effect: (s: GameState) => ({
         factions: adjustFactionDissents(s.factions, { Faistas: -7, Treintistas: 5 })
       }),
     });
 
-    // 5. 向 Puristas 让步
+    // 5. Make concessions to the Puristas
     options.push({
       text: 'Make concessions to the Puristas',
       textZh: '向纯粹派让步',
       subtitle: 'Rejecting all state collaboration is our bottom line.',
       subtitleZh: '拒绝一切国家合作是我们的底线。',
       condition: (s) => s.factions.Puristas.dissent > 30,
+      unavailableSubtitle: () => 'Requires Puristas dissent above 30.',
+      unavailableSubtitleZh: () => '需要纯粹派分歧度高于 30。',
       effect: (s: GameState) => ({
         factions: adjustFactionDissents(s.factions, { Puristas: -7, Cenetistas: 5, Treintistas: 5 })
       }),
     });
 
-    // 6. 无所作为
+    // 6. Do nothing
     options.push({
       text: 'Let them argue...',
       textZh: '让他们吵吧......',

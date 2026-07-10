@@ -1,9 +1,16 @@
 import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 import { elections1931Results } from './elections_1931_results';
+
+const cntThirdCongressMeta = {
+  category: 'cnt' as const,
+  flow: 'inline' as const,
+  series: ['cnt_congress_1931'],
+};
 
 export const cnt_third_congress_6: GameEvent = {
   id: 'cnt_third_congress_6',
+  meta: cntThirdCongressMeta,
   title: 'Closing of the Congress',
   titleZh: '大会闭幕',
   description: `After six consecutive days and nights of intense debate, quarreling, compromise, and oaths, the Third Congress of the CNT in 1931 finally drew to a close in Madrid. This was not merely a gathering of laborers, but the largest demonstration of proletarian power in modern Spanish history.
@@ -29,6 +36,7 @@ As the radio waves of the closing rally dissipate into the night sky of the Iber
 
 export const cnt_third_congress_5: GameEvent = {
   id: 'cnt_third_congress_5',
+  meta: cntThirdCongressMeta,
   title: 'The Constituent Cortes and "Political Poison"',
   titleZh: '制宪会议与“政治毒药”',
   description: `The Republic is preparing for the elections to the Constituent Cortes. Some segments of the working class harbor illusions about the parliament, and a small minority of CNT members have even attempted to run for office. However, the mainstream voice at the congress scoffs at the parliamentary path, maintaining that any government power is inherently oppressive. Delegates emphasize that the CNT must adhere to the principles of anti-parliamentarianism and direct action. Some have even proposed that regulations must be strictly enforced: any union member running for public office should be immediately expelled.`,
@@ -110,6 +118,7 @@ export const cnt_third_congress_5: GameEvent = {
 
 export const cnt_third_congress_4: GameEvent = {
   id: 'cnt_third_congress_4',
+  meta: cntThirdCongressMeta,
   title: "The CNT's Battlefield of Opinion",
   titleZh: 'CNT舆论阵地',
   description: `Propaganda is the vanguard of revolution. The sixth item on the congress agenda points out that to compete with bourgeois newspapers, the CNT urgently needs a large-scale national daily based in the capital, Madrid. A newspaper of at least 12 pages could radiate anarchist ideals across the country. However, this requires a massive sum: an estimated 1.17 million pesetas in initial funding. The congress proposes that each member contribute 3 pesetas and that union stamp taxes be increased by 5 centimos. Various local unions, especially those in Catalonia, have expressed grievances, fearing this will drain the lifeblood of regional publications.`,
@@ -169,6 +178,7 @@ export const cnt_third_congress_4: GameEvent = {
 
 export const cnt_third_congress_3: GameEvent = {
   id: 'cnt_third_congress_3',
+  meta: cntThirdCongressMeta,
   title: 'Organizing the Workers of the Land',
   titleZh: '土地劳动者的组织',
   description: `The congress's agenda has turned to the agricultural problems that have long plagued Spain and the worsening unemployment crisis. Delegates point out that the land reforms being brewed by the Provisional Government are extremely weak and "will eventually vanish into thin air." Meanwhile, faced with the crisis of capitalism and overproduction, the working class is suffering. The congress has drafted a set of radical economic demands: the unconditional confiscation of large estates (Latifundios) to be managed collectively by peasant unions, and an immediate demand for a six-hour workday to resolve the unemployment issue.`,
@@ -240,6 +250,7 @@ export const cnt_third_congress_3: GameEvent = {
 
 export const cnt_third_congress_2: GameEvent = {
   id: 'cnt_third_congress_2',
+  meta: cntThirdCongressMeta,
   title: 'CNT Restructuring Plan',
   titleZh: '全国劳工联盟重组计划',
   description: `With the establishment of the Republic, Spanish capitalism is evolving toward more thorough industrial and economic concentration. At the CNT Third Congress in Madrid, the National Committee proposed a major restructuring plan: while retaining the original local single unions, "National Industrial Federations" (Federaciones Nacionales de Industria) would be established. Proponents argue this is a necessary means to counter bourgeois monopolies and eventually take over the national economy. However, traditional anarchists warn that this would undermine the federalist principles of union autonomy and lead to bureaucratic centralization.`,
@@ -292,6 +303,9 @@ export const cnt_third_congress_2: GameEvent = {
 
 export const cnt_third_congress_1: GameEvent = {
   id: 'cnt_third_congress_1',
+  date: { year: 1931, month: 6 },
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 6),
+  meta: cntThirdCongressMeta,
   title: 'The Third CNT Congress Opens',
   titleZh: 'CNT第三次代表大会召开',
   description: `The proclamation of the Second Republic has plunged all of Spain into a state of unprecedented fever and anticipation. However, in the eyes of the anarcho-syndicalists of the CNT, the "Democratic Republic" cheered by bourgeois politicians is nothing more than the old machinery of oppression in a fancy new suit.
@@ -312,7 +326,6 @@ The gavel on the podium strikes heavily, the fierce arguments in the hall gradua
 面对资本主义日益庞大的垄断托拉斯和席卷全球的大萧条，传统的、松散的地方工会自治是否还能应对现代化的阶级战争？面对临时政府拖泥带水的土地改革，我们是该继续静观其变，还是直接号召农民占领庄园？更致命的是，即将到来的制宪会议选举正在向劳工领袖们抛出权力的诱饵，坚持纯粹的反政治底线，还是向现实的政治妥协？
 
 主席台上的木槌重重敲响，会场内激烈的争吵声渐渐平息，所有人的目光都聚焦于此。每一次投票、每一次发言、每一次沉默，都将改写西班牙未来的命运。`,
-  condition: (state) => state.year === 1931 && state.month === 6,
   options: [
     {
       text: 'The congress begins.',

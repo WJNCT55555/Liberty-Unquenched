@@ -1,8 +1,16 @@
 import { GameEvent } from '../../types';
 import { MapFaction } from '../../../map/types_map';
 
+const civilWarTerminalMeta = {
+  category: 'war' as const,
+  flow: 'solo' as const,
+  series: ['civil_war'],
+  tags: ['map', 'terminal'],
+};
+
 export const nationalistSurrender: GameEvent = {
   id: 'nationalist_surrender',
+  meta: civilWarTerminalMeta,
   title: 'Nationalist Surrender',
   titleZh: '国民军投降',
   description: 'With their provisional capital Burgos liberated and their key strategic provinces lost, the Nationalist high command realizes further resistance is futile. The rebel junta has formally signed an unconditional surrender. The rebellion is over, and the Second Spanish Republic has triumphed!',

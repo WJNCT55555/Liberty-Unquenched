@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionDissents, adjustClassSupport } from '../utils';
 
 export const laborAffairs: Card = {
   id: 'labor_affairs',
@@ -31,14 +31,14 @@ export const laborAffairs: Card = {
             subtitleZh: '直接支持罢工联合会，反抗资方的闭厂停工。这将提升CNT在城市工人中的威望，但会彻底激怒资产阶级和小企业主。',
             effect: (s: GameState) => {
               let newClasses = s.classes;
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
+              const newFactions = adjustFactionDissents(s.factions, {
+                Faistas: -5,
+                Cenetistas: -5
+              });
               
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 10);
               newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', -10);
               newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', -5);
-              
-              newFactions.Faistas.dissent = Math.max(0, (newFactions.Faistas.dissent || 0) - 5);
-              newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 5);
               
               return {
                 labor_affairs_timer: 10,
@@ -59,15 +59,15 @@ export const laborAffairs: Card = {
             subtitleZh: '与雇主达成共识，迅速扭转停工及罢工浪潮。这会取悦温和内阁，但会让无政府主义基本盘深感背叛。',
             effect: (s: GameState) => {
               let newClasses = s.classes;
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
+              const newFactions = adjustFactionDissents(s.factions, {
+                Faistas: 15,
+                Puristas: 15,
+                Cenetistas: 10
+              });
               
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -12);
               newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', 12);
               newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 6);
-              
-              newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 15);
-              newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 15);
-              newFactions.Cenetistas.dissent = Math.min(100, (newFactions.Cenetistas.dissent || 0) + 10);
               
               return {
                 labor_affairs_timer: 10,
@@ -87,22 +87,19 @@ export const laborAffairs: Card = {
             subtitleZh: '进行公正中介，提出适度提薪以促使各行各业即刻复工。这是高度务实、顾全大局的方案。',
             effect: (s: GameState) => {
               let newClasses = s.classes;
-              const newFactions = JSON.parse(JSON.stringify(s.factions));
+              const newFactions = adjustFactionDissents(s.factions, {
+                Treintistas: -8,
+                Cenetistas: -2
+              });
               
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4);
               newClasses = adjustClassSupport(newClasses, 'Burguesia', 'CNT_FAI', -3);
               newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3);
               
-              newFactions.Treintistas.dissent = Math.max(0, (newFactions.Treintistas.dissent || 0) - 8);
-              newFactions.Cenetistas.dissent = Math.max(0, (newFactions.Cenetistas.dissent || 0) - 2);
-              
               return {
                 labor_affairs_timer: 10,
                 classes: newClasses,
-                factions: newFactions,
-                stats: {
-                  ...s.stats
-                }
+                factions: newFactions
               };
             }
           }
