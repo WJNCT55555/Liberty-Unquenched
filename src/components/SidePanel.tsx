@@ -3,6 +3,7 @@ import { useGame } from '../game/GameContext';
 import { Faction, Party, SocialClass, GameState } from '../game/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
+import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { EconomyModal } from './EconomyModal';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
@@ -42,6 +43,7 @@ export const SidePanel = () => {
   const isZh = state.language === 'zh';
   const [isMapOpen, setIsMapOpen] = React.useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = React.useState(false);
+  const [isPoliticsModalOpen, setIsPoliticsModalOpen] = React.useState(false);
   const [isEconomyModalOpen, setIsEconomyModalOpen] = React.useState(false);
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
@@ -983,13 +985,23 @@ export const SidePanel = () => {
         )}
       </AccordionSection>
 
-      <button 
-        onClick={() => setIsPolicyModalOpen(true)}
-        className="w-full py-3 px-4 bg-ink text-paper font-typewriter font-bold uppercase tracking-wider flex items-center justify-between hover:bg-ink-light transition-colors shadow-sm"
-      >
-        <span>{isZh ? '查看国内政策和法案' : 'View Domestic Policies'}</span>
-        <span className="text-xl">➔</span>
-      </button>
+      <div className="flex flex-col gap-2 my-2">
+        <button 
+          onClick={() => setIsPoliticsModalOpen(true)}
+          className="w-full py-3 px-4 bg-cnt-red text-paper font-typewriter font-bold uppercase tracking-wider flex items-center justify-between hover:bg-ink transition-colors shadow-sm"
+        >
+          <span>{isZh ? '查看国内政治与内阁' : 'View Domestic Politics'}</span>
+          <span className="text-xl">➔</span>
+        </button>
+
+        <button 
+          onClick={() => setIsPolicyModalOpen(true)}
+          className="w-full py-3 px-4 bg-ink text-paper font-typewriter font-bold uppercase tracking-wider flex items-center justify-between hover:bg-ink-light transition-colors shadow-sm"
+        >
+          <span>{isZh ? '查看国内政策和法案' : 'View Domestic Policies'}</span>
+          <span className="text-xl">➔</span>
+        </button>
+      </div>
 
       <AccordionSection title={isZh ? '阶层民意' : 'Social Classes'}>
         <div className="flex flex-col gap-4">
@@ -1051,6 +1063,13 @@ export const SidePanel = () => {
         onClose={() => setIsPolicyModalOpen(false)} 
         state={state} 
         isZh={isZh} 
+      />
+
+      <DomesticPoliticsModal
+        isOpen={isPoliticsModalOpen}
+        onClose={() => setIsPoliticsModalOpen(false)}
+        state={state}
+        isZh={isZh}
       />
 
       <EconomyModal
@@ -1338,7 +1357,7 @@ const StatBar: React.FC<{ name: string; value: number; color: string; tooltip?: 
   </div>
 );
 
-const PARTY_INFLUENCE_INFO: Record<string, {
+export const PARTY_INFLUENCE_INFO: Record<string, {
   name: { en: string; zh: string };
   dissent: { en: string; zh: string };
   stability: { en: string; zh: string };
@@ -1481,7 +1500,7 @@ const PARTY_INFLUENCE_INFO: Record<string, {
   }
 };
 
-const DEPT_INFO_PACK: Record<string, {
+export const DEPT_INFO_PACK: Record<string, {
   name: { en: string; zh: string };
   focus: { en: string; zh: string };
 }> = {

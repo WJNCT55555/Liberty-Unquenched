@@ -10,8 +10,8 @@ export const SuperEvent: React.FC = () => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const baseWidth = 768; // 4:3 Aspect Ratio Base Width
-      const baseHeight = 576; // 4:3 Aspect Ratio Base Height
+      const baseWidth = 960; // 4:3 Aspect Ratio Base Width
+      const baseHeight = 720; // 4:3 Aspect Ratio Base Height
       
       const padding = 24; // Page margin padding
       const scaleX = (width - padding) / baseWidth;
@@ -40,29 +40,43 @@ export const SuperEvent: React.FC = () => {
     titleZh = '西班牙内战';
     quote = '"No pasarán!" - Dolores Ibárruri';
     quoteZh = '“他们绝不能通过！” - 多洛雷斯·伊巴露丽';
-    image = '/img/SuperEvent/spanish_civil_war.jpg'; // Path as requested
+    image = 'img/Superevents/spanish_civil_war_outbreak.png';
     buttonText = 'To Arms!';
     buttonTextZh = '拿起武器！';
   } else if (state.superEvent === 'spanish_civil_war_ends') {
-    title = 'The War is Over';
-    titleZh = '战争结束';
-    quote = 'The guns have fallen silent.';
-    quoteZh = '枪炮声已经平息。';
-    image = '/img/SuperEvent/spanish_civil_war_ends.jpg';
-    buttonText = 'A New Era';
-    buttonTextZh = '新纪元';
+    if (state.civilWarStatus === 'won') {
+      title = 'Republican Victory';
+      titleZh = '共和国的胜利';
+      quote = '"We have won the war, but we must also win the peace. Let our victory be one of reconciliation, reconstruction, and liberty."';
+      quoteZh = '“我们赢得了战争，但我们也必须赢得和平。让我们的胜利成为和解、重建与自由的胜利。”';
+      image = 'img/Superevents/republican_victory.png';
+      buttonText = 'Long Live the Republic!';
+      buttonTextZh = '共和国万岁！';
+    } else {
+      title = 'Nationalist Victory';
+      titleZh = '国民军的胜利';
+      quote = '"En el día de hoy, cautivo y desarmado el Ejército Rojo, han alcanzado las tropas nacionales sus últimos objetivos militares. La guerra ha terminado." - Francisco Franco, 1939';
+      quoteZh = '“在今天，随着红军被俘并解除武装，国民军已实现了其最后的军事目标。战争宣告结束。” —— 弗朗西斯科·佛朗哥，1939年';
+      image = 'img/Superevents/nationalist_victory.png';
+      buttonText = 'Vae Victis!';
+      buttonTextZh = '战败者之哀！';
+    }
   } else if (state.superEvent === 'abdication_alfonso') {
     title = 'Abdication of Alfonso XIII';
     titleZh = '阿方索十三世退位';
     quote = '"I expect to witness the real and proper expression of the collective conscience; when the nation speaks, I will voluntarily suspend the exercise of Royal power and leave Spain, thus acknowledging her as the sole mistress of her own destiny." - Alfonso XIII';
     quoteZh = '“我期待见证集体良知真实且恰当的表达；当国家发声之时，我将主动中止行使王权、离开西班牙，以此承认她是自身命运的唯一主宰。” —— 阿方索十三世';
-    image = '/img/SuperEvent/abdication_alfonso.jpg';
+    image = 'img/Superevents/abdication_alfonso.png';
     buttonText = 'Long Live the Republic!';
     buttonTextZh = '共和国万岁！';
   }
 
   const isZh = state.language === 'zh';
   const audioPath = `${(import.meta as any).env.BASE_URL || '/'}music/SuperEvent/${state.superEvent}.mp3`;
+
+  const textShadowStyle = {
+    textShadow: '0 2px 4px rgba(0,0,0,0.95), 0 4px 12px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.9)'
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -73,56 +87,69 @@ export const SuperEvent: React.FC = () => {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="relative shadow-2xl flex flex-col select-none shrink-0"
         style={{
-          width: '768px',
-          height: '576px',
+          width: '960px',
+          height: '720px',
           backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/Supereventsbox.png)`,
           backgroundSize: '100% 100%',
           backgroundRepeat: 'no-repeat',
         }}
       >
-        {/* Top Spacer to push content past the newspaper masthead */}
-        <div className="h-[125px] shrink-0" />
-
-        {/* Title Area */}
-        <div className="h-[55px] flex items-center justify-center px-12 z-10 shrink-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-red-600 uppercase tracking-widest drop-shadow-sm font-display leading-tight">
-            {isZh ? titleZh : title}
-          </h1>
-        </div>
-        
-        {/* Image Area */}
-        <div className="h-[210px] flex items-center justify-center px-16 z-10 shrink-0 mt-2">
-          <div className="relative w-[380px] h-full border border-zinc-700/50 overflow-hidden bg-zinc-950/80 flex items-center justify-center">
+        {/* Inner Frame with full-bleed image background */}
+        <div 
+          className="absolute top-[188px] bottom-[32px] left-[52px] right-[52px] rounded-sm flex flex-col justify-between pt-6 px-6 pb-2 z-10 overflow-hidden"
+        >
+          {/* Full-bleed Image Background with NO black mask or gradient overlay */}
+          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
             {/* Fallback if image doesn't exist */}
-            <div className="absolute inset-0 flex items-center justify-center text-zinc-600 italic text-sm">
+            <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center text-zinc-600 italic text-sm">
               [Image: {image}]
             </div>
             <img 
               src={`${(import.meta as any).env.BASE_URL || '/'}${image.startsWith('/') ? image.slice(1) : image}`} 
               alt={title} 
-              className="relative z-10 w-full h-full object-cover opacity-85 mix-blend-luminosity hover:mix-blend-normal transition-all duration-1000"
+              className="absolute inset-0 w-full h-full object-cover transition-all duration-1000"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
           </div>
-        </div>
 
-        {/* Quote Area */}
-        <div className="flex-1 flex items-center justify-center px-16 z-10 py-3 overflow-hidden">
-          <p className="text-base md:text-lg italic text-zinc-200 font-serif leading-relaxed drop-shadow-md text-center max-w-[500px]">
-            {isZh ? quoteZh : quote}
-          </p>
-        </div>
+          {/* Title Area */}
+          <div className="h-[60px] flex items-center justify-center text-center relative z-20">
+            <h1 
+              style={textShadowStyle}
+              className="text-2xl md:text-3xl font-bold text-red-600 uppercase tracking-widest font-display leading-tight"
+            >
+              {isZh ? titleZh : title}
+            </h1>
+          </div>
+          
+          {/* Quote Area */}
+          <div className="flex-1 flex items-center justify-center px-8 py-2 overflow-hidden relative z-20">
+            <p 
+              style={textShadowStyle}
+              className="text-base md:text-lg italic text-zinc-100 font-serif leading-relaxed text-center max-w-[650px]"
+            >
+              {isZh ? quoteZh : quote}
+            </p>
+          </div>
 
-        {/* Button Area */}
-        <div className="h-[65px] flex items-start justify-center z-10 pb-[25px] shrink-0">
-          <button
-            onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}
-            className="px-8 py-2.5 bg-red-950/80 hover:bg-red-900 active:bg-red-950 text-white font-bold uppercase tracking-wider transition-all duration-200 border border-red-800 text-sm cursor-pointer shadow-lg hover:shadow-red-900/30 active:scale-95"
-          >
-            {isZh ? buttonTextZh : buttonText}
-          </button>
+          {/* Button Area */}
+          <div className="h-[55px] flex items-center justify-center shrink-0 relative z-20">
+            <button
+              onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}
+              className="w-[280px] h-[48px] flex items-center justify-center text-stone-100 hover:text-white hover:brightness-115 active:scale-95 cursor-pointer font-display font-extrabold uppercase transition-all duration-150 relative border-none outline-none bg-transparent"
+              style={{
+                backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/SupereventButton.png)`,
+                backgroundSize: '100% 100%',
+                backgroundRepeat: 'no-repeat',
+              }}
+            >
+              <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-sm tracking-widest font-black px-4 text-center truncate">
+                {isZh ? buttonTextZh : buttonText}
+              </span>
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>
