@@ -235,82 +235,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
     return false;
   };
 
-  // Group chartData by coalition for legend grouping
-  const COALITION_COLORS: Record<string, string> = {
-    republican_socialist: '#ca8a04', // gold/amber
-    popular_front: '#dc2626',       // red
-    ceda_radical: '#a21caf',        // fuchsia
-    workers_alliance: '#b91c1c',    // dark red
-    national_front: '#1e3a8a'       // navy
-  };
-
-  const COALITION_BG_COLORS: Record<string, string> = {
-    republican_socialist: 'rgba(202, 138, 4, 0.03)',
-    popular_front: 'rgba(239, 68, 68, 0.03)',
-    ceda_radical: 'rgba(162, 28, 175, 0.03)',
-    workers_alliance: 'rgba(185, 28, 28, 0.03)',
-    national_front: 'rgba(30, 58, 138, 0.03)'
-  };
-
   const activeCoalitionId = state.activeCoalition?.activeId;
-
-  // Map each party in chartData to its coalition
-  const partyToCoalitionMap = new Map<string, CoalitionId>();
-  const checkOrder: CoalitionId[] = ['popular_front', 'national_front', 'ceda_radical', 'republican_socialist', 'workers_alliance'];
-
-  chartData.forEach(item => {
-    const party = item.id as Party;
-    if (activeCoalitionId) {
-      const activeDef = COALITION_DEFS.find(c => c.id === activeCoalitionId);
-      if (activeDef && activeDef.members.includes(party)) {
-        partyToCoalitionMap.set(party, activeCoalitionId);
-        return;
-      }
-    }
-    for (const cid of checkOrder) {
-      if (cid !== activeCoalitionId && isCoalitionExistInState(cid)) {
-        const def = COALITION_DEFS.find(c => c.id === cid);
-        if (def && def.members.includes(party)) {
-          partyToCoalitionMap.set(party, cid);
-          return;
-        }
-      }
-    }
-  });
-
-  const groupedLegend: {
-    coalition?: { id: CoalitionId; nameEn: string; nameZh: string; color: string; bgColor: string };
-    parties: typeof chartData;
-  }[] = [];
-
-  const coalitionsInLegend = new Set<CoalitionId>();
-  partyToCoalitionMap.forEach(cid => coalitionsInLegend.add(cid));
-
-  coalitionsInLegend.forEach(cid => {
-    const def = COALITION_DEFS.find(c => c.id === cid);
-    if (def) {
-      const partiesInCoalition = chartData.filter(item => partyToCoalitionMap.get(item.id) === cid);
-      if (partiesInCoalition.length > 0) {
-        groupedLegend.push({
-          coalition: {
-            id: cid,
-            nameEn: def.name,
-            nameZh: def.nameZh,
-            color: COALITION_COLORS[cid],
-            bgColor: COALITION_BG_COLORS[cid]
-          },
-          parties: partiesInCoalition
-        });
-      }
-    }
-  });
-
-  const singleParties = chartData.filter(item => !partyToCoalitionMap.has(item.id));
-  if (singleParties.length > 0) {
-    groupedLegend.push({
-      parties: singleParties
-    });
-  }
 
   // 2. Party Presence Check
   const isPartyPresent = (party: Party | 'CNT_FAI'): boolean => {
@@ -568,66 +493,21 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                       </div>
                       
                       {/* Right Side: Party Legend */}
-                      <div className="w-full md:w-[28%] border-l border-ink/10 pl-3 h-[180px] overflow-y-auto pr-1 flex flex-col gap-2 custom-scrollbar">
-                        {groupedLegend.map((group, gIdx) => {
-                          if (group.coalition) {
-                            return (
-                              <div 
-                                key={group.coalition.id} 
-                                className="border p-2 rounded-xs flex flex-col gap-1.5 animate-fade-in"
-                                style={{ 
-                                  borderColor: group.coalition.color,
-                                  backgroundColor: group.coalition.bgColor
-                                }}
-                              >
-                                <div 
-                                  className="text-[8px] font-bold uppercase tracking-wider truncate leading-none pb-1 border-b"
-                                  style={{ 
-                                    color: group.coalition.color,
-                                    borderBottomColor: `${group.coalition.color}33`
-                                  }}
-                                >
-                                  {isZh ? group.coalition.nameZh : group.coalition.nameEn}
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  {group.parties.map(item => (
-                                    <div key={item.id} className="flex items-center justify-between text-[11px] font-mono leading-tight">
-                                      <div className="flex items-center gap-1.5 min-w-0">
-                                        <span 
-                                          className="w-2.5 h-2.5 inline-block shrink-0 border border-ink/10" 
-                                          style={{ backgroundColor: item.color }}
-                                        />
-                                        <span className="font-bold text-ink shrink-0">{item.id}</span>
-                                      </div>
-                                      <span className="font-bold text-ink text-right shrink-0 ml-2">
-                                        {item.seats}{isZh ? '席' : 'S'}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          } else {
-                            return (
-                              <div key={`single-${gIdx}`} className="flex flex-col gap-1.5">
-                                {group.parties.map(item => (
-                                  <div key={item.id} className="flex items-center justify-between text-[11px] font-mono leading-tight px-1">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span 
-                                        className="w-2.5 h-2.5 inline-block shrink-0 border border-ink/10" 
-                                        style={{ backgroundColor: item.color }}
-                                      />
-                                      <span className="font-bold text-ink shrink-0">{item.id}</span>
-                                    </div>
-                                    <span className="font-bold text-ink text-right shrink-0 ml-2">
-                                      {item.seats}{isZh ? '席' : 'S'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          }
-                        })}
+                      <div className="w-full md:w-[28%] border-l border-ink/10 pl-3 h-[180px] overflow-y-auto pr-1 flex flex-col gap-1.5 custom-scrollbar">
+                        {chartData.map(item => (
+                          <div key={item.id} className="flex items-center justify-between text-[11px] font-mono leading-tight py-0.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span 
+                                className="w-2.5 h-2.5 inline-block shrink-0 border border-ink/10" 
+                                style={{ backgroundColor: item.color }}
+                              />
+                              <span className="font-bold text-ink shrink-0">{item.id}</span>
+                            </div>
+                            <span className="font-bold text-ink text-right shrink-0 ml-2">
+                              {item.seats}{isZh ? '席' : 'S'}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : (

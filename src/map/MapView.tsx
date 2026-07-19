@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProvinceMap } from './ProvinceMap';
 import { MapFaction as Faction, Province, Army } from './types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES } from './map_constants';
@@ -55,7 +55,33 @@ export const MapView: React.FC = () => {
   };
 
   const currentPlayer = gameState.mapCurrentPlayer || Faction.REPUBLICAN;
-  const repCP = gameState.mapResources?.[Faction.REPUBLICAN]?.commandPoints ?? 0;
+  const playerFaction = gameState.activeWar === 'asturias_war' ? Faction.WORKERS_ALLIANCE : Faction.REPUBLICAN;
+  const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
+  const isPlayerTurn = currentPlayer === playerFaction;
+  const isAiTurn = currentPlayer === aiFaction;
+  const cpCount = gameState.mapResources?.[playerFaction]?.commandPoints ?? 0;
+
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (gameState.phase === 'war' && isAiTurn) {
+      setCountdown(5);
+    } else {
+      setCountdown(null);
+    }
+  }, [isAiTurn, gameState.phase]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      dispatch({ type: 'NEXT_PHASE' });
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, dispatch]);
 
   return (
     <div className="flex-1 flex flex-col p-6 w-full h-full relative overflow-hidden bg-halftone">
@@ -68,61 +94,70 @@ export const MapView: React.FC = () => {
             </h2>
             {gameState.phase === 'war' && (
               <span className={`px-2.5 py-1 text-xs font-mono font-bold tracking-wider uppercase border-2 ${
-                currentPlayer === Faction.REPUBLICAN 
+                isPlayerTurn 
                   ? 'bg-[#E3D9C4] text-[#801B1B] border-[#801B1B]' 
                   : 'bg-[#1C2833] text-[#E5E8E8] border-[#A6ACAF]'
               }`}>
-                {currentPlayer === Faction.REPUBLICAN 
-                  ? (isZh ? `共和军回合 (玩家) | 指挥点: ${repCP}` : `REPUBLICAN TURN (PLAYER) | CP: ${repCP}`)
-                  : (isZh ? '国民军回合 (AI) | 已结束交战' : 'NATIONALIST TURN (AI) | ACTIONS COMPLETED')
+                {isPlayerTurn 
+                  ? (isZh 
+                      ? `${gameState.activeWar === 'asturias_war' ? '工人联盟' : '共和军'}回合 (玩家) | 指挥点: ${cpCount}` 
+                      : `${gameState.activeWar === 'asturias_war' ? 'WORKERS' : 'REPUBLICAN'} TURN (PLAYER) | CP: ${cpCount}`)
+                  : (isZh 
+                      ? `${gameState.activeWar === 'asturias_war' ? '共和军' : '国民军'}回合 (AI) | 已结束行动` 
+                      : `${gameState.activeWar === 'asturias_war' ? 'REPUBLICAN' : 'NATIONALIST'} TURN (AI) | ACTIONS COMPLETED`)
                 }
               </span>
             )}
           </div>
           <p className="font-typewriter text-xs text-ink/60 mt-1.5 leading-none">
-            {currentPlayer === Faction.REPUBLICAN
+            {isPlayerTurn
               ? (isZh 
                 ? '【玩家回合】左键点击选择省份与军队，在军队选中状态下右键点击相邻省份进行移动。每次移动消耗 1 指挥点。' 
                 : '[PLAYER TURN] Left-click to select armies, right-click adjacent province to move. Consumes 1 Command Point.')
               : (isZh
-                ? '【AI回合结束】国民军（AI）已执行完战术决策与交战，请点击右上角按钮进入下个月事件阶段。'
-                : '[AI TURN ENDED] Nationalists have finished actions. Click top-right button to proceed to next month.')
+                ? (gameState.activeWar === 'asturias_war'
+                    ? `【AI回合结束】共和国政府军（AI）已执行完战术决策与交战，地图将在 ${countdown ?? 0} 秒后自动推进。`
+                    : `【AI回合结束】国民军（AI）已执行完战术决策与交战，地图将在 ${countdown ?? 0} 秒后自动推进。`)
+                : `[AI TURN ENDED] AI has finished actions. Auto-proceeding in ${countdown ?? 0} seconds.`)
             }
           </p>
         </div>
-        <div className="flex gap-2">
-          {gameState.phase === 'war' && currentPlayer === Faction.REPUBLICAN && (
+        <div className="flex gap-2 animate-fade-in">
+          {gameState.phase === 'war' && isPlayerTurn && (
             <button
               onClick={() => {
                 dispatch({ type: 'END_MAP_PLAYER_TURN' });
               }}
-              className="px-4 py-2 bg-[#2D3748] text-[#F7FAFC] text-xs uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors"
+              className="px-4 py-2 bg-[#2D3748] text-[#F7FAFC] text-xs uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors cursor-pointer"
             >
-              {isZh ? '结束共和军回合' : 'End Republican Turn'}
+              {isZh 
+                ? (gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合') 
+                : (gameState.activeWar === 'asturias_war' ? 'End Workers Turn' : 'End Republican Turn')}
             </button>
           )}
-          {gameState.phase === 'war' && currentPlayer === Faction.NATIONALIST && (
+          {gameState.phase === 'war' && isAiTurn && (
             <button
               onClick={() => {
                 dispatch({ type: 'NEXT_PHASE' });
-                dispatch({ type: 'TOGGLE_MAP_VIEW' });
               }}
-              className="px-4 py-2 bg-[#A62626] text-white text-xs uppercase tracking-wider font-bold border-2 border-[#801B1B] hover:bg-red-800 transition-colors animate-pulse"
+              className="px-4 py-2 bg-[#A62626] text-white text-xs uppercase tracking-wider font-bold border-2 border-[#801B1B] hover:bg-red-800 transition-colors animate-pulse cursor-pointer"
             >
-              {isZh ? '退出地图，进入事件阶段' : 'Exit Map & Proceed'}
+              {isZh 
+                ? `退出地图，进入事件阶段 (${countdown ?? 0}s)` 
+                : `Exit Map & Proceed (${countdown ?? 0}s)`}
             </button>
           )}
           {gameState.activeWar && (
             <button
               onClick={() => setShowWarSummary(true)}
-              className="px-4 py-2 bg-purple-700 text-white text-xs uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors"
+              className="px-4 py-2 bg-purple-700 text-white text-xs uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors cursor-pointer"
             >
               {isZh ? '战争形势概览' : 'War Summary'}
             </button>
           )}
           <button
             onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
-            className="px-4 py-2 bg-ink text-paper text-xs uppercase tracking-wider font-bold border border-ink hover:bg-paper hover:text-ink transition-colors"
+            className="px-4 py-2 bg-ink text-paper text-xs uppercase tracking-wider font-bold border border-ink hover:bg-paper hover:text-ink transition-colors cursor-pointer"
           >
             {isZh ? '关闭地图' : 'Close Map'}
           </button>

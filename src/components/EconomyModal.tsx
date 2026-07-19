@@ -282,14 +282,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   if (!isOpen) return null;
 
   const handleAdjustValue = (
-    key: 'tax_lower_class' | 'tax_middle_class' | 'tax_upper_class' | 'tax_tariff' | 'tax_consumption' | 'military_spending' | 'land_reform_compensation',
+    key: 'tax_lower_class' | 'tax_middle_class' | 'tax_upper_class' | 'tax_tariff' | 'tax_consumption' | 'military_spending',
     amount: number,
     min = 1,
     max = 100
   ) => {
     const currentVal = state[key] !== undefined 
       ? (state[key] as number) 
-      : (key === 'military_spending' ? 15 : (key === 'land_reform_compensation' ? 100 : 10));
+      : (key === 'military_spending' ? 15 : 10);
     const newVal = Math.max(min, Math.min(max, currentVal + amount));
     dispatch({
       type: 'UPDATE_TAXES',
@@ -300,7 +300,6 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   };
 
   const isCivilWar = state.civilWarStatus === 'ongoing';
-  const compRateVal = state.land_reform_compensation !== undefined ? state.land_reform_compensation : 100;
   const milSpendVal = state.military_spending !== undefined ? state.military_spending : 15;
 
   // Live Revenue Calculation
@@ -501,11 +500,11 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                 </div>
 
                 {/* War Bonds */}
-                {state.war_bonds !== undefined && state.war_bonds > 0 && (
+                {state.has_issued_war_bonds && (
                   <div className="bg-orange-50 border border-orange-200 p-2 rounded-xs flex flex-col justify-between shadow-xs col-span-2">
-                    <span className="text-[8px] uppercase font-bold tracking-tight text-orange-700">{isZh ? '已发行战时公债' : 'Outstanding War Bonds'}</span>
-                    <span className="text-sm font-bold text-orange-800 mt-1">
-                      {state.war_bonds.toFixed(2)}M ₧
+                    <span className="text-[8px] uppercase font-bold tracking-tight text-orange-700">{isZh ? '爱国战时公债' : 'National War Bonds'}</span>
+                    <span className="text-xs font-bold text-orange-800 mt-1 animate-pulse">
+                      {isZh ? '已完成紧急发行' : 'Emergency Issued'}
                     </span>
                   </div>
                 )}
@@ -674,18 +673,21 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                 {/* Action 2: Issue War Bonds */}
                 <div className="flex flex-col gap-1 border-b border-ink/10 pb-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-[10px] text-orange-700">{isZh ? '发行爱国战时公债募款' : 'Issue National War Bonds'}</span>
+                    <span className="font-bold text-[10px] text-orange-700">{isZh ? '发行爱国战时公债募款（限一次）' : 'Issue National War Bonds (One-time)'}</span>
                     <button
                       onClick={() => dispatch({ type: 'ISSUE_WAR_BONDS' })}
-                      className="px-2 py-0.5 bg-ink text-paper text-[9px] uppercase font-bold hover:bg-ink-light cursor-pointer rounded-xs"
+                      disabled={state.has_issued_war_bonds}
+                      className="px-2 py-0.5 bg-ink text-paper text-[9px] uppercase font-bold hover:bg-ink-light disabled:bg-ink/10 disabled:text-ink/40 cursor-pointer rounded-xs"
                     >
-                      {isZh ? '发行 50M 国债' : 'Issue 50M Bonds'}
+                      {state.has_issued_war_bonds 
+                        ? (isZh ? '已发行' : 'Issued') 
+                        : (isZh ? '发行 50M 国债' : 'Issue 50M Bonds')}
                     </button>
                   </div>
                   <p className="text-[8px] text-ink-light leading-snug">
                     {isZh 
-                      ? '【发行公债】国库预算立即增加 50M ₧，并吸收 10M ₧ 国际外汇声援，但公共债务会增加 60M ₧（溢价偿还本息），且增加通货膨胀 +1.2%。'
-                      : 'Raises raw funds: gains +50M budget & +10M foreign exchange, but adds +60M to Sovereign Debt and spikes inflation by +1.2%.'}
+                      ? '【一次性融资】国库预算立即增加 50M ₧，并吸收 10M ₧ 国际外汇声援，但公共债务会增加 60M ₧（溢价偿还本息），且增加通货膨胀 +1.2%。'
+                      : 'One-time fund raising: gains +50M budget & +10M foreign exchange, but adds +60M to Sovereign Debt and spikes inflation by +1.2%.'}
                   </p>
                 </div>
 
@@ -875,30 +877,6 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                     <button onClick={() => handleAdjustValue('military_spending', -1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
                     <button onClick={() => handleAdjustValue('military_spending', 1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
                     <button onClick={() => handleAdjustValue('military_spending', 10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+10%</button>
-                  </div>
-                </div>
-
-                {/* 2. Land Reform Compensation Rate */}
-                <div className="border-2 border-emerald-600 p-2.5 rounded bg-emerald-50/10">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-ink text-[11px] flex items-center gap-1.5">
-                      <span className="px-1 py-0.5 bg-emerald-700 text-white font-mono text-[8px] uppercase tracking-tight">Social Land</span>
-                      {isZh ? '土地改革拆迁安置与地主补偿标准' : 'Land Reform Act Compensation Standard'}
-                    </span>
-                    <span className="font-mono font-bold text-xs bg-emerald-100 px-1.5 py-0.5 text-emerald-800 rounded">
-                      {compRateVal}%
-                    </span>
-                  </div>
-                  <p className="text-[9px] text-ink-light leading-snug mb-1.5">
-                    {isZh
-                      ? '【土改博弈】土地改革法案启用时的地主土地赎买补偿比率。不论比率高低，补偿放置安置金均为每月固定 0.4M 预算支出。实行100%全额市价补偿率可平息大阶层地主愤怒，阻碍军官发动政变；实行 0% 强充公虽然不降低此项固定支出，但会让地主极端愤怒，极大推动政变，不过可让土改进度提速至 2.5 倍。如果经济赤字（国库预算 ≤ 0），则法案及补偿金将暂停。'
-                      : 'Compensation standard paid to grandees when Land Reform Law is active. The monthly expenditure is a fixed 0.4M regardless of standard. A 100% full buyout standard lowers landowners coup support. A 0% standard 2.5x speeds up division progress, but highly triggers landowner rage. If there is a budget deficit (national budget <= 0), the bill and its compensation are paused.'}
-                  </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('land_reform_compensation', -20, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-20%</button>
-                    <button onClick={() => handleAdjustValue('land_reform_compensation', -5, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('land_reform_compensation', 5, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                    <button onClick={() => handleAdjustValue('land_reform_compensation', 20, 0, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+20%</button>
                   </div>
                 </div>
               </div>

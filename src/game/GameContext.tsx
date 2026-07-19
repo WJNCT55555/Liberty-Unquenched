@@ -721,9 +721,8 @@ export const INITIAL_STATE: GameState = {
   gold_reserves: 2200,
   foreign_exchange: 180,
   public_debt: 500,
-  war_bonds: 0,
+  has_issued_war_bonds: false,
   military_spending: 15,
-  land_reform_compensation: 100,
   workersAllianceProgress: 0,
   cntVotingRate: 15,
   isPRRevSFormed: false,
@@ -736,7 +735,6 @@ export const INITIAL_STATE: GameState = {
   mujeres_libres_established: false,
   advisorActionTimer: 0,
   stats: {
-    economy: 50,
     armyLoyalty: 60,
     tension: 34,
     workerControl: 10,
@@ -961,7 +959,7 @@ type GameAction =
   | { type: 'CHECK_EVENT' }
   | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' }
   | { type: 'LOAD_STATE'; payload: GameState }
-  | { type: 'UPDATE_TAXES'; payload: { tax_lower_class?: number; tax_middle_class?: number; tax_upper_class?: number; tax_tariff?: number; tax_consumption?: number; military_spending?: number; land_reform_compensation?: number } }
+  | { type: 'UPDATE_TAXES'; payload: { tax_lower_class?: number; tax_middle_class?: number; tax_upper_class?: number; tax_tariff?: number; tax_consumption?: number; military_spending?: number } }
   | { type: 'SELL_GOLD_FOR_FX' }
   | { type: 'ISSUE_WAR_BONDS' }
   | { type: 'BUY_RESOURCES_URGENT' }
@@ -1002,9 +1000,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       let start_gold = 2200;
       let start_fx = 180;
       let start_debt = 500;
-      let start_bonds = 0;
+      let start_has_bonds = false;
       let start_mil_spend = 15;
-      let start_land_comp = 100;
 
       let startMinisters: GameState['ministers'] = {
         labor: 'Right',
@@ -1039,9 +1036,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_gold = 2200;
         start_fx = 180;
         start_debt = 500;
-        start_bonds = 0;
+        start_has_bonds = false;
         start_mil_spend = 15;
-        start_land_comp = 100;
       } else if (action.payload.scenario === '1933') {
         startMinisters = {
           labor: 'PRR',
@@ -1064,9 +1060,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_gold = 2100;
         start_fx = 140;
         start_debt = 750;
-        start_bonds = 0;
+        start_has_bonds = false;
         start_mil_spend = 12;
-        start_land_comp = 50;
       } else if (action.payload.scenario === '1936') {
         startMinisters = {
           labor: 'ERC',
@@ -1091,9 +1086,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_gold = 1800;
         start_fx = 90;
         start_debt = 1100;
-        start_bonds = 150;
+        start_has_bonds = true;
         start_mil_spend = 40;
-        start_land_comp = 10;
       }
 
       let initialResources = 2;
@@ -1188,9 +1182,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         gold_reserves: start_gold,
         foreign_exchange: start_fx,
         public_debt: start_debt,
-        war_bonds: start_bonds,
+        has_issued_war_bonds: start_has_bonds,
         military_spending: start_mil_spend,
-        land_reform_compensation: start_land_comp,
         regionalStatuses: {
           andalusia: 'direct',
           catalonia: (action.payload.scenario === '1933' || action.payload.scenario === '1936') ? 'autonomy' : 'direct',
@@ -1271,7 +1264,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         tax_tariff: action.payload.tax_tariff !== undefined ? Math.max(1, Math.min(100, action.payload.tax_tariff)) : state.tax_tariff,
         tax_consumption: action.payload.tax_consumption !== undefined ? Math.max(1, Math.min(100, action.payload.tax_consumption)) : state.tax_consumption,
         military_spending: action.payload.military_spending !== undefined ? Math.max(5, Math.min(100, action.payload.military_spending)) : (state.military_spending !== undefined ? state.military_spending : 15),
-        land_reform_compensation: action.payload.land_reform_compensation !== undefined ? Math.max(0, Math.min(100, action.payload.land_reform_compensation)) : (state.land_reform_compensation !== undefined ? state.land_reform_compensation : 100),
       };
       break;
     case 'SELL_GOLD_FOR_FX':
@@ -1290,7 +1282,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         budget: state.budget + 50.0,
         foreign_exchange: (state.foreign_exchange ?? 180) + 10.0,
         public_debt: (state.public_debt ?? 500) + 60.0,
-        war_bonds: (state.war_bonds ?? 0) + 50.0,
+        has_issued_war_bonds: true,
         inflation_rate: state.inflation_rate + 1.2,
       };
       break;
@@ -1418,10 +1410,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
         updatedState.mapCurrentPlayer = aiFaction;
         updatedState = executeAiTurn(updatedState, aiFaction, isZh);
-        updatedState.mapCurrentPlayer = currentPlayerFaction;
+        updatedState = checkWarStatus(updatedState, isZh);
+      } else {
+        updatedState = checkWarStatus(updatedState, isZh);
       }
 
-      updatedState = checkWarStatus(updatedState, isZh);
       newState = updatedState;
       break;
     }
@@ -1435,8 +1428,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         mapCurrentPlayer: aiFaction,
       };
       updatedState = executeAiTurn(updatedState, aiFaction, isZh);
-      updatedState.mapCurrentPlayer = currentPlayerFaction;
       updatedState = checkWarStatus(updatedState, isZh);
+      
       newState = updatedState;
       break;
     }
@@ -1941,7 +1934,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0,
           mapResources: nextMapResources,
           armies: updatedNextArmies,
-          mapCurrentPlayer: MapFaction.REPUBLICAN,
+          mapCurrentPlayer: state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN,
           asturiasWarTurns: state.activeWar === 'asturias_war' ? (state.asturiasWarTurns || 0) + 1 : (state.asturiasWarTurns || 0),
         };
 
@@ -1953,7 +1946,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const taxConsRate = (tempState.tax_consumption !== undefined ? tempState.tax_consumption : 8) / 100;
 
         const isCivilWar = tempState.civilWarStatus === 'ongoing';
-        const compRateVal = (tempState.land_reform_compensation !== undefined ? tempState.land_reform_compensation : 100) / 100;
         const milSpendVal = tempState.military_spending !== undefined ? tempState.military_spending : 15;
 
         // 1. Budget Balance (Revenue - Expenditures)
@@ -2035,9 +2027,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         // Adjust landowner class tension / reaction from expropriation (low compensation)
 
         // 5. Economic Growth Rate (clamped to 1% to 100%)
-        const econFactor = ((tempState.stats.economy !== undefined ? tempState.stats.economy : 50) - 50) / 15;
         const debtGrowthDrag = Math.max(0, (nextDebt - 1200) * 0.001); // high public debt curbs growth
-        let nextGrowth = 3.5 - (taxLowerRate * 1.5) - (taxMiddleRate * 2.0) - (taxUpperRate * 2.5) - (taxTarRate * 3.0) - (taxConsRate * 3.5) + econFactor - debtGrowthDrag;
+        let nextGrowth = 3.5 - (taxLowerRate * 1.5) - (taxMiddleRate * 2.0) - (taxUpperRate * 2.5) - (taxTarRate * 3.0) - (taxConsRate * 3.5) - debtGrowthDrag;
         if (isCivilWar) {
           nextGrowth -= 6.0;
         }
@@ -2067,14 +2058,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
         tempState.unemployment_rate = parseFloat(Math.max(1, Math.min(100, nextUnemployment)).toFixed(2));
 
-        // Gently steer stats.economy (represents general economic health/stability index, 0-100)
-        let econHealthDelta = (tempState.economy_growth - 2.5) * 1.5;
-        if (tempState.budget < -8) econHealthDelta -= 1.5;
-        if (tempState.inflation_rate > 15) econHealthDelta -= 2.0;
-        const newEconHealth = Math.max(0, Math.min(100, (tempState.stats.economy || 50) + econHealthDelta));
         tempState.stats = {
           ...tempState.stats,
-          economy: parseFloat(newEconHealth.toFixed(1)),
           armyLoyalty: parseFloat(newArmyLoyalty.toFixed(1)),
         };
 
@@ -2104,7 +2089,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
         // Monthly action of Land Reform Act
         if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
-          const landProgressStep = 1.0 + (1.0 - compRateVal) * 1.5; // faster expropriation
+          const landProgressStep = 1.5; // steady progress
           tempState.domesticPolicy = {
             ...tempState.domesticPolicy,
             land_reform_progress: parseFloat(Math.min(100, tempState.domesticPolicy.land_reform_progress + landProgressStep).toFixed(2))
@@ -2218,6 +2203,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           provinces: finalProvinces,
           armies: finalArmies,
           phase: 'event',
+          currentView: 'standard',
           actionsLeft: 0,
           journal: newJournal,
           fundraising_timer: Math.max(0, state.fundraising_timer - 1),

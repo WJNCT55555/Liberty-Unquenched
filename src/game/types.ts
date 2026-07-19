@@ -239,9 +239,8 @@ export interface GameState {
   gold_reserves: number;
   foreign_exchange: number;
   public_debt: number;
-  war_bonds: number;
+  has_issued_war_bonds: boolean;
   military_spending: number;
-  land_reform_compensation: number;
 
   workersAllianceProgress: number;
   cntVotingRate: number;
@@ -258,7 +257,6 @@ export interface GameState {
   advisorActionTimer: number;
   
   stats: {
-    economy: number;
     armyLoyalty: number;
     tension: number;
     workerControl: number;

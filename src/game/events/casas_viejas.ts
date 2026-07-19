@@ -72,7 +72,6 @@ export const casasViejas2Insurrection: GameEvent = {
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 25),
             workerControl: Math.min(100, state.stats.workerControl + 12),
             republicanAuthority: Math.max(0, state.stats.republicanAuthority - 20),
-            economy: Math.max(0, state.stats.economy - 10)
           },
           partyRelations: {
             ...state.partyRelations,
@@ -236,7 +235,6 @@ export const casasViejas2Crackdown: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 18),
             republicanAuthority: Math.max(0, state.stats.republicanAuthority - 12),
-            economy: Math.max(0, state.stats.economy - 5)
           },
           partyRelations: {
             ...state.partyRelations,

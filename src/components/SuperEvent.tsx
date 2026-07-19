@@ -85,37 +85,58 @@ export const SuperEvent: React.FC = () => {
         initial={{ opacity: 0, scale: scale * 0.9 }}
         animate={{ opacity: 1, scale: scale }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="relative shadow-2xl flex flex-col select-none shrink-0"
+        className="relative shadow-2xl select-none shrink-0 overflow-hidden"
         style={{
           width: '960px',
           height: '720px',
-          backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/Supereventsbox.png)`,
-          backgroundSize: '100% 100%',
-          backgroundRepeat: 'no-repeat',
         }}
       >
-        {/* Inner Frame with full-bleed image background */}
+        {/* Layer 1: Event Image (z-10) */}
         <div 
-          className="absolute top-[188px] bottom-[32px] left-[52px] right-[52px] rounded-sm flex flex-col justify-between pt-6 px-6 pb-2 z-10 overflow-hidden"
+          className="absolute overflow-hidden rounded-sm z-10"
+          style={{
+            left: '88.67px',
+            top: '175.33px',
+            width: '782.67px',
+            height: '449.33px',
+          }}
         >
-          {/* Full-bleed Image Background with NO black mask or gradient overlay */}
-          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-            {/* Fallback if image doesn't exist */}
-            <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center text-zinc-600 italic text-sm">
-              [Image: {image}]
-            </div>
-            <img 
-              src={`${(import.meta as any).env.BASE_URL || '/'}${image.startsWith('/') ? image.slice(1) : image}`} 
-              alt={title} 
-              className="absolute inset-0 w-full h-full object-cover transition-all duration-1000"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+          {/* Fallback if image doesn't exist */}
+          <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center text-zinc-600 italic text-sm">
+            [Image: {image}]
           </div>
+          <img 
+            src={`${(import.meta as any).env.BASE_URL || '/'}${image.startsWith('/') ? image.slice(1) : image}`} 
+            alt={title} 
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
 
+        {/* Layer 2: Framework Overlay (z-20) */}
+        <div 
+          className="absolute inset-0 w-full h-full pointer-events-none z-20"
+          style={{
+            backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/Supereventsbox.png)`,
+            backgroundSize: '100% 100%',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+
+        {/* Layer 3: Interactive Content Area (z-30) */}
+        <div 
+          className="absolute flex flex-col justify-between pt-6 px-10 pb-4 z-30"
+          style={{
+            left: '88.67px',
+            top: '175.33px',
+            width: '782.67px',
+            height: '449.33px',
+          }}
+        >
           {/* Title Area */}
-          <div className="h-[60px] flex items-center justify-center text-center relative z-20">
+          <div className="h-[60px] flex items-center justify-center text-center">
             <h1 
               style={textShadowStyle}
               className="text-2xl md:text-3xl font-bold text-red-600 uppercase tracking-widest font-display leading-tight"
@@ -125,17 +146,17 @@ export const SuperEvent: React.FC = () => {
           </div>
           
           {/* Quote Area */}
-          <div className="flex-1 flex items-center justify-center px-8 py-2 overflow-hidden relative z-20">
+          <div className="flex-1 flex items-center justify-center px-6 py-2 overflow-hidden">
             <p 
               style={textShadowStyle}
-              className="text-base md:text-lg italic text-zinc-100 font-serif leading-relaxed text-center max-w-[650px]"
+              className="text-base md:text-lg italic text-zinc-100 font-serif leading-relaxed text-center max-w-[620px]"
             >
               {isZh ? quoteZh : quote}
             </p>
           </div>
 
           {/* Button Area */}
-          <div className="h-[55px] flex items-center justify-center shrink-0 relative z-20">
+          <div className="h-[55px] flex items-center justify-center shrink-0">
             <button
               onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}
               className="w-[280px] h-[48px] flex items-center justify-center text-stone-100 hover:text-white hover:brightness-115 active:scale-95 cursor-pointer font-display font-extrabold uppercase transition-all duration-150 relative border-none outline-none bg-transparent"

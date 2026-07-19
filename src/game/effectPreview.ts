@@ -23,9 +23,7 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   gold_reserves: { label: 'Gold reserves', labelZh: '黄金储备' },
   foreign_exchange: { label: 'Foreign exchange', labelZh: '外汇' },
   public_debt: { label: 'Public debt', labelZh: '公共债务', reverseTone: true },
-  war_bonds: { label: 'War bonds', labelZh: '战争债券' },
   military_spending: { label: 'Military spending', labelZh: '军事开支' },
-  land_reform_compensation: { label: 'Land reform compensation', labelZh: '土地改革补偿' },
   coalition_dissent: { label: 'Coalition dissent', labelZh: '执政联盟不满', reverseTone: true },
   coupProgress: { label: 'Coup progress', labelZh: '政变进度', reverseTone: true },
   economy_growth: { label: 'Economic growth', labelZh: '经济增长' },
@@ -94,7 +92,6 @@ const BOOLEAN_FIELDS: Record<string, Labels> = {
 };
 
 const STAT_LABELS: Record<keyof GameState['stats'], Labels & { reverseTone?: boolean }> = {
-  economy: { label: 'Economy', labelZh: '经济' },
   armyLoyalty: { label: 'Army loyalty', labelZh: '军队忠诚' },
   tension: { label: 'Tension', labelZh: '紧张局势', reverseTone: true },
   workerControl: { label: 'Worker control', labelZh: '工人控制' },

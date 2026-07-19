@@ -105,7 +105,6 @@ export const nombelaScandal: GameEvent = {
           stats: {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 8),
-            economy: Math.max(0, state.stats.economy - 3)
           },
           activeCoalition: state.activeCoalition ? {
             ...state.activeCoalition,
