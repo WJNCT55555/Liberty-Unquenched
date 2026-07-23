@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameState } from '../game/types';
-import { ShieldAlert, BookOpen, Scaling, Hammer, Plane as Plant, Heart, Baby, Book, MapPin, X, Languages, Users } from 'lucide-react';
+import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, MapPin, X, Languages, Users } from 'lucide-react';
 
 interface PolicyLevel {
   level: number;
@@ -165,6 +165,37 @@ export const POLICIES_DEF: Record<'economy' | 'society', PolicyDef[]> = {
           effect: { en: 'None', zh: '暂无效果' }
         }
       ]
+    },
+    {
+      id: 'land_law',
+      name: { en: 'Land Law', zh: '土地法' },
+      icon: <Sprout className="w-5 h-5" />,
+      levels: [
+        { 
+          level: 0, 
+          name: { en: 'No Land Reform', zh: '无土地改革' }, 
+          desc: { en: 'Land remains concentrated in the hands of latifundistas. Peasants remain landless and restless.', zh: '土地仍高度集中于大地主之手，贫苦农民无地可耕，农村阶级矛盾剧烈。' },
+          effect: { en: 'Monthly Revolutionary Fervor +1.', zh: '革命热情月度+1。' }
+        },
+        { 
+          level: 1, 
+          name: { en: 'Land Reform Act', zh: '土地改革法' }, 
+          desc: { en: 'Organizes expropriation and fair allocation of unused agricultural estates with compensation.', zh: '旨在促进农村闲置土地及大地主未开发土地的征收和分配，提供稳定的土地社会化进程。' },
+          effect: { en: 'Monthly Land Reform journal progress +1.', zh: '每月土地改革日志进度+1。' }
+        },
+        { 
+          level: 2, 
+          name: { en: 'Compulsory Land Expropriation', zh: '强制土地没收' }, 
+          desc: { en: 'State forcibly expropriates large feudal estates without compensation to accelerate agrarian transformation.', zh: '国家强制没收大地主与贵族地产，不予经济补偿，全面加速土地再分配进程。' },
+          effect: { en: 'Monthly Land Reform journal progress +1.5.', zh: '月度土地改革日志进度+1.5。' }
+        },
+        { 
+          level: 3, 
+          name: { en: 'Revolutionary Collectivization', zh: '革命集体化' }, 
+          desc: { en: 'Abolishes private land ownership entirely, turning farms into worker-managed peasant collectives.', zh: '彻底废除土地私有制，将所有农场改组为农民与农业工人集体所有、民主管理的革命公社。' },
+          effect: { en: 'Monthly Land Reform journal progress +2.', zh: '月度土地改革日志进度+2。' }
+        }
+      ]
     }
   ],
   society: [
@@ -258,43 +289,6 @@ export const POLICIES_DEF: Record<'economy' | 'society', PolicyDef[]> = {
           name: { en: 'Modern Education', zh: '现代教育' }, 
           desc: { en: 'Radical pedagogical methods and absolute secularism.', zh: '激进的教学方法与绝对的世俗主义。' },
           effect: { en: 'Monthly budget expenditure: +0.10M.', zh: '每月预算支出：+0.10M。' }
-        }
-      ]
-    },
-    {
-      id: 'regional_autonomy_progress',
-      name: { en: 'Regional Autonomy', zh: '地方自治' },
-      icon: <MapPin className="w-5 h-5" />,
-      levels: [
-        { 
-          level: 0, 
-          name: { en: 'Centralized', zh: '中央集权' }, 
-          desc: { en: 'Madrid dictates all policy.', zh: '马德里支配一切政策。' },
-          effect: { en: 'No regional autonomy (triggers centralist faction approval).', zh: '强化中央集权（提高保守派和保皇派满意度）。' }
-        },
-        { 
-          level: 1, 
-          name: { en: 'Minor Devolution', zh: '轻微放权' }, 
-          desc: { en: 'Some cultural rights recognized.', zh: '承认一些文化权利。' },
-          effect: { en: 'Slight devolution (minor regional faction support changes).', zh: '轻微地方文化自治（微弱改变地方政党关系）。' }
-        },
-        { 
-          level: 2, 
-          name: { en: 'Autonomy Statutes', zh: '自治章程' }, 
-          desc: { en: 'Regions like Catalonia have their own parliaments.', zh: '加泰罗尼亚等地区拥有自己的议会。' },
-          effect: { en: 'Regional parliaments (grants autonomy to Catalonia, impacts ERC relations).', zh: '地方自治章程通过（授予加泰罗尼亚和巴斯克自治，提高ERC/PNV支持度）。' }
-        },
-        { 
-          level: 3, 
-          name: { en: 'Federalism', zh: '联邦制' }, 
-          desc: { en: 'A union of equal regional republics.', zh: '平等的区域共和国联盟。' },
-          effect: { en: 'Federal union (strong changes in regional relations, conservative opposition).', zh: '重组为联邦制国家（大幅提升地方满意度，但引起保守派和军方的强烈不满）。' }
-        },
-        { 
-          level: 4, 
-          name: { en: 'Self-Determination', zh: '民族自决' }, 
-          desc: { en: 'Right to absolute independence.', zh: '绝对的独立权利。' },
-          effect: { en: 'Full self-determination (may lead to regional independence, extreme nationalist opposition).', zh: '享有完全自决和脱离联邦权（极大提高左翼满意度，但极易引发军人政变或极右内战风暴）。' }
         }
       ]
     },
@@ -477,6 +471,40 @@ const getDynamicPolicyEffects = (
       : ['No active monthly effects'];
   }
 
+  if (id === 'land_law') {
+    if (level === 0) {
+      return isZh
+        ? ['革命热情月度+1']
+        : ['Monthly Revolutionary Fervor +1'];
+    }
+    if (level === 1) {
+      const isPaused = state.budget <= 0;
+      return isZh
+        ? [
+            '每月土地改革日志进度+1',
+            isPaused
+              ? '⚠️ 经济赤字（国库预算 ≤ 0）：法案已暂停，补偿金暂不支付，进度暂停'
+              : '持续运行中：每月支出 0.4M 固定补偿金'
+          ]
+        : [
+            'Monthly Land Reform journal progress +1',
+            isPaused
+              ? '⚠️ Deficit (Budget <= 0): Bill paused, compensation stopped, progress paused'
+              : 'Active: 0.4M fixed monthly compensation cost'
+          ];
+    }
+    if (level === 2) {
+      return isZh
+        ? ['月度土地改革日志进度+1.5', '无需支付土地补偿金']
+        : ['Monthly Land Reform journal progress +1.5', 'No fixed compensation cost'];
+    }
+    if (level === 3) {
+      return isZh
+        ? ['月度土地改革日志进度+2', '无需支付土地补偿金']
+        : ['Monthly Land Reform journal progress +2', 'No fixed compensation cost'];
+    }
+  }
+
   return [];
 };
 
@@ -596,8 +624,8 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 </div>
               </div>
 
-              {/* Overview Mode: Middle Column - Society */}
-              <div className="flex-1 border-r-0 md:border-r-2 border-ink border-opacity-30 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
+              {/* Overview Mode: Right Column - Society */}
+              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
                 <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
                   <Book className="w-6 h-6 text-ink-light" />
                   {isZh ? '社会权利' : 'Social Rights'}
@@ -665,60 +693,6 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                       </button>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* Overview Mode: Right Column - Bills */}
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-paper">
-                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
-                  <BookOpen className="w-6 h-6 text-ink-light" />
-                  {isZh ? '政策法令' : 'Bills'}
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className={`p-4 border-2 flex flex-col gap-2 relative transition-all ${
-                    state.domesticPolicy.land_reform_law_enabled 
-                      ? (state.budget <= 0 ? 'border-amber-600 bg-amber-50/10' : 'border-green-600 bg-green-50/30') 
-                      : 'border-ink/20 bg-ink/5 opacity-60'
-                  }`}>
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold font-typewriter text-lg text-ink">
-                        {isZh ? '土地改革法' : 'Land Reform Act'}
-                      </span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border font-typewriter tracking-wider ${
-                        state.domesticPolicy.land_reform_law_enabled 
-                          ? (state.budget <= 0 ? 'bg-amber-100 border-amber-600 text-amber-700' : 'bg-green-100 border-green-600 text-green-700') 
-                          : 'bg-paper border-ink/20 text-ink/40'
-                      }`}>
-                        {state.domesticPolicy.land_reform_law_enabled 
-                          ? (state.budget <= 0 ? (isZh ? '已暂停' : 'Paused') : (isZh ? '已启用' : 'Enacted')) 
-                          : (isZh ? '未启用' : 'Inactive')}
-                      </span>
-                    </div>
-                    <p className="text-xs text-ink/70 leading-relaxed font-sans mt-1">
-                      {isZh 
-                        ? '旨在促进农村闲置土地及大地主未开发土地的征收和分配，提供稳定的土地社会化进程。启用效果：每个月土地改革进度+1%。' 
-                        : 'Organizes expropriation and fair allocation of unused agricultural estates. Once enacted, it automatically adds 1 point (1%) to Land Reform progress each month.'}
-                    </p>
-                    <div className="mt-2 text-[10px] font-bold font-typewriter uppercase flex items-center gap-1.5">
-                      {state.domesticPolicy.land_reform_law_enabled ? (
-                        state.budget <= 0 ? (
-                          <span className="text-amber-700 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse inline-block" />
-                            {isZh ? '⚠️ 经济赤字（国库预算 ≤ 0）：法案已暂停，补偿金暂不支付' : '⚠️ Deficit (Budget <= 0): Bill has been paused, compensation stopped'}
-                          </span>
-                        ) : (
-                          <span className="text-green-700 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse inline-block" />
-                            {isZh ? '持续运行中：土地划分推进中（每月支出 0.4M 固定补偿金）' : 'Active: Expropriation in progress (0.4M fixed monthly cost)'}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-ink/50">
-                          {isZh ? '待激活（通过特定历史事件启动）' : 'Awaiting legislative launch'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
             </>
@@ -796,7 +770,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                           <p className={`text-base leading-relaxed ${isCurrent ? 'text-ink font-medium' : 'text-ink-light'}`}>
                             {isZh ? lvl.desc.zh : lvl.desc.en}
                           </p>
-                          {((activePolicy?.id === 'education_institutions' || activePolicy?.id === 'min_wage' || activePolicy?.id === 'political_rights' || activePolicy?.id === 'religion_policy' || activePolicy?.id === 'union_status') && getDynamicPolicyEffects(activePolicy.id, lvl.level, isZh, state).length > 0) ? (
+                          {((activePolicy?.id === 'education_institutions' || activePolicy?.id === 'min_wage' || activePolicy?.id === 'political_rights' || activePolicy?.id === 'religion_policy' || activePolicy?.id === 'union_status' || activePolicy?.id === 'land_law') && getDynamicPolicyEffects(activePolicy.id, lvl.level, isZh, state).length > 0) ? (
                             <div className="mt-2.5 p-3 bg-ink/5 border-l-4 border-cnt-red text-xs font-mono flex flex-col gap-1">
                               <span className="font-bold text-ink uppercase tracking-wider">
                                 {isZh ? '■ 月度效果:' : '■ Monthly Effect:'}

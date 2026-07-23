@@ -102,6 +102,7 @@ const STAT_LABELS: Record<keyof GameState['stats'], Labels & { reverseTone?: boo
 };
 
 const DOMESTIC_POLICY_LABELS: Record<keyof GameState['domesticPolicy'], Labels & { reverseTone?: boolean }> = {
+  land_law: { label: 'Land law', labelZh: '土地法' },
   land_reform_progress: { label: 'Land reform progress', labelZh: '土地改革进度' },
   regional_autonomy_progress: { label: 'Regional autonomy progress', labelZh: '区域自治进度' },
   max_hours_law: { label: 'Maximum-hours law', labelZh: '最高工时法' },

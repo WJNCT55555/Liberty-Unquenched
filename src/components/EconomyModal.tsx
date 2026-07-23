@@ -340,8 +340,9 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
 
   const milCost = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
   const debtInterestCost = (state.public_debt !== undefined ? state.public_debt : 500.0) * ((isCivilWar ? 0.05 : 0.02) / 12);
-  const isLandReformPaused = state.domesticPolicy.land_reform_law_enabled && (state.budget <= 0);
-  const landCompCost = (state.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) ? 0.4 : 0.0;
+  const landLawLevel = state.domesticPolicy.land_law ?? (state.domesticPolicy.land_reform_law_enabled ? 1 : 0);
+  const isLandReformPaused = (landLawLevel === 1) && (state.budget <= 0);
+  const landCompCost = (landLawLevel === 1 && !isLandReformPaused) ? 0.4 : 0.0;
 
   estimatedExpenditures += milCost;
   estimatedExpenditures += debtInterestCost;
@@ -579,7 +580,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                     <span>{isZh ? '・公债利息偿还划款:' : '• Debt Sovereign Interest:'}</span>
                     <span className="font-bold text-ink">{debtInterestCost.toFixed(2)}M ₧</span>
                   </div>
-                  {state.domesticPolicy.land_reform_law_enabled && (
+                  {landLawLevel === 1 && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                       <span>{isZh ? '・土地改革补偿与安置费:' : '• Land Compensation Cost:'}</span>
                       <span className="font-bold text-ink">
@@ -634,7 +635,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                         { label: isZh ? '内战开销' : 'War Cost', value: isCivilWar ? 3.5 : 0, color: '#ef4444' },
                         { label: isZh ? '常备军费' : 'Defense Mil', value: milCost, color: '#b91c1c' },
                         { label: isZh ? '债务利息' : 'Debt Int', value: debtInterestCost, color: '#0f172a' },
-                        { label: isZh ? '土改补偿' : 'Land Comp', value: state.domesticPolicy.land_reform_law_enabled ? landCompCost : 0, color: '#eab308' },
+                        { label: isZh ? '土改补偿' : 'Land Comp', value: landLawLevel === 1 ? landCompCost : 0, color: '#eab308' },
                       ].filter(d => d.value > 0)}
                       size={84}
                     />

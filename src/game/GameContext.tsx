@@ -775,6 +775,7 @@ export const INITIAL_STATE: GameState = {
   },
   partyRelations: INITIAL_PARTY_RELATIONS,
   domesticPolicy: {
+    land_law: 0,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
     max_hours_law: 0,
@@ -1994,8 +1995,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         monthlyExpenditures += debtInterestCost;
 
         // Legislative expenditures for Land Reform Compensation
-        const isLandReformPaused = tempState.domesticPolicy.land_reform_law_enabled && (tempState.budget <= 0);
-        const landCompCost = (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) ? 0.4 : 0.0;
+        const landLawLevel = tempState.domesticPolicy.land_law ?? (tempState.domesticPolicy.land_reform_law_enabled ? 1 : 0);
+        const isLandReformPaused = (landLawLevel === 1) && (tempState.budget <= 0);
+        const landCompCost = (landLawLevel === 1 && !isLandReformPaused) ? 0.4 : 0.0;
         monthlyExpenditures += landCompCost;
 
         const budgetDelta = totalTaxRev - monthlyExpenditures;
@@ -2087,13 +2089,34 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           economyHistory: updatedHistory
         };
 
-        // Monthly action of Land Reform Act
-        if (tempState.domesticPolicy.land_reform_law_enabled && !isLandReformPaused) {
-          const landProgressStep = 1.5; // steady progress
-          tempState.domesticPolicy = {
-            ...tempState.domesticPolicy,
-            land_reform_progress: parseFloat(Math.min(100, tempState.domesticPolicy.land_reform_progress + landProgressStep).toFixed(2))
+        // Monthly action of Land Law (土地法)
+        if (landLawLevel === 0) {
+          // Level 0: 无土地改革 -> Monthly Revolutionary Fervor +1
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1)
           };
+        } else {
+          // Level 1: 土地改革法 -> Monthly Land Reform journal progress +1
+          // Level 2: 强制土地没收 -> Monthly Land Reform journal progress +1.5
+          // Level 3: 革命集体化 -> Monthly Land Reform journal progress +2
+          let landProgressStep = 0;
+          if (landLawLevel === 1) {
+            if (!isLandReformPaused) {
+              landProgressStep = 1.0;
+            }
+          } else if (landLawLevel === 2) {
+            landProgressStep = 1.5;
+          } else if (landLawLevel === 3) {
+            landProgressStep = 2.0;
+          }
+
+          if (landProgressStep > 0) {
+            tempState.domesticPolicy = {
+              ...tempState.domesticPolicy,
+              land_reform_progress: parseFloat(Math.min(100, tempState.domesticPolicy.land_reform_progress + landProgressStep).toFixed(2))
+            };
+          }
         }
 
         // Monthly action of Mixed Jury Law (integrated into Union Status level 2)

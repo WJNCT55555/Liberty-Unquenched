@@ -329,6 +329,7 @@ export interface GameState {
 
   // Domestic Policy
   domesticPolicy: {
+    land_law: number; // 0: 无土地改革, 1: 土地改革法, 2: 强制土地没收, 3: 革命集体化
     land_reform_progress: number;
     regional_autonomy_progress: number;
     max_hours_law: number;
