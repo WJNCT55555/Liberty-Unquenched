@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameState } from '../game/types';
-import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, MapPin, X, Languages, Users } from 'lucide-react';
+import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, MapPin, X, Languages, Users, ShieldCheck, Swords, Crosshair, UserCheck } from 'lucide-react';
 
 interface PolicyLevel {
   level: number;
@@ -16,7 +16,7 @@ interface PolicyDef {
   levels: PolicyLevel[];
 }
 
-export const POLICIES_DEF: Record<'economy' | 'society', PolicyDef[]> = {
+export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[]> = {
   economy: [
     {
       id: 'max_hours_law',
@@ -329,6 +329,156 @@ export const POLICIES_DEF: Record<'economy' | 'society', PolicyDef[]> = {
         }
       ]
     }
+  ],
+  security: [
+    {
+      id: 'public_order_law',
+      name: { en: 'Public Order Law', zh: '公共秩序法' },
+      icon: <ShieldCheck className="w-5 h-5" />,
+      levels: [
+        {
+          level: 0,
+          name: { en: 'Jurisdiction Law', zh: '管辖权法' },
+          desc: { en: 'Continuation of monarchist martial law practices, aggravating workers and peasants.', zh: '沿用君主制时期的戒严惯常，激化工农' },
+          effect: { en: 'Monthly Revolutionary Fervor +1%; Monthly Republican Authority -0.5%', zh: '月度革命热情+1%；月度共和国权威-0.5%' }
+        },
+        {
+          level: 1,
+          name: { en: 'Public Order Law', zh: '公共秩序法' },
+          desc: { en: 'Establish a modern security framework with three levels of state of emergency.', zh: '建立三级紧急状态的现代治安框架' },
+          effect: { en: 'Monthly Revolutionary Fervor +0.5%; Monthly Republican Authority -0.5%', zh: '月度革命热情+0.5%；月度共和国权威-0.5%' }
+        },
+        {
+          level: 2,
+          name: { en: 'Defense of the Republic Act', zh: '共和国防卫法' },
+          desc: { en: 'Grants the Ministry of Interior extrajudicial suppression powers, detonating left-wing discontent.', zh: '赋予内政部法外镇压权，引爆左翼不满' },
+          effect: { en: 'Monthly Revolutionary Fervor -0.1%; Monthly Republican Authority +0.5%', zh: '月度革命热情-0.1%；月度共和国权威+0.5%' }
+        },
+        {
+          level: 3,
+          name: { en: 'Constitutional Assembly Guarantee Act', zh: '宪政与集会保障法案' },
+          desc: { en: 'Liberal idealist route: High legitimacy, low coercive power.', zh: '自由派理想主义路线：合法性高、强制力低' },
+          effect: { en: 'Monthly Revolutionary Fervor -0.5%; Monthly Republican Authority +0.1%', zh: '月度革命热情-0.5%；月度共和国权威+0.1%' }
+        },
+        {
+          level: 4,
+          name: { en: 'Commune Defense Committee', zh: '公社防卫委员会' },
+          desc: { en: 'Acknowledges the reality of CNT-FAI taking over local power.', zh: '承认 CNT-FAI 接管地方政权的事实' },
+          effect: { en: 'No monthly effects.', zh: '无效果' }
+        }
+      ]
+    },
+    {
+      id: 'security_corps_law',
+      name: { en: 'Security Corps Law', zh: '治安机关法' },
+      icon: <Crosshair className="w-5 h-5" />,
+      levels: [
+        {
+          level: 0,
+          name: { en: 'Guardia Civil Dominance', zh: '国民警卫队主导' },
+          desc: { en: 'Relies on Guardia Civil, strong rural suppression capability.', zh: '依赖 Guardia Civil，强农村镇压能力' },
+          effect: { en: 'Monthly CNT support in Braceros +1%, Army Loyalty +0.05%', zh: 'CNT在Braceros中支持率+1%,军官忠诚度+0.05%' }
+        },
+        {
+          level: 1,
+          name: { en: 'Assault Guards Formation', zh: '组建突击卫队' },
+          desc: { en: 'Establish modern urban riot police loyal to the Republic.', zh: '建立忠于共和国的现代化城市防暴警察' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 2,
+          name: { en: 'Security Forces Loyalty Purge', zh: '治安部队忠诚审查' },
+          desc: { en: 'Purge right-wing officers, provoking reaction from old forces.', zh: '清洗右翼警员，刺激旧势力反弹' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 3,
+          name: { en: 'Reorganize National Republican Guard', zh: '改组共和国国民警卫队' },
+          desc: { en: 'Historical 1936 GNR reform, integrating security forces.', zh: '史实 1936 年 GNR 改革，整合治安力量' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 4,
+          name: { en: 'Worker Patrols', zh: '工人巡逻队' },
+          desc: { en: 'Historical Catalonia Patrullas de Control.', zh: '史实加泰罗尼亚 Patrullas de Control' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        }
+      ]
+    },
+    {
+      id: 'army_reform_law',
+      name: { en: 'Army Reform Law', zh: '军队改革法' },
+      icon: <Swords className="w-5 h-5" />,
+      levels: [
+        {
+          level: 0,
+          name: { en: 'Maintain Old Officer Corps', zh: '维持旧军官团' },
+          desc: { en: 'The bloated, conservative "African Officer Corps" harbors anti-communist tendencies.', zh: '臃肿保守的“非洲军官团”潜伏反共倾向' },
+          effect: { en: 'Monthly Republican Authority -0.5%, Army Loyalty -0.05%', zh: '共和国权威月度-0.5%,军官忠诚度-0.05%' }
+        },
+        {
+          level: 1,
+          name: { en: 'Azaña Military Reforms', zh: '阿萨尼亚军事改革' },
+          desc: { en: 'Dismiss redundant officers, angering the military in the short term but improving structure long term.', zh: '裁撤冗余军官，短期惹怒军方，长期改善结构' },
+          effect: { en: 'Monthly Republican Authority +0.5%, Army Loyalty -0.1%', zh: '共和国权威月度+0.5%,军官忠诚度-0.1%' }
+        },
+        {
+          level: 2,
+          name: { en: 'Republican Armed Forces Reform', zh: '共和国武装改革' },
+          desc: { en: 'Historical early 1936 high-risk move exiling Franco and Mola.', zh: '史实 1936 年初流放弗朗科与莫拉的高风险操作' },
+          effect: { en: 'Monthly Republican Authority +1%, Army Loyalty +0.1%', zh: '共和国权威月度+1%,军官忠诚度+0.1%' }
+        },
+        {
+          level: 3,
+          name: { en: 'People\'s Republican Army', zh: '共和国人民军' },
+          desc: { en: 'Historical October 1936 military reorganization crisis route.', zh: '史实 1936 年 10 月军队重组危机路线' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '无效果（wip）' }
+        },
+        {
+          level: 4,
+          name: { en: 'Militia Column System', zh: '民兵纵队体系' },
+          desc: { en: 'Abolish ranks, implement representative elections, the Durruti militia route.', zh: '废除军衔、实行代表选举的杜鲁蒂式民兵路线' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '无效果（wip）' }
+        }
+      ]
+    },
+    {
+      id: 'militia_legality_law',
+      name: { en: 'Militia Legality Law', zh: '民兵合法性法' },
+      icon: <UserCheck className="w-5 h-5" />,
+      levels: [
+        {
+          level: 0,
+          name: { en: 'Paramilitaries Illegal', zh: '准军事组织非法' },
+          desc: { en: 'Official ban, but cannot stop Falange and Syndicalists from going underground.', zh: '官方禁令，但无法阻止长枪党和工团转入地下' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 1,
+          name: { en: 'Tolerate Local Militias', zh: '默许地方民兵' },
+          desc: { en: 'Turn a blind eye to armed youth wings of various parties (e.g. JSU).', zh: '对各党派青年团武装（如 JSU）睁一只眼闭一只眼' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 2,
+          name: { en: 'Armed Unions Decree', zh: '武装工会法令' },
+          desc: { en: 'Historical July 1936 decision by the Giral government to arm the unions.', zh: '史实 1936 年 7 月吉拉尔政府向工会发枪的决定' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 3,
+          name: { en: 'Rearguard Militia Security Integration', zh: '后方民兵治安统合' },
+          desc: { en: 'Legitimize militias taking over rear checkpoints and policing.', zh: '让民兵名正言顺地接管后方检查站与警务' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        },
+        {
+          level: 4,
+          name: { en: 'Anti-Fascist Militia Committee', zh: '反法西斯民兵委员会' },
+          desc: { en: 'Historical Catalonia CCMA, essentially a syndicalist parallel government.', zh: '史实加泰罗尼亚 CCMA，实质上的工团主义平行政府' },
+          effect: { en: 'No active monthly effects (WIP)', zh: '暂无效果（WIP）' }
+        }
+      ]
+    }
   ]
 };
 
@@ -505,6 +655,30 @@ const getDynamicPolicyEffects = (
     }
   }
 
+  if (id === 'public_order_law') {
+    if (level === 0) return isZh ? ['月度革命热情 +1%', '月度共和国权威 -0.5%'] : ['Monthly Revolutionary Fervor +1%', 'Monthly Republican Authority -0.5%'];
+    if (level === 1) return isZh ? ['月度革命热情 +0.5%', '月度共和国权威 -0.5%'] : ['Monthly Revolutionary Fervor +0.5%', 'Monthly Republican Authority -0.5%'];
+    if (level === 2) return isZh ? ['月度革命热情 -0.1%', '月度共和国权威 +0.5%'] : ['Monthly Revolutionary Fervor -0.1%', 'Monthly Republican Authority +0.5%'];
+    if (level === 3) return isZh ? ['月度革命热情 -0.5%', '月度共和国权威 +0.1%'] : ['Monthly Revolutionary Fervor -0.5%', 'Monthly Republican Authority +0.1%'];
+    if (level === 4) return isZh ? ['无效果'] : ['No monthly effects'];
+  }
+
+  if (id === 'security_corps_law') {
+    if (level === 0) return isZh ? ['CNT在Braceros中支持率 +1%', '军官忠诚度 +0.05%'] : ['Monthly CNT support in Braceros +1%', 'Army Loyalty +0.05%'];
+    return isZh ? ['暂无效果（WIP）'] : ['No active monthly effects (WIP)'];
+  }
+
+  if (id === 'army_reform_law') {
+    if (level === 0) return isZh ? ['共和国权威月度 -0.5%', '军官忠诚度 -0.05%'] : ['Monthly Republican Authority -0.5%', 'Army Loyalty -0.05%'];
+    if (level === 1) return isZh ? ['共和国权威月度 +0.5%', '军官忠诚度 -0.1%'] : ['Monthly Republican Authority +0.5%', 'Army Loyalty -0.1%'];
+    if (level === 2) return isZh ? ['共和国权威月度 +1%', '军官忠诚度 +0.1%'] : ['Monthly Republican Authority +1%', 'Army Loyalty +0.1%'];
+    return isZh ? ['无效果（WIP）'] : ['No active monthly effects (WIP)'];
+  }
+
+  if (id === 'militia_legality_law') {
+    return isZh ? ['暂无效果（WIP）'] : ['No active monthly effects (WIP)'];
+  }
+
   return [];
 };
 
@@ -632,6 +806,78 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.society.map((policy) => {
+                    const currentValue = state.domesticPolicy[policy.id];
+                    const currentLevelName = policy.levels.find(l => l.level === currentValue)?.name;
+
+                    return (
+                      <button
+                        key={policy.id}
+                        onClick={() => setActivePolicy(policy)}
+                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-paper hover:bg-ink hover:text-paper group shadow-sm"
+                      >
+                        {/* Current Law Icon on Left */}
+                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
+                          <img 
+                            src={`${(import.meta as any).env.BASE_URL || '/'}Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
+                            referrerPolicy="no-referrer"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ display: 'none' }}
+                            onLoad={(e) => {
+                              e.currentTarget.style.display = 'block';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'none';
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
+                            {policy.icon}
+                          </div>
+                        </div>
+
+                        {/* Content on Right */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div className="flex justify-between items-center w-full">
+                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
+                              {isZh ? policy.name.zh : policy.name.en}
+                            </span>
+                            <div className="flex gap-1 flex-shrink-0 ml-2">
+                              {policy.levels.map((lvl) => (
+                                <div 
+                                  key={lvl.level} 
+                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
+                                    lvl.level === currentValue 
+                                      ? 'bg-cnt-red group-hover:bg-paper' 
+                                      : (lvl.level < currentValue 
+                                          ? 'bg-ink/40 group-hover:bg-paper/40'
+                                          : 'bg-transparent group-hover:bg-paper/10')
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
+                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Overview Mode: Right Column - Security */}
+              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5 border-l-0 md:border-l-2 border-ink border-opacity-30">
+                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
+                  <ShieldCheck className="w-6 h-6 text-ink-light" />
+                  {isZh ? '社会安全' : 'Social Security'}
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {POLICIES_DEF.security.map((policy) => {
                     const currentValue = state.domesticPolicy[policy.id];
                     const currentLevelName = policy.levels.find(l => l.level === currentValue)?.name;
 

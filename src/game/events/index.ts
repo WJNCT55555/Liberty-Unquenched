@@ -34,6 +34,7 @@ import { ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 } from '.
 import { presidentialElectionDecision, presidentialElectionPrimary, presidentialElectionCandidateSelection, presidentialElectionAutoResolve, presidentialElectionCampaignMenu, presidentialElectionResults, presidentialElectionResultsRound2 } from './presidential_election_chain';
 import { asturiasRevolution, asturiasWarFailed } from './asturias_revolution';
 import { andalusiaFireEvent } from './andalusia_fire';
+import { cnt_fourth_congress_0 } from './cnt_fourth_congress';
 
 export { 
   civilWarSetup, 
@@ -114,5 +115,6 @@ export const INITIAL_EVENTS = [
   presidentialElectionResultsRound2,
   asturiasRevolution,
   asturiasWarFailed,
-  andalusiaFireEvent
+  andalusiaFireEvent,
+  cnt_fourth_congress_0
 ];

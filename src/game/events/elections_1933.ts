@@ -12,7 +12,7 @@ const election1933Meta = {
 export const elections1933: GameEvent = {
   id: '1933_general_elections',
   date: { year: 1933, month: 11 },
-  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1933, 11),
+  condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1933, 11),
   meta: election1933Meta,
   title: '1933 General Elections',
   titleZh: '1933年大选',

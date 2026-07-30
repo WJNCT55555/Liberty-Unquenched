@@ -5,12 +5,18 @@ import { Calendar, Coins, ShieldAlert, Zap, Factory, Settings, Save, Download, G
 import { motion, AnimatePresence } from 'motion/react';
 import { AchievementsModal } from './AchievementsModal';
 import { useMusic, MusicPlayerUI } from './MusicPlayer';
+import { EconomyModal } from './EconomyModal';
+import { DomesticPoliticsModal } from './DomesticPoliticsModal';
+import { DomesticPolicyModal } from './DomesticPolicyModal';
 
 export const TopBar = () => {
   const { state, dispatch } = useGame();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [isRadioOpen, setIsRadioOpen] = useState(false);
+  const [isEconomyModalOpen, setIsEconomyModalOpen] = useState(false);
+  const [isPoliticsModalOpen, setIsPoliticsModalOpen] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [message, setMessage] = useState('');
   const { isPlaying } = useMusic();
 
@@ -59,8 +65,9 @@ export const TopBar = () => {
 
   return (
     <>
-      <div className="w-full border-b border-ink/20 bg-ink text-paper p-3 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-md relative z-20">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-col w-full z-20">
+        <div className="w-full bg-ink text-paper p-3 flex flex-col lg:flex-row justify-between items-center gap-4 relative">
+          <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <h1 className="font-display text-2xl uppercase tracking-widest text-cnt-red leading-none mb-1">
               {isZh ? '自由未烬' : 'Liberty Unquenched'}
@@ -111,6 +118,43 @@ export const TopBar = () => {
             )}
           </button>
         </div>
+      </div>
+      
+      {/* Bottom Tabs Section */}
+      <div className="w-full flex h-6 relative z-10">
+        {/* Halftone background for the right section */}
+        <div className="absolute left-72 right-0 top-0 bottom-0 bg-paper bg-halftone z-0" />
+
+        {/* Black fill behind the first slanted tab to merge with sidebar */}
+        <div className="absolute left-72 top-0 bottom-0 w-8 bg-ink z-10" />
+
+        {/* Left black section to match sidebar */}
+        <div className="w-72 bg-ink shrink-0 h-full relative z-20" />
+        
+        {/* Right tabs section */}
+        <div className="flex-1 flex items-end relative z-20">
+          <TabButton 
+            onClick={() => setIsEconomyModalOpen(true)}
+            isActive={isEconomyModalOpen}
+            label={isZh ? '财政' : 'FINANCE'} 
+          />
+          <TabButton 
+            onClick={() => setIsPoliticsModalOpen(true)}
+            isActive={isPoliticsModalOpen}
+            label={isZh ? '政府' : 'GOVERNMENT'} 
+          />
+          <TabButton 
+            onClick={() => setIsPolicyModalOpen(true)}
+            isActive={isPolicyModalOpen}
+            label={isZh ? '法律' : 'LAW'} 
+          />
+          <TabButton 
+            onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
+            isActive={state.currentView === 'map'}
+            label={isZh ? '地图' : 'MAP'} 
+          />
+        </div>
+      </div>
       </div>
 
       <AnimatePresence>
@@ -246,9 +290,41 @@ export const TopBar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <EconomyModal
+        isOpen={isEconomyModalOpen}
+        onClose={() => setIsEconomyModalOpen(false)}
+        state={state}
+        dispatch={dispatch}
+        isZh={isZh}
+      />
+      <DomesticPoliticsModal
+        isOpen={isPoliticsModalOpen}
+        onClose={() => setIsPoliticsModalOpen(false)}
+        state={state}
+        isZh={isZh}
+      />
+      <DomesticPolicyModal 
+        isOpen={isPolicyModalOpen} 
+        onClose={() => setIsPolicyModalOpen(false)} 
+        state={state} 
+        isZh={isZh} 
+      />
     </>
   );
 };
+
+const TabButton = ({ onClick, isActive, label }: { onClick: () => void, isActive?: boolean, label: string }) => (
+  <button 
+    onClick={onClick}
+    className={cn(
+      "h-full px-8 flex items-center justify-center -skew-x-[30deg] border-x-2 border-t-2 border-ink transition-colors relative -ml-[2px] origin-bottom-left group",
+      isActive ? "bg-paper text-ink font-bold border-b-0 z-30" : "bg-paper-dark text-ink hover:bg-paper font-medium border-b-2 border-ink z-20"
+    )}
+  >
+    <span className="skew-x-[30deg] text-[10px] uppercase font-typewriter tracking-wider group-hover:scale-105 transition-transform">{label}</span>
+  </button>
+);
 
 const StatItem = ({ icon, label, value, isAlert }: { icon: React.ReactNode; label: string; value: number; isAlert?: boolean }) => (
   <div className="flex flex-col items-center">

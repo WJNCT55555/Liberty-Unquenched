@@ -336,47 +336,14 @@ function checkWarStatus(state: GameState, isZh: boolean): GameState {
     if (!hasAsturias && !hasOviedo) {
       // Defeat!
       const nextWars = { ...(state.wars || { spanish_civil_war: 'not_started', asturias_war: 'not_started' }) };
-      nextWars.asturias_war = 'failed';
-      
-      const asturiasFailedEvent: GameEvent = {
-        id: 'asturias_war_failed',
-        title: isZh ? '工人联盟自治政府战败' : 'Defeat of Workers\' Alliance Government',
-        titleZh: '工人联盟自治政府战败',
-        description: isZh 
-          ? '由于反动派和政府军的联合残酷镇压，工人联盟自治政府在阿斯图里亚斯的革命阵地不幸失陷。成千上万的工人武装成员和矿工战士牺牲，起义宣告失败。全国的工人运动陷入低谷。' 
-          : 'Due to severe suppression by government and reactionary forces, the Workers\' Alliance Autonomous Government in Asturias has fallen. Thousands of armed workers and miners fell, and the uprising ended in defeat. The national labor movement suffers a severe blow.',
-        options: [
-          {
-            text: isZh ? '悲痛哀悼，积蓄力量' : 'Mourn and gather strength',
-            textZh: '悲痛哀悼，积蓄力量',
-            effect: (s) => ({
-              stats: {
-                ...s.stats,
-                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 20)
-              }
-            })
-          },
-          {
-            text: isZh ? '怒斥暴行，誓言复仇' : 'Denounce atrocities, vow revenge',
-            textZh: '怒斥暴行，誓言复仇',
-            effect: (s) => ({
-              stats: {
-                ...s.stats,
-                revolutionaryFervor: Math.max(0, (s.stats?.revolutionaryFervor ?? 10) - 12)
-              }
-            })
-          }
-        ]
-      };
-      
+      nextWars.asturias_war = 'lost';
+
       return {
         ...state,
         activeWar: null,
         wars: nextWars,
-        phase: 'event',
         currentView: 'standard',
-        pendingEvents: [asturiasFailedEvent, ...(state.pendingEvents || [])],
-        currentEvent: asturiasFailedEvent
+        phase: 'action'
       };
     }
     
@@ -776,6 +743,10 @@ export const INITIAL_STATE: GameState = {
   partyRelations: INITIAL_PARTY_RELATIONS,
   domesticPolicy: {
     land_law: 0,
+    public_order_law: 0,
+    security_corps_law: 0,
+    army_reform_law: 0,
+    militia_legality_law: 0,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
     max_hours_law: 0,
@@ -1003,6 +974,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       let start_debt = 500;
       let start_has_bonds = false;
       let start_mil_spend = 15;
+      let startCortes: Record<string, number> | undefined = undefined;
+
 
       let startMinisters: GameState['ministers'] = {
         labor: 'Right',
@@ -1063,6 +1036,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_debt = 750;
         start_has_bonds = false;
         start_mil_spend = 12;
+        startCortes = {
+          AP: 115, PRR: 102, PSOE: 59, ERC: 17, RE: 14, CT: 20, FE: 1, IR: 5, UR: 1, PNV: 11, DLR: 0, POUM: 0, PCE: 1, PS: 0, Other: 124, PRRevS: 0
+        };
       } else if (action.payload.scenario === '1936') {
         startMinisters = {
           labor: 'ERC',
@@ -1089,6 +1065,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         start_debt = 1100;
         start_has_bonds = true;
         start_mil_spend = 40;
+        startCortes = {
+          PSOE: 99, IR: 87, UR: 37, ERC: 36, PCE: 17, POUM: 1, PS: 2, AP: 88, RE: 12, CT: 10, FE: 0, PRR: 5, PNV: 10, DLR: 0, Other: 66, PRRevS: 0
+        };
       }
 
       let initialResources = 2;
@@ -1137,6 +1116,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       newState = { 
         ...INITIAL_STATE, 
         classes: action.payload.scenario === '1936' ? SCENARIO_1936_CLASSES : (action.payload.scenario === '1933' ? SCENARIO_1933_CLASSES : INITIAL_CLASSES),
+        cortes: startCortes as any,
         ministers: startMinisters,
         language: state.language, 
         screen: 'game',
@@ -2165,6 +2145,39 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           if (tempState.coupSystemActive) {
             tempState.coupProgress = parseFloat(Math.min(100, Math.max(0, tempState.coupProgress + 0.1)).toFixed(2));
           }
+        }
+
+        // Public Order Law (公共秩序法)
+        if (tempState.domesticPolicy.public_order_law === 0) {
+          tempState.stats.revolutionaryFervor = Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1);
+          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
+        } else if (tempState.domesticPolicy.public_order_law === 1) {
+          tempState.stats.revolutionaryFervor = Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 0.5);
+          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
+        } else if (tempState.domesticPolicy.public_order_law === 2) {
+          tempState.stats.revolutionaryFervor = Math.max(0, (tempState.stats.revolutionaryFervor || 0) - 0.1);
+          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.5);
+        } else if (tempState.domesticPolicy.public_order_law === 3) {
+          tempState.stats.revolutionaryFervor = Math.max(0, (tempState.stats.revolutionaryFervor || 0) - 0.5);
+          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.1);
+        }
+
+        // Security Corps Law (治安机关法)
+        if (tempState.domesticPolicy.security_corps_law === 0) {
+          tempState.classes = adjustClassSupport(tempState.classes, 'Braceros', 'CNT_FAI', 0.01);
+          tempState.stats.armyLoyalty = Math.min(100, (tempState.stats.armyLoyalty || 0) + 0.05);
+        }
+
+        // Army Reform Law (军队改革法)
+        if (tempState.domesticPolicy.army_reform_law === 0) {
+          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
+          tempState.stats.armyLoyalty = Math.max(0, (tempState.stats.armyLoyalty || 0) - 0.05);
+        } else if (tempState.domesticPolicy.army_reform_law === 1) {
+          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.5);
+          tempState.stats.armyLoyalty = Math.max(0, (tempState.stats.armyLoyalty || 0) - 0.1);
+        } else if (tempState.domesticPolicy.army_reform_law === 2) {
+          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 1.0);
+          tempState.stats.armyLoyalty = Math.min(100, (tempState.stats.armyLoyalty || 0) + 0.1);
         }
 
         let newJournal = JSON.parse(JSON.stringify(state.journal || {}));

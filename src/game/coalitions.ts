@@ -7,7 +7,7 @@ export const COALITION_DEFS: CoalitionDef[] = [
     name: 'Republican-Socialist Coalition',
     nameZh: '共和-社会党联合',
     members: ['PSOE', 'IR', 'UR', 'DLR'],
-    minSeatShare: 0.5,
+    minSeatShare: 0.45,
     canForm: (state: GameState) => state.civilWarStatus === 'not_started',
     dissolveThreshold: 20
   },
@@ -28,7 +28,7 @@ export const COALITION_DEFS: CoalitionDef[] = [
     name: 'CEDA-Radical Coalition',
     nameZh: 'CEDA-激进党联盟',
     members: ['AP', 'DLR', 'PRR'],
-    minSeatShare: 0.5,
+    minSeatShare: 0.45,
     canForm: (state: GameState) => state.civilWarStatus === 'not_started',
     dissolveThreshold: 20
   },
