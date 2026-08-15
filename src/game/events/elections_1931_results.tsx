@@ -3,6 +3,7 @@ import { GameEvent, Party, GameState } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { calculateElectionResults } from '../utils/election';
 import { PARTY_COLORS } from '../constants';
+import { getPartyName } from '../partyNames';
 import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
 import { formCoalition } from '../utils/coalition';
@@ -26,30 +27,12 @@ export const elections1931Results: GameEvent = {
     
     const cortes = state.cortes || calculateElectionResults(state);
     
-    const partyNames: Record<Party, { en: string, zh: string }> = {
-      PSOE: { en: 'PSOE', zh: '工人社会党' },
-      IR: { en: 'IR', zh: '共和左翼' },
-      UR: { en: 'UR', zh: '共和联盟' },
-      PCE: { en: 'PCE', zh: '共产党' },
-      PS: { en: 'PS', zh: '工团主义党' },
-      FE: { en: 'FE', zh: '长枪党' },
-      POUM: { en: 'POUM', zh: '马统工党' },
-      AP: { en: 'AP', zh: '人民行动党' },
-      CT: { en: 'CT', zh: '传统主义者' },
-      RE: { en: 'RE', zh: '西班牙革新' },
-      DLR: { en: 'DLR', zh: '自由共和右翼' },
-      PRR: { en: 'PRR', zh: '激进共和党' },
-      ERC: { en: 'ERC', zh: '加泰罗尼亚共和左翼' },
-      PNV: { en: 'PNV', zh: '巴斯克民族主义党' },
-      Other: { en: 'Other', zh: '其他' },
-      PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
-    };
-
+    
     const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
-      name: isZh ? partyNames[party as Party].zh : partyNames[party as Party].en,
+      name: getPartyName(state, party as any, isZh),
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
     }))

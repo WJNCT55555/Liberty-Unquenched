@@ -1,3 +1,4 @@
+import { getPartyName } from "../game/partyNames";
 import React, { useState } from 'react';
 import { useGame } from '../game/GameContext';
 import { cn } from '../lib/utils';
@@ -73,7 +74,7 @@ export const TopBar = () => {
               {isZh ? '自由未烬' : 'Liberty Unquenched'}
             </h1>
             <span className="font-typewriter text-[10px] tracking-widest uppercase opacity-70">
-              {isZh ? 'CNT-FAI 全国委员会' : 'CNT-FAI Comité Nacional'}
+              `${getPartyName(state, 'CNT_FAI', isZh, true)} ${isZh ? '全国委员会' : 'Comité Nacional'}`
             </span>
           </div>
           

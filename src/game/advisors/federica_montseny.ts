@@ -8,7 +8,7 @@ export const federicaMontseny: Advisor = {
   faction: 'Faistas',
   description: 'A prominent anarchist intellectual and orator. She advocates for pragmatism and collaboration with the Republic to defeat fascism.',
   descriptionZh: '著名的无政府主义知识分子和演说家。她主张实用主义，并与共和国合作以击败法西斯主义。',
-  image: 'img/Federica_Montseny.png',
+  image: 'img/Advisors/Federica_Montseny.png',
   actions: [
     {
       id: 'health_reforms',

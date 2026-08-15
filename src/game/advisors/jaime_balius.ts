@@ -8,7 +8,7 @@ export const jaimeBalius: Advisor = {
   faction: 'Puristas',
   description: 'A radical journalist and leading figure of the Friends of Durruti Group. He opposes collaborationism and demands a revolutionary junta.',
   descriptionZh: '激进的记者，杜鲁蒂之友小组的领导人物。他反对合作主义，并要求建立革命军政府。',
-  image: 'img/Jaime_Balius.png',
+  image: 'img/Advisors/Jaime_Balius.png',
   actions: [
     {
       id: 'publish_el_amigo_del_pueblo',

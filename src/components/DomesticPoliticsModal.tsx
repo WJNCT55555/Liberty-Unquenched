@@ -4,6 +4,7 @@ import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
 import { GameState, Party, CoalitionId } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
 import { PARTY_COLORS, getPartySupport } from '../game/parties';
+import { getPartyName, getPartyColor } from '../game/partyNames';
 import { calculateElectionResults } from '../game/utils/election';
 import { ParliamentChart } from './ParliamentChart';
 import { X, Users, Vote, Briefcase, Info, Layers, UserCheck } from 'lucide-react';
@@ -15,26 +16,6 @@ interface Props {
   isZh: boolean;
 }
 
-// Party full translations and names
-const PARTY_NAMES: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
-  CNT_FAI: { en: 'CNT-FAI (National Confederation of Labor - Iberian Anarchist Federation)', zh: '全国劳工联盟-伊比利亚无政府主义联合 (CNT-FAI)' },
-  PSOE: { en: 'PSOE (Spanish Socialist Workers\' Party)', zh: '西班牙工人社会党 (PSOE)' },
-  IR: { en: 'IR (Left Republican)', zh: '共和左翼 (IR)' },
-  UR: { en: 'UR (Republican Union)', zh: '共和联盟 (UR)' },
-  PCE: { en: 'PCE (Communist Party of Spain)', zh: '西班牙共产党 (PCE)' },
-  PS: { en: 'PS (Syndicalist Party)', zh: '工团主义党 (PS)' },
-  FE: { en: 'FE (Falange Española)', zh: '西班牙长枪党 (FE)' },
-  POUM: { en: 'POUM (Workers\' Party of Marxist Unification)', zh: '马克思主义统一工人党 (POUM)' },
-  AP: { en: 'CEDA (Spanish Confederation of Autonomous Right-wing Groups)', zh: '西班牙自治右翼联盟 (CEDA / AP)' },
-  CT: { en: 'CT (Traditionalist Communion)', zh: '传统主义者合一会 (CT)' },
-  RE: { en: 'RE (Spanish Renovation)', zh: '西班牙革新党 (RE)' },
-  DLR: { en: 'PRR (Radical Republican Party)', zh: '共和激进党 (PRR / DLR)' },
-  PRR: { en: 'PRR (Radical Republican Party)', zh: '共和激进党 (PRR)' },
-  ERC: { en: 'ERC (Republican Left of Catalonia)', zh: '加泰罗尼亚共和左翼 (ERC)' },
-  PNV: { en: 'PNV (Basque Nationalist Party)', zh: '巴斯克民族主义党 (PNV)' },
-  Other: { en: 'Other Parties / Independents', zh: '其他党派与独立人士' },
-  PRRevS: { en: 'PRRevS (Revolutionary Republican Syndicalist Party)', zh: '革命共和工团党 (PRRevS)' }
-};
 
 // Party historical ideologies
 const PARTY_IDEOLOGIES: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
@@ -79,7 +60,7 @@ interface CabinetDeptCardProps {
 const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, rulingMembers }) => {
   const [isHovered, setIsHovered] = useState(false);
   const ministerParty = state.ministers[dept.id as keyof typeof state.ministers] || 'Other';
-  const color = PARTY_COLORS[ministerParty] || '#9ca3af';
+  const color = getPartyColor(state, ministerParty);
   const isRulingParty = rulingMembers.includes(ministerParty);
 
   const cleanParty = ministerParty || 'Other';
@@ -113,7 +94,7 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
           }`}
         >
           {ministerParty === 'CNT' 
-            ? (isZh ? '工团参政' : 'CNT-FAI') 
+            ? getPartyName(state, 'CNT_FAI', isZh, true) 
             : isRulingParty 
               ? (isZh ? '执政党' : 'Ruling') 
               : (isZh ? '在野/看守' : 'Opposition')}
@@ -182,9 +163,9 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
     .filter(party => party !== 'CNT_FAI' && (cortes[party as Party] || 0) > 0)
     .map(party => ({
       id: party,
-      name: isZh ? PARTY_NAMES[party].zh : PARTY_NAMES[party].en,
+      name: getPartyName(state, party, isZh),
       seats: cortes[party as Party] || 0,
-      color: PARTY_COLORS[party] || '#9ca3af'
+      color: getPartyColor(state, party)
     }));
 
   // Calculate Next Election Date
@@ -214,49 +195,17 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
     }
   };
 
-  const isCoalitionExistInState = (id: CoalitionId): boolean => {
-    if (state.activeCoalition?.activeId === id) return true;
-    if (state.coalitionHistory?.some(h => h.id === id)) return true;
-    if (id === 'workers_alliance') {
-      return state.workersAllianceProgress >= 5 || state.stats.revolutionaryFervor >= 50;
-    }
-    if (id === 'popular_front') {
-      return state.scenario === '1936' || state.year >= 1936;
-    }
-    if (id === 'national_front') {
-      return state.scenario === '1936' || state.year >= 1936 || state.stats.tension >= 65;
-    }
-    if (id === 'ceda_radical') {
-      return state.scenario === '1933' || state.scenario === '1936' || state.year >= 1933;
-    }
-    if (id === 'republican_socialist') {
-      return state.scenario === '1931' || state.year === 1931 || state.year === 1932;
-    }
-    return false;
-  };
 
-  const activeCoalitionId = state.activeCoalition?.activeId;
-
-  // 2. Party Presence Check
-  const isPartyPresent = (party: Party | 'CNT_FAI'): boolean => {
-    if (party === 'CNT_FAI') return true;
-    if (party === 'POUM') return !!state.poum_founded;
-    if (party === 'PS') return !!state.ps_founded;
-    if (party === 'FE') return !!state.fe_founded;
-    if (party === 'PRRevS') return !!state.isPRRevSFormed;
+  const allParties = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT_FAI'] as const;
+  const presentParties = allParties.filter(p => {
+    if (p === 'POUM' && !state.poum_founded) return false;
+    if (p === 'FE' && !state.fe_founded) return false;
+    if (p === 'PS' && !state.ps_founded) return false;
     return true;
-  };
-
-  // 3. Classify Parties into Groups (Ruling Coalition, Opposition Alliances, Single Parties)
-  const presentParties = partyOrder.filter(isPartyPresent);
-  if (isPartyPresent('CNT_FAI') && !presentParties.includes('CNT_FAI')) {
-    presentParties.unshift('CNT_FAI');
-  }
-
+  });
+  const activeCoalitionId = state.rulingCoalition;
   const activeCoalitionDef = activeCoalitionId ? COALITION_DEFS.find(c => c.id === activeCoalitionId) : null;
-  const rulingMembers = activeCoalitionDef 
-    ? activeCoalitionDef.members.filter(m => presentParties.includes(m))
-    : [];
+  const rulingMembers = activeCoalitionDef ? activeCoalitionDef.members.filter(m => presentParties.includes(m as any)) : [];
 
   const getPartyGroups = () => {
     const groups: {
@@ -267,129 +216,39 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
       description?: { en: string; zh: string };
     }[] = [];
 
-    // Let's copy present parties for classification
     const unassigned = [...presentParties];
 
-    // Ruling coalition check
-    if (activeCoalitionDef && rulingMembers.length > 0) {
+    // First process active coalitions
+    const activeCoalitions = state.activeCoalitions || [];
+    
+    activeCoalitions.forEach(coalition => {
+      const def = COALITION_DEFS.find(c => c.id === coalition.activeId);
+      if (!def) return;
+      
+      const membersPresent = def.members.filter(m => unassigned.includes(m as any));
+      if (membersPresent.length === 0) return;
+
+      const isRuling = state.rulingCoalition === coalition.activeId;
+      
       groups.push({
-        id: `ruling_${activeCoalitionId}`,
+        id: (isRuling ? 'ruling_' : 'opposition_') + coalition.activeId,
         name: { 
-          en: `Ruling Coalition: ${activeCoalitionDef.name}`, 
-          zh: `执政内阁联盟：${activeCoalitionDef.nameZh}` 
+          en: (isRuling ? 'Ruling Coalition: ' : 'Active Coalition: ') + def.name, 
+          zh: (isRuling ? '执政内阁联盟：' : '活跃联盟：') + def.nameZh 
         },
-        type: 'ruling',
-        members: rulingMembers,
+        type: isRuling ? 'ruling' : 'opposition_alliance',
+        members: membersPresent,
         description: {
-          en: 'Currently forming the active government cabinet.',
-          zh: '当前主持并组成共和国政府内阁的执政联盟。'
+          en: isRuling ? 'Currently forming the active government cabinet.' : 'An active political block currently out of government.',
+          zh: isRuling ? '当前主持并组成共和国政府内阁的执政联盟。' : '当前处于在野状态的活跃政治联盟。'
         }
       });
-      rulingMembers.forEach(m => {
-        const idx = unassigned.indexOf(m);
+      
+      membersPresent.forEach(m => {
+        const idx = unassigned.indexOf(m as any);
         if (idx > -1) unassigned.splice(idx, 1);
       });
-    }
-
-    // Opposition alliance: National Front (CT, RE, FE, AP)
-    if (isCoalitionExistInState('national_front') && activeCoalitionId !== 'national_front') {
-      const nationalFrontDef = COALITION_DEFS.find(c => c.id === 'national_front');
-      const nfPresent = nationalFrontDef 
-        ? nationalFrontDef.members.filter(m => unassigned.includes(m))
-        : [];
-
-      if (nfPresent.length >= 2) {
-        groups.push({
-          id: 'opposition_national_front',
-          name: { en: 'Opposition Block: National Front', zh: '右翼在野阵营：国民阵线' },
-          type: 'opposition_alliance',
-          members: nfPresent,
-          description: {
-            en: 'Right-wing conservative opposition advocating for order, church rights, and tradition.',
-            zh: '由保守右翼、天主教派及极右翼长枪党结成的联盟，主张社会秩序、保护教会与复辟传统。'
-          }
-        });
-        nfPresent.forEach(m => {
-          const idx = unassigned.indexOf(m);
-          if (idx > -1) unassigned.splice(idx, 1);
-        });
-      }
-    }
-
-    // Opposition alliance: CEDA-Radical (AP, DLR, PRR)
-    if (isCoalitionExistInState('ceda_radical') && activeCoalitionId !== 'ceda_radical') {
-      const cedaRadicalDef = COALITION_DEFS.find(c => c.id === 'ceda_radical');
-      const crPresent = cedaRadicalDef 
-        ? cedaRadicalDef.members.filter(m => unassigned.includes(m))
-        : [];
-
-      if (crPresent.length >= 2) {
-        groups.push({
-          id: 'opposition_ceda_radical',
-          name: { en: 'Opposition Block: CEDA-Radical Alliance', zh: '中右在野阵营：CEDA-激进联盟' },
-          type: 'opposition_alliance',
-          members: crPresent,
-          description: {
-            en: 'Center-right parliamentary opposition block representing business, middle class, and agrarian Catholics.',
-            zh: '温和中右翼政治大联盟，代表工商业、城市中产和传统天主教农民利益。'
-          }
-        });
-        crPresent.forEach(m => {
-          const idx = unassigned.indexOf(m);
-          if (idx > -1) unassigned.splice(idx, 1);
-        });
-      }
-    }
-
-    // Opposition alliance: Workers' Alliance (PSOE, PCE, CNT_FAI, POUM)
-    if (isCoalitionExistInState('workers_alliance') && activeCoalitionId !== 'workers_alliance') {
-      const workersAllianceDef = COALITION_DEFS.find(c => c.id === 'workers_alliance');
-      const waPresent = workersAllianceDef
-        ? workersAllianceDef.members.filter(m => unassigned.includes(m))
-        : [];
-
-      if (waPresent.length >= 2) {
-        groups.push({
-          id: 'opposition_workers_alliance',
-          name: { en: 'Revolutionary Coalition: Workers\' Alliance (UHP)', zh: '左翼革命战线：工人联盟 (UHP)' },
-          type: 'opposition_alliance',
-          members: waPresent,
-          description: {
-            en: 'United front of militant unions and socialist parties preparing for revolutionary defense.',
-            zh: '激进左翼工会和革命社会主义政党组成的联合战线，致力于捍卫工人阶级利益和推进社会革命。'
-          }
-        });
-        waPresent.forEach(m => {
-          const idx = unassigned.indexOf(m);
-          if (idx > -1) unassigned.splice(idx, 1);
-        });
-      }
-    }
-
-    // Popular Front (if formed but not ruling)
-    if (isCoalitionExistInState('popular_front') && activeCoalitionId !== 'popular_front') {
-      const popularFrontDef = COALITION_DEFS.find(c => c.id === 'popular_front');
-      const pfPresent = popularFrontDef
-        ? popularFrontDef.members.filter(m => unassigned.includes(m))
-        : [];
-
-      if (pfPresent.length >= 2) {
-        groups.push({
-          id: 'opposition_popular_front',
-          name: { en: 'Left-wing Coalition: Popular Front', zh: '左翼在野阵营：人民阵线' },
-          type: 'opposition_alliance',
-          members: pfPresent,
-          description: {
-            en: 'Anti-fascist electoral alliance of republican and leftist parties.',
-            zh: '由共和左翼、社会党、共产党等组成的反法西斯选举同盟。'
-          }
-        });
-        pfPresent.forEach(m => {
-          const idx = unassigned.indexOf(m);
-          if (idx > -1) unassigned.splice(idx, 1);
-        });
-      }
-    }
+    });
 
     // Remaining are single lines
     unassigned.forEach(party => {
@@ -429,15 +288,41 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
   // Helper to get Leader Image with dynamic fallback
   const getLeaderImage = (name: string): string | null => {
     if (!name) return null;
-    if (name.includes('Ramon') || name.includes('Ramón') || name.includes('Franco')) {
-      return `${(import.meta as any).env.BASE_URL || '/'}img/Ramon_Franco.png`;
+    const baseUrl = (import.meta as any).env.BASE_URL || '/';
+    const nameLower = name.toLowerCase();
+
+    if (nameLower.includes('lerroux')) {
+      return `${baseUrl}img/Portrait/alejandro_lerroux_garcia.png`;
     }
+    if (nameLower.includes('alfonso')) {
+      return `${baseUrl}img/Portrait/alfonso_xiii.png`;
+    }
+    if (nameLower.includes('largo caballero') || nameLower.includes('largocaballero')) {
+      return `${baseUrl}img/Portrait/francisco_largo_caballero.png`;
+    }
+    if (nameLower.includes('gil-robles') || nameLower.includes('gil robles')) {
+      return `${baseUrl}img/Portrait/jose_maria_gil_robles.png`;
+    }
+    if (nameLower.includes('azaña') || nameLower.includes('azana')) {
+      return `${baseUrl}img/Portrait/manuel_azana_diaz_gallo.png`;
+    }
+    if (nameLower.includes('alcalá-zamora') || nameLower.includes('alcala-zamora') || nameLower.includes('alcalá zamora') || nameLower.includes('alcala zamora')) {
+      return `${baseUrl}img/Portrait/niceto_alcala_zamora_y_torres.png`;
+    }
+    if (nameLower.includes('sanjurjo')) {
+      return `${baseUrl}img/Portrait/sanjurjo_sacane.png`;
+    }
+    if (nameLower.includes('ramon') || nameLower.includes('ramón') || nameLower.includes('franco')) {
+      return `${baseUrl}img/Advisors/ramon_franco.png`;
+    }
+
     // Convert to snake_case style as common in codebase
     const normalized = name.replace(/\s+/g, '_').replace(/á/g, 'a').replace(/ñ/g, 'n').replace(/ó/g, 'o').replace(/é/g, 'e').replace(/í/g, 'i');
-    return `${(import.meta as any).env.BASE_URL || '/'}img/${normalized}.png`;
+    return `${baseUrl}img/${normalized}.png?v=2`;
   };
 
-  const activeCoalitionCohesion = state.activeCoalition?.cohesion ?? 100;
+  const rulingCoalitionState = state.activeCoalitions?.find(c => c.activeId === state.rulingCoalition);
+  const activeCoalitionCohesion = rulingCoalitionState?.cohesion ?? 100;
   const activeCohesionExplanation = getCohesionExplanation(activeCoalitionCohesion);
 
   return (
@@ -708,7 +593,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                             const seats = party === 'CNT_FAI' ? 0 : (cortes[party as Party] || 0);
                             const seatPct = totalCortesSeats > 0 ? ((seats / totalCortesSeats) * 100).toFixed(1) : '0.0';
                             const support = getPartySupport(state, party);
-                            const color = PARTY_COLORS[party] || '#9ca3af';
+                            const color = getPartyColor(state, party);
                             const isRulingParty = rulingMembers.includes(party);
 
                             return (
@@ -721,7 +606,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span className="font-bold font-typewriter text-sm">
-                                        {isZh ? PARTY_NAMES[party].zh : PARTY_NAMES[party].en}
+                                        {getPartyName(state, party, isZh)}
                                       </span>
                                       {isRulingParty && (
                                         <span className="text-[8px] uppercase font-bold border border-cnt-red text-cnt-red px-1 bg-cnt-red/5 rounded-xs">
@@ -782,9 +667,6 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* President Card */}
                   <div className="border border-ink/25 p-4 bg-paper flex flex-col items-center text-center rounded-sm shadow-xs relative">
-                    <div className="absolute top-1 right-1 opacity-5">
-                      <UserCheck className="w-10 h-10" />
-                    </div>
                     {/* Avatar Box on Top */}
                     <div className="w-24 h-32 border-2 border-ink bg-ink/5 flex items-center justify-center overflow-hidden relative mb-3 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
                       <img 
@@ -821,9 +703,6 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
                   {/* Prime Minister Card */}
                   <div className="border border-ink/25 p-4 bg-paper flex flex-col items-center text-center rounded-sm shadow-xs relative">
-                    <div className="absolute top-1 right-1 opacity-5">
-                      <UserCheck className="w-10 h-10" />
-                    </div>
                     {/* Avatar Box on Top */}
                     <div className="w-24 h-32 border-2 border-ink bg-ink/5 flex items-center justify-center overflow-hidden relative mb-3 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
                       <img 

@@ -7,6 +7,40 @@ import { motion, AnimatePresence } from 'motion/react';
 
 // Note: Cabinet Ministers tooltips on hover are implemented in SidePanel.tsx (where the Cabinet UI is rendered)
 
+
+const legacyImageMap: Record<string, string> = {
+  'img/Ángel_Pestaña.png': 'img/Advisors/Angel_Pestana.png',
+  'img/Diego_Abad_de Santillán.png': 'img/Advisors/Diego_Abad_de_Santillan.png',
+  'img/Federica_Montseny.png': 'img/Advisors/Federica_Montseny.png',
+  'img/Horacio_Martinez_Prieto.png': 'img/Advisors/Horacio_Martinez_Prieto.png',
+  'img/Jaime_Balius.png': 'img/Advisors/Jaime_Balius.png',
+  'img/Joan_Peiró.png': 'img/Advisors/Joan_Peiro.png',
+  'img/Jose_Buenaventura_Durruti_Dumange.png': 'img/Advisors/Jose_Buenaventura_Durruti_Dumange.png',
+  'img/José Peirats.png': 'img/Advisors/Jose_Peirats.png',
+  'img/Juan_Garcia_Oliver.png': 'img/Advisors/Juan_Garcia_Oliver.png',
+  'img/Juan_López_Sánchez.png': 'img/Advisors/Juan_Lopez_Sanchez.png',
+  'img/Mariano Rodríguez Vázquez.png': 'img/Advisors/Mariano_Rodriguez_Vazquez.png',
+  'img/Orobon_Fernandez.png': 'img/Advisors/Orobon_Fernandez.png',
+  'img/Pedro_Vallina.png': 'img/Advisors/Pedro_Vallina.png',
+  'img/Ramon_Franco.png': 'img/Advisors/Ramon_Franco.png'
+};
+
+const getImageUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  
+  // Apply legacy mapper for existing save games
+  let finalUrl = url;
+  if (legacyImageMap[url]) {
+    finalUrl = legacyImageMap[url];
+  }
+  
+  const base = (import.meta as any).env.BASE_URL || '/';
+  if (finalUrl.startsWith(base)) return `${finalUrl}?v=2`;
+  if (finalUrl.startsWith('/')) return `${finalUrl}?v=2`;
+  return `${base}${finalUrl}?v=2`;
+};
+
 export const AdvisorPanel = () => {
   const { state, dispatch } = useGame();
   const [isPoolOpen, setIsPoolOpen] = useState(false);
@@ -80,7 +114,7 @@ export const AdvisorPanel = () => {
                   {advisor.image && (
                     <div className="w-20 aspect-[3/4] border-2 border-ink mb-1 flex-shrink-0 bg-paper-dark overflow-hidden relative">
                       <img 
-                        src={advisor.image} 
+                        src={getImageUrl(advisor.image)} onError={(e) => console.error('Failed to load image:', getImageUrl(advisor.image))} 
                         alt={advisor.name} 
                         className={cn(
                           "w-full h-full object-cover transition-all duration-500",
@@ -188,7 +222,7 @@ export const AdvisorPanel = () => {
                       {advisor.image && (
                         <div className="w-16 aspect-[3/4] border-2 border-ink flex-shrink-0 bg-paper-dark overflow-hidden">
                           <img 
-                            src={advisor.image} 
+                            src={getImageUrl(advisor.image)} onError={(e) => console.error('Failed to load image:', getImageUrl(advisor.image))} 
                             alt={advisor.name} 
                             className="w-full h-full object-cover grayscale contrast-150 sepia-[.2] mix-blend-multiply" 
                             referrerPolicy="no-referrer" 
@@ -254,7 +288,7 @@ export const AdvisorPanel = () => {
                 <div className="w-full md:w-1/3 flex-shrink-0 relative">
                   <div className="border-2 border-ink bg-white p-2 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform -rotate-2">
                     <img 
-                      src={selectedAdvisor.image} 
+                      src={getImageUrl(selectedAdvisor.image)} onError={(e) => console.error('Failed to load selected image:', getImageUrl(selectedAdvisor.image))} 
                       alt={selectedAdvisor.name} 
                       className="w-full aspect-[3/4] object-cover grayscale contrast-150 sepia-[.2] mix-blend-multiply"
                       referrerPolicy="no-referrer"

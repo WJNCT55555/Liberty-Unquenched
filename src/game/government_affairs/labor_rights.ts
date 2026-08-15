@@ -1,5 +1,5 @@
 import { Card, GameState } from '../types';
-import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport, getDissentMultiplier } from '../utils';
 
 export const laborRights: Card = {
   id: 'labor_rights',
@@ -23,6 +23,7 @@ export const laborRights: Card = {
         titleZh: '劳工权利',
         description: 'With control of the Labor Ministry, we can set national standards for labor. Our supporters expect us to enforce a 40-hour work week and enforce safety regulations, as well as fully fund the unemployment insurance program.',
         descriptionZh: '通过控制劳工部，我们可以制定国家劳工标准。我们的支持者期望我们实行40小时工作周、执行安全法规，并全额资助失业保险计划。',
+        date: { year: state.year, month: state.month },
         options: [
           {
             text: 'Enforce the 40-hour work week',
@@ -38,8 +39,7 @@ export const laborRights: Card = {
               newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 5);
               newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 5);
               
-              const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
-              const bonus = Math.round(7 * (1 - overallDissent));
+              const bonus = Math.round(7 * getDissentMultiplier(newFactions));
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {
@@ -73,8 +73,7 @@ export const laborRights: Card = {
               });
               newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 5);
               
-              const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
-              const bonus = Math.round(6 * (1 - overallDissent));
+              const bonus = Math.round(6 * getDissentMultiplier(newFactions));
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {
@@ -107,8 +106,7 @@ export const laborRights: Card = {
               });
               newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 2);
               
-              const overallDissent = (newFactions.Treintistas.dissent + newFactions.Cenetistas.dissent + newFactions.Faistas.dissent + newFactions.Puristas.dissent) / 400;
-              const bonus = Math.round(5 * (1 - overallDissent));
+              const bonus = Math.round(5 * getDissentMultiplier(newFactions));
               newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', bonus);
               
               return {

@@ -8,7 +8,7 @@ export const josePeirats: Advisor = {
   faction: 'Puristas',
   description: 'A staunch defender of anarchist principles and historian. He strongly opposes any form of class collaboration or government participation, advocating for a return to pure grassroots syndicalism.',
   descriptionZh: '坚定的无政府主义原则捍卫者和历史学家。他强烈反对任何形式的阶级合作或参与政府，主张回归纯粹的基层工团主义。',
-  image: 'img/José Peirats.png',
+  image: 'img/Advisors/Jose_Peirats.png',
   actions: [
     {
       id: 'return_to_roots',

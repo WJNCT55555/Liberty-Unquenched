@@ -20,7 +20,7 @@ export const cntChooseEnemies: Card = {
     // Option 1: The far right: monarchists, the Church, and fascists are our enemies
     options.push({
       text: 'The Far Right — Monarchists, the Church, and Fascists are our enemies',
-      textZh: '极右翼——君主派、天主教会和法西斯主义这是我们的敌人',
+      textZh: '极右翼——君主派、天主教会和法西斯主义者是我们的敌人',
       subtitle: 'A united front against all reactionary forces.',
       subtitleZh: '建立反对一切反动势力的统一战线。',
       effect: (s: GameState) => {
@@ -174,7 +174,7 @@ export const cntChooseEnemies: Card = {
     // Option 7: All collaborators of the state apparatus are our enemies
     options.push({
       text: 'All collaborators of the state apparatus are our enemies',
-      textZh: '所有暴力机器的合作者都是我们的敌人',
+      textZh: '所有国家机器的合作者都是我们的敌人',
       subtitle: 'No compromise with the state, regardless of its color.',
       subtitleZh: '无论国家机器是什么颜色，绝不妥协。',
       effect: (s: GameState) => {

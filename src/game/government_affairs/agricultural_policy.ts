@@ -23,6 +23,7 @@ export const agriculturalPolicy: Card = {
         titleZh: '农业政策',
         description: 'With the CNT holding the Ministry of Agriculture, we must determine our course of agrarian action to satisfy the starving peasantry while keeping the government stable.',
         descriptionZh: '随着全劳联（CNT）重掌农业部，我们必须制定切实的农村政策，在满足饥饿农民需求的同时维持内阁政局的稳定。',
+        date: { year: state.year, month: state.month },
         options: [
           {
             text: 'Promote Peasant Collectivization',

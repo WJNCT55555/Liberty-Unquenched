@@ -7,7 +7,7 @@ export const joanPeiro: Advisor = {
   faction: 'Treintistas',
   description: 'An influential anarcho-syndicalist who served as Minister of Industry during the Civil War. He focuses on economic organization and industrial collectivization.',
   descriptionZh: '一位有影响力的无政府工团主义者，在内战期间担任工业部长。他专注于经济组织和工业集体化。',
-  image: 'img/Joan_Peiró.png',
+  image: 'img/Advisors/Joan_Peiro.png',
   actions: [
     {
       id: 'Joan Peiró_action1',

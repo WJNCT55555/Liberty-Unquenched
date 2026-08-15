@@ -8,7 +8,7 @@ export const juanGarciaOliver: Advisor = {
   faction: 'Faistas',
   description: 'A leading figure of the FAI and the "Los Solidarios" action group. He advocates for direct action, revolutionary justice, and armed struggle.',
   descriptionZh: 'FAI和“团结者”行动小组的领导人物。他主张直接行动、革命正义和武装斗争。',
-  image: 'img/Juan_Garcia_Oliver.png',
+  image: 'img/Advisors/Juan_Garcia_Oliver.png',
   actions: [
     {
       id: 'revolutionary_justice',

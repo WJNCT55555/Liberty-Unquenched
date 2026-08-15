@@ -8,7 +8,7 @@ export const horacioMartinezPrieto: Advisor = {
   faction: 'Cenetistas',
   description: 'A moderate, pragmatic Cenetistas leader and General Secretary of the CNT National Committee. He sought a middle ground between radical Faistas and reformist Treintistas, advocating for governmental participation to defeat fascism.',
   descriptionZh: '温和务实的全国委员会总书记、中立派（Cenetistas）核心。他在暴动派（Faistas）和温和派（Treintistas）之间寻求平衡，并主张通过参与内阁实现反法西斯力量的全面联合。',
-  image: 'img/Horacio_Martinez_Prieto.png',
+  image: 'img/Advisors/Horacio_Martinez_Prieto.png',
   actions: [
     {
       id: 'horacio_internal_reconciliation',

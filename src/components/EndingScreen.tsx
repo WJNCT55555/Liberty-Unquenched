@@ -5,6 +5,7 @@ import { ACHIEVEMENTS } from '../game/achievements';
 import { motion } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PARTY_COLORS } from '../game/constants';
+import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getPartySupport } from '../game/utils/coalition';
 import { Party, Faction } from '../game/types';
 
@@ -44,28 +45,7 @@ export const EndingScreen = () => {
 
   if (!endingDetail) return null;
 
-  const partyNames: Record<Party, { en: string, zh: string }> = {
-    POUM: { en: 'POUM', zh: '马克思主义统一工人党 (POUM)' },
-    PCE: { en: 'PCE', zh: '西班牙共产党 (PCE)' },
-    PSOE: { en: 'PSOE', zh: '工人社会党 (PSOE)' },
-    PS: { en: 'PS', zh: '工团主义党 (PS)' },
-    ERC: { en: 'Republican Left of Catalonia', zh: '加泰罗尼亚共和左翼 (ERC)' },
-    IR: { en: 'IR', zh: '共和左翼 (IR)' },
-    UR: { en: 'UR', zh: '共和联盟 (UR)' },
-    PNV: { en: 'PNV', zh: '巴斯克民族主义党 (PNV)' },
-    PRR: { en: 'Radical Republican Party', zh: '共和激进党 (PRR)' },
-    DLR: { en: 'Derecha Liberal Republicana', zh: '自由共和右翼 (DLR)' },
-    AP: { en: 'Acción Popular', zh: '人民行动党 (AP)' },
-    RE: { en: 'Spanish Renovation', zh: '西班牙革新 (RE)' },
-    CT: { en: 'Traditionalist Communion', zh: '传统主义者 (CT)' },
-    FE: { 
-      en: state.falange_jons ? 'FE de las JONS' : 'Falange Española', 
-      zh: state.falange_jons ? '长枪党 (FE de las JONS)' : '西班牙长枪党 (FE)' 
-    },
-    Other: { en: 'Other', zh: '其他' },
-    PRRevS: { en: 'PRRevS', zh: '革命共和工团党 (PRRevS)' }
-  };
-
+  
   const factionNames: Record<Faction, { en: string, zh: string }> = {
     Treintistas: { en: 'Treintistas', zh: '三十人集团' },
     Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
@@ -98,9 +78,9 @@ export const EndingScreen = () => {
     const value = getPartySupport(state, p);
     return {
       id: p,
-      name: p === 'CNT_FAI' ? (isZh ? 'CNT-FAI 工团' : 'CNT-FAI') : (isZh ? partyNames[p as Party]?.zh || p : partyNames[p as Party]?.en || p),
+      name: getPartyName(state, p as any, isZh, true),
       value,
-      color: PARTY_COLORS[p] || '#9ca3af'
+      color: getPartyColor(state, p as any)
     };
   }).filter(p => p.value > 0);
 

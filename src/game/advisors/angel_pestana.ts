@@ -8,7 +8,7 @@ export const angelPestana: Advisor = {
   faction: 'Treintistas',
   description: 'A prominent anarcho-syndicalist leader and key figure of the Treintistas. He advocates for a more moderate, syndicalist approach and closer ties with the Republic.',
   descriptionZh: '著名的无政府工团主义领导人，三十人集团的核心人物。他主张采取更温和的工团主义路线，并与共和国建立更紧密的联系。',
-    image: 'img/Ángel_Pestaña.png',
+    image: 'img/Advisors/Angel_Pestana.png',
   actions: [
     {
       id: 'improve_relations_ir',

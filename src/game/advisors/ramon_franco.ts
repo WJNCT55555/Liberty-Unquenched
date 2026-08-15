@@ -9,7 +9,7 @@ export const ramonFranco: Advisor = {
   faction: 'Jabalistas',
   description: 'A famous republican aviator and deputy, leader of the radical "Jabalíes" faction. He advocates for aggressive decentralization, federalism, and sweeping social changes, flying in the face of conservative republicans.',
   descriptionZh: '著名的共和派飞行员与议员，“野猪议员”（Jabalíes）集团的领袖。他主张激进的去中心化、联邦制和彻底的社会变革，是保守共和派和君主派眼中极具威胁的人物。',
-  image: 'img/Ramon_Franco.png',
+  image: 'img/Advisors/Ramon_Franco.png',
   actions: [
     {
       id: 'ramon_franco_federalist_agitation',

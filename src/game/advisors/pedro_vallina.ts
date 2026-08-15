@@ -8,7 +8,7 @@ export const pedroVallina: Advisor = {
   faction: 'Jabalistas',
   description: 'The "people\'s doctor" of Andalusia, a legendary anarchist physician and organizer who spent his life setting up health cooperatives, schools, and resisting agrarian landlordism.',
   descriptionZh: '安达卢西亚的“平民医生”。无政府主义传奇医师和组织家，毕生致力于建立医疗互助社、理性学校，倾力反抗大庄园地主霸权。',
-  image: 'img/Pedro_Vallina.png',
+  image: 'img/Advisors/Pedro_Vallina.png',
   actions: [
     {
       id: 'vallina_social_medicine',

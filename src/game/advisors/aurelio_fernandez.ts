@@ -8,7 +8,7 @@ export const aurelioFernandez: Advisor = {
   faction: 'None',
   description: 'A key militant of the FAI and member of "Los Solidarios". He played a major role in the defense committees of Barcelona and directed the revolutionary public order and intelligence services during the uprising.',
   descriptionZh: 'FAI的关键战术成员，“团结者”的核心干骨。他在巴塞罗那总工会防御委员会（Comitès de Defensa）中扮演主导角色，并在起义胜利后负责筹建战时革命治安与调查情报事务（Servicios de Investigación）。',
-  image: 'img/Jose_Buenaventura_Durruti_Dumange.png',
+  image: 'img/Advisors/Aurelio_Fernandez_Sanchez.png',
   actions: [
     {
       id: 'aurelio_defense_committees',

@@ -76,8 +76,7 @@ export const prrevsCampaigning: Card = {
       unavailableSubtitleZh: campaignResourceUnavailableZh,
       effect: (s: GameState): Partial<GameState> => {
         const classes = adjustClassSupports(s.classes, [
-          ['Obreros', 'CNT_FAI', 6 * dissentFactor],
-          ['Obreros', 'PRR', 8 * dissentFactor]
+          ['Obreros', 'CNT_FAI', 14 * dissentFactor]
         ]);
         const factions = influenceThenDissent(s.factions, 'Treintistas', 3, {
           Treintistas: -5,
@@ -90,10 +89,6 @@ export const prrevsCampaigning: Card = {
           prrevs_campaign_timer: PRREVS_CAMPAIGN_COOLDOWN,
           classes,
           factions,
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 3)
-          },
           stats: {
             ...s.stats,
             workerControl: clampPercent(s.stats.workerControl + 2 * dissentFactor),
@@ -117,10 +112,8 @@ export const prrevsCampaigning: Card = {
       effect: (s: GameState): Partial<GameState> => {
         const landBonus = s.domesticPolicy.land_reform_progress > 0 ? 1.5 : 1;
         const classes = adjustClassSupports(s.classes, [
-          ['Braceros', 'CNT_FAI', 5 * dissentFactor],
-          ['Labradores', 'CNT_FAI', 3 * dissentFactor],
-          ['Braceros', 'PRR', 6 * dissentFactor],
-          ['Labradores', 'PRR', 4 * dissentFactor]
+          ['Braceros', 'CNT_FAI', 11 * dissentFactor],
+          ['Labradores', 'CNT_FAI', 7 * dissentFactor]
         ]);
         const factions = influenceThenDissent(s.factions, 'Treintistas', 2, {
           Treintistas: -4,
@@ -132,10 +125,6 @@ export const prrevsCampaigning: Card = {
           prrevs_campaign_timer: PRREVS_CAMPAIGN_COOLDOWN,
           classes,
           factions,
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 2)
-          },
           stats: {
             ...s.stats,
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor * landBonus)
@@ -157,8 +146,7 @@ export const prrevsCampaigning: Card = {
       unavailableSubtitleZh: campaignResourceUnavailableZh,
       effect: (s: GameState): Partial<GameState> => {
         const classes = adjustClassSupports(s.classes, [
-          ['PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor],
-          ['PequenaBurguesia', 'PRR', 7 * dissentFactor]
+          ['PequenaBurguesia', 'CNT_FAI', 11 * dissentFactor]
         ]);
         const factions = influenceThenDissent(s.factions, 'Treintistas', 2, {
           Treintistas: -3,
@@ -171,10 +159,6 @@ export const prrevsCampaigning: Card = {
           prrevs_campaign_timer: PRREVS_CAMPAIGN_COOLDOWN,
           classes,
           factions,
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 3)
-          },
           stats: {
             ...s.stats,
             bureaucratization: clampPercent(s.stats.bureaucratization + 3),
@@ -198,8 +182,7 @@ export const prrevsCampaigning: Card = {
       effect: (s: GameState): Partial<GameState> => {
         const propagandaBonus = s.propaganda_timer <= 0 ? 1.3 : 1;
         const classes = adjustClassSupports(s.classes, [
-          ['Intelectuales', 'CNT_FAI', 5 * dissentFactor],
-          ['Intelectuales', 'PRR', 9 * dissentFactor]
+          ['Intelectuales', 'CNT_FAI', 14 * dissentFactor]
         ]);
         const factions = influenceThenDissent(s.factions, 'Treintistas', 3, {
           Treintistas: -4,
@@ -211,10 +194,6 @@ export const prrevsCampaigning: Card = {
           prrevs_campaign_timer: PRREVS_CAMPAIGN_COOLDOWN,
           classes,
           factions,
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 4)
-          },
           stats: {
             ...s.stats,
             bureaucratization: clampPercent(s.stats.bureaucratization + 1)
@@ -238,10 +217,9 @@ export const prrevsCampaigning: Card = {
       effect: (s: GameState): Partial<GameState> => {
         const mujeresBonus = s.mujeres_libres_established ? 1.5 : 1;
         const classes = adjustClassSupports(s.classes, [
-          ['Obreros', 'CNT_FAI', 3 * dissentFactor],
+          ['Obreros', 'CNT_FAI', 8 * dissentFactor],
           ['Intelectuales', 'CNT_FAI', 4 * dissentFactor],
-          ['Braceros', 'CNT_FAI', 2 * dissentFactor],
-          ['Obreros', 'PRR', 5 * dissentFactor]
+          ['Braceros', 'CNT_FAI', 2 * dissentFactor]
         ]);
         const factions = adjustFactionDissents(s.factions, {
           Treintistas: -3,
@@ -254,10 +232,6 @@ export const prrevsCampaigning: Card = {
           prrevs_campaign_timer: PRREVS_CAMPAIGN_COOLDOWN,
           classes,
           factions,
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 2)
-          },
           stats: {
             ...s.stats,
             workerControl: clampPercent(s.stats.workerControl + 2 * dissentFactor * mujeresBonus),
@@ -290,9 +264,8 @@ export const prrevsCampaigning: Card = {
       },
       effect: (s: GameState): Partial<GameState> => {
         const classes = adjustClassSupports(s.classes, [
-          ['Clero', 'CNT_FAI', 3 * dissentFactor],
-          ['PequenaBurguesia', 'CNT_FAI', 2 * dissentFactor],
-          ['Clero', 'PRR', 5 * dissentFactor]
+          ['Clero', 'CNT_FAI', 8 * dissentFactor],
+          ['PequenaBurguesia', 'CNT_FAI', 2 * dissentFactor]
         ]);
         const factions = influenceThenDissent(s.factions, 'Treintistas', 2, {
           Treintistas: -2,
@@ -308,10 +281,6 @@ export const prrevsCampaigning: Card = {
           partyRelations: {
             ...s.partyRelations,
             CT: clampRelation((s.partyRelations.CT || 0) + 2)
-          },
-          partySupport: {
-            ...s.partySupport,
-            PRR: clampPercent((s.partySupport.PRR || 0) + 3)
           },
           stats: {
             ...s.stats,

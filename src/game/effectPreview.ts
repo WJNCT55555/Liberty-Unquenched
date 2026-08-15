@@ -1,3 +1,4 @@
+import { getPartyName } from "./partyNames";
 import {
   EffectPreviewLine,
   Faction,
@@ -262,14 +263,20 @@ export const classSupportPreview = (
   options: { scaledByDissent?: boolean } = {}
 ): EffectPreviewLine => {
   const classLabels = CLASS_LABELS[socialClass];
-  const partyLabels = PARTY_LABELS[force];
+  
+  let partyNameEn: string = force;
+  let partyNameZh: string = force;
+  if (['CNT_FAI', 'POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'PRRevS', 'Other'].includes(force)) {
+    partyNameEn = getPartyName(state, force as any, false, true);
+    partyNameZh = getPartyName(state, force as any, true, true);
+  }
+
   return effectLine(
-    `${classLabels.label} support for ${partyLabels.label}`,
-    `${classLabels.labelZh}对${partyLabels.labelZh}支持率`,
+    `${classLabels.label} support for ${partyNameEn}`,
+    `${classLabels.labelZh}对${partyNameZh}支持率`,
     resolveDelta(state, delta, options.scaledByDissent)
   );
 };
-
 export const partyRelationPreview = (party: Exclude<Party, 'PRRevS'>, delta: number): EffectPreviewLine => {
   const labels = PARTY_LABELS[party];
   return effectLine(`Relations with ${labels.label}`, `与${labels.labelZh}关系`, delta);
@@ -539,10 +546,12 @@ const addClassSupportAdjustmentLines = (
     if (Math.abs(delta) < 0.005) return;
 
     const classLabels = CLASS_LABELS[socialClass];
-    const partyLabels = PARTY_LABELS[force] || humanizeKey(force);
+    const partyLabels = PARTY_LABELS[force as 'CNT_FAI' | Party];
+    const pEn = partyLabels ? partyLabels.label : humanizeKey(force);
+    const pZh = partyLabels ? partyLabels.labelZh : humanizeKey(force);
     lines.push(effectLine(
-      `${classLabels.label} support for ${partyLabels.label}`,
-      `${classLabels.labelZh}对${partyLabels.labelZh}支持率`,
+      `${classLabels.label} support for ${pEn}`,
+      `${classLabels.labelZh}对${pZh}支持率`,
       delta
     ));
   });
@@ -582,10 +591,12 @@ const addClassSupportDiffs = (
       if (Math.abs(delta) < 0.5) return;
 
       const classLabels = CLASS_LABELS[socialClass];
-      const partyLabels = PARTY_LABELS[force as 'CNT_FAI' | Party] || humanizeKey(force);
+      const partyLabels = PARTY_LABELS[force as 'CNT_FAI' | Party];
+      const pEn = partyLabels ? partyLabels.label : force;
+      const pZh = partyLabels ? partyLabels.labelZh : force;
       lines.push(effectLine(
-        `${classLabels.label} support for ${partyLabels.label}`,
-        `${classLabels.labelZh}对${partyLabels.labelZh}支持率`,
+        `${classLabels.label} support for ${pEn}`,
+        `${classLabels.labelZh}对${pZh}支持率`,
         delta
       ));
     });

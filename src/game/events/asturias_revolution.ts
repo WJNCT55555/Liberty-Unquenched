@@ -56,7 +56,7 @@ export const asturiasRevolution: GameEvent = {
     } else {
       const isUhpCompleted = state.journal?.['journal_uhp']?.status === 'completed';
       const isAugust1934OrLater = state.year > 1934 || (state.year === 1934 && state.month >= 8);
-      const isCedaRadicalInPower = state.activeCoalition?.activeId === 'ceda_radical';
+      const isCedaRadicalInPower = state.rulingCoalition === 'ceda_radical';
       return !!(
         (state.stats?.tension ?? 0) > 60 &&
         (state.stats?.revolutionaryFervor ?? 0) > 50 &&

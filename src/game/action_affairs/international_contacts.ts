@@ -1,4 +1,4 @@
-﻿import { Card } from '../types';
+import { Card } from '../types';
 import { adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence, getDissentMultiplier } from '../utils';
 
 export const internationalContacts: Card = {
@@ -151,7 +151,7 @@ export const internationalContacts: Card = {
                 partyRelations: {
                   ...s.partyRelations,
                   PCE: Math.min(100, s.partyRelations.PCE + 5),
-                  POUM: Math.min(100, s.partyRelations.POUM + 5),
+                  ...(s.poum_founded ? { POUM: Math.min(100, s.partyRelations.POUM + 5) } : {}),
                 },
                 factions: newFactions
               };

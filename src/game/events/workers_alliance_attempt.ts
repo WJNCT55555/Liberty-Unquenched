@@ -17,7 +17,7 @@ export const workersAllianceAttempt: GameEvent = {
   condition: (state) => {
     const isAfterNovember1933 = state.year > 1933 || (state.year === 1933 && state.month >= 11);
     const cntStanceOppose = state.cntStance === 'oppose';
-    const republicanSocialistNotExists = state.activeCoalition?.activeId !== 'republican_socialist';
+    const republicanSocialistNotExists = state.rulingCoalition !== 'republican_socialist';
     
     return !state.uhp_attempt_triggered && isAfterNovember1933 && cntStanceOppose && republicanSocialistNotExists;
   },

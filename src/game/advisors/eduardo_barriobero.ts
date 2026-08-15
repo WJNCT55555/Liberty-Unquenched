@@ -8,7 +8,7 @@ export const eduardoBarriobero: Advisor = {
   faction: 'Jabalistas',
   description: 'A brilliant federal republican lawyer and lawyer-militant of the CNT. He served as defense counsel for hundreds of persecuted workers and later headed the revolutionary CNT Juridical Office in Barcelona during 1936.',
   descriptionZh: '才华横溢的联邦共和派律师兼总工会斗士。他曾免费为数以百计的被迫害工人辩护，并于1936年夏天在加泰罗尼亚主持革命的总工会司法事务部。',
-  image: 'img/Orobon_Fernandez.png',
+  image: 'img/Advisors/Eduardo_Barriobero.png',
   actions: [
     {
       id: 'barriobero_legal_defense',

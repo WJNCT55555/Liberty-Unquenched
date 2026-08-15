@@ -24,8 +24,8 @@ export const alianzaObreraJournal: JournalEntryDef = {
     if (entryState.status === 'completed' || entryState.status === 'failed') return null;
 
     // Fail if PSOE enters a political coalition (Republican-Socialist Coalition or Popular Front)
-    const isPsoeInCoalition = state.activeCoalition && 
-      (state.activeCoalition.activeId === 'republican_socialist' || state.activeCoalition.activeId === 'popular_front');
+    const psoeCoalition = state.activeCoalitions.find(c => c.activeId === 'republican_socialist' || c.activeId === 'popular_front');
+    const isPsoeInCoalition = !!psoeCoalition;
     if (isPsoeInCoalition) return 'failed';
 
     // Must be activated after journal_uhp is completed
@@ -53,7 +53,7 @@ export const alianzaObreraJournal: JournalEntryDef = {
     ];
 
     return {
-      activeCoalition: newState.activeCoalition,
+      activeCoalitions: newState.activeCoalitions,
       coalitionHistory: newState.coalitionHistory,
       pendingEvents: updatedEvents
     };

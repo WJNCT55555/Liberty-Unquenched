@@ -18,6 +18,7 @@ export const militaryPolicy: Card = {
         titleZh: '军事政策',
         description: 'With the CNT holding the Ministry of War, we must decide our approach towards the army and defense.',
         descriptionZh: '由于CNT控制了战争部（国防部），我们必须决定对军队和国防的政策。',
+        date: { year: state.year, month: state.month },
         options: [
           {
             text: 'Increase Funding',

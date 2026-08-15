@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, GameState, GameEvent } from '../types';
 import { useGame } from '../GameContext';
-import { adjustClassSupport, adjustFactionDissents } from '../utils';
+import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
 
 // Define the custom Adjuster components
 export const IncomeTaxAdjuster: React.FC = () => {
@@ -398,7 +398,7 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
           temp_tax_lower: undefined,
           temp_tax_middle: undefined,
           temp_tax_upper: undefined,
-          currentEvent: fiscalPolicyEvent // return to main menu
+          currentEvent: withCurrentDate(fiscalPolicyEvent, state) // return to main menu
         };
       }
     },
@@ -416,7 +416,7 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
         temp_tax_lower: undefined,
         temp_tax_middle: undefined,
         temp_tax_upper: undefined,
-        currentEvent: fiscalPolicyEvent // return to main menu
+        currentEvent: withCurrentDate(fiscalPolicyEvent, state) // return to main menu
       })
     }
   ]
@@ -495,7 +495,7 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
           // Clear temp variables
           temp_tax_tariff: undefined,
           temp_tax_consumption: undefined,
-          currentEvent: fiscalPolicyEvent // return to main menu
+          currentEvent: withCurrentDate(fiscalPolicyEvent, state) // return to main menu
         };
       }
     },
@@ -511,7 +511,7 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
         // Clear temp variables
         temp_tax_tariff: undefined,
         temp_tax_consumption: undefined,
-        currentEvent: fiscalPolicyEvent // return to main menu
+        currentEvent: withCurrentDate(fiscalPolicyEvent, state) // return to main menu
       })
     }
   ]
@@ -534,7 +534,7 @@ export const fiscalPolicyEvent: GameEvent = {
         temp_tax_lower: state.temp_tax_lower ?? state.tax_lower_class,
         temp_tax_middle: state.temp_tax_middle ?? state.tax_middle_class,
         temp_tax_upper: state.temp_tax_upper ?? state.tax_upper_class,
-        currentEvent: fiscalPolicyIncomeTaxesEvent
+        currentEvent: withCurrentDate(fiscalPolicyIncomeTaxesEvent, state)
       })
     },
     {
@@ -546,7 +546,7 @@ export const fiscalPolicyEvent: GameEvent = {
         // Ensure starting values are backed up if not already
         temp_tax_tariff: state.temp_tax_tariff ?? state.tax_tariff,
         temp_tax_consumption: state.temp_tax_consumption ?? state.tax_consumption,
-        currentEvent: fiscalPolicyTariffConsumptionEvent
+        currentEvent: withCurrentDate(fiscalPolicyTariffConsumptionEvent, state)
       })
     },
 
@@ -585,7 +585,7 @@ export const fiscalPolicy: Card = {
       temp_tax_upper: state.tax_upper_class,
       temp_tax_tariff: state.tax_tariff,
       temp_tax_consumption: state.tax_consumption,
-      currentEvent: fiscalPolicyEvent
+      currentEvent: withCurrentDate(fiscalPolicyEvent, state)
     };
   }
 };

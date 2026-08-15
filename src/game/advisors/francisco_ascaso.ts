@@ -8,7 +8,7 @@ export const franciscoAscaso: Advisor = {
   faction: 'Faistas',
   description: 'Anarchist militant and key member of "Los Solidarios" alongside Durruti. Known for his unflinching bravery, he died leading the heroic assault on the Atarazanas barracks in Barcelona during the July 1936 uprising.',
   descriptionZh: '无政府主义铁血战士、“团结者”的核心骨干、杜鲁蒂最亲密的手足战友。以无比的英勇著称，在1936年7月巴塞罗那战役中，他在率众冲锋强攻阿塔拉萨纳斯兵营时壮烈牺牲。',
-  image: 'img/Juan_Garcia_Oliver.png',
+  image: 'img/Advisors/Juan_Garcia_Oliver.png',
   actions: [
     {
       id: 'ascaso_clandestine_network',

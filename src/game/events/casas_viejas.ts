@@ -81,17 +81,7 @@ export const casasViejas2Insurrection: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Faistas', 15),
           cntStance: 'oppose' as const,
           ministers: min,
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              PSOE: 10,
-              IR: 10,
-              UR: 10,
-              DLR: 10
-            }
-          } : null,
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, PSOE: 10, IR: 10, UR: 10, DLR: 10 } } : c),
           currentEvent: generalStrikeFails
         };
       }
@@ -131,17 +121,7 @@ export const casasViejas2Insurrection: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Cenetistas', 10),
           cntStance: 'oppose' as const,
           ministers: min,
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              PSOE: 10,
-              IR: 10,
-              UR: 10,
-              DLR: 10
-            }
-          } : null
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, PSOE: 10, IR: 10, UR: 10, DLR: 10 } } : c)
         };
       }
     }
@@ -195,17 +175,7 @@ export const casasViejas2Crackdown: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Puristas', 12),
           cntStance: 'oppose' as const,
           ministers: min,
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              PSOE: 10,
-              IR: 10,
-              UR: 10,
-              DLR: 10
-            }
-          } : null
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, PSOE: 10, IR: 10, UR: 10, DLR: 10 } } : c)
         };
       }
     },
@@ -244,17 +214,7 @@ export const casasViejas2Crackdown: GameEvent = {
           factions: adjustFactionInfluence(state.factions, 'Cenetistas', 12),
           cntStance: 'oppose' as const,
           ministers: min,
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              PSOE: 10,
-              IR: 10,
-              UR: 10,
-              DLR: 10
-            }
-          } : null
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, PSOE: 10, IR: 10, UR: 10, DLR: 10 } } : c)
         };
       }
     }

@@ -5,83 +5,90 @@ import { getPartySupport, updatePartySupport } from '../parties';
 
 export { getPartySupport, updatePartySupport };
 
-/**
- * Re-evaluates cohesive power and average CNT-relation attitude for the active coalition
- */
-export function updateCoalitionState(state: GameState): CoalitionState | null {
-  if (!state.activeCoalition) return null;
-  const coalition = { ...state.activeCoalition };
-  const def = COALITION_DEFS.find(d => d.id === coalition.activeId);
-  if (!def) return null;
-
+export function updateCoalitions(state: GameState): CoalitionState[] {
   const support = state.partySupport && Object.keys(state.partySupport).length > 0 
     ? state.partySupport 
     : updatePartySupport(state);
 
-  // 1. Calculate the sum of support of all parties in the coalition
-  let totalAllianceSupport = 0;
-  def.members.forEach(member => {
-    const pSupport = member === 'CNT_FAI' ? getPartySupport(state, 'CNT_FAI') : (support[member as Party] ?? 0);
-    totalAllianceSupport += pSupport;
-  });
+  return state.activeCoalitions.map(coalition => {
+    const c = { ...coalition };
+    const def = COALITION_DEFS.find(d => d.id === c.activeId);
+    if (!def) return c;
 
-  // 2. Calculate cohesion using: Sum of (memberContribution * (partySupport / totalAllianceSupport))
-  let cohesion = 0;
-  if (totalAllianceSupport > 0) {
+    let totalAllianceSupport = 0;
     def.members.forEach(member => {
-      const contribution = coalition.memberContributions[member as Party] ?? 80;
       const pSupport = member === 'CNT_FAI' ? getPartySupport(state, 'CNT_FAI') : (support[member as Party] ?? 0);
-      const factionPower = pSupport / totalAllianceSupport; // ratio of support within coalition
-      cohesion += contribution * factionPower;
+      totalAllianceSupport += pSupport;
     });
-  } else {
-    // If no support at all, fallback to a simple average of contributions
-    let sumContrib = 0;
-    def.members.forEach(member => {
-      sumContrib += coalition.memberContributions[member as Party] ?? 80;
-    });
-    cohesion = sumContrib / (def.members.length || 1);
-  }
-  // Cap between 0 and 100
-  coalition.cohesion = Math.min(100, Math.max(0, Math.round(cohesion)));
 
-  // 2. Calculate average CNT relations of the other parties
-  const actualMembers = def.members.filter(m => m !== 'CNT_FAI') as Party[];
-  const totalSupport = actualMembers.reduce((sum, p) => sum + (support[p] || 0), 0);
-  let cntAttitude = 0;
-  if (totalSupport > 0) {
-    const sumAttitude = actualMembers.reduce((sum, p) => sum + (state.partyRelations[p] || 0) * (support[p] || 0), 0);
-    cntAttitude = Math.round(sumAttitude / totalSupport);
-  } else {
-    // defaults
-    cntAttitude = 0;
-  }
-  coalition.cntAttitude = Math.min(100, Math.max(-100, cntAttitude));
+    let cohesion = 0;
+    if (totalAllianceSupport > 0) {
+      def.members.forEach(member => {
+        const contribution = c.memberContributions[member as Party] ?? 80;
+        const pSupport = member === 'CNT_FAI' ? getPartySupport(state, 'CNT_FAI') : (support[member as Party] ?? 0);
+        const factionPower = pSupport / totalAllianceSupport;
+        cohesion += contribution * factionPower;
+      });
+    } else {
+      let sumContrib = 0;
+      def.members.forEach(member => {
+        sumContrib += c.memberContributions[member as Party] ?? 80;
+      });
+      cohesion = sumContrib / (def.members.length || 1);
+    }
+    c.cohesion = Math.min(100, Math.max(0, Math.round(cohesion)));
 
-  return coalition;
+    const actualMembers = def.members.filter(m => m !== 'CNT_FAI') as Party[];
+    const totalSupport = actualMembers.reduce((sum, p) => sum + (support[p] || 0), 0);
+    let cntAttitude = 0;
+    if (totalSupport > 0) {
+      const sumAttitude = actualMembers.reduce((sum, p) => sum + (state.partyRelations[p] || 0) * (support[p] || 0), 0);
+      cntAttitude = Math.round(sumAttitude / totalSupport);
+    }
+    c.cntAttitude = Math.min(100, Math.max(-100, cntAttitude));
+
+    return c;
+  });
 }
 
-/**
- * Activates a coalition by template ID and updates historical tracking
- */
-export function formCoalition(state: GameState, id: CoalitionId): GameState {
+export function formCoalition(state: GameState, id: CoalitionId, isRuling = false): GameState {
   const def = COALITION_DEFS.find(d => d.id === id);
   if (!def) return state;
 
+  // A party can only be in one coalition. Strip members from other active coalitions.
+  let currentActive = [...(state.activeCoalitions || [])];
+  
+  let shouldDissolveIds: CoalitionId[] = [];
+  
+  currentActive = currentActive.map(c => {
+    const cDef = COALITION_DEFS.find(d => d.id === c.activeId);
+    if (!cDef) return c;
+    
+    // Check overlap
+    const hasOverlap = cDef.members.some(m => def.members.includes(m));
+    if (hasOverlap) {
+      shouldDissolveIds.push(c.activeId);
+    }
+    return c;
+  });
+
   const history = [...(state.coalitionHistory || [])];
-  if (state.activeCoalition) {
-    history.push({
-      id: state.activeCoalition.activeId,
-      from: state.activeCoalition.formedAt,
-      to: { year: state.year, month: state.month }
-    });
-  }
+  
+  shouldDissolveIds.forEach(did => {
+    const idx = currentActive.findIndex(c => c.activeId === did);
+    if (idx > -1) {
+      history.push({
+        id: currentActive[idx].activeId,
+        from: currentActive[idx].formedAt,
+        to: { year: state.year, month: state.month }
+      });
+      currentActive.splice(idx, 1);
+    }
+  });
 
   const contributions: Partial<Record<Party, number>> = {};
   const parties: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
-  parties.forEach(p => {
-    contributions[p] = 80; // Starting average contribution is 80
-  });
+  parties.forEach(p => { contributions[p] = 80; });
 
   const coalition: CoalitionState = {
     activeId: id,
@@ -91,118 +98,123 @@ export function formCoalition(state: GameState, id: CoalitionId): GameState {
     formedAt: { year: state.year, month: state.month }
   };
 
-  const newState = {
-    ...state,
-    activeCoalition: coalition,
-    coalitionHistory: history
-  };
-
-  newState.activeCoalition = updateCoalitionState(newState);
-  return newState;
-}
-
-/**
- * Increments or decrements a member party's commitment contribution and recalcs
- */
-export function adjustMemberContribution(state: GameState, party: Party, amount: number): GameState {
-  if (!state.activeCoalition) return state;
-  const contributions = { ...state.activeCoalition.memberContributions };
-  const oldVal = contributions[party] ?? 80;
-  contributions[party] = Math.min(100, Math.max(0, oldVal + amount));
-
-  const updatedCoalition = {
-    ...state.activeCoalition,
-    memberContributions: contributions
-  };
+  currentActive.push(coalition);
 
   const newState = {
     ...state,
-    activeCoalition: updatedCoalition
+    activeCoalitions: currentActive,
+    coalitionHistory: history,
+    rulingCoalition: isRuling ? id : (shouldDissolveIds.includes(state.rulingCoalition as CoalitionId) ? id : state.rulingCoalition)
   };
 
-  newState.activeCoalition = updateCoalitionState(newState);
+  newState.activeCoalitions = updateCoalitions(newState);
   return newState;
 }
 
-/**
- * Checks cohesion, seat requirements, and custom criteria. Dissolves if requirements fail.
- */
+export function adjustMemberContribution(state: GameState, party: Party, amount: number, targetCoalitionId?: CoalitionId): GameState {
+  if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
+  
+  let targetId = targetCoalitionId;
+  if (!targetId) targetId = state.rulingCoalition || state.activeCoalitions[0].activeId;
+
+  const currentActive = state.activeCoalitions.map(c => {
+    if (c.activeId === targetId) {
+      const contributions = { ...c.memberContributions };
+      const oldVal = contributions[party] ?? 80;
+      contributions[party] = Math.min(100, Math.max(0, oldVal + amount));
+      return { ...c, memberContributions: contributions };
+    }
+    return c;
+  });
+
+  const newState = { ...state, activeCoalitions: currentActive };
+  newState.activeCoalitions = updateCoalitions(newState);
+  return newState;
+}
+
 export function checkCoalitionDissolve(state: GameState): GameState {
-  if (!state.activeCoalition) return state;
+  if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
 
-  const coalition = state.activeCoalition;
-  const def = COALITION_DEFS.find(d => d.id === coalition.activeId);
-  if (!def) return state;
+  let currentActive = [...state.activeCoalitions];
+  const history = [...(state.coalitionHistory || [])];
+  let isRepublicanSocialistDissolved = state.isRepublicanSocialistDissolved;
+  let isCedaRadicalDissolved = state.isCedaRadicalDissolved;
+  let coalitionJustDissolved = false;
+  let newRulingCoalition = state.rulingCoalition;
 
-  let shouldDissolve = false;
+  for (let i = currentActive.length - 1; i >= 0; i--) {
+    const coalition = currentActive[i];
+    const def = COALITION_DEFS.find(d => d.id === coalition.activeId);
+    if (!def) continue;
 
-  // 1. Cohesion drops below template's dissolve threshold
-  if (coalition.cohesion < def.dissolveThreshold) {
-    shouldDissolve = true;
-  }
+    let shouldDissolve = false;
 
-  // 2. Custom dissolution callback
-  if (def.shouldDissolve && def.shouldDissolve(state, coalition)) {
-    shouldDissolve = true;
-  }
-
-  // 3. Fall below seat percentage requirement if Cortes exists
-  if (state.cortes) {
-    const memberSeats = def.members.reduce((sum, m) => sum + (m === 'CNT_FAI' ? 0 : (state.cortes?.[m as Party] || 0)), 0);
-    const totalSeats = Object.values(state.cortes).reduce((sum, v) => sum + v, 0) || 470;
-    const seatShare = memberSeats / totalSeats;
-    if (seatShare < def.minSeatShare) {
+    if (coalition.cohesion < def.dissolveThreshold) {
       shouldDissolve = true;
+    }
+    if (def.shouldDissolve && def.shouldDissolve(state, coalition)) {
+      shouldDissolve = true;
+    }
+    if (state.cortes) {
+      const memberSeats = def.members.reduce((sum, m) => sum + (m === 'CNT_FAI' ? 0 : (state.cortes?.[m as Party] || 0)), 0);
+      const totalSeats = Object.values(state.cortes).reduce((sum, v) => sum + v, 0) || 470;
+      const seatShare = memberSeats / totalSeats;
+      if (seatShare < def.minSeatShare) {
+        shouldDissolve = true;
+      }
+    }
+
+    if (shouldDissolve) {
+      history.push({
+        id: coalition.activeId,
+        from: coalition.formedAt,
+        to: { year: state.year, month: state.month }
+      });
+      if (coalition.activeId === 'republican_socialist') isRepublicanSocialistDissolved = true;
+      if (coalition.activeId === 'ceda_radical') isCedaRadicalDissolved = true;
+      coalitionJustDissolved = true;
+      
+      if (state.rulingCoalition === coalition.activeId) {
+        newRulingCoalition = null;
+      }
+      
+      currentActive.splice(i, 1);
     }
   }
 
-  if (shouldDissolve) {
-    const history = [...(state.coalitionHistory || [])];
-    history.push({
-      id: coalition.activeId,
-      from: coalition.formedAt,
-      to: { year: state.year, month: state.month }
-    });
-
-    const isRepSoc = coalition.activeId === 'republican_socialist';
-    const isCedaRad = coalition.activeId === 'ceda_radical';
-
+  if (coalitionJustDissolved) {
     return {
       ...state,
-      activeCoalition: null,
+      activeCoalitions: currentActive,
       coalitionHistory: history,
-      isRepublicanSocialistDissolved: state.isRepublicanSocialistDissolved || isRepSoc,
-      isCedaRadicalDissolved: state.isCedaRadicalDissolved || isCedaRad,
-      coalition_just_dissolved: true
+      isRepublicanSocialistDissolved,
+      isCedaRadicalDissolved,
+      coalition_just_dissolved: true,
+      rulingCoalition: newRulingCoalition
     };
   }
 
   return state;
 }
 
-/**
- * Matches existing template requirements and auto-forms a coalition if none is active
- */
 export function autoFormCoalitionIfNeeded(state: GameState): GameState {
   return state;
 }
 
-/**
- * Initializes starting coalition based on selected scenario
- */
 export function initializeStartingCoalition(state: GameState): GameState {
   let s = { ...state };
   s.partySupport = updatePartySupport(s);
   
   if (s.scenario === '1931') {
-    s.activeCoalition = null;
+    s = formCoalition(s, 'provisional_government', true);
     s.cntStance = 'oppose';
   } else if (s.scenario === '1933') {
-    s = formCoalition(s, 'ceda_radical');
+    s = formCoalition(s, 'ceda_radical', true);
     s.cntStance = 'oppose';
   } else if (s.scenario === '1936') {
-    s = formCoalition(s, 'popular_front');
-    s.cntStance = 'cooperate'; // default cooperation stance
+    s = formCoalition(s, 'popular_front', true);
+    s.cntStance = 'cooperate';
   }
+  
   return s;
 }

@@ -8,7 +8,7 @@ export const orobonFernandez: Advisor = {
   faction: 'Cenetistas',
   description: 'A visionary anarcho-syndicalist theoretician. He firmly believes that only a "Revolutionary Workers\' Alliance" between the CNT and the socialist UGT can halt the rise of fascism.',
   descriptionZh: '极具远见的无政府工团主义理论家。他坚信，只有 CNT 和社会主义的 UGT 结成“革命工人联盟”，才能阻挡法西斯主义的崛起。',
-  image: 'img/Orobon_Fernandez.png',
+  image: 'img/Advisors/Orobon_Fernandez.png',
   actions: [
     {
       id: 'improve_ugt_relations',

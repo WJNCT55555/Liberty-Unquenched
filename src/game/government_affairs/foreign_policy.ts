@@ -1,5 +1,5 @@
 import { Card, GameState, GameEvent } from '../types';
-import { adjustClassSupport, adjustFactionDissents } from '../utils';
+import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
 
 const concludeForeignPolicy = (changes: Partial<GameState>): Partial<GameState> => ({
   ...changes,
@@ -64,8 +64,8 @@ export const gibraltarQuestionEvent: GameEvent = {
       textZh: '取消并返回',
       subtitle: 'Leave the Gibraltar question unresolved and return to the UK talks.',
       subtitleZh: '暂不处理直布罗陀问题，返回英国谈判页面。',
-      effect: () => ({
-        currentEvent: negotiateUKEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateUKEvent, state)
       })
     }
   ]
@@ -131,8 +131,8 @@ export const negotiateUKEvent: GameEvent = {
       condition: (state) => !state.gibraltar_resolved,
       unavailableSubtitle: () => 'The Gibraltar question has already been settled.',
       unavailableSubtitleZh: () => '直布罗陀问题已经处理完毕。',
-      effect: () => ({
-        currentEvent: gibraltarQuestionEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(gibraltarQuestionEvent, state)
       })
     },
     {
@@ -140,8 +140,8 @@ export const negotiateUKEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the UK talks and return to the foreign policy council.',
       subtitleZh: '离开英国谈判，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -253,8 +253,8 @@ export const negotiateFranceEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the French talks and return to the foreign policy council.',
       subtitleZh: '离开法国谈判，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -347,8 +347,8 @@ export const negotiateUSAEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the American talks and return to the foreign policy council.',
       subtitleZh: '离开美国谈判，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -493,8 +493,8 @@ export const negotiateSovietEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the Soviet talks and return to the foreign policy council.',
       subtitleZh: '离开苏联谈判，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -560,8 +560,8 @@ export const negotiateGermanyEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the German file and return to the foreign policy council.',
       subtitleZh: '离开德国议题，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -679,8 +679,8 @@ export const focusLatinAmericaEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the Latin America agenda and return to the foreign policy council.',
       subtitleZh: '离开拉美议题，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -740,8 +740,8 @@ export const discussPortugalEvent: GameEvent = {
       textZh: '返回外交政策主菜单',
       subtitle: 'Leave the Portuguese agenda and return to the foreign policy council.',
       subtitleZh: '离开葡萄牙议题，返回外交政策主菜单。',
-      effect: () => ({
-        currentEvent: foreignPolicyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(foreignPolicyEvent, state)
       })
     }
   ]
@@ -759,8 +759,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '与英国进行谈判',
       subtitle: 'Open the UK file: debt, Gibraltar, and relations with London.',
       subtitleZh: '打开英国议题：债务、直布罗陀与伦敦关系。',
-      effect: () => ({
-        currentEvent: negotiateUKEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateUKEvent, state)
       })
     },
     {
@@ -768,8 +768,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '与法国进行谈判',
       subtitle: 'Open the French file: anti-fascist coordination, arms channels, and Andorra.',
       subtitleZh: '打开法国议题：反法西斯协作、军火通道与安道尔。',
-      effect: () => ({
-        currentEvent: negotiateFranceEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateFranceEvent, state)
       })
     },
     {
@@ -777,8 +777,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '与美国进行谈判',
       subtitle: 'Open the American file: debt, petroleum, aircraft, and hemispheric diplomacy.',
       subtitleZh: '打开美国议题：债务、石油、飞机与美洲外交。',
-      effect: () => ({
-        currentEvent: negotiateUSAEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateUSAEvent, state)
       })
     },
     {
@@ -786,8 +786,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '与苏联进行谈判',
       subtitle: 'Open the Soviet file: arms, gold, trade, and ideological consequences.',
       subtitleZh: '打开苏联议题：军备、黄金、贸易与意识形态后果。',
-      effect: () => ({
-        currentEvent: negotiateSovietEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateSovietEvent, state)
       })
     },
     {
@@ -795,8 +795,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '与德国进行谈判',
       subtitle: 'Open the German file: official restraint or underground resistance support.',
       subtitleZh: '打开德国议题：官方克制或地下抵抗援助。',
-      effect: () => ({
-        currentEvent: negotiateGermanyEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(negotiateGermanyEvent, state)
       })
     },
     {
@@ -804,8 +804,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '让我们目光转向拉美',
       subtitle: 'Open the Latin America file: Mexico, diaspora, and anarchist networks.',
       subtitleZh: '打开拉美议题：墨西哥、侨民与无政府主义网络。',
-      effect: () => ({
-        currentEvent: focusLatinAmericaEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(focusLatinAmericaEvent, state)
       })
     },
     {
@@ -813,8 +813,8 @@ export const foreignPolicyEvent: GameEvent = {
       textZh: '谈谈在我们半岛上的邻居——葡萄牙',
       subtitle: 'Open the Portuguese file: Salazar, CGT contacts, and Iberian security.',
       subtitleZh: '打开葡萄牙议题：萨拉查、CGT 联系与伊比利亚安全。',
-      effect: () => ({
-        currentEvent: discussPortugalEvent
+      effect: (state: GameState) => ({
+        currentEvent: withCurrentDate(discussPortugalEvent, state)
       })
     },
     {
@@ -840,7 +840,7 @@ export const foreignPolicy: Card = {
   },
   effect: (state: GameState) => {
     return {
-      currentEvent: foreignPolicyEvent
+      currentEvent: withCurrentDate(foreignPolicyEvent, state)
     };
   }
 };

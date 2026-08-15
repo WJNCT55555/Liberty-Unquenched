@@ -23,6 +23,7 @@ export const laborAffairs: Card = {
         titleZh: '劳工事务',
         description: 'Industrial hubs in Catalonia are ablaze with labor unrest. Employers have initiated a major lockout, trying to force workers to accept further cuts in wages and benefits. The Ministry of Labor must intervene to arbitrate the industrial conflict.',
         descriptionZh: '工业重镇加泰罗尼亚正燃起劳工骚乱之火。雇主们发起了一场大规模停工，试图迫使工人在工资和福利上接受更多削减。劳工部亟需出面仲裁劳资冲突。',
+        date: { year: state.year, month: state.month },
         options: [
           {
             text: 'Support labor in their demands',

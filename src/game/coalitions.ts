@@ -3,6 +3,15 @@ import { CoalitionDef, GameState, Party } from './types';
 // Check if a party exists or is active (some parties are founded via choices / events)
 export const COALITION_DEFS: CoalitionDef[] = [
   {
+    id: 'provisional_government',
+    name: 'Provisional Government',
+    nameZh: '临时看守政府',
+    members: ['PSOE', 'IR', 'UR', 'DLR', 'PRR', 'ERC'],
+    minSeatShare: 0.0,
+    canForm: (state: GameState) => state.year === 1931 && state.month < 11,
+    dissolveThreshold: 10
+  },
+  {
     id: 'republican_socialist',
     name: 'Republican-Socialist Coalition',
     nameZh: '共和-社会党联合',

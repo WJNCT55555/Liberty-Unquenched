@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { GameState, Card, Advisor, GameEvent, EventHistory } from './types';
-import { initializeStartingCoalition, updatePartySupport, updateCoalitionState, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils/coalition';
+import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils/coalition';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
@@ -791,15 +791,15 @@ export const INITIAL_STATE: GameState = {
   forceAsturiasRevolutionNextMonth: false,
   leverage: 0,
   ministers: {
-    labor: 'Right',
-    health: 'Right',
-    justice: 'Right',
-    industry: 'Right',
-    interior: 'Right',
-    war: 'Right',
-    agriculture: 'Right',
-    finance: 'Right',
-    estado: 'Right',
+    labor: 'AP',
+    health: 'AP',
+    justice: 'AP',
+    industry: 'AP',
+    interior: 'AP',
+    war: 'AP',
+    agriculture: 'AP',
+    finance: 'AP',
+    estado: 'AP',
   },
   superEvent: null,
   pendingEvents: [],
@@ -906,7 +906,8 @@ export const INITIAL_STATE: GameState = {
   partySupport: {
     POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, Other: 0, PRRevS: 0
   },
-  activeCoalition: null,
+  activeCoalitions: [],
+  rulingCoalition: null,
   coalitionHistory: [],
   coalition_dissent: 0,
 };
@@ -978,15 +979,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 
       let startMinisters: GameState['ministers'] = {
-        labor: 'Right',
-        health: 'Right',
-        justice: 'Right',
-        industry: 'Right',
-        interior: 'Right',
-        war: 'Right',
-        agriculture: 'Right',
-        finance: 'Right',
-        estado: 'Right',
+        labor: 'AP',
+        health: 'AP',
+        justice: 'AP',
+        industry: 'AP',
+        interior: 'AP',
+        war: 'AP',
+        agriculture: 'AP',
+        finance: 'AP',
+        estado: 'AP',
       };
 
       if (action.payload.scenario === '1931') {
@@ -2224,8 +2225,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           tempState.cntVotingRate = Math.max(0, tempState.cntVotingRate - 1);
         }
         tempState.partySupport = updatePartySupport(tempState);
-        if (tempState.activeCoalition) {
-          tempState.activeCoalition = updateCoalitionState(tempState);
+        if (tempState.activeCoalitions) {
+          tempState.activeCoalitions = updateCoalitions(tempState);
         }
         tempState = checkCoalitionDissolve(tempState);
         tempState = autoFormCoalitionIfNeeded(tempState);

@@ -24,8 +24,8 @@ export const uhpJournal: JournalEntryDef = {
     if (!state.uhp_journal_activated) return 'inactive';
 
     // Fail if PSOE enters a political coalition (Republican-Socialist Coalition or Popular Front)
-    const isPsoeInCoalition = state.activeCoalition && 
-      (state.activeCoalition.activeId === 'republican_socialist' || state.activeCoalition.activeId === 'popular_front');
+    const psoeCoalition = state.activeCoalitions.find(c => c.activeId === 'republican_socialist' || c.activeId === 'popular_front');
+    const isPsoeInCoalition = !!psoeCoalition;
     if (isPsoeInCoalition) return 'failed';
 
     if ((state.partyRelations?.PSOE ?? 0) >= 70) return 'completed';

@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { presidentialElectionDecision } from '../events/presidential_election_chain';
+import { withCurrentDate } from '../utils';
 
 export const impeachPresident: Card = {
   id: 'impeach_president',
@@ -22,6 +23,7 @@ export const impeachPresident: Card = {
         titleZh: '弹劾阿尔卡拉-萨莫拉总统',
         description: 'The newly elected Cortes is now in session to debate the constitutionality of the President\'s second dissolution of parliament. On the Left, representatives from the PSOE, PCE, and Left Republicans strongly advocate for his dismissal, accusing him of overstepping his constitutional bounds and showing bias. On the Right, the opposition views this as a partisan attempt to capture the highest office in Spain. As part of the government, how will we vote on this impeachment?',
         descriptionZh: '新当选的议会正在举行会议，辩论总统第二次解散议会是否符合宪法。在左翼，来自工人社会党（PSOE）、共产党（PCE）以及左翼共和派的代表强烈主张将其罢免，指责他逾越了宪法界限并表现出党派偏见。在右翼，反对派将这视为左翼为了夺取国家最高权力而进行的党派阴谋。作为联合政府的参与方，我们将如何投下这一票？',
+        date: { year: state.year, month: state.month },
         options: [
           {
             text: 'Vote to Impeach! Remove him from office and elect Manuel Azaña.',
@@ -48,7 +50,7 @@ export const impeachPresident: Card = {
                   ...s.stats,
                   revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10)
                 },
-                currentEvent: presidentialElectionDecision
+                currentEvent: withCurrentDate(presidentialElectionDecision, s)
               };
             }
           },

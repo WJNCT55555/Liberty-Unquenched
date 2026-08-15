@@ -40,16 +40,7 @@ export const nombelaScandal: GameEvent = {
             PSOE: Math.max(-100, state.partyRelations.PSOE - 10),
             IR: Math.max(-100, state.partyRelations.IR - 15)
           },
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              AP: 10,
-              DLR: 10,
-              PRR: 10
-            }
-          } : null,
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, AP: 10, DLR: 10, PRR: 10 } } : c),
           factions: adjustFactionInfluence(adjustFactionInfluence(state.factions, 'Faistas', 10), 'Puristas', 10)
         };
       }
@@ -72,16 +63,7 @@ export const nombelaScandal: GameEvent = {
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5),
             republicanAuthority: Math.min(100, state.stats.republicanAuthority + 5)
           },
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              AP: 10,
-              DLR: 10,
-              PRR: 10
-            }
-          } : null,
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, AP: 10, DLR: 10, PRR: 10 } } : c),
           partyRelations: {
             ...state.partyRelations,
             PSOE: Math.min(100, state.partyRelations.PSOE + 15),
@@ -106,16 +88,7 @@ export const nombelaScandal: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 8),
           },
-          activeCoalition: state.activeCoalition ? {
-            ...state.activeCoalition,
-            cohesion: 10,
-            memberContributions: {
-              ...state.activeCoalition.memberContributions,
-              AP: 10,
-              DLR: 10,
-              PRR: 10
-            }
-          } : null,
+          activeCoalitions: state.activeCoalitions.map(c => c.activeId === state.rulingCoalition ? { ...c, cohesion: 10, memberContributions: { ...c.memberContributions, AP: 10, DLR: 10, PRR: 10 } } : c),
           factions: adjustFactionInfluence(state.factions, 'Puristas', 12)
         };
       }

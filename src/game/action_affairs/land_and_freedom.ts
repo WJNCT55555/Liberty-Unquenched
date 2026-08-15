@@ -56,7 +56,7 @@ export const landAndFreedom: Card = {
           }
         },
         {
-          text: 'Incautación ',
+          text: 'Incautación',
           textZh: '直接夺取',
           subtitle: 'Commit our armed detachments to seize the estates of the Latifundistas and the reactionaries immediately.',
           subtitleZh: '投入我们的武装力量，立即没收大地主和反动派的庄园。',

@@ -8,7 +8,7 @@ export const melchorRodriguez: Advisor = {
   faction: 'None',
   description: 'The legendary "Red Angel" (El Ángel Rojo) and Director of Prisons in Madrid. A moderate, deeply principled anarchist who strictly stopped extrajudicial violence and saved thousands of lives of political enemies based on unconditional human rights.',
   descriptionZh: '传奇的马德里“红色天使”。温和、崇高、极具原则的无政府主义学者。他在出任战时司法和管教事务代表时，顶住极左狂热压力制止法外极刑，以无条的人道底线挽救了上万被俘右翼战俘与保守市民的生命。',
-  image: 'img/Joan_Peiró.png',
+  image: 'img/Advisors/Melchor_Rodriguez_Garcia.png',
   actions: [
     {
       id: 'melchor_red_angel',

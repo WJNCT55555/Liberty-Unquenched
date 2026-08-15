@@ -8,6 +8,16 @@ interface AchievementsModalProps {
   onClose: () => void;
 }
 
+
+const getImageUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  const base = (import.meta as any).env.BASE_URL || '/';
+  if (url.startsWith(base)) return url;
+  if (url.startsWith('/')) return url;
+  return `${base}${url}`;
+};
+
 export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
   const { state } = useGame();
   const isZh = state.language === 'zh';
@@ -74,7 +84,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
                       ${isUnlocked ? 'bg-paper-dark' : 'bg-ink/5'}`}>
                       {isUnlocked ? (
                         ach.icon.endsWith('.png') ? (
-                          <img src={ach.icon} alt="icon" className="w-16 h-16 object-contain filter drop-shadow-md" />
+                          <img src={getImageUrl(ach.icon)} alt="icon" className="w-16 h-16 object-contain filter drop-shadow-md" />
                         ) : (
                           ach.icon
                         )

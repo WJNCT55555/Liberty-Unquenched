@@ -8,7 +8,7 @@ export const juanLopezSanchez: Advisor = {
   faction: 'Treintistas',
   description: 'A prominent printer, writer, and Treintistas leader who believed in economic pragmatism, cooperative federations, and trade-union realism.',
   descriptionZh: '著名的印刷工、作家和“三十人集团”领导人。他笃信经济实用主义、工团合作社，主张温和务实的工会现实路线。',
-  image: 'img/Juan_López_Sánchez.png',
+  image: 'img/Advisors/Juan_Lopez_Sanchez.png',
   actions: [
     {
       id: 'juan_lopez_cooperative',

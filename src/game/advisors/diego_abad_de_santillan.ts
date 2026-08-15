@@ -8,7 +8,7 @@ export const diegoAbadDeSantillan: Advisor = {
   faction: 'Faistas',
   description: 'Anarchist intellectual, writer, and economist of the FAI. He developed comprehensive theories on self-managed socialization, and actively organized Catalonia\'s antifascist economy during the revolution.',
   descriptionZh: '无政府主义知识分子、作家，FAI著名经济理论家。他系统阐述了自决互助与自主管理的社会化经济学说，并在战时深度参与组织了加泰罗尼亚的军事经济体系。',
-  image: 'img/Diego_Abad_de Santillán.png',
+  image: 'img/Advisors/Diego_Abad_de_Santillan.png',
   actions: [
     {
       id: 'santillan_socialized_economics',

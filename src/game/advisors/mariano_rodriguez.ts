@@ -8,7 +8,7 @@ export const marianoRodriguez: Advisor = {
   faction: 'Cenetistas',
   description: 'Secretary General of the CNT National Committee, known as "Marianet". A pragmatic organizer who believes strict organization and compromise are necessary to win the war.',
   descriptionZh: 'CNT 全国委员会秘书长，被称为 "Marianet"。一位务实的组织者，他认为为了赢得战争，必须建立严密的组织结构甚至妥协。',
-  image: 'img/Mariano Rodríguez Vázquez.png',
+  image: 'img/Advisors/Mariano_Rodriguez_Vazquez.png',
   actions: [
     {
       id: 'centralize_command',

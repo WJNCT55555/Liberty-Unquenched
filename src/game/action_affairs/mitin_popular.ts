@@ -463,7 +463,7 @@ export const mitinPopular: Card = {
           partyRelations: {
             ...s.partyRelations,
             PSOE: clampRelation((s.partyRelations.PSOE || 0) + 3),
-            POUM: clampRelation((s.partyRelations.POUM || 0) + 4),
+            ...(s.poum_founded ? { POUM: clampRelation((s.partyRelations.POUM || 0) + 4) } : {}),
             FE: clampRelation((s.partyRelations.FE || 0) - 5)
           },
           stats: {

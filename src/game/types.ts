@@ -4,7 +4,7 @@ import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type { Party };
-export type MinisterParty = 'PSOE' | 'CNT' | 'IR' | 'PRR' | 'Right' | 'Other' | 'DLR' | 'ERC' | 'UR';
+export type MinisterParty = Party | 'CNT';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
 export type RegionalStatus = 'direct' | 'autonomy' | 'independent';
@@ -107,6 +107,7 @@ export interface Card {
 }
 
 export type CoalitionId =
+  | 'provisional_government'
   | 'republican_socialist'   // 共和-社会党联盟
   | 'popular_front'           // 人民阵线
   | 'ceda_radical'            // CEDA-激进联盟
@@ -268,7 +269,8 @@ export interface GameState {
   
   cortes?: Record<Party, number>;
   partySupport: Record<Party, number>;
-  activeCoalition: CoalitionState | null;
+  activeCoalitions: CoalitionState[];
+  rulingCoalition: CoalitionId | null;
   coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];
 
   coalition_dissent?: number;

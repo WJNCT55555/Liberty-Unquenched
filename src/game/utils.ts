@@ -1,8 +1,15 @@
-import { Faction } from './types';
+import { Faction, GameEvent, GameState } from './types';
 
 export { adjustClassSupport, adjustSingleClassSupport, collectClassSupportAdjustments } from './utils/classSupport';
 export * from './utils/eventTrigger';
 export type { ClassPoliticalForce, ClassSupportAdjustment } from './utils/classSupport';
+
+export function withCurrentDate(event: GameEvent, state: Pick<GameState, 'year' | 'month'>): GameEvent {
+  return {
+    ...event,
+    date: { year: state.year, month: state.month }
+  };
+}
 
 type FactionState = Record<Faction, { influence: number; dissent: number }>;
 export type FactionInfluenceAdjustment = {

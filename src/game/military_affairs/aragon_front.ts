@@ -23,7 +23,7 @@ export const aragonFront: Card = {
       options: [
         {
           text: 'Militia Recruitment (+500 Militia)',
-          textZh: '民兵招募：招募并训练更多民兵志愿者进入前线。',
+          textZh: '民兵招募（+500 民兵）：招募并训练更多民兵志愿者进入前线。',
           subtitle: 'Draw volunteers from collectivized villages to reinforce the CNT-FAI columns.',
           subtitleZh: '从集体化村庄中吸纳志愿者，补强CNT-FAI纵队。',
           effect: (s) => ({
@@ -52,8 +52,8 @@ export const aragonFront: Card = {
           })
         },
         {
-          text: 'Restore Discipline (+5 Combat Power, +5 Durruti Dissent, +3 FAIstas Dissent)',
-          textZh: '整顿纪律：整顿前线无政府主义民兵的纪律。',
+          text: 'Restore Discipline (+5 Combat Power, +5 Puristas Dissent, +3 Faistas Dissent)',
+          textZh: '整顿纪律（+5 战斗力，+5 纯粹派不满度，+3 FAI派不满度）：整顿前线无政府主义民兵的纪律。',
           subtitle: 'Tighten front-line coordination at the cost of angering the most anti-militarist comrades.',
           subtitleZh: '加强前线协同，但会激怒最反军事化的同志。',
           effect: (s) => ({

@@ -15,7 +15,7 @@ export const formationOfPRRevS: GameEvent = {
   titleZh: '建立革命共和工团党',
   description: 'Ángel Pestaña and the moderate wing of the CNT have been laying the groundwork for a political party. They argue that traditional anarcho-syndicalism is insufficient to protect workers\' interests within the Republic. They propose the creation of the Partido Republicano Revolucionario Sindicalista (PRRevS) to contest elections and participate in the government. This move would fundamentally change the nature of our movement, alienating the purists but potentially gaining us political power.',
   descriptionZh: '安赫尔·佩斯塔尼亚和CNT的温和派一直在为一个政党奠定基础。他们认为，传统的无政府工团主义不足以在共和国内保护工人的利益。他们提议建立革命共和工团党（PRRevS），以参加选举并参与政府。这一举动将从根本上改变我们运动的性质，疏远纯粹主义者，但有可能为我们赢得政治权力。',
-  image: 'img/Ángel_Pestaña.png',
+  image: 'img/Advisors/Angel_Pestana.png',
   condition: (state) => {
     const pestanaActive = state.activeAdvisors.some(a => a?.id === 'Ángel Pestaña');
     return pestanaActive &&

@@ -70,12 +70,12 @@ export const militiaReorg: Card = {
           textZh: '建立突击营 （-1军备）',
           subtitle: 'Concentrate scarce weapons into elite assault units for decisive attacks.',
           subtitleZh: '将稀缺军备集中给精锐突击部队，用于决定性攻势。',
-          condition: (s) => s.armaments >= 2,
-          unavailableSubtitle: () => 'Need at least 2 armaments.',
-          unavailableSubtitleZh: () => '需要至少 2 军备。',
+          condition: (s) => s.armaments >= 1,
+          unavailableSubtitle: () => 'Need at least 1 armament.',
+          unavailableSubtitleZh: () => '需要至少 1 军备。',
           effect: (s) => {
             return {
-              armaments: s.armaments - 2,
+              armaments: s.armaments - 1,
               militiaCombatPower: s.militiaCombatPower + 15,
               factions: adjustFactionDissent(s.factions, 'Puristas', 10)
             };

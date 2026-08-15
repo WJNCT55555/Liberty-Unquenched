@@ -7,7 +7,7 @@ export const buenaventuraDurruti: Advisor = {
   faction: 'Faistas',
   description: 'Durruti is a legendary figure of Spanish anarchism, a leader of the FAI and the Durruti Column. He advocates for revolutionary discipline and direct action against fascism, but remains deeply skeptical of Republican government control.',
   descriptionZh: '杜鲁蒂是西班牙无政府主义的传奇人物，FAI和杜鲁蒂纵队的领导人。他主张革命纪律和针对法西斯主义的直接行动，但对共和国政府的控制深表怀疑。',
-  image: 'img/Jose_Buenaventura_Durruti_Dumange.png',
+  image: 'img/Advisors/Jose_Buenaventura_Durruti_Dumange.png',
   actions: [
     {
       id: 'organize_militias',

@@ -65,15 +65,15 @@ export const SandboxMenu = () => {
   };
 
   const ministerRoles = [
-    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'Right', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
   ] as const;
 
   const factionNames: Record<Faction, { en: string, zh: string }> = {
@@ -242,7 +242,7 @@ export const SandboxMenu = () => {
                           {isZh ? labelZh : labelEn}
                         </label>
                         <select
-                          value={currentVal || 'Right'}
+                          value={currentVal || 'AP'}
                           onChange={(e) => handleMinisterChange(role, e.target.value)}
                           className="bg-paper text-ink border border-ink/30 px-2 py-1.5 font-sans text-sm shortcut-focus outline-none focus:border-cnt-red transition-all cursor-pointer"
                         >
@@ -252,7 +252,7 @@ export const SandboxMenu = () => {
                               {opt === 'PSOE' && (isZh ? 'PSOE (社会党)' : 'PSOE')}
                               {opt === 'IR' && (isZh ? 'IR (共和左翼)' : 'IR')}
                               {opt === 'PRR' && (isZh ? 'PRR (激进共和党)' : 'PRR')}
-                              {opt === 'Right' && (isZh ? 'Right (保守右翼)' : 'Right')}
+                              {opt === 'AP' && (isZh ? 'Right (保守右翼)' : 'AP')}
                               {opt === 'Other' && (isZh ? 'Other (其他第三方)' : 'Other')}
                               {opt === 'DLR' && (isZh ? 'DLR (共和自由右翼)' : 'DLR')}
                               {opt === 'ERC' && (isZh ? 'ERC (加泰共和左翼)' : 'ERC')}
@@ -476,16 +476,16 @@ export const SandboxMenu = () => {
                             dispatch({ type: 'SANDBOX_EDIT', payload: res });
                           }}
                           className={`p-2 border text-[11px] font-mono text-left uppercase tracking-wide hover:bg-ink hover:text-paper transition-all ${
-                            state.activeCoalition?.activeId === def.id ? 'bg-ink text-paper border-ink font-bold' : 'border-ink bg-transparent'
+                            (state.activeCoalitions || []).some(c => c.activeId === def.id) ? 'bg-ink text-paper border-ink font-bold' : 'border-ink bg-transparent'
                           }`}
                         >
                           {isZh ? def.nameZh : def.name}
                         </button>
                       ))}
-                      {state.activeCoalition && (
+                      {state.activeCoalitions && state.activeCoalitions.length > 0 && (
                         <button 
                           onClick={() => {
-                            dispatch({ type: 'SANDBOX_EDIT', payload: { activeCoalition: null } });
+                            dispatch({ type: 'SANDBOX_EDIT', payload: { activeCoalitions: [], rulingCoalition: null } });
                           }}
                           className="p-2 border border-dashed border-cnt-red text-[11px] font-mono text-center uppercase tracking-wide text-cnt-red hover:bg-cnt-red hover:text-paper hover:border-solid transition-all mt-1"
                         >
@@ -501,26 +501,23 @@ export const SandboxMenu = () => {
                       {isZh ? '活跃联盟微调' : 'Active Alliance Parameters'}
                     </span>
 
-                    {state.activeCoalition ? (
+                    {state.activeCoalitions && state.activeCoalitions.length > 0 ? (() => { const activeCoalition = state.activeCoalitions.find(c => c.activeId === state.rulingCoalition) || state.activeCoalitions[0]; return (
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
                           <div className="flex justify-between">
                             <span>{isZh ? '联盟团结度 (0-100)' : 'Cohesion (0-100)'}</span>
-                            <span className="font-bold">{state.activeCoalition.cohesion}%</span>
+                            <span className="font-bold">{activeCoalition.cohesion}%</span>
                           </div>
                           <input 
                             type="range"
                             min="0" max="100"
-                            value={state.activeCoalition.cohesion}
+                            value={activeCoalition.cohesion}
                             onChange={(e) => {
                               const cohesionVal = parseInt(e.target.value);
                               dispatch({ 
                                 type: 'SANDBOX_EDIT', 
                                 payload: { 
-                                  activeCoalition: { 
-                                    ...state.activeCoalition!, 
-                                    cohesion: cohesionVal 
-                                  } 
+                                  activeCoalitions: state.activeCoalitions.map(c => c.activeId === activeCoalition.activeId ? { ...c, cohesion: cohesionVal } : c)
                                 } 
                               });
                             }}
@@ -531,21 +528,18 @@ export const SandboxMenu = () => {
                         <div className="flex flex-col gap-1">
                           <div className="flex justify-between">
                             <span>{isZh ? '对CNT态度 (进度条: 0-100)' : 'CNT Attitude (Bar scale: 0-100)'}</span>
-                            <span className="font-bold">{state.activeCoalition.cntAttitude} (➡️ {Math.round((state.activeCoalition.cntAttitude + 100) / 2)}/100)</span>
+                            <span className="font-bold">{activeCoalition.cntAttitude} (➡️ {Math.round((activeCoalition.cntAttitude + 100) / 2)}/100)</span>
                           </div>
                           <input 
                             type="range"
                             min="-100" max="100"
-                            value={state.activeCoalition.cntAttitude}
+                            value={activeCoalition.cntAttitude}
                             onChange={(e) => {
                               const attVal = parseInt(e.target.value);
                               dispatch({ 
                                 type: 'SANDBOX_EDIT', 
                                 payload: { 
-                                  activeCoalition: { 
-                                    ...state.activeCoalition!, 
-                                    cntAttitude: attVal 
-                                  } 
+                                  activeCoalitions: state.activeCoalitions.map(c => c.activeId === activeCoalition.activeId ? { ...c, cntAttitude: attVal } : c)
                                 } 
                               });
                             }}
@@ -553,7 +547,7 @@ export const SandboxMenu = () => {
                           />
                         </div>
                       </div>
-                    ) : (
+                    )})() : (
                       <div className="flex flex-col items-center justify-center h-20 text-ink/40 text-center uppercase tracking-wider text-[10px] leading-relaxed">
                         {isZh ? '当前无活跃执政党联盟\n请在左侧强制组建一个。' : 'No active coalition.\nSelect one from the left to start fine-tuning.'}
                       </div>
