@@ -4,7 +4,9 @@ import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type { Party };
-export type MinisterParty = Party | 'CNT';
+// `Right` is used by the initial state and the editor sandbox as a temporary
+// umbrella affiliation before a concrete party is assigned.
+export type MinisterParty = Party | 'CNT' | 'Right';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
 export type RegionalStatus = 'direct' | 'autonomy' | 'independent';

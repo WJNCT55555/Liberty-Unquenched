@@ -2,6 +2,12 @@ node_modules/
 build/
 dist/
 coverage/
+
+# Local-only editor, Codex skills, and launcher
+/editor/
+/.agents/
+/start_game.bat
+
 .DS_Store
 *.log
 .env*

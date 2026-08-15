@@ -2,5 +2,5 @@
   "name": "自由未烬 Liberty Unquenched",
   "description": "A political simulation game set in the Second Spanish Republic, playing as the CNT-FAI.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

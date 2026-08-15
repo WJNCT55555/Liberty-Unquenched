@@ -6,11 +6,10 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/Liberty-Unquenched/',
+    // Keep the historical default for local/AI Studio builds, while allowing
+    // GitHub Actions to provide the actual repository path for GitHub Pages.
+    base: env.VITE_BASE_PATH || '/Liberty-Unquenched/',
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

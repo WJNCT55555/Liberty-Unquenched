@@ -1,4 +1,4 @@
-﻿import { Card, GameState } from '../types';
+import { Card, GameState } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport } from '../utils';
 
 export const fundraising: Card = {
