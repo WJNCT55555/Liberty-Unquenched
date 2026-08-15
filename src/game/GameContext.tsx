@@ -640,7 +640,9 @@ export const INITIAL_STATE: GameState = {
     [MapFaction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
     [MapFaction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
     [MapFaction.WORKERS_ALLIANCE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
-    [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
+    [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+    [MapFaction.UNITED_KINGDOM]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+    [MapFaction.ANDORRA]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
   },
   mapHistory: [],
   mapAiConfig: { enabled: true, aiFaction: MapFaction.NATIONALIST, difficulty: 'normal' },
@@ -1344,32 +1346,35 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const movedArmy = armies.find(a => a.id === armyId);
       if (!movedArmy) break;
 
-      // Prevent Nationalist and Republican armies from entering Portugal
+      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
+
+      // Player movement is only valid during the player's map turn, with one of
+      // the player's armies, and into an adjacent province.
       if (
-        (movedArmy.faction === MapFaction.REPUBLICAN || movedArmy.faction === MapFaction.NATIONALIST) &&
-        isPortugalProvince(targetProvinceId)
+        state.mapCurrentPlayer !== currentPlayerFaction ||
+        movedArmy.faction !== currentPlayerFaction ||
+        !(PROVINCE_ADJACENCY[movedArmy.provinceId] || []).includes(targetProvinceId)
       ) {
         break;
       }
 
-      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
-      const playerFaction = movedArmy.faction;
-      const isPlayer = playerFaction === currentPlayerFaction;
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[playerFaction];
-
-      // If player is moving, they must have >= 1 CP
-      if (isPlayer && (!playerRes || playerRes.commandPoints < 1)) {
+      // Prevent Nationalist and Republican armies from entering Portugal
+      if (currentPlayerFaction === MapFaction.REPUBLICAN && isPortugalProvince(targetProvinceId)) {
         break;
       }
 
-      // Deduct 1 CP for player
-      if (isPlayer && playerRes) {
-        mapResources[playerFaction] = {
-          ...playerRes,
-          commandPoints: Math.max(0, playerRes.commandPoints - 1),
-        };
+      const mapResources = { ...state.mapResources };
+      const playerRes = mapResources[currentPlayerFaction];
+
+      // Every player movement costs exactly one command point.
+      if (!playerRes || playerRes.commandPoints < 1) {
+        break;
       }
+
+      mapResources[currentPlayerFaction] = {
+        ...playerRes,
+        commandPoints: Math.max(0, playerRes.commandPoints - 1),
+      };
 
       // Resolve movement/combat
       const isZh = state.language === 'zh';
@@ -1391,7 +1396,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
       // Check if player has run out of CP
       const updatedPlayerRes = mapResources[currentPlayerFaction];
-      if (isPlayer && updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
+      if (updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
         const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
         updatedState.mapCurrentPlayer = aiFaction;
         updatedState = executeAiTurn(updatedState, aiFaction, isZh);

@@ -179,6 +179,23 @@ const FlagBox: React.FC<{ faction: Faction }> = ({ faction }) => {
             <div className="bg-[#C63B2B] w-[60%] h-full" />
           </div>
         );
+      case Faction.UNITED_KINGDOM:
+        return (
+          <div className="flex w-12 h-8 border border-[#1E1C1A] bg-[#012169] relative overflow-hidden rounded-none">
+            <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-white -translate-x-1/2" />
+            <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white -translate-y-1/2" />
+            <div className="absolute left-1/2 top-1/2 w-[130%] h-[2px] bg-white -translate-x-1/2 -translate-y-1/2 rotate-[35deg]" />
+            <div className="absolute left-1/2 top-1/2 w-[130%] h-[2px] bg-white -translate-x-1/2 -translate-y-1/2 -rotate-[35deg]" />
+          </div>
+        );
+      case Faction.ANDORRA:
+        return (
+          <div className="flex w-12 h-8 border border-[#1E1C1A] overflow-hidden rounded-none">
+            <div className="bg-[#0018A8] w-1/3 h-full" />
+            <div className="bg-[#FEDD00] w-1/3 h-full" />
+            <div className="bg-[#D50032] w-1/3 h-full" />
+          </div>
+        );
       default:
         return (
           <div className="flex w-12 h-8 border border-[#1E1C1A] bg-[#FAF5E6] justify-center items-center shadow-sm relative overflow-hidden rounded-none">
@@ -374,12 +391,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (faction === Faction.NATIONALIST) return '国民军';
       if (faction === Faction.PORTUGAL) return '葡萄牙';
       if (faction === Faction.WORKERS_ALLIANCE) return '工人联盟自治政府';
+      if (faction === Faction.UNITED_KINGDOM) return '英国';
+      if (faction === Faction.ANDORRA) return '安道尔';
       return '中立';
     }
     if (faction === Faction.REPUBLICAN) return 'Republicans';
     if (faction === Faction.NATIONALIST) return 'Nationalists';
     if (faction === Faction.PORTUGAL) return 'Portugal';
     if (faction === Faction.WORKERS_ALLIANCE) return "Workers' Alliance";
+    if (faction === Faction.UNITED_KINGDOM) return 'United Kingdom';
+    if (faction === Faction.ANDORRA) return 'Andorra';
     return 'Neutral';
   };
 
@@ -500,7 +521,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     state.provinces[selectedArmy.provinceId]?.owner === state.currentPlayer;
 
   return (
-    <aside className="w-80 h-full bg-[#FAF6EC] border-l-[5px] border-l-[#1E1C1A] flex flex-col overflow-hidden text-[#1E1C1A] font-serif select-none relative">
+    <aside className="w-80 shrink-0 h-full bg-[#FAF6EC] border-l-[5px] border-l-[#1E1C1A] flex flex-col overflow-hidden text-[#1E1C1A] font-serif select-none relative">
       {/* Details Area */}
       <div className="flex-1 overflow-y-auto p-3.5 space-y-5 z-20 scrollbar-thin scrollbar-thumb-[#A62626]/60 scrollbar-track-transparent">
         <AnimatePresence mode="wait">
@@ -1998,4 +2019,3 @@ const DetailBox = ({ label, value, color }: { label: string, value: string, colo
     <div className="text-xs font-serif font-extrabold uppercase truncate tracking-tight pb-0.5" style={{ color: color || '#2C241E' }}>{value}</div>
   </div>
 );
-

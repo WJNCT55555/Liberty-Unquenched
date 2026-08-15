@@ -26,7 +26,7 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
   guipuzcoa: {
     id: 'guipuzcoa', name: 'Guipúzcoa', owner: Faction.REPUBLICAN,
-    isCoastal: true, manpower: 40, industry: 50, strategicValue: 6, terrain: 'mountains', fortification: 0
+    isCoastal: true, manpower: 40, industry: 50, strategicValue: 6, terrain: 'forest', fortification: 0
   },
   asturias: {
     id: 'asturias', name: 'Asturias', owner: Faction.REPUBLICAN,
@@ -66,11 +66,11 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
   almeria: {
     id: 'almeria', name: 'Almería', owner: Faction.REPUBLICAN,
-    isCoastal: true, manpower: 30, industry: 10, strategicValue: 4, terrain: 'plains', fortification: 0
+    isCoastal: true, manpower: 30, industry: 10, strategicValue: 4, terrain: 'mountains', fortification: 0
   },
   jaen: {
     id: 'jaen', name: 'Jaén', owner: Faction.REPUBLICAN,
-    isCoastal: false, manpower: 40, industry: 15, strategicValue: 4, terrain: 'plains', fortification: 0
+    isCoastal: false, manpower: 40, industry: 15, strategicValue: 4, terrain: 'mountains', fortification: 0
   },
   castellon: {
     id: 'castellon', name: 'Castellón', owner: Faction.REPUBLICAN,
@@ -123,19 +123,19 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
   coruna: {
     id: 'coruna', name: 'La Coruña', owner: Faction.REPUBLICAN,
-    isCoastal: true, manpower: 50, industry: 30, strategicValue: 6, terrain: 'mountains', fortification: 0
+    isCoastal: true, manpower: 50, industry: 30, strategicValue: 6, terrain: 'forest', fortification: 0
   },
   lugo: {
     id: 'lugo', name: 'Lugo', owner: Faction.REPUBLICAN,
-    isCoastal: true, manpower: 35, industry: 10, strategicValue: 4, terrain: 'mountains', fortification: 0
+    isCoastal: true, manpower: 35, industry: 10, strategicValue: 4, terrain: 'forest', fortification: 0
   },
   orense: {
     id: 'orense', name: 'Orense', owner: Faction.REPUBLICAN,
-    isCoastal: false, manpower: 30, industry: 10, strategicValue: 4, terrain: 'mountains', fortification: 0
+    isCoastal: false, manpower: 30, industry: 10, strategicValue: 4, terrain: 'forest', fortification: 0
   },
   pontevedra: {
     id: 'pontevedra', name: 'Pontevedra', owner: Faction.REPUBLICAN,
-    isCoastal: true, manpower: 45, industry: 20, strategicValue: 5, terrain: 'plains', fortification: 0
+    isCoastal: true, manpower: 45, industry: 20, strategicValue: 5, terrain: 'forest', fortification: 0
   },
   leon: {
     id: 'leon', name: 'León', owner: Faction.REPUBLICAN,
@@ -226,24 +226,25 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
     isCoastal: true, manpower: 30, industry: 10, strategicValue: 5, terrain: 'mountains', fortification: 0
   },
   // --- SPANISH MOROCCO (Protectorate, under Republican administration in 1931) ---
+  // Provinces are named after the historical Spanish protectorate "Territorios".
   tetouan: {
-    id: 'tetouan', name: 'Tétouan', owner: Faction.REPUBLICAN,
+    id: 'tetouan', name: 'Yebala', owner: Faction.REPUBLICAN, // Territorio de Yebala (capital: Tétouan)
     isCoastal: true, manpower: 40, industry: 15, strategicValue: 8, terrain: 'mountains', fortification: 1
   },
   larache: {
-    id: 'larache', name: 'Larache', owner: Faction.REPUBLICAN,
+    id: 'larache', name: 'Lucus', owner: Faction.REPUBLICAN, // Territorio de Lucus (port: Larache)
     isCoastal: true, manpower: 30, industry: 10, strategicValue: 5, terrain: 'plains', fortification: 0
   },
   nador: {
-    id: 'nador', name: 'Nador', owner: Faction.REPUBLICAN,
+    id: 'nador', name: 'Kert', owner: Faction.REPUBLICAN, // Territorio de Kert (east of Melilla, around Nador)
     isCoastal: true, manpower: 35, industry: 10, strategicValue: 5, terrain: 'mountains', fortification: 0
   },
   chefchaouen: {
-    id: 'chefchaouen', name: 'Chefchaouen', owner: Faction.REPUBLICAN,
+    id: 'chefchaouen', name: 'Gomara', owner: Faction.REPUBLICAN, // Territorio de Gomara (Chefchaouen)
     isCoastal: false, manpower: 25, industry: 5, strategicValue: 4, terrain: 'mountains', fortification: 0
   },
   alhoceima: {
-    id: 'alhoceima', name: 'Al Hoceïma', owner: Faction.REPUBLICAN,
+    id: 'alhoceima', name: 'Rif', owner: Faction.REPUBLICAN, // Territorio del Rif (capital: Villa Sanjurjo/Al Hoceima)
     isCoastal: true, manpower: 30, industry: 10, strategicValue: 6, terrain: 'mountains', fortification: 0
   },
 
@@ -286,7 +287,7 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
   braga: {
     id: 'braga', name: 'Braga', owner: Faction.PORTUGAL,
-    isCoastal: false, manpower: 50, industry: 40, strategicValue: 6, terrain: 'mountains', fortification: 0
+    isCoastal: false, manpower: 50, industry: 40, strategicValue: 6, terrain: 'forest', fortification: 0
   },
   braganca: {
     id: 'braganca', name: 'Bragança', owner: Faction.PORTUGAL,
@@ -310,7 +311,7 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   },
   vianadocastelo: {
     id: 'vianadocastelo', name: 'Viana do Castelo', owner: Faction.PORTUGAL,
-    isCoastal: true, manpower: 30, industry: 15, strategicValue: 4, terrain: 'plains', fortification: 0
+    isCoastal: true, manpower: 30, industry: 15, strategicValue: 4, terrain: 'forest', fortification: 0
   },
   vilareal: {
     id: 'vilareal', name: 'Vila Real', owner: Faction.PORTUGAL,
@@ -319,6 +320,15 @@ export const INITIAL_PROVINCES: { [key: string]: Province } = {
   viseu: {
     id: 'viseu', name: 'Viseu', owner: Faction.PORTUGAL,
     isCoastal: false, manpower: 30, industry: 15, strategicValue: 4, terrain: 'mountains', fortification: 0
+  },
+  // --- FOREIGN SOVEREIGN ENCLAVES ON THE PENINSULA ---
+  gibraltar: {
+    id: 'gibraltar', name: 'Gibraltar', owner: Faction.UNITED_KINGDOM,
+    isCoastal: true, manpower: 10, industry: 10, strategicValue: 7, terrain: 'urban', fortification: 3
+  },
+  andorra: {
+    id: 'andorra', name: 'Andorra', owner: Faction.ANDORRA,
+    isCoastal: false, manpower: 5, industry: 5, strategicValue: 3, terrain: 'mountains', fortification: 0
   },
 };
 
@@ -342,14 +352,15 @@ export const PROVINCE_NAMES_ZH: { [key: string]: string } = {
   cordoba: '科尔多瓦', granada: '格拉纳达', balears: '巴利阿里群岛',
   oviedo: '奥维耶多', ceuta: '休达', melilla: '梅利利亚',
   laspalmas: '拉斯帕尔马斯', santacruzdetenerife: '圣克鲁斯-德特内里费',
-  tetouan: '得土安', larache: '拉腊什', nador: '纳祖尔',
-  chefchaouen: '舍夫沙万', alhoceima: '胡塞马',
+  tetouan: '耶巴拉', larache: '卢库斯', nador: '克尔特',
+  chefchaouen: '戈马拉', alhoceima: '里夫',
   lisboa: '里斯本', porto: '波尔图', setubal: '塞图巴尔',
   coimbra: '科英布拉', faro: '法鲁', beja: '贝雅',
   evora: '埃武拉', portalegre: '波塔莱格雷', aveiro: '阿威罗',
   braga: '布拉加', braganca: '布拉干萨', castelobranco: '布朗库堡',
   guarda: '瓜达', leiria: '莱里亚', santarem: '圣塔伦',
   vianadocastelo: '维亚纳堡', vilareal: '雷阿尔城(葡)', viseu: '维塞乌',
+  gibraltar: '直布罗陀', andorra: '安道尔',
 };
 
 // Helper: get province display name based on language
@@ -550,6 +561,9 @@ export const PROVINCE_CULTURES: Record<string, { group: CultureGroup; nameCn: st
 
   laspalmas: { group: 'canarian', nameCn: '加那利', nameEn: 'Canarian', color: '#5A9AD4' },
   santacruzdetenerife: { group: 'canarian', nameCn: '加那利', nameEn: 'Canarian', color: '#5A9AD4' },
+
+  gibraltar: { group: 'andalusian', nameCn: '安达卢西亚', nameEn: 'Andalusian', color: '#8E9F76' },
+  andorra: { group: 'catalan', nameCn: '加泰罗尼亚', nameEn: 'Catalan', color: '#E09F3E' },
 };
 
 export function getCultureGridCoords(provId: string, cultureGroup?: string, lang: 'en' | 'zh' = 'en'): { col: number; row: number; name: string } {
@@ -685,6 +699,9 @@ export const PROVINCE_REGIONS: Record<string, { group: string; nameCn: string; n
   vianadocastelo: { group: 'portugal', nameCn: '葡萄牙', nameEn: 'Portugal', color: '#508E8F' },
   vilareal: { group: 'portugal', nameCn: '葡萄牙', nameEn: 'Portugal', color: '#508E8F' },
   viseu: { group: 'portugal', nameCn: '葡萄牙', nameEn: 'Portugal', color: '#508E8F' },
+
+  gibraltar: { group: 'gibraltar', nameCn: '直布罗陀', nameEn: 'Gibraltar', color: '#5B7A9D' },
+  andorra: { group: 'andorra', nameCn: '安道尔', nameEn: 'Andorra', color: '#C4813A' },
 };
 
 export const FACTION_COLORS = {
@@ -693,6 +710,8 @@ export const FACTION_COLORS = {
   [Faction.PORTUGAL]: '#738C6C', // Sage Green
   [Faction.NEUTRAL]: '#D4C9B3', // Beige/Parchment
   [Faction.WORKERS_ALLIANCE]: '#C62828', // Revolutionary Crimson
+  [Faction.UNITED_KINGDOM]: '#5B7A9D', // Muted Steel Blue
+  [Faction.ANDORRA]: '#C4813A', // Rust Orange
 };
 
 export const UI_COLORS = {

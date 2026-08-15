@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Province, MapFaction as Faction, Army } from './types_map';
 import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, CultureGroup, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, isPortugalProvince } from './map_constants';
@@ -41,6 +41,7 @@ interface ProvinceMapProps {
   onSelect: (id: string | null) => void;
   onSelectArmy: (id: string | null, isShift?: boolean) => void;
   onMoveArmy: (armyId: string, targetProvinceId: string) => void;
+  canMoveSelectedArmy: boolean;
   lang: 'en' | 'zh';
 }
 
@@ -103,9 +104,10 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
   selectedId, 
   selectedArmyId,
   selectedArmyIds = [],
-  onSelect, 
+  onSelect,
   onSelectArmy,
   onMoveArmy,
+  canMoveSelectedArmy,
   lang
 }) => {
   const [geoData, setGeoData] = useState<any>(null);
@@ -198,6 +200,41 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
   const [currentScale, setCurrentScale] = useState<number>(1);
   const [normalizedPaths, setNormalizedPaths] = useState<any[]>([]);
+
+  // Keep the map box an EXACT 4:3 rectangle regardless of the available flex
+  // space. The background (grid/world) is drawn on a <canvas> stretched to
+  // 100%×100% while the provinces are drawn on an <svg viewBox="0 0 800 600"
+  // preserveAspectRatio="xMidYMid meet">. Those two layers only align when the
+  // box itself is 4:3, so we measure the parent and force the largest 4:3 size
+  // that fits instead of letting max-h/max-w squash the ratio.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [boxSize, setBoxSize] = useState<{ width: number; height: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const parent = rootRef.current?.parentElement;
+    if (!parent) return;
+
+    const update = () => {
+      const rect = parent.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      let width = rect.width;
+      let height = (rect.width * 3) / 4;
+      if (height > rect.height) {
+        height = rect.height;
+        width = (rect.height * 4) / 3;
+      }
+      setBoxSize((prev) =>
+        prev && Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5
+          ? prev
+          : { width, height }
+      );
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(parent);
+    return () => ro.disconnect();
+  }, []);
 
   const drawCanvas = (t: d3.ZoomTransform) => {
     const canvas = canvasRef.current;
@@ -450,10 +487,14 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
       const iberiaPromise = fetchWithFallback('/date/iberia-complete.geojson', './date/iberia-complete.geojson');
       const moroccoPromise = fetchWithFallback('/date/morocco-spanish-protectorate.geojson', './date/morocco-spanish-protectorate.geojson');
 
-      // Optional external files
+      // Optional external file (rivers)
       const riversPromise = fetchWithFallback('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_rivers_lake_centerlines.geojson')
         .catch(() => null);
-      const countriesPromise = fetchWithFallback('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson')
+      // Neighbor countries (France, Andorra, Morocco, Algeria, Tunisia, Gibraltar)
+      // now come from a local Natural Earth 10m extract so their shared borders
+      // match the 10m admin-1 precision of iberia-complete.geojson (no more
+      // 50m-vs-10m sliver gaps), and the map works offline.
+      const countriesPromise = fetchWithFallback('/date/world-neighbors.geojson', './date/world-neighbors.geojson')
         .catch(() => null);
 
       const [iberia, morocco, globalRivers, worldCountries] = await Promise.all([
@@ -655,9 +696,17 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
     d3.select(svgRef.current).transition().duration(500).call(zoom.transform as any, d3.zoomIdentity);
   };
 
+  const boxStyle: React.CSSProperties = boxSize
+    ? { width: boxSize.width, height: boxSize.height }
+    : { width: '100%', aspectRatio: '4 / 3' };
+
   if (loading) {
     return (
-      <div className="h-full w-auto max-w-full aspect-[4/3] bg-[#D7D2BF] rounded-lg flex items-center justify-center border-2 border-[#8B7355] selection:bg-none">
+      <div
+        ref={rootRef}
+        className="bg-[#D7D2BF] rounded-lg flex items-center justify-center border-2 border-[#8B7355] selection:bg-none"
+        style={boxStyle}
+      >
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-[#A67C52] border-t-transparent rounded-full animate-spin" />
           <p className="font-serif italic text-sm uppercase tracking-widest text-[#8B7355]">{lang === 'zh' ? '正在加载帝国档案...' : 'Consulting Imperial Archives...'}</p>
@@ -667,9 +716,10 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
   }
 
   return (
-    <div 
-      className="relative h-full w-auto max-w-full aspect-[4/3] rounded-lg border-2 border-[#5C4D32] shadow-[inset_0_0_50px_rgba(0,0,0,0.15)] overflow-hidden group"
-      style={{ backgroundColor: UI_COLORS.ocean }}
+    <div
+      ref={rootRef}
+      className="relative rounded-lg border-2 border-[#5C4D32] shadow-[inset_0_0_50px_rgba(0,0,0,0.15)] overflow-hidden group"
+      style={{ backgroundColor: UI_COLORS.ocean, ...boxStyle }}
     >
       <canvas
         ref={canvasRef}
@@ -787,7 +837,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
             const isHovered = hoveredProvince === p.provinceName;
             
             const selectedArmy = armies.find(a => a.id === selectedArmyId);
-            const isPossibleMove = selectedArmy && p.provinceId && 
+            const isPossibleMove = canMoveSelectedArmy && selectedArmy && p.provinceId &&
               PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(p.provinceId) &&
               !(
                 (selectedArmy.faction === Faction.REPUBLICAN || selectedArmy.faction === Faction.NATIONALIST) &&
@@ -873,12 +923,30 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 const factionColor = FACTION_COLORS[army.faction];
                 
                 return (
-                  <g 
-                    key={army.id} 
+                  <g
+                    key={army.id}
                     transform={`translate(${center[0] + offset}, ${center[1] + offset})`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectArmy(army.id, e.shiftKey);
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const selectedArmy = armies.find(a => a.id === selectedArmyId);
+                      const canMoveHere = Boolean(
+                        canMoveSelectedArmy &&
+                        selectedArmy &&
+                        selectedArmy.id !== army.id &&
+                        PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(army.provinceId) &&
+                        !(
+                          (selectedArmy.faction === Faction.REPUBLICAN || selectedArmy.faction === Faction.NATIONALIST) &&
+                          isPortugalProvince(army.provinceId)
+                        )
+                      );
+                      if (canMoveHere && selectedArmy) {
+                        onMoveArmy(selectedArmy.id, army.provinceId);
+                      }
                     }}
                     className="cursor-pointer"
                   >
@@ -1111,6 +1179,14 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
               <div className="flex items-center gap-1.5">
                 <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.NEUTRAL] }} />
                 <span>{lang === 'zh' ? '中立' : 'Neutral'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.UNITED_KINGDOM] }} />
+                <span>{lang === 'zh' ? '英国' : 'United Kingdom'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.ANDORRA] }} />
+                <span>{lang === 'zh' ? '安道尔' : 'Andorra'}</span>
               </div>
             </>
           )}
@@ -1416,8 +1492,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 const prov = provinces[hoveredProvinceId];
                 const culture = PROVINCE_CULTURES[hoveredProvinceId];
                 const region = PROVINCE_REGIONS[hoveredProvinceId];
-                const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : prov.owner === Faction.WORKERS_ALLIANCE ? '工人联盟自治政府' : '中立';
-                const factionName = lang === 'zh' ? factionNameCn : (prov.owner === Faction.REPUBLICAN ? 'Republicans' : prov.owner === Faction.NATIONALIST ? 'Nationalists' : prov.owner === Faction.PORTUGAL ? 'Portugal' : prov.owner === Faction.WORKERS_ALLIANCE ? "Workers' Alliance" : 'Neutral');
+                const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : prov.owner === Faction.WORKERS_ALLIANCE ? '工人联盟自治政府' : prov.owner === Faction.UNITED_KINGDOM ? '英国' : prov.owner === Faction.ANDORRA ? '安道尔' : '中立';
+                const factionName = lang === 'zh' ? factionNameCn : (prov.owner === Faction.REPUBLICAN ? 'Republicans' : prov.owner === Faction.NATIONALIST ? 'Nationalists' : prov.owner === Faction.PORTUGAL ? 'Portugal' : prov.owner === Faction.WORKERS_ALLIANCE ? "Workers' Alliance" : prov.owner === Faction.UNITED_KINGDOM ? 'United Kingdom' : prov.owner === Faction.ANDORRA ? 'Andorra' : 'Neutral');
                 const terrainLabels: Record<string, string> = lang === 'zh' 
                   ? { urban: '城市', plains: '平原', mountains: '山地', forest: '森林' }
                   : { urban: 'Urban', plains: 'Plains', mountains: 'Mountains', forest: 'Forest' };

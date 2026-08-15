@@ -163,7 +163,7 @@ export const SuperEvent: React.FC = () => {
 
         {/* Button Area: place the action below the image, in the frame's lower paper margin. */}
         <div
-          className="absolute inset-x-0 bottom-[12px] z-30 h-[55px] flex items-center justify-center"
+          className="absolute inset-x-0 bottom-[36px] z-30 h-[55px] flex items-center justify-center"
         >
           <button
             onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}

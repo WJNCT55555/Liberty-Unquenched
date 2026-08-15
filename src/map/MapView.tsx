@@ -43,7 +43,9 @@ export const MapView: React.FC = () => {
       [Faction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
       [Faction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
       [Faction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
-      [Faction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
+      [Faction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+      [Faction.UNITED_KINGDOM]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+      [Faction.ANDORRA]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
     },
     provinces: provinces,
     armies: armies,
@@ -59,7 +61,14 @@ export const MapView: React.FC = () => {
   const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
   const isPlayerTurn = currentPlayer === playerFaction;
   const isAiTurn = currentPlayer === aiFaction;
-  const cpCount = gameState.mapResources?.[playerFaction]?.commandPoints ?? 0;
+  const commandPoints = gameState.mapResources?.[playerFaction]?.commandPoints ?? 0;
+  const selectedArmy = armies.find((army) => army.id === selectedArmyId);
+  const canMoveSelectedArmy = Boolean(
+    gameState.phase === 'war' &&
+    isPlayerTurn &&
+    commandPoints > 0 &&
+    selectedArmy?.faction === playerFaction
+  );
 
   const [countdown, setCountdown] = useState<number | null>(null);
 
@@ -84,51 +93,20 @@ export const MapView: React.FC = () => {
   }, [countdown, dispatch]);
 
   return (
-    <div className="flex-1 flex flex-col p-6 w-full h-full relative overflow-hidden bg-halftone">
-      {/* Header */}
-      <div className="mb-3 flex justify-between items-center bg-paper/60 backdrop-blur-sm p-4 border border-print/20 rounded-md shadow-sm">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h2 className="font-display text-2xl md:text-3xl uppercase text-ink opacity-95 tracking-widest leading-none">
-              {isZh ? '战略形势图' : 'Strategic Map View'}
-            </h2>
-            {gameState.phase === 'war' && (
-              <span className={`px-2.5 py-1 text-xs font-mono font-bold tracking-wider uppercase border-2 ${
-                isPlayerTurn 
-                  ? 'bg-[#E3D9C4] text-[#801B1B] border-[#801B1B]' 
-                  : 'bg-[#1C2833] text-[#E5E8E8] border-[#A6ACAF]'
-              }`}>
-                {isPlayerTurn 
-                  ? (isZh 
-                      ? `${gameState.activeWar === 'asturias_war' ? '工人联盟' : '共和军'}回合 (玩家) | 指挥点: ${cpCount}` 
-                      : `${gameState.activeWar === 'asturias_war' ? 'WORKERS' : 'REPUBLICAN'} TURN (PLAYER) | CP: ${cpCount}`)
-                  : (isZh 
-                      ? `${gameState.activeWar === 'asturias_war' ? '共和军' : '国民军'}回合 (AI) | 已结束行动` 
-                      : `${gameState.activeWar === 'asturias_war' ? 'REPUBLICAN' : 'NATIONALIST'} TURN (AI) | ACTIONS COMPLETED`)
-                }
-              </span>
-            )}
-          </div>
-          <p className="font-typewriter text-xs text-ink/60 mt-1.5 leading-none">
-            {isPlayerTurn
-              ? (isZh 
-                ? '【玩家回合】左键点击选择省份与军队，在军队选中状态下右键点击相邻省份进行移动。每次移动消耗 1 指挥点。' 
-                : '[PLAYER TURN] Left-click to select armies, right-click adjacent province to move. Consumes 1 Command Point.')
-              : (isZh
-                ? (gameState.activeWar === 'asturias_war'
-                    ? `【AI回合结束】共和国政府军（AI）已执行完战术决策与交战，地图将在 ${countdown ?? 0} 秒后自动推进。`
-                    : `【AI回合结束】国民军（AI）已执行完战术决策与交战，地图将在 ${countdown ?? 0} 秒后自动推进。`)
-                : `[AI TURN ENDED] AI has finished actions. Auto-proceeding in ${countdown ?? 0} seconds.`)
-            }
-          </p>
-        </div>
-        <div className="flex gap-2 animate-fade-in">
+    <div className="flex-1 flex flex-col p-4 w-full h-full relative overflow-hidden bg-halftone">
+      {/* Unframed map heading: retain the title and controls without the old header panel. */}
+      <div className="shrink-0 min-h-[42px] mb-2 flex items-center justify-between gap-4 px-1">
+        <h2 className="font-display text-2xl md:text-3xl uppercase text-ink opacity-95 tracking-widest leading-none">
+          {isZh ? '战略形势图' : 'Strategic Map View'}
+        </h2>
+
+        <div className="flex flex-wrap justify-end gap-1.5">
           {gameState.phase === 'war' && isPlayerTurn && (
             <button
               onClick={() => {
                 dispatch({ type: 'END_MAP_PLAYER_TURN' });
               }}
-              className="px-4 py-2 bg-[#2D3748] text-[#F7FAFC] text-xs uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-[#2D3748] text-[#F7FAFC] text-[10px] uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors cursor-pointer shadow-sm"
             >
               {isZh 
                 ? (gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合') 
@@ -140,7 +118,7 @@ export const MapView: React.FC = () => {
               onClick={() => {
                 dispatch({ type: 'NEXT_PHASE' });
               }}
-              className="px-4 py-2 bg-[#A62626] text-white text-xs uppercase tracking-wider font-bold border-2 border-[#801B1B] hover:bg-red-800 transition-colors animate-pulse cursor-pointer"
+              className="px-3 py-1.5 bg-[#A62626] text-white text-[10px] uppercase tracking-wider font-bold border-2 border-[#801B1B] hover:bg-red-800 transition-colors animate-pulse cursor-pointer shadow-sm"
             >
               {isZh 
                 ? `退出地图，进入事件阶段 (${countdown ?? 0}s)` 
@@ -150,14 +128,14 @@ export const MapView: React.FC = () => {
           {gameState.activeWar && (
             <button
               onClick={() => setShowWarSummary(true)}
-              className="px-4 py-2 bg-purple-700 text-white text-xs uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-purple-700 text-white text-[10px] uppercase tracking-wider font-bold border border-purple-800 hover:bg-purple-800 transition-colors cursor-pointer shadow-sm"
             >
               {isZh ? '战争形势概览' : 'War Summary'}
             </button>
           )}
           <button
             onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
-            className="px-4 py-2 bg-ink text-paper text-xs uppercase tracking-wider font-bold border border-ink hover:bg-paper hover:text-ink transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-ink text-paper text-[10px] uppercase tracking-wider font-bold border border-ink hover:bg-paper hover:text-ink transition-colors cursor-pointer shadow-sm"
           >
             {isZh ? '关闭地图' : 'Close Map'}
           </button>
@@ -165,9 +143,9 @@ export const MapView: React.FC = () => {
       </div>
       
       {/* 4:3 Map Area and Sidebar container */}
-      <div className="flex-1 flex gap-4 min-h-0 relative select-none bg-paper border-print p-1 rounded-sm shadow-md overflow-hidden">
+      <div className="flex-1 flex gap-1 min-h-0 relative select-none bg-paper border-print p-1 rounded-sm shadow-md overflow-hidden">
         {/* Map Canvas */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-w-0 min-h-0 relative flex items-start justify-end">
           <ProvinceMap
             provinces={provinces}
             armies={armies}
@@ -177,6 +155,7 @@ export const MapView: React.FC = () => {
             onSelect={selectProvince}
             onSelectArmy={selectArmy}
             onMoveArmy={moveArmy}
+            canMoveSelectedArmy={canMoveSelectedArmy}
             lang={isZh ? 'zh' : 'en'}
           />
         </div>

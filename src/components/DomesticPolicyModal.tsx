@@ -16,6 +16,8 @@ interface PolicyDef {
   levels: PolicyLevel[];
 }
 
+const getLawIconFilename = (policyId: PolicyDef['id'], level: number): string => `${policyId}_${level}.png`;
+
 export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[]> = {
   economy: [
     {
@@ -735,7 +737,8 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.economy.map((policy) => {
                     const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevelName = policy.levels.find(l => l.level === currentValue)?.name;
+                    const currentLevel = policy.levels.find(l => l.level === currentValue);
+                    const currentLevelName = currentLevel?.name;
 
                     return (
                       <button
@@ -746,7 +749,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -807,7 +810,8 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.society.map((policy) => {
                     const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevelName = policy.levels.find(l => l.level === currentValue)?.name;
+                    const currentLevel = policy.levels.find(l => l.level === currentValue);
+                    const currentLevelName = currentLevel?.name;
 
                     return (
                       <button
@@ -818,7 +822,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -879,7 +883,8 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                 <div className="grid grid-cols-1 gap-4">
                   {POLICIES_DEF.security.map((policy) => {
                     const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevelName = policy.levels.find(l => l.level === currentValue)?.name;
+                    const currentLevel = policy.levels.find(l => l.level === currentValue);
+                    const currentLevelName = currentLevel?.name;
 
                     return (
                       <button
@@ -890,7 +895,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -974,7 +979,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         <div className="mt-1 flex-shrink-0 relative">
                           <div className="relative w-14 h-14 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm">
                             <img 
-                              src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${lvl.name.en}.png`}
+                              src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(activePolicy.id, lvl.level)}`}
                               alt={lvl.name.en}
                               referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover"
