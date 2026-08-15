@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
 
 const newsMeta = {
@@ -7,7 +7,7 @@ const newsMeta = {
 };
 
 export const foundingOfFalange: GameEvent = {
-  id: 'Founding of Falange Española',
+  id: 'founding_of_falange',
   meta: newsMeta,
   date: { year: 1933, month: 10 },
   condition: (state) => isAtOrAfter(state, 1933, 10) && !state.fe_founded,
@@ -19,19 +19,19 @@ export const foundingOfFalange: GameEvent = {
     {
       text: 'Let us wait and see',
       textZh: '让我们静观其变',
+      subtitle: 'Founds Falange and increases FE support among landowners, the small bourgeoisie, and the clergy.',
+      subtitleZh: '成立长枪党，并提高贵族大地主、小资产阶级和天主教会对长枪党（FE）的支持。',
       effect: (state) => {
         let newClasses = state.classes;
-        
-        // FE gains some initial support from the Aristocracy, Middle Class, and Church
         newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'FE', 10);
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'FE', 5);
         newClasses = adjustClassSupport(newClasses, 'Clero', 'FE', 5);
-        
+
         return {
           classes: newClasses,
-          fe_founded: true
+          fe_founded: true,
         };
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

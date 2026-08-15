@@ -1,19 +1,29 @@
-import { GameEvent } from '../types';
+import React from 'react';
+import type { GameEvent, Party, MinisterParty } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 import { calculateElectionResults } from '../utils/election';
+import { formCoalition } from '../utils/coalition';
+import { ParliamentChart } from '../../components/ParliamentChart';
+import { PARTY_COLORS } from '../constants';
+import { getPartyName } from '../partyNames';
 
 const election1933Meta = {
   category: 'politics' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['elections', 'election_1933'],
   tags: ['election'],
 };
 
+const election1933LeafMeta = {
+  ...election1933Meta,
+  flow: 'inline.leaf' as const,
+};
+
 export const elections1933: GameEvent = {
-  id: '1933_general_elections',
+  id: 'elections_1933',
+  meta: election1933Meta,
   date: { year: 1933, month: 11 },
   condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1933, 11),
-  meta: election1933Meta,
   title: '1933 General Elections',
   titleZh: '1933年大选',
   description: 'With the collapse of the Republican-Socialist coalition, President Alcalá-Zamora has dissolved the Cortes and called for new elections. The political landscape has shifted dramatically since 1931. The right, now united under CEDA, is mobilizing aggressively. The left is fragmented, with the PSOE running alone in many districts. Women will vote for the first time in national elections. Once again, the CNT must decide: do we abstain, or do we intervene to stop the reactionary tide?',
@@ -70,29 +80,23 @@ export const elections1933: GameEvent = {
   ],
 };
 
-import React from 'react';
-import { Party } from '../types';
-import { ParliamentChart } from '../../components/ParliamentChart';
-import { PARTY_COLORS } from '../constants';
-import { getPartyName } from '../partyNames';
-
 export const elections1933Results: GameEvent = {
-  id: '1933_elections_results',
-  meta: election1933Meta,
+  id: 'elections_1933_results',
+  meta: election1933LeafMeta,
   title: 'Results of the 1933 General Elections',
   titleZh: '1933年大选结果',
   description: 'The results are in. The electoral system, designed to reward broad coalitions, has this time severely punished the divided left and rewarded the united right. CEDA has emerged as the largest party in the Cortes, followed closely by Lerroux\'s Radicals. The socialists have suffered a catastrophic defeat in terms of seats, despite maintaining significant popular support. Spain has swung sharply to the right.',
   descriptionZh: '结果出来了。旨在奖励广泛联盟的选举制度，这次严厉惩罚了分裂的左翼，并奖励了团结的右翼。CEDA 成为议会第一大党，紧随其后的是勒鲁的激进党。尽管社会党人保持了相当的民众支持，但他们在席位上遭遇了灾难性的失败。西班牙急剧向右转。',
   renderContent: (state) => {
     const isZh = state.language === 'zh';
-    const cortes = state.cortes || calculateElectionResults(state);
+    const cortes = calculateElectionResults(state);
     
     
     const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
-      name: getPartyName(state, party as any, isZh),
+      name: getPartyName(state, party as Party, isZh),
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
     }))
@@ -161,14 +165,14 @@ export const elections1933Results: GameEvent = {
   options: [
     {
       text: (state) => {
-        const cortes = state.cortes || calculateElectionResults(state);
+        const cortes = calculateElectionResults(state);
         const centerRightSeats = (cortes.DLR || 0) + (cortes.AP || 0);
         const totalSeats = Object.values(cortes).reduce((sum, s) => sum + s, 0) || 1;
         const pct = Math.round((centerRightSeats / totalSeats) * 100);
         return `A dark period begins. The "Bienio Negro" is upon us. (Radical-CEDA: ${pct}%)`;
       },
       textZh: (state) => {
-        const cortes = state.cortes || calculateElectionResults(state);
+        const cortes = calculateElectionResults(state);
         const centerRightSeats = (cortes.DLR || 0) + (cortes.AP || 0);
         const totalSeats = Object.values(cortes).reduce((sum, s) => sum + s, 0) || 1;
         const pct = Math.round((centerRightSeats / totalSeats) * 100);
@@ -177,7 +181,7 @@ export const elections1933Results: GameEvent = {
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
         
-        // Ensure CNT is kicked out of government if they were in it
+        // Kick the CNT out of government and assign the historical Radical-CEDA ministers
         const min = { ...state.ministers };
         const hist1933: Record<string, string> = {
           labor: 'PRR',
@@ -191,15 +195,11 @@ export const elections1933Results: GameEvent = {
           estado: 'Other',
         };
         for (const role of Object.keys(hist1933)) {
-          if (min[role as keyof typeof min] !== 'CNT') {
-            min[role as keyof typeof min] = hist1933[role] as any;
-          } else {
-            // Kick CNT out of government and set to historical
-            min[role as keyof typeof min] = hist1933[role] as any;
-          }
+          min[role as keyof typeof min] = hist1933[role] as MinisterParty;
         }
 
-        return {
+        const baseState = {
+          ...state,
           cortes: newCortes,
           cntStance: 'oppose' as const,
           ministers: min,
@@ -221,6 +221,20 @@ export const elections1933Results: GameEvent = {
             ...state.stats,
             workerControl: Math.max(0, state.stats.workerControl - 10)
           }
+        };
+
+        const finalState = formCoalition(baseState, 'ceda_radical', true);
+
+        return {
+          cortes: finalState.cortes,
+          cntStance: finalState.cntStance,
+          ministers: finalState.ministers,
+          government: finalState.government,
+          domesticPolicy: finalState.domesticPolicy,
+          stats: finalState.stats,
+          rulingCoalition: finalState.rulingCoalition,
+          activeCoalitions: finalState.activeCoalitions,
+          coalitionHistory: finalState.coalitionHistory
         };
       }
     }

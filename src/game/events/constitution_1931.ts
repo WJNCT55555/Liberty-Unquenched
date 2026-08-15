@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustFactionInfluence, isAtOrAfter } from '../utils';
 
 const lawMeta = {
@@ -8,7 +8,7 @@ const lawMeta = {
 };
 
 export const constitution1931: GameEvent = {
-  id: '1931_constitution',
+  id: 'constitution_1931',
   meta: lawMeta,
   date: { year: 1931, month: 12 },
   condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 12),
@@ -23,13 +23,13 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: state.domesticPolicy.political_rights + 1,
-          religion_policy: state.domesticPolicy.religion_policy + 2,
-          education_institutions: state.domesticPolicy.education_institutions + 1
+          political_rights: Math.min(100, state.domesticPolicy.political_rights + 1),
+          religion_policy: Math.min(100, state.domesticPolicy.religion_policy + 2),
+          education_institutions: Math.min(100, state.domesticPolicy.education_institutions + 1)
         },
         stats: {
           ...state.stats,         
-          revolutionaryFervor: state.stats.revolutionaryFervor + 10
+          revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
         },
         factions: adjustFactionInfluence(state.factions, 'Faistas', 10)
       })
@@ -40,14 +40,14 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: state.domesticPolicy.political_rights + 1,
-          religion_policy: state.domesticPolicy.religion_policy + 2,
-          education_institutions: state.domesticPolicy.education_institutions + 1
+          political_rights: Math.min(100, state.domesticPolicy.political_rights + 1),
+          religion_policy: Math.min(100, state.domesticPolicy.religion_policy + 2),
+          education_institutions: Math.min(100, state.domesticPolicy.education_institutions + 1)
         },
         stats: {
           ...state.stats,
-          revolutionaryFervor: state.stats.revolutionaryFervor - 5,
-          workerControl: state.stats.workerControl + 5
+          revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5),
+          workerControl: Math.min(100, state.stats.workerControl + 5)
         },
         factions: adjustFactionInfluence(state.factions, 'Treintistas', 10)
       })

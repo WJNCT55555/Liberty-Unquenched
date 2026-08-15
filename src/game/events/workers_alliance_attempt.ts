@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,

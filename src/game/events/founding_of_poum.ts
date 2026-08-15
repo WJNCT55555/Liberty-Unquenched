@@ -1,5 +1,5 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustClassSupport, adjustFactionDissent, adjustFactionInfluence, isAtOrAfter } from '../utils';
 
 const newsMeta = {
   category: 'news' as const,
@@ -7,7 +7,7 @@ const newsMeta = {
 };
 
 export const foundingOfPOUM: GameEvent = {
-  id: 'Founding of POUM',
+  id: 'founding_of_poum',
   meta: newsMeta,
   date: { year: 1935, month: 9 },
   condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1935, 9) && !state.poum_founded,
@@ -19,15 +19,18 @@ export const foundingOfPOUM: GameEvent = {
     {
       text: 'We will welcome our revolutionary comrades.',
       textZh: '我们将欢迎革命同志',
-      subtitle: 'POUM founded, CNT-FAI/POUM relations +15, CNT-FAI/PCE relations -10, Puristas influence +5, Faistas dissent +3, Revolutionary Fervor +3',
-      subtitleZh: 'poum将成立，cnt-fai与poum的关系+15，cnt-fai与PCE的关系-10，Puristas影响力+5，Faistas分歧度+3，革命热情+3',
+      subtitle: 'Founds POUM; improves POUM relations by 15, worsens PCE relations by 10, increases Puristas influence by 5, raises Faistas dissent by 3, and raises revolutionary fervor by 3.',
+      subtitleZh: '成立 POUM；提高与 POUM 的关系 15 点，降低与 PCE 的关系 10 点，提高纯粹派影响力 5 点，提高无政府主义者分歧度 3 点，并增加革命热情 3 点。',
       effect: (state) => {
         const newPartyRelations = { ...state.partyRelations };
         newPartyRelations.POUM = Math.min(100, newPartyRelations.POUM + 15);
         newPartyRelations.PCE = Math.max(0, newPartyRelations.PCE - 10);
         
-        const newFactions = adjustFactionInfluence(state.factions, 'Puristas', 5);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 3);
+        const newFactions = adjustFactionDissent(
+          adjustFactionInfluence(state.factions, 'Puristas', 5),
+          'Faistas',
+          3,
+        );
         
         return {
           poum_founded: true,
@@ -35,25 +38,25 @@ export const foundingOfPOUM: GameEvent = {
           factions: newFactions,
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 3)
-          }
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 3),
+          },
         };
-      }
+      },
     },
     {
       text: 'Wait and see.',
       textZh: '静观其变',
-      subtitle: 'POUM founded',
-      subtitleZh: 'poum将会成立',
+      subtitle: 'Founds POUM.',
+      subtitleZh: '成立 POUM。',
       effect: (state) => ({
-        poum_founded: true
-      })
+        poum_founded: true,
+      }),
     },
     {
       text: 'We do not welcome Marxists.',
       textZh: '我们不欢迎马克思主义者',
-      subtitle: 'POUM founded, CNT-FAI/POUM relations -10, CNT-FAI/PCE relations -5, Puristas influence -3, Workers support -3',
-      subtitleZh: 'poum将成立，cnt-fai与poum的关系-10，cnt-fai与PCE的关系-5，Puristas影响力-3，工人阶级支持率-3',
+      subtitle: 'Founds POUM; worsens POUM relations by 10, worsens PCE relations by 5, lowers Puristas influence by 3, and lowers worker support by 3.',
+      subtitleZh: '成立 POUM；降低与 POUM 的关系 10 点，降低与 PCE 的关系 5 点，降低纯粹派影响力 3 点，并降低产业工人对 CNT-FAI 的支持 3 点。',
       effect: (state) => {
         const newPartyRelations = { ...state.partyRelations };
         newPartyRelations.POUM = Math.max(0, newPartyRelations.POUM - 10);
@@ -68,18 +71,17 @@ export const foundingOfPOUM: GameEvent = {
           poum_founded: true,
           partyRelations: newPartyRelations,
           factions: newFactions,
-          classes: newClasses
+          classes: newClasses,
         };
-      }
+      },
     },
     {
       text: 'Let us keep our distance from politics.',
       textZh: '让我们与政治保持距离',
-      subtitle: 'POUM founded, Faistas dissent -5, Workers support -5, Revolutionary Fervor -3',
-      subtitleZh: 'poum将成立，Faistas分歧度-5，工人阶级支持率-5，革命热情-3',
+      subtitle: 'Founds POUM; lowers Faistas dissent by 5, worker support by 5, and revolutionary fervor by 3.',
+      subtitleZh: '成立 POUM；降低无政府主义者分歧度 5 点、产业工人对 CNT-FAI 的支持 5 点，并降低革命热情 3 点。',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
+        const newFactions = adjustFactionDissent(state.factions, 'Faistas', -5);
         
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);
@@ -90,19 +92,18 @@ export const foundingOfPOUM: GameEvent = {
           classes: newClasses,
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 3)
-          }
+            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 3),
+          },
         };
-      }
+      },
     },
     {
       text: 'Whatever happens, this will strengthen the Popular Front.',
       textZh: '无论怎么样，这将会壮大人民阵线',
-      subtitle: 'POUM founded, Cenetistas dissent -3, Workers support -2',
-      subtitleZh: 'poum将成立，Cenetistas分歧度-3，工人阶级支持率-2',
+      subtitle: 'Founds POUM; lowers Cenetistas dissent by 3 and worker support by 2.',
+      subtitleZh: '成立 POUM；降低工团派分歧度 3 点，并降低产业工人对 CNT-FAI 的支持 2 点。',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 3);
+        const newFactions = adjustFactionDissent(state.factions, 'Cenetistas', -3);
         
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -2);
@@ -110,15 +111,15 @@ export const foundingOfPOUM: GameEvent = {
         return {
           poum_founded: true,
           factions: newFactions,
-          classes: newClasses
+          classes: newClasses,
         };
-      }
+      },
     },
     {
       text: 'Is it too early to talk about revolution now...',
       textZh: '现在谈论革命是不是为时尚早......',
-      subtitle: 'POUM founded, Treintistas influence +3, Workers support -5, Revolutionary Fervor -5',
-      subtitleZh: 'poum将成立，Treintistas影响力+3，工人阶级支持率-5，革命热情-5',
+      subtitle: 'Founds POUM; increases Treintistas influence by 3, lowers worker support by 5, and lowers revolutionary fervor by 5.',
+      subtitleZh: '成立 POUM；提高三十人集团影响力 3 点，降低产业工人对 CNT-FAI 的支持 5 点，并降低革命热情 5 点。',
       effect: (state) => {
         const newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 3);
         
@@ -131,10 +132,10 @@ export const foundingOfPOUM: GameEvent = {
           classes: newClasses,
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5)
-          }
+            revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5),
+          },
         };
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

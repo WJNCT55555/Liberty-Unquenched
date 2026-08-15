@@ -1465,8 +1465,8 @@ const MinisterRow: React.FC<{
   const cleanParty = party || 'Other';
   const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
   const partyLabel = party === 'CNT'
-    ? getPartyName(state, 'CNT_FAI', isZh, true)
-    : getPartyName(state, party as Party, isZh, true);
+    ? getPartyName(state, 'CNT_FAI', isZh)
+    : getPartyName(state, party as Party, isZh);
   const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
 
   const isUpward = ['interior', 'agriculture', 'war', 'finance'].includes(deptKey);

@@ -1,24 +1,29 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { MapFaction } from '../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES, isPortugalProvince } from '../../map/map_constants';
 
-const asturiasInlineMeta = {
+const asturiasRootMeta = {
   category: 'war' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['asturias'],
   tags: ['map'],
 };
 
+const asturiasLeafMeta = {
+  ...asturiasRootMeta,
+  flow: 'inline.leaf' as const,
+};
+
 export const asturiasWarFailed: GameEvent = {
   id: 'asturias_war_failed',
-  meta: asturiasInlineMeta,
-  title: '阿斯图里亚斯战争失败',
+  meta: asturiasLeafMeta,
+  title: 'The Asturias War Is Lost',
   titleZh: '阿斯图里亚斯战争失败',
-  description: '阿斯图里亚斯的矿工武装起义不幸失败，政府军与反动武装残酷地镇压了起义。成千上万的同志被捕、被流放或被无情地处决。这对全国的革命热情和工人阶级运动造成了沉重的打击。',
+  description: 'The armed miners\' uprising in Asturias has tragically failed. Government forces and reactionary militias brutally crushed the revolt. Thousands of comrades have been arrested, exiled, or ruthlessly executed. This is a heavy blow to revolutionary fervor and the workers\' movement across the country.',
   descriptionZh: '阿斯图里亚斯的矿工武装起义不幸失败，政府军与反动武装残酷地镇压了起义。成千上万的同志被捕、被流放或被无情地处决。这对全国的革命热情和工人阶级运动造成了沉重的打击。',
   options: [
     {
-      text: '悲痛哀悼，保存革命火种',
+      text: 'Mourn the dead and preserve the revolutionary flame',
       textZh: '悲痛哀悼，保存革命火种',
       effect: (state) => ({
         stats: {
@@ -28,7 +33,7 @@ export const asturiasWarFailed: GameEvent = {
       })
     },
     {
-      text: '公开谴责暴行，誓言复仇',
+      text: 'Publicly denounce the atrocities and swear vengeance',
       textZh: '公开谴责暴行，誓言复仇',
       effect: (state) => ({
         stats: {
@@ -42,10 +47,10 @@ export const asturiasWarFailed: GameEvent = {
 
 export const asturiasRevolution: GameEvent = {
   id: 'asturias_revolution',
-  meta: asturiasInlineMeta,
-  title: '阿斯图里亚斯革命爆发',
+  meta: asturiasRootMeta,
+  title: 'The Asturian Revolution Erupts',
   titleZh: '阿斯图里亚斯革命爆发',
-  description: '随着右翼CEDA党加入勒鲁政府，激进的右翼化政策彻底激怒了全国的工人阶级。在“联合无产阶级兄弟”（UHP）的伟大口号下，阿斯图里亚斯的矿工们率先发起了武装起义！他们夺取了军火库，控制了矿区，建立起革命委员会，并向反动政权宣战！这场伟大的无产阶级风暴，我们应当如何应对？',
+  description: 'As the right-wing CEDA joined the Lerroux government, its radical rightward policies have enraged the working class across the country. Under the great slogan of "United Proletarian Brothers" (UHP), the miners of Asturias have risen in armed revolt! They have seized the arsenals, taken control of the mining districts, established revolutionary committees, and declared war on the reactionary regime! How should we respond to this great proletarian storm?',
   descriptionZh: '随着右翼CEDA党加入勒鲁政府，激进的右翼化政策彻底激怒了全国的工人阶级。在“联合无产阶级兄弟”（UHP）的伟大口号下，阿斯图里亚斯的矿工们率先发起了武装起义！他们夺取了军火库，控制了矿区，建立起革命委员会，并向反动政权宣战！这场伟大的无产阶级风暴，我们应当如何应对？',
   condition: (state) => {
     const isAsturiasWarStarted = state.wars?.asturias_war && state.wars.asturias_war !== 'not_started';
@@ -68,7 +73,7 @@ export const asturiasRevolution: GameEvent = {
   },
   options: [
     {
-      text: 'CNT将全力加入革命！',
+      text: 'The CNT will join the revolution with all its strength!',
       textZh: 'CNT将全力加入革命！',
       condition: (state) => {
         const alianzaCompleted = state.journal?.['journal_alianza_obrera']?.status === 'completed';
@@ -194,7 +199,7 @@ export const asturiasRevolution: GameEvent = {
       }
     },
     {
-      text: '仅阿斯图里亚斯的同志们参与',
+      text: 'Only the comrades of Asturias will take part',
       textZh: '仅阿斯图里亚斯的同志们参与',
       effect: (state) => {
         const nextWars = { ...(state.wars || {}) };

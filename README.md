@@ -195,7 +195,6 @@ Vite 默认使用 `/Liberty-Unquenched/` 作为页面基础路径。部署工作
 ├─ public/
 │  ├─ date/                  # 地图及地理数据
 │  ├─ img/                   # 图片、肖像、图标和超级事件素材
-│  ├─ img/Law/              # 法律或政策相关素材
 │  └─ music/                 # 音乐素材
 ├─ src/
 │  ├─ components/            # React 界面组件
@@ -215,22 +214,6 @@ Vite 默认使用 `/Liberty-Unquenched/` 作为页面基础路径。部署工作
 ├─ vite.config.ts            # Vite 配置和 GitHub Pages 基础路径
 └─ metadata.json             # 项目元数据
 ```
-
-## 本地专用目录
-
-以下内容可以存在于本地工作目录，但不会上传到 GitHub：
-
-| 路径 | 用途 | 是否纳入版本控制 |
-| --- | --- | --- |
-| `editor/` | 独立的卡牌/游戏数据编辑器项目 | 否 |
-| `.agents/` | Codex skill 和本地代理配置 | 否 |
-| `start_game.bat` | Windows 本地启动快捷方式 | 否 |
-| `node_modules/` | npm 安装的依赖 | 否 |
-| `dist/` | Vite 生产构建产物 | 否；由 Actions 发布到 `gh-pages` |
-| `build/` | 其他本地构建目录 | 否 |
-| `coverage/` | 测试覆盖率产物 | 否 |
-
-这些规则由 [`.gitignore`](.gitignore) 控制。不要为了方便而使用 `git add -f` 强行添加这些目录。
 
 ## 开发约定
 

@@ -1,16 +1,26 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
 
 const cntFourthCongressMeta = {
   category: 'cnt' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['cnt_congress_1936'], // assuming 1936
+};
+
+const cntFourthCongressNodeMeta = {
+  ...cntFourthCongressMeta,
+  flow: 'inline.node' as const,
+};
+
+const cntFourthCongressLeafMeta = {
+  ...cntFourthCongressMeta,
+  flow: 'inline.leaf' as const,
 };
 
 // Event 8
 export const cnt_fourth_congress_8: GameEvent = {
   id: 'cnt_fourth_congress_8',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressLeafMeta,
   title: 'Closing of the Congress',
   titleZh: '大会闭幕',
   description: `After a long and intense debate, the Congress has finally reached a consensus. In order to announce the victory of the Congress and the vision of the revolution to the whole country, the National Committee originally planned to hold a grand closing rally and broadcast it to the whole of Spain via radio. However, the Azaña government, fearing the power of the workers, explicitly refused to authorize the broadcast! Even more outrageously, the telephone company took advantage of the situation and demanded exorbitant transmission fees equivalent to long-distance calls.`,
@@ -19,35 +29,60 @@ export const cnt_fourth_congress_8: GameEvent = {
     {
       text: 'Negotiate with the government for broadcast permission',
       textZh: '与政府斡旋获得广播集会许可',
-      subtitle: 'We will make the results of the Congress public via broadcast.',
-      subtitleZh: '我们将通过广播将大会结果公之于众。',
+      subtitle: 'Make the results of the Congress public via an authorized broadcast. (+5 Revolutionary Fervor)',
+      subtitleZh: '通过获得授权的广播将大会结果公之于众。（+5 革命热情）',
       condition: (state) => state.cntStance === 'govern' && (state.government.president === 'Manuel Azaña' || state.government.president === 'Ramón Franco'),
-      effect: (state) => ({})
+      unavailableSubtitle: () => 'Requires CNT participation in a government led by Azaña or Ramón Franco.',
+      unavailableSubtitleZh: () => '需要CNT执政且总统为阿萨尼亚或拉蒙·佛朗哥。',
+      effect: (state) => ({
+        stats: {
+          ...state.stats,
+          revolutionaryFervor: Math.min(100, (state.stats.revolutionaryFervor || 0) + 5)
+        }
+      })
     },
     {
       text: 'Use the telephone for transmission (10 Resources)',
       textZh: '使用电话进行传播（10资源）',
-      subtitle: 'Or try negotiating with the telephone company?',
-      subtitleZh: '或者试试与电话公司谈判？',
+      subtitle: 'Spend 10 Resources to transmit the rally over the telephone lines. (+8 Revolutionary Fervor)',
+      subtitleZh: '花费 10 资源，通过电话线路转播大会。（+8 革命热情）',
       condition: (state) => state.resources >= 10,
+      unavailableSubtitle: () => 'Requires 10 resources.',
+      unavailableSubtitleZh: () => '需要 10 资源。',
       effect: (state) => ({
-        resources: state.resources - 10
+        resources: state.resources - 10,
+        stats: {
+          ...state.stats,
+          revolutionaryFervor: Math.min(100, (state.stats.revolutionaryFervor || 0) + 8)
+        }
       })
     },
     {
       text: 'Utilize our nationwide radio network!',
       textZh: '利用我们遍布全国的电台网络！',
-      subtitle: 'A single spark can start a prairie fire.',
-      subtitleZh: '星星之火，可以燎原。',
+      subtitle: 'Broadcast the rally nationwide over our own radio network. (+10 Revolutionary Fervor)',
+      subtitleZh: '通过我们自己的电台网络向全国广播大会。（+10 革命热情）',
       condition: (state) => (state.radio || 0) >= 3,
-      effect: (state) => ({})
+      unavailableSubtitle: () => 'Requires at least 3 radio networks.',
+      unavailableSubtitleZh: () => '需要至少 3 座广播电台。',
+      effect: (state) => ({
+        stats: {
+          ...state.stats,
+          revolutionaryFervor: Math.min(100, (state.stats.revolutionaryFervor || 0) + 10)
+        }
+      })
     },
     {
       text: 'We are helpless',
       textZh: '我们束手无策',
-      subtitle: 'We have made the necessary representations for the broadcast of the rally: the government will not authorize the broadcast of this rally; moreover, the local radio station does not have the capacity to rebroadcast it; and the telephone company charges us the same as for international long-distance calls. Therefore, we cannot achieve our goal.',
-      subtitleZh: '我们已为集会的广播事宜进行了必要的交涉：政府不会授权广播此次集会；而且本地的电台没有能力转播；电话公司向我们收取的费用与国际长途电话相同。因此，我们无法实现目标。',
-      effect: (state) => ({})
+      subtitle: 'We have made the necessary representations for the broadcast of the rally: the government will not authorize the broadcast of this rally; moreover, the local radio station does not have the capacity to rebroadcast it; and the telephone company charges us the same as for international long-distance calls. Therefore, we cannot achieve our goal. (-3 Revolutionary Fervor)',
+      subtitleZh: '我们已为集会的广播事宜进行了必要的交涉：政府不会授权广播此次集会；而且本地的电台没有能力转播；电话公司向我们收取的费用与国际长途电话相同。因此，我们无法实现目标。（-3 革命热情）',
+      effect: (state) => ({
+        stats: {
+          ...state.stats,
+          revolutionaryFervor: Math.max(0, (state.stats.revolutionaryFervor || 0) - 3)
+        }
+      })
     }
   ]
 };
@@ -55,7 +90,7 @@ export const cnt_fourth_congress_8: GameEvent = {
 // Event 6
 export const cnt_fourth_congress_6: GameEvent = {
   id: 'cnt_fourth_congress_6',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'Drawing the Blueprint',
   titleZh: '构绘蓝图',
   description: `If the revolution succeeds tomorrow, how will society function? At the Congress, delegates leaning towards pure anarchism engaged in fierce debates with those leaning towards syndicalism. We must lay the foundation for the new society, but we must never turn it into a rigid dogma.`,
@@ -67,11 +102,12 @@ export const cnt_fourth_congress_6: GameEvent = {
       subtitle: 'The working class and all its fellow travelers take over and run the economic foundation of society, thereby transforming it according to social justice.',
       subtitleZh: '工人阶级及所有其同路人接管和运营社会的经济基础，从而依照社会正义对其进行改造。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 8);
-        newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 8);
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 8);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 8);
+        let newFactions = adjustFactionDissents(state.factions, {
+          Treintistas: -8,
+          Faistas: -8,
+          Cenetistas: -8,
+          Puristas: -8,
+        });
         return {
           factions: newFactions,
           currentEvent: cnt_fourth_congress_8
@@ -110,7 +146,7 @@ export const cnt_fourth_congress_6: GameEvent = {
 // Event 5
 export const cnt_fourth_congress_5: GameEvent = {
   id: 'cnt_fourth_congress_5',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'Revolutionary Alliance',
   titleZh: '革命联盟',
   description: `Since the Asturias uprising, the facts have proved that the proletariat possesses unstoppable revolutionary power, but only if they are united. The Congress believes that the two largest workers' organizations in Spain—UGT and CNT—must be united. But can we accept the politician-like style of the UGT?`,
@@ -148,7 +184,7 @@ export const cnt_fourth_congress_5: GameEvent = {
 // Event 4
 export const cnt_fourth_congress_4: GameEvent = {
   id: 'cnt_fourth_congress_4',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'Agrarian Reform',
   titleZh: '土地改革',
   description: `After fully listening to the opinions, reports, and comments of the various peasant delegations at this special Congress of the CNT. The agriculture from one end of Spain to the other is so vastly different. We increasingly feel that without overturning all the values of the existing social system through revolutionary liberation, it is impossible to solve the problem immediately. Undoubtedly, those of us who live off the land share a common aspiration: the liberation of the land and ourselves.`,
@@ -185,8 +221,7 @@ export const cnt_fourth_congress_4: GameEvent = {
         let newClasses = adjustClassSupport(state.classes, 'Labradores', 'CNT_FAI', 3);
         newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2);
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Puristas', -5);
+        let newFactions = adjustFactionInfluence(state.factions, 'Puristas', -5);
         return {
           classes: newClasses,
           factions: newFactions,
@@ -213,7 +248,7 @@ export const cnt_fourth_congress_4: GameEvent = {
 // Event 3
 export const cnt_fourth_congress_3: GameEvent = {
   id: 'cnt_fourth_congress_3',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'The Coming Storm',
   titleZh: '山雨欲来',
   description: `Given that Spain is in a clear revolutionary situation, if the CNT does not strive to defend the freedoms stripped away by various governments of the right and left, its actions will be confined to the ebb and flow of political tides. Therefore, it is necessary to reach a consensus on action to strike deeply at the repressive laws that infringe on freedom.
@@ -250,8 +285,7 @@ To this end, we propose:`,
       subtitle: 'Without participating in parliament, create the necessary public opinion atmosphere to force the government to make concessions.',
       subtitleZh: '在不参与议会的前提下，营造必要的舆论氛围，迫使政府做出让步。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 5);
+        let newFactions = adjustFactionDissents(state.factions, { Puristas: 5 });
         return {
           factions: newFactions,
           currentEvent: cnt_fourth_congress_4
@@ -278,7 +312,7 @@ To this end, we propose:`,
 // Event 2
 export const cnt_fourth_congress_2: GameEvent = {
   id: 'cnt_fourth_congress_2',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'Unemployment and Poverty',
   titleZh: '失业与贫困',
   description: `The Congress agenda enters the core socio-economic issues. The development of machinery should have freed humanity from arduous labor, but under the capitalist system, it has brought mass unemployment and starvation. Faced with millions of unemployed workers without income, the Congress must put forward the CNT's specific program of struggle. What means should be used to fight the poverty looming over the proletariat?`,
@@ -291,8 +325,7 @@ export const cnt_fourth_congress_2: GameEvent = {
       subtitleZh: '争取36小时工作制最低工资保障缓解强迫失业带来的苦难',
       effect: (state) => {
         let newClasses = adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 8);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Puristas', 8);
+        let newFactions = adjustFactionInfluence(state.factions, 'Puristas', 8);
         return {
           classes: newClasses,
           factions: newFactions,
@@ -307,8 +340,7 @@ export const cnt_fourth_congress_2: GameEvent = {
       subtitleZh: '争取国家大规模公共工程补贴。',
       effect: (state) => {
         let newClasses = adjustClassSupport(state.classes, 'PequenaBurguesia', 'CNT_FAI', 3);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 5);
+        let newFactions = adjustFactionDissents(state.factions, { Puristas: 5 });
         return {
           classes: newClasses,
           factions: newFactions,
@@ -324,10 +356,9 @@ export const cnt_fourth_congress_2: GameEvent = {
       subtitleZh: '工会应立刻接管被关闭的工厂，并时刻为总罢工做准备。',
       effect: (state) => {
         let newClasses = adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 4);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Puristas', 5);
+        let newFactions = adjustFactionInfluence(state.factions, 'Puristas', 5);
         newFactions = adjustFactionInfluence(newFactions, 'Faistas', 3);
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 3);
+        newFactions = adjustFactionDissents(newFactions, { Cenetistas: -3 });
         return {
           classes: newClasses,
           factions: newFactions,
@@ -341,7 +372,7 @@ export const cnt_fourth_congress_2: GameEvent = {
 // Event 1
 export const cnt_fourth_congress_1: GameEvent = {
   id: 'cnt_fourth_congress_1',
-  meta: cntFourthCongressMeta,
+  meta: cntFourthCongressNodeMeta,
   title: 'Lost Lambs',
   titleZh: '迷途羔羊',
   description: `Spain is on the brink of profound social revolution, and internal rifts urgently need to be healed. Since the establishment of the Republic, due to different understandings of the revolutionary line, some unions known as the "opposition" broke away from the CNT. Now, to prepare for the coming storm, the Congress must decide how to deal with these splintered comrades.`,
@@ -355,9 +386,8 @@ export const cnt_fourth_congress_1: GameEvent = {
       effect: (state) => {
         let newClasses = adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 5);
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 10);
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 3);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 10);
+        newFactions = adjustFactionDissents(newFactions, { Cenetistas: -3 });
         return {
           classes: newClasses,
           factions: newFactions,
@@ -373,8 +403,7 @@ export const cnt_fourth_congress_1: GameEvent = {
       effect: (state) => {
         let newClasses = adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', -3);
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', -5);
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 9);
+        let newFactions = adjustFactionDissents(state.factions, { Cenetistas: 9 });
         newFactions = adjustFactionInfluence(newFactions, 'Puristas', 5);
         return {
           classes: newClasses,
@@ -389,9 +418,9 @@ export const cnt_fourth_congress_1: GameEvent = {
 // Main event
 export const cnt_fourth_congress_0: GameEvent = {
   id: 'cnt_fourth_congress_0',
+  meta: cntFourthCongressMeta,
   date: { year: 1936, month: 5 },
   condition: (state) => isAtOrAfter(state, 1936, 5),
-  meta: cntFourthCongressMeta,
   title: 'The Fourth Congress of the CNT Convenes',
   titleZh: 'CNT第四次代表大会召开',
   description: `May 1, 1936, Zaragoza. Hundreds of delegates gathered together, representing over a million proletarians across the Iberian Peninsula, officially kicking off the Fourth Congress of the CNT. But before discussing the grand blueprint of the revolution, the Congress must first set the tone. Thousands of comrades are still suffering in capitalist prisons at home and abroad; the Congress unanimously approved the proposal of the National Committee to send greetings to all social prisoners, and even to all so-called common prisoners throughout the world, wishing them an early freedom.`,

@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 
 const politicsMeta = {
@@ -19,9 +19,11 @@ export const cedaFormation: GameEvent = {
     {
       text: 'Sound the anti-fascist alarm! We must mobilize the streets.',
       textZh: '拉响反法西斯警报！我们必须动员街头群众。',
-      subtitle: 'Costs 1 Resource. Increases Revolutionary Fervor and Leftist Unity.',
-      subtitleZh: '消耗 1 资源。增加革命热情和左翼团结。',
+      subtitle: 'Costs 1 Resource. Raises revolutionary fervor but lets the right consolidate around CEDA.',
+      subtitleZh: '消耗 1 资源。提高革命热情，但右翼势力围绕CEDA进一步整合。',
       condition: (state) => state.resources >= 1,
+      unavailableSubtitle: () => 'Requires 1 resource.',
+      unavailableSubtitleZh: () => '需要 1 点资源。',
       effect: (state) => {
         let newClasses = state.classes;
         
@@ -67,10 +69,7 @@ export const cedaFormation: GameEvent = {
         return {
           ceda_formed: true,
           classes: newClasses,
-          factions: adjustFactionInfluence(state.factions, 'Faistas', 5),
-          stats: {
-            ...state.stats
-          }
+          factions: adjustFactionInfluence(state.factions, 'Faistas', 5)
         };
       }
     }

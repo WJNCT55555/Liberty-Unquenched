@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
 
 const ramonCampaignMeta = {
@@ -20,7 +20,7 @@ export const ramonCampaignEvent1: GameEvent = {
       text: 'The skies belong to the federation! Collect regional support.',
       textZh: '天空属于联邦！动员各地的自治力量。',
       effect: (state) => {
-        let newFactions = adjustFactionInfluence(state.factions, 'Jabalistas', 5);
+        const newFactions = adjustFactionInfluence(state.factions, 'Jabalistas', 5);
         return {
           factions: newFactions,
           domesticPolicy: {
@@ -76,7 +76,7 @@ export const ramonCampaignEvent3: GameEvent = {
         return {
           partyRelations: {
             ...state.partyRelations,
-            ERC: Math.min(100, (state.partyRelations?.ERC ?? 50) + 12)
+            ERC: Math.min(100, (state.partyRelations.ERC || 0) + 12)
           },
           stats: {
             ...state.stats,

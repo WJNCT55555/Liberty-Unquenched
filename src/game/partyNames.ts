@@ -24,22 +24,22 @@ export const PARTY_NAMES_MAPPING: Record<Party | 'CNT_FAI', { en: string; zh: st
 
 export const PARTY_NAMES_SHORT_MAPPING: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
   CNT_FAI: { en: 'CNT-FAI', zh: 'CNT-FAI' },
-  PSOE: { en: 'PSOE', zh: '工人社会党' },
-  IR: { en: 'IR', zh: '共和左翼' },
-  UR: { en: 'UR', zh: '共和联盟' },
-  PCE: { en: 'PCE', zh: '西共' },
-  PS: { en: 'PS', zh: '工团党' },
-  FE: { en: 'FE', zh: '长枪党' },
-  POUM: { en: 'POUM', zh: '马统工党' },
+  PSOE: { en: 'PSOE', zh: 'PSOE' },
+  IR: { en: 'IR', zh: 'IR' },
+  UR: { en: 'UR', zh: 'UR' },
+  PCE: { en: 'PCE', zh: 'PCE' },
+  PS: { en: 'PS', zh: 'PS' },
+  FE: { en: 'FE', zh: 'FE' },
+  POUM: { en: 'POUM', zh: 'POUM' },
   AP: { en: 'CEDA', zh: 'CEDA' },
-  CT: { en: 'CT', zh: '传统主义者' },
-  RE: { en: 'RE', zh: '西班牙革新' },
-  DLR: { en: 'DLR', zh: '自由共和右翼' },
-  PRR: { en: 'PRR', zh: '激进党' },
-  ERC: { en: 'ERC', zh: '加泰共和左翼' },
-  PNV: { en: 'PNV', zh: '巴斯克民族党' },
+  CT: { en: 'CT', zh: 'CT' },
+  RE: { en: 'RE', zh: 'RE' },
+  DLR: { en: 'DLR', zh: 'DLR' },
+  PRR: { en: 'PRR', zh: 'PRR' },
+  ERC: { en: 'ERC', zh: 'ERC' },
+  PNV: { en: 'PNV', zh: 'PNV' },
   Other: { en: 'Other', zh: '其他' },
-  PRRevS: { en: 'PRRevS', zh: '革命共和工团党' }
+  PRRevS: { en: 'PRRevS', zh: 'PRRevS' }
 };
 
 export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
@@ -81,8 +81,8 @@ export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: b
   // Falange logic for FE
   if (party === 'FE' && state.falange_jons) {
     return isZh
-      ? (short ? 'FE de las JONS' : '长枪党 (FE de las JONS)')
-      : (short ? 'FE de las JONS' : 'FE de las JONS (Falange Española de las JONS)');
+      ? (short ? 'FEJONS' : '长枪党 (FE de las JONS)')
+      : (short ? 'FEJONS' : 'FE de las JONS (Falange Española de las JONS)');
   }
 
   const mapping = short ? PARTY_NAMES_SHORT_MAPPING : PARTY_NAMES_MAPPING;

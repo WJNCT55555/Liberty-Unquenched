@@ -1,13 +1,23 @@
 import React from 'react';
-import { GameEvent, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import type { GameEvent, GameState } from '../types';
+import { adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { calculatePresidentialVotes } from '../utils/election';
 
 const presidentialElectionMeta = {
   category: 'politics' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['presidential_election'],
   tags: ['election'],
+};
+
+const presidentialElectionNodeMeta = {
+  ...presidentialElectionMeta,
+  flow: 'inline.node' as const,
+};
+
+const presidentialElectionLeafMeta = {
+  ...presidentialElectionMeta,
+  flow: 'inline.leaf' as const,
 };
 
 // ==========================================
@@ -24,7 +34,7 @@ export const presidentialElectionDecision: GameEvent = {
     // Only triggers automatically if president has been impeached, civil war hasn't started, and we haven't seen it yet.
     return state.isPresidentImpeached === true && 
            state.civilWarStatus === 'not_started' && 
-           state.presidentElectionSeen === false;
+           !state.presidentElectionSeen;
   },
   options: [
     {
@@ -37,7 +47,6 @@ export const presidentialElectionDecision: GameEvent = {
           cntParticipatePresidential: false,
           presidentElectionLeftCandidate: 'azana',
           presidentElectionActiveCandidate: null,
-          presidentElectionPhase: 'general',
           presidentElectionSeen: true,
           currentEvent: presidentialElectionAutoResolve
         };
@@ -46,17 +55,14 @@ export const presidentialElectionDecision: GameEvent = {
     {
       text: 'Participate. The workers deserve a voice.',
       textZh: '参与。工人应当拥有发言权。',
-      subtitle: 'Intervene in the election. We must first decide which candidate to support in the left primary — Azaña or Ramón Franco.',
+      subtitle: 'Intervene in the election. We must first decide which candidate to support in the left primary — Azaña or Ramón Franco. Angers the Puristas and Faistas, but satisfies the moderates.',
       subtitleZh: '介入选举。首先我们需要决定在左翼初选中支持推举谁出战——阿萨尼亚还是拉蒙·佛朗哥。这会激怒纯洁派和法伊主义者，但温和派感到满意。',
       effect: (state) => {
-        let f = { ...state.factions };
-        f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 20) };
-        f.Puristas = { ...f.Puristas, dissent: Math.min(100, (f.Puristas?.dissent || 0) + 15) };
+        let f = adjustFactionDissents(state.factions, { Faistas: 20, Puristas: 15 });
         f = adjustFactionInfluence(f, 'Treintistas', 10);
         
         return {
           cntParticipatePresidential: true,
-          presidentElectionPhase: 'primary',
           presidentElectionSeen: true,
           factions: f,
           currentEvent: presidentialElectionPrimary
@@ -71,7 +77,7 @@ export const presidentialElectionDecision: GameEvent = {
 // ==========================================
 export const presidentialElectionPrimary: GameEvent = {
   id: 'presidential_election_primary',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionNodeMeta,
   title: 'Left Primary Selection',
   titleZh: '左翼阵营初选',
   description: 'The Left must unite behind a single presidential candidate. Manuel Azaña represents the path of republican order, constitutionalism, and stable governance in cooperation with the PSOE and IR. Ramón Franco, if backed, represents a radical decentralized vision — an Iberian federalist republic that shatters centralized power. Our decision here determines who represents the Left in the three-way general election.',
@@ -81,11 +87,10 @@ export const presidentialElectionPrimary: GameEvent = {
     {
       text: 'Azaña. The Republic must be reformed, not shattered.',
       textZh: '阿萨尼亚。共和国需要改革，而非粉碎。',
-      subtitle: 'A stable left alliance with the PSOE and IR. Predictable and trusted by bourgeois republicans we despise but need.',
-      subtitleZh: '与PSOE and IR建立稳定的左翼联盟。行事温和而容易被社会主流及资产阶级共和派接受。会引起无政府主义者的不悦。',
+      subtitle: 'A stable left alliance with the PSOE and IR. Predictable and trusted by bourgeois republicans we despise but need. Displeases the anarchists.',
+      subtitleZh: '与PSOE和IR建立稳定的左翼联盟。行事温和而容易被社会主流及资产阶级共和派接受。会引起无政府主义者的不悦。',
       effect: (state) => {
-        let f = { ...state.factions };
-        f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 10) };
+        let f = adjustFactionDissents(state.factions, { Faistas: 10 });
         f = adjustFactionInfluence(f, 'Treintistas', 5);
         
         const relations = { ...state.partyRelations };
@@ -93,7 +98,6 @@ export const presidentialElectionPrimary: GameEvent = {
         
         return {
           presidentElectionLeftCandidate: 'azana',
-          presidentElectionPhase: 'general',
           factions: f,
           partyRelations: relations,
           currentEvent: presidentialElectionCandidateSelection
@@ -109,8 +113,7 @@ export const presidentialElectionPrimary: GameEvent = {
       unavailableSubtitle: () => 'Requires Ramón Franco to have completed all 3 presidential campaign events.',
       unavailableSubtitleZh: () => '需要拉蒙·佛朗哥完成全部 3 次总统竞选宣传活动。',
       effect: (state) => {
-        let f = { ...state.factions };
-        f = adjustFactionInfluence(f, 'Jabalistas', 10);
+        let f = adjustFactionInfluence(state.factions, 'Jabalistas', 10);
         f = adjustFactionInfluence(f, 'Treintistas', -5);
         
         const relations = { ...state.partyRelations };
@@ -118,7 +121,6 @@ export const presidentialElectionPrimary: GameEvent = {
         
         return {
           presidentElectionLeftCandidate: 'ramon_franco',
-          presidentElectionPhase: 'general',
           factions: f,
           partyRelations: relations,
           currentEvent: presidentialElectionCandidateSelection
@@ -133,7 +135,7 @@ export const presidentialElectionPrimary: GameEvent = {
 // ==========================================
 export const presidentialElectionCandidateSelection: GameEvent = {
   id: 'presidential_election_candidate_selection',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionNodeMeta,
   title: 'Endorsing a Presidential Candidate',
   titleZh: '大选候选人背书',
   description: 'With the Left candidate chosen, we now face the three-way general election. The CNT National Committee must decide where our underground networks, street mobs, and workers\' assemblies will throw their support. The Left is our natural class ally — but Diego Martínez Barrio represents the moderate center that refused to bow to CEDA. José María Gil-Robles, on the other hand, is the leader of the authoritarian clerical Right... supporting him would shock our base, but perhaps it is a necessary deal, or a way to provoke the revolution.',
@@ -143,11 +145,10 @@ export const presidentialElectionCandidateSelection: GameEvent = {
     {
       text: (state) => `Support the Left — [${state.presidentElectionLeftCandidate === 'ramon_franco' ? 'Ramón Franco' : 'Manuel Azaña'}].`,
       textZh: (state) => `支持左翼—— [${state.presidentElectionLeftCandidate === 'ramon_franco' ? '拉蒙·佛朗哥' : '曼努埃尔·阿萨尼亚'}]。`,
-      subtitle: 'The disciplined choice. Our votes will strengthen the reformist bloc against right-wing reaction.',
+      subtitle: 'The disciplined choice. Our votes will strengthen the reformist bloc against right-wing reaction. The anarchists keep their usual restraint.',
       subtitleZh: '有纪律的选择。我们的选票将强化改革派阵营，用以阻击右翼反动势力。无政府主义者对此保持一贯的克制态度。',
       effect: (state) => {
-        const f = { ...state.factions };
-        f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 5) };
+        const f = adjustFactionDissents(state.factions, { Faistas: 5 });
         
         return {
           presidentElectionActiveCandidate: 'left',
@@ -159,12 +160,10 @@ export const presidentialElectionCandidateSelection: GameEvent = {
     {
       text: 'Support Diego Martínez Barrio — the Democratic Center.',
       textZh: '支持迭戈·马丁内斯·巴里奥——民主中间派。',
-      subtitle: 'Leader of the PRR\'s democratic wing. Refused to follow Lerroux into CEDA\'s embrace. Sometimes the middle is where the Republic survives.',
+      subtitle: 'Leader of the PRR\'s democratic wing. Refused to follow Lerroux into CEDA\'s embrace. Sometimes the middle is where the Republic survives. The Puristas and anarchists are deeply displeased.',
       subtitleZh: '激进党民主翼的领袖，拒绝同勒鲁一块投入CEDA怀抱。他坐在极端之间——有时中间派就是共和国得以维系的关键。纯粹派和无政府主义者对此极度不满。',
       effect: (state) => {
-        let f = { ...state.factions };
-        f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 15) };
-        f.Puristas = { ...f.Puristas, dissent: Math.min(100, (f.Puristas?.dissent || 0) + 10) };
+        let f = adjustFactionDissents(state.factions, { Faistas: 15, Puristas: 10 });
         f = adjustFactionInfluence(f, 'Treintistas', 5);
         
         const relations = { ...state.partyRelations };
@@ -182,12 +181,10 @@ export const presidentialElectionCandidateSelection: GameEvent = {
     {
       text: 'Support José María Gil-Robles (CEDA) — a pact with the Devil.',
       textZh: '支持何塞·马利亚·吉尔-罗伯斯（CEDA）——与魔鬼的交易。',
-      subtitle: 'The unthinkable. Back the Catholic authoritarian to prevent something worse, or to sharpen the revolution against a clear enemy.',
+      subtitle: 'The unthinkable. Back the Catholic authoritarian to prevent something worse, or to sharpen the revolution against a clear enemy. Our Puristas and anarchists will be utterly enraged!',
       subtitleZh: '不可想象之事。支持天主教威权主义者以阻止更坏的结局，或者是为了用外部大敌磨砺工人的革命斗志。我们的纯粹派和无政府主义者会彻底暴怒！',
       effect: (state) => {
-        let f = { ...state.factions };
-        f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 50) };
-        f.Puristas = { ...f.Puristas, dissent: Math.min(100, (f.Puristas?.dissent || 0) + 45) };
+        let f = adjustFactionDissents(state.factions, { Faistas: 50, Puristas: 45 });
         f = adjustFactionInfluence(f, 'Treintistas', -10);
         
         const relations = { ...state.partyRelations };
@@ -214,7 +211,7 @@ export const presidentialElectionCandidateSelection: GameEvent = {
 // ==========================================
 export const presidentialElectionCampaignMenu: GameEvent = {
   id: 'presidential_election_campaign_menu',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionNodeMeta,
   title: (state) => `Campaign Lobby – Round ${state.presidentElectionRound || 1}`,
   titleZh: (state) => `大选竞选大厅 — 第 ${state.presidentElectionRound || 1} 轮`,
   description: 'The political machine of Spain is operating at its maximum. Behind the closed doors of parliamentary offices, in smoke-filled cafes, and in the restless streets of working-class neighborhoods, the future of the republic is being bought, sold, and negotiated. How will we mobilize our network and resources to swing the vote?',
@@ -237,7 +234,8 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       },
       condition: (state) => {
         return !state.campaignLobbyVisited?.lobby_psoe && 
-               state.presidentElectionActiveCandidate !== 'gil_robles';
+               state.presidentElectionActiveCandidate !== 'gil_robles' &&
+               (state.partyRelations.PSOE || 0) >= 50;
       },
       unavailableSubtitle: (state) => {
         if (state.campaignLobbyVisited?.lobby_psoe) return 'Already lobbied PSOE.';
@@ -251,12 +249,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       },
       effect: (state) => {
         const visited = { ...state.campaignLobbyVisited, lobby_psoe: true };
-        
-        if ((state.partyRelations.PSOE || 0) < 50) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
 
         return {
           campaignLobbyVisited: visited,
@@ -269,7 +261,7 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       text: 'Lobby ERC (Catalonian Left) to mobilize regional electors',
       textZh: '游说加泰罗尼亚共和左翼 (ERC) 动员地方选举人',
       condition: (state) => {
-        return !state.campaignLobbyVisited?.lobby_erc && state.presidentElectionActiveCandidate !== null;
+        return !state.campaignLobbyVisited?.lobby_erc && state.presidentElectionActiveCandidate !== null && (state.partyRelations.ERC || 0) >= 40;
       },
       unavailableSubtitle: (state) => {
         if (state.campaignLobbyVisited?.lobby_erc) return 'Already lobbied ERC.';
@@ -280,11 +272,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
         return '需与ERC的关系 ≥ 40。';
       },
       effect: (state) => {
-        if ((state.partyRelations.ERC || 0) < 40) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
         const visited = { ...state.campaignLobbyVisited, lobby_erc: true };
         return {
           campaignLobbyVisited: visited,
@@ -297,7 +284,7 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       text: 'Mobilize workers on the streets for direct campaign pressure (-1 Resource)',
       textZh: '动员工人上街，施加直接选举压力 (-1 资源)',
       condition: (state) => {
-        return !state.campaignLobbyVisited?.lobby_street && state.presidentElectionActiveCandidate !== null;
+        return !state.campaignLobbyVisited?.lobby_street && state.presidentElectionActiveCandidate !== null && (state.resources || 0) >= 1;
       },
       unavailableSubtitle: (state) => {
         if (state.campaignLobbyVisited?.lobby_street) return 'Already mobilized the streets.';
@@ -308,11 +295,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
         return '需至少 1 资源。';
       },
       effect: (state) => {
-        if ((state.resources || 0) < 1) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
         const visited = { ...state.campaignLobbyVisited, lobby_street: true };
         const stats = { ...state.stats };
         stats.revolutionaryFervor = Math.min(100, (stats.revolutionaryFervor || 0) + 5);
@@ -331,7 +313,7 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       text: 'Spend resources to lobby and buy off undecided moderate electors (-2 Resources)',
       textZh: '砸资源进行公关游说，收买动摇的中间派选举人 (-2 资源)',
       condition: (state) => {
-        return !state.campaignLobbyVisited?.lobby_resources && state.presidentElectionActiveCandidate !== null;
+        return !state.campaignLobbyVisited?.lobby_resources && state.presidentElectionActiveCandidate !== null && (state.resources || 0) >= 2;
       },
       unavailableSubtitle: (state) => {
         if (state.campaignLobbyVisited?.lobby_resources) return 'Already lobbied moderate electors.';
@@ -342,11 +324,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
         return '需至少 2 资源。';
       },
       effect: (state) => {
-        if ((state.resources || 0) < 2) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
         const visited = { ...state.campaignLobbyVisited, lobby_resources: true };
         return {
           resources: state.resources - 2,
@@ -357,12 +334,13 @@ export const presidentialElectionCampaignMenu: GameEvent = {
     },
     // --- Option F (Round 2 Only): Convince Martinez Barrio to retire ---
     {
-      text: '说服马丁内斯·巴里奥退选背书左翼 / Convince Martínez Barrio to retire and endorse Left',
+      text: 'Convince Martínez Barrio to retire and endorse Left',
       textZh: '【第二轮】说服马丁内斯·巴里奥退选背书左翼',
       condition: (state) => {
         return state.presidentElectionRound === 2 && 
                state.presidentElectionActiveCandidate === 'left' &&
-               !state.campaignLobbyVisited?.lobby_r2_martinez_barrio_switch;
+               !state.campaignLobbyVisited?.lobby_r2_martinez_barrio_switch &&
+               (state.partyRelations.PRR || 0) >= 60;
       },
       unavailableSubtitle: (state) => {
         if (state.presidentElectionRound !== 2) return 'Only available in Round 2.';
@@ -377,11 +355,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
         return '需与激进党(PRR)的关系 ≥ 60。';
       },
       effect: (state) => {
-        if ((state.partyRelations.PRR || 0) < 60) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
         const visited = { ...state.campaignLobbyVisited, lobby_r2_martinez_barrio_switch: true };
         return {
           campaignLobbyVisited: visited,
@@ -391,12 +364,13 @@ export const presidentialElectionCampaignMenu: GameEvent = {
     },
     // --- Option G (Round 2 Only): Buy off Gil-Robles' allies ---
     {
-      text: '砸资源收买吉尔-罗伯斯的小党盟友 (-3 Resources) / Buy off Gil-Robles\' allies',
+      text: 'Buy off Gil-Robles\' allies (-3 Resources)',
       textZh: '【第二轮】砸资源收买吉尔-罗伯斯的小党盟友 (-3 资源)',
       condition: (state) => {
         return state.presidentElectionRound === 2 && 
                state.presidentElectionActiveCandidate !== 'gil_robles' &&
-               !state.campaignLobbyVisited?.lobby_r2_gil_robles_allies;
+               !state.campaignLobbyVisited?.lobby_r2_gil_robles_allies &&
+               (state.resources || 0) >= 3;
       },
       unavailableSubtitle: (state) => {
         if (state.presidentElectionRound !== 2) return 'Only available in Round 2.';
@@ -411,11 +385,6 @@ export const presidentialElectionCampaignMenu: GameEvent = {
         return '需至少 3 资源。';
       },
       effect: (state) => {
-        if ((state.resources || 0) < 3) {
-          return {
-            currentEvent: presidentialElectionCampaignMenu
-          };
-        }
         const visited = { ...state.campaignLobbyVisited, lobby_r2_gil_robles_allies: true };
         return {
           resources: state.resources - 3,
@@ -429,6 +398,8 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       text: 'Conclude lobbying. Cast the first round ballots.',
       textZh: '结束游说。举行大选第一轮投计票。',
       condition: (state) => state.presidentElectionRound === 1,
+      unavailableSubtitle: () => 'Only available in Round 1.',
+      unavailableSubtitleZh: () => '仅在第一轮可用。',
       effect: () => {
         return {
           currentEvent: presidentialElectionResults
@@ -440,6 +411,8 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       text: 'Conclude lobbying. Cast the second round ballots.',
       textZh: '结束游说。举行大选第二轮投计票。',
       condition: (state) => state.presidentElectionRound === 2,
+      unavailableSubtitle: () => 'Only available in Round 2.',
+      unavailableSubtitleZh: () => '仅在第二轮可用。',
       effect: () => {
         return {
           currentEvent: presidentialElectionResultsRound2
@@ -454,7 +427,7 @@ export const presidentialElectionCampaignMenu: GameEvent = {
 // ==========================================
 export const presidentialElectionResults: GameEvent = {
   id: 'presidential_election_results',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionNodeMeta,
   title: 'Presidential General Election – First Round Results',
   titleZh: '总统大选第一轮计票结果',
   description: 'The ballots of Spain\'s general election for the presidency are being counted. Under the bicameral design, the Cortes deputies and elector delegations have completed their voting. The results will determine if a direct 2/3 majority can be achieved, or if we must proceed to a secondary runoff.',
@@ -471,6 +444,8 @@ export const presidentialElectionResults: GameEvent = {
         const results = calculatePresidentialVotes(state, state.presidentElectionLeftCandidate || 'azana', state.presidentElectionActiveCandidate);
         return results.hasWinner;
       },
+      unavailableSubtitle: () => 'No candidate reached the required 2/3 majority.',
+      unavailableSubtitleZh: () => '无人达到所需的2/3绝对多数。',
       effect: (state) => {
         const results = calculatePresidentialVotes(state, state.presidentElectionLeftCandidate || 'azana', state.presidentElectionActiveCandidate);
         return getWinnerEffects(state, results.winner!);
@@ -485,6 +460,8 @@ export const presidentialElectionResults: GameEvent = {
         const results = calculatePresidentialVotes(state, state.presidentElectionLeftCandidate || 'azana', state.presidentElectionActiveCandidate);
         return !results.hasWinner;
       },
+      unavailableSubtitle: () => 'A candidate already won with a 2/3 majority.',
+      unavailableSubtitleZh: () => '已有候选人以2/3绝对多数胜出。',
       effect: () => {
         return {
           presidentElectionRound: 2,
@@ -500,7 +477,7 @@ export const presidentialElectionResults: GameEvent = {
 // ==========================================
 export const presidentialElectionResultsRound2: GameEvent = {
   id: 'presidential_election_results_round2',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionLeafMeta,
   title: 'Presidential General Election – Second Round Runoff Results',
   titleZh: '总统大选第二轮最终计票结果',
   description: 'The final runoff ballots are being tallied. Under the rules of the Second Republic, the candidate with the highest total of combined deputy and elector votes in the second round is elected President. No further stalling is possible.',
@@ -526,7 +503,7 @@ export const presidentialElectionResultsRound2: GameEvent = {
 // ==========================================
 export const presidentialElectionAutoResolve: GameEvent = {
   id: 'presidential_election_auto_resolve',
-  meta: presidentialElectionMeta,
+  meta: presidentialElectionLeafMeta,
   title: 'Presidential Election: Abstention Path',
   titleZh: '总统选举：弃权路线',
   description: 'The CNT has stood aside, refusing to participate in the presidential election. In our absence, the 470 deputies of the Cortes and the 470 newly elected electors convene to cast their votes based on the prevailing strength of each political party.',
@@ -576,8 +553,12 @@ export const presidentialElectionAutoResolve: GameEvent = {
         ),
         React.createElement('div', { className: 'text-cnt-red font-bold' },
           isZh
-            ? '⚠️ 无人达到2/3多数 → 进入第二轮简单多数制。'
-            : '⚠️ No one reached 2/3 majority -> Proceed to second round (simple majority).'
+            ? (results.hasWinner
+                ? '✅ 已有候选人获得2/3绝对多数。'
+                : '⚠️ 无人达到2/3多数 → 进入第二轮简单多数制。')
+            : (results.hasWinner
+                ? '✅ A candidate reached the 2/3 majority.'
+                : '⚠️ No one reached 2/3 majority -> Proceed to second round (simple majority).')
         ),
         React.createElement('div', { className: 'text-ink-light italic mt-1' },
           isZh
@@ -593,6 +574,7 @@ export const presidentialElectionAutoResolve: GameEvent = {
       textZh: '大选尘埃落定。曼努埃尔·阿萨尼亚当选总统。',
       subtitle: 'Manuel Azaña assumes the Presidency. Stability is maintained, but the military reaction is accelerated.',
       subtitleZh: '曼努埃尔·阿萨尼亚就任总统。宪法秩序和改革政策得以维持，但军方的反弹正在加剧。',
+      // The abstention path is scripted: Martínez Barrio retires and endorses Azaña, so Azaña wins regardless of the computed first-round table above.
       effect: (state) => {
         const stats = { ...state.stats };
         stats.republicanAuthority = Math.min(100, (stats.republicanAuthority || 0) + 5);

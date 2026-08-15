@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { elections1933 } from './elections_1933';
 import { elections1936 } from './elections_1936';
 
@@ -6,7 +6,7 @@ const presidentialDissolutionMeta = {
   category: 'politics' as const,
   flow: 'solo' as const,
   series: ['government_crisis', 'elections'],
-  tags: ['election'],
+  tags: ['election', 'repeatable'],
 };
 
 export const presidentialDissolutionOfCortes: GameEvent = {
@@ -17,7 +17,7 @@ export const presidentialDissolutionOfCortes: GameEvent = {
   description: 'With the collapse of the governing coalition, the legislative chamber has descended into complete paralysis. Exercising his constitutional authority under the Constitution of 1931, President Niceto Alcalá-Zamora has dissolved the Cortes and decreed early general elections. Spain is once again thrown into an intense electoral campaign, with polarized social forces preparing for a showdown at the ballot boxes.',
   descriptionZh: '随着执政联盟的崩溃，议会陷入了彻底的瘫痪。尼塞托·阿尔卡拉-萨莫拉总统行使1931年宪法赋予他的权力，正式宣布解散议会并提前举行大选。西班牙再次被推入激烈的选举浪潮中，社会各界政治力量纷纷重整旗鼓，准备在选票箱前一决胜负。',
   condition: (state) => {
-    // 只禁止内战进行中
+    // Only block while the civil war is ongoing
     return state.coalition_just_dissolved && state.civilWarStatus !== 'ongoing';
   },
   options: [

@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
 
 const lawMeta = {
@@ -20,13 +20,13 @@ export const juradosMixtos: GameEvent = {
     {
       text: 'This places workers under the rule of the state and the bourgeoisie, destroying the foundation of their resistance.',
       textZh: '这使工人置于国家和资产阶级的统治之下，摧毁了他们抵抗的基础。',
-      subtitle: 'We vehemently oppose state intervention. Enacts the Mixed Jury Law, but decreases our relationship with the PSOE (-15) and triggers continuous worker alienation towards the PSOE.',
-      subtitleZh: '我们强烈反对国家的干预。颁布《混合陪审团法》，但会降低与社会党(PSOE)的联合关系 15，并导致产业工人逐渐向其靠拢机制。',
+      subtitle: 'We vehemently oppose state intervention. Enacts the Mixed Jury Law, but decreases our relationship with the PSOE by 15.',
+      subtitleZh: '我们强烈反对国家的干预。颁布《混合陪审团法》，但会降低与社会党(PSOE)的联合关系 15。',
       effect: (state) => {
         return {
           partyRelations: {
             ...state.partyRelations,
-            PSOE: Math.max(0, state.partyRelations.PSOE - 15)
+            PSOE: Math.max(-100, state.partyRelations.PSOE - 15)
           },
           domesticPolicy: {
             ...state.domesticPolicy,

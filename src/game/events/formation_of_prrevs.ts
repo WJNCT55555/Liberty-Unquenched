@@ -1,5 +1,5 @@
-import { GameEvent } from '../types';
-import { adjustClassSupport } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustClassSupport, adjustFactionDissents } from '../utils';
 
 const prrevsMeta = {
   category: 'cnt' as const,
@@ -40,11 +40,7 @@ export const formationOfPRRevS: GameEvent = {
 
         return {
           classes: newClasses,
-          factions: {
-            ...state.factions,
-            Faistas: { ...state.factions.Faistas, dissent: Math.min(100, state.factions.Faistas.dissent + 30) },
-            Puristas: { ...state.factions.Puristas, dissent: Math.min(100, state.factions.Puristas.dissent + 40) }
-          },
+          factions: adjustFactionDissents(state.factions, { Faistas: 30, Puristas: 40 }),
           stats: {
             ...state.stats,
             bureaucratization: Math.min(100, state.stats.bureaucratization + 5),
@@ -61,10 +57,7 @@ export const formationOfPRRevS: GameEvent = {
       subtitleZh: '我们还没有准备好放弃我们的反政治立场。',
       effect: (state) => {
         return {
-          factions: {
-            ...state.factions,
-            Treintistas: { ...state.factions.Treintistas, dissent: Math.min(100, state.factions.Treintistas.dissent + 10) }
-          }
+          factions: adjustFactionDissents(state.factions, { Treintistas: 10 })
         };
       }
     }

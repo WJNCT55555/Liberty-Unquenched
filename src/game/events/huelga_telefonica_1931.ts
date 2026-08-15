@@ -1,5 +1,5 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, isAtOrAfter } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
 
 const cntLaborMeta = {
   category: 'cnt' as const,
@@ -46,8 +46,7 @@ export const huelgaTelefonica1931: GameEvent = {
       subtitle: 'Lowers revolutionary expectations, but preserves our organizational strength and prevents complete rupture with the government.',
       subtitleZh: '降低革命期望值，但能保存组织实力，并避免与政府彻底决裂。',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 10);
+        let newFactions = adjustFactionDissents(state.factions, { Faistas: 10 });
         const adjustedFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 5);
         
         return {

@@ -62,8 +62,8 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
   const ministerParty = state.ministers[dept.id as keyof typeof state.ministers] || 'Other';
   const ministerPartyKey: Party | 'CNT_FAI' = ministerParty === 'CNT' ? 'CNT_FAI' : ministerParty;
   const ministerPartyLabel = ministerParty === 'CNT'
-    ? getPartyName(state, 'CNT_FAI', isZh, true)
-    : getPartyName(state, ministerParty, isZh, true);
+    ? getPartyName(state, 'CNT_FAI', isZh)
+    : getPartyName(state, ministerParty, isZh);
   const color = getPartyColor(state, ministerPartyKey);
   const isRulingParty = rulingMembers.includes(ministerPartyKey);
 
@@ -98,7 +98,7 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
           }`}
         >
           {ministerParty === 'CNT' 
-            ? getPartyName(state, 'CNT_FAI', isZh, true) 
+            ? getPartyName(state, 'CNT_FAI', isZh)
             : isRulingParty 
               ? (isZh ? '执政党' : 'Ruling') 
               : (isZh ? '在野/看守' : 'Opposition')}
@@ -390,7 +390,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                                 className="w-2.5 h-2.5 inline-block shrink-0 border border-ink/10" 
                                 style={{ backgroundColor: item.color }}
                               />
-                              <span className="font-bold text-ink shrink-0">{item.id}</span>
+                              <span className="font-bold text-ink shrink-0">{item.name}</span>
                             </div>
                             <span className="font-bold text-ink text-right shrink-0 ml-2">
                               {item.seats}{isZh ? '席' : 'S'}

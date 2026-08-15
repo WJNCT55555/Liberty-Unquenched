@@ -12,7 +12,7 @@ export const EffectPreviewTooltip: React.FC<EffectPreviewTooltipProps> = ({ line
   if (lines.length === 0) return null;
 
   return (
-    <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden w-full max-w-[calc(100vw-3rem)] border border-ink bg-paper p-3 text-ink shadow-[3px_3px_0_0_rgba(30,28,26,1)] group-hover:block group-focus-within:block xl:left-full xl:top-1/2 xl:ml-3 xl:mt-0 xl:w-72 xl:-translate-y-1/2">
+    <div className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden w-full max-w-[calc(100vw-3rem)] border border-ink bg-paper p-3 text-ink shadow-[3px_3px_0_0_rgba(30,28,26,1)] group-hover:block xl:left-full xl:top-1/2 xl:ml-3 xl:mt-0 xl:w-72 xl:-translate-y-1/2">
       <div className="mb-2 border-b border-ink/20 pb-1 font-typewriter text-[10px] uppercase tracking-widest text-ink/60">
         {isZh ? '选项效果' : 'Option Effects'}
       </div>

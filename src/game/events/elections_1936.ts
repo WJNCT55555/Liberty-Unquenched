@@ -1,20 +1,29 @@
-import { GameEvent, Party } from '../types';
+import React from 'react';
+import type { GameEvent, Party, MinisterParty } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 import { calculateElectionResults } from '../utils/election';
 import { formCoalition } from '../utils/coalition';
+import { ParliamentChart } from '../../components/ParliamentChart';
+import { PARTY_COLORS } from '../constants';
+import { getPartyName } from '../partyNames';
 
 const election1936Meta = {
   category: 'politics' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['elections', 'election_1936'],
   tags: ['election'],
 };
 
+const election1936LeafMeta = {
+  ...election1936Meta,
+  flow: 'inline.leaf' as const,
+};
+
 export const elections1936: GameEvent = {
-  id: '1936_general_elections',
+  id: 'elections_1936',
+  meta: election1936Meta,
   date: { year: 1936, month: 2 },
   condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1936, 2),
-  meta: election1936Meta,
   title: '1936 General Elections',
   titleZh: '1936年大选',
   description: 'By early 1936, after the collapse of the Radical-CEDA coalition (Bienio Negro) amidst massive scandals and political instability, general elections have been called. Spain is intensely polarized. On the Left, a broad coalition, the "Popular Front" (Frente Popular), has been forged. They demand immediate amnesty for the tens of thousands of political prisoners jailed after the October 1934 revolution. On the Right, the "National Front" rallies to save Christian civilization from marxism and anarchy. The CNT holds the balance of power. Historically, we advocate for total electoral abstention. But if we abstain, the Right wins and our comrades remain imprisoned. If we support the Popular Front, we can achieve amnesty, but at the cost of class compromise. What shall be our stance?',
@@ -55,7 +64,7 @@ export const elections1936: GameEvent = {
       text: 'Absolute Abstention! "No votéis" – The ballot box is the tomb of revolution.',
       textZh: '绝对弃权！“不要投票”——选票箱是革命的坟墓。',
       subtitle: 'Maintains pure anarchist anti-electoral principles. This will likely hand victory to the right-wing National Front.',
-      subtitleZh: '维持纯粹的无无政府主义反选举原则。这很可能将胜利拱手让给右翼的国家阵线。',
+      subtitleZh: '维持纯粹的无政府主义反选举原则。这很可能将胜利拱手让给右翼的国家阵线。',
       effect: (state) => {
         let newClasses = state.classes;
         // Abstention severely drains Left vote share
@@ -84,28 +93,23 @@ export const elections1936: GameEvent = {
   ]
 };
 
-import React from 'react';
-import { ParliamentChart } from '../../components/ParliamentChart';
-import { PARTY_COLORS } from '../constants';
-import { getPartyName } from '../partyNames';
-
 export const elections1936Results: GameEvent = {
-  id: '1936_elections_results',
-  meta: election1936Meta,
+  id: 'elections_1936_results',
+  meta: election1936LeafMeta,
   title: 'Results of the 1936 General Elections',
   titleZh: '1936年大选结果',
   description: 'The results are in. The nation is fractured down the middle. In a high-stakes climate, millions of citizens flooded the voting booths. The final seat distribution in the Cortes will decide the fate of Spain.',
   descriptionZh: '大选结果已经出炉。整个国家从中间被生生撕裂。在这一场事关命运的高风险角逐中，数百万公民涌入了投票站。议会中的最终席位分配将直接决定西班牙的未来命运。',
   renderContent: (state) => {
     const isZh = state.language === 'zh';
-    const cortes = state.cortes || calculateElectionResults(state);
+    const cortes = calculateElectionResults(state);
     
     
     const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
 
     const data = Object.entries(cortes).map(([party, seats]) => ({
       id: party,
-      name: getPartyName(state, party as any, isZh),
+      name: getPartyName(state, party as Party, isZh),
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
     }))
@@ -176,7 +180,7 @@ export const elections1936Results: GameEvent = {
       text: 'Form the Popular Front Cabinet! The Left secures power and declares amnesty.',
       textZh: '组建人民阵线内阁！左翼重掌政权并立即颁布大特赦。',
       condition: (state) => {
-        const cortes = state.cortes || calculateElectionResults(state);
+        const cortes = calculateElectionResults(state);
         const leftSeats = (cortes.PSOE || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PCE || 0) + (cortes.ERC || 0) + (cortes.POUM || 0) + (cortes.PS || 0);
         const rightSeats = (cortes.AP || 0) + (cortes.CT || 0) + (cortes.RE || 0) + (cortes.FE || 0);
         return leftSeats >= rightSeats;
@@ -199,7 +203,7 @@ export const elections1936Results: GameEvent = {
         };
         for (const role of Object.keys(hist1936)) {
           if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
-            updatedMinisters[role as keyof typeof updatedMinisters] = hist1936[role] as any;
+            updatedMinisters[role as keyof typeof updatedMinisters] = hist1936[role] as MinisterParty;
           }
         }
 
@@ -220,7 +224,7 @@ export const elections1936Results: GameEvent = {
           }
         };
 
-        const finalState = formCoalition(baseState, 'popular_front');
+        const finalState = formCoalition(baseState, 'popular_front', true);
         return {
           ...finalState,
           currentEvent: null
@@ -231,7 +235,7 @@ export const elections1936Results: GameEvent = {
       text: 'The National Front consolidates. A dark period of reaction begins.',
       textZh: '国家阵线巩固权力。黑暗的反动时期拉开帷幕。',
       condition: (state) => {
-        const cortes = state.cortes || calculateElectionResults(state);
+        const cortes = calculateElectionResults(state);
         const leftSeats = (cortes.PSOE || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PCE || 0) + (cortes.ERC || 0) + (cortes.POUM || 0) + (cortes.PS || 0);
         const rightSeats = (cortes.AP || 0) + (cortes.CT || 0) + (cortes.RE || 0) + (cortes.FE || 0);
         return rightSeats > leftSeats;
@@ -241,12 +245,13 @@ export const elections1936Results: GameEvent = {
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
         const updatedMinisters = { ...state.ministers };
+        // A National Front government leaves no room for CNT ministers.
         for (const role of Object.keys(updatedMinisters)) {
-          if (updatedMinisters[role as keyof typeof updatedMinisters] !== 'CNT') {
-            updatedMinisters[role as keyof typeof updatedMinisters] = 'AP';
-          }
+          updatedMinisters[role as keyof typeof updatedMinisters] = 'AP';
         }
-        return {
+
+        const baseState = {
+          ...state,
           cortes: newCortes,
           cntStance: 'oppose' as const,
           ministers: updatedMinisters,
@@ -268,6 +273,20 @@ export const elections1936Results: GameEvent = {
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 30),
             workerControl: Math.max(0, state.stats.workerControl - 15)
           }
+        };
+
+        const finalState = formCoalition(baseState, 'national_front', true);
+
+        return {
+          cortes: finalState.cortes,
+          cntStance: finalState.cntStance,
+          ministers: finalState.ministers,
+          government: finalState.government,
+          domesticPolicy: finalState.domesticPolicy,
+          stats: finalState.stats,
+          rulingCoalition: finalState.rulingCoalition,
+          activeCoalitions: finalState.activeCoalitions,
+          coalitionHistory: finalState.coalitionHistory
         };
       }
     }

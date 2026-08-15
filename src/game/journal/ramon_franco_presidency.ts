@@ -49,7 +49,6 @@ export const ramonFrancoPresidencyJournal: JournalEntryDef = {
   },
 
   onComplete: (state) => ({
-    ramonFrancoPresidentUnlocked: true,
     factions: (() => {
       let f = adjustFactionInfluence(state.factions, 'Jabalistas', 10);
       f.Faistas.dissent = Math.min(100, (f.Faistas.dissent || 0) + 12);

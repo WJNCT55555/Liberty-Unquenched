@@ -137,7 +137,12 @@ export interface CoalitionDef {
 }
 
 export type EventCategory = 'news' | 'cnt' | 'politics' | 'war' | 'other';
-export type EventFlow = 'solo' | 'inline';
+/**
+ * Event presentation and chain position. `solo` is a standalone event;
+ * inline events are classified as the chain entry, an intermediate node,
+ * or a terminal node.
+ */
+export type EventFlow = 'solo' | 'inline.root' | 'inline.node' | 'inline.leaf';
 
 export interface GameEventMeta {
   category: EventCategory;
@@ -461,11 +466,9 @@ export interface GameState {
   educationSecularized: boolean;
   
   journal_ramon_franco_presidency_seen?: boolean;
-  ramonFrancoPresidentUnlocked?: boolean;
   ramon_franco_campaign_count?: number;
   
   presidentElectionSeen?: boolean;
-  presidentElectionPhase?: 'primary' | 'general';
   cntParticipatePresidential?: boolean;
   presidentElectionLeftCandidate?: 'azana' | 'ramon_franco' | null;
   presidentElectionActiveCandidate?: 'left' | 'martinez_barrio' | 'gil_robles' | null;
@@ -490,7 +493,7 @@ export interface GameState {
   
   journal: Record<string, JournalState>;
   
-  civilWarChainStep?: number;
+  civilWarChoices?: Record<string, string>;
   
   activeAdvisors: (Advisor | null)[]; // Max 3
   advisorPool: Advisor[];

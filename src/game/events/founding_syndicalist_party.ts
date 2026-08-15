@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
 
 const cntInternalSplitMeta = {
@@ -8,7 +8,7 @@ const cntInternalSplitMeta = {
 };
 
 export const foundingSyndicalistParty: GameEvent = {
-  id: 'Founding of the Syndicalist Party',
+  id: 'founding_of_the_syndicalist_party',
   meta: cntInternalSplitMeta,
   date: { year: 1934, month: 7 },
   condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1934, 7) && state.treintistasLeft && !state.ps_founded,
@@ -44,8 +44,7 @@ export const foundingSyndicalistParty: GameEvent = {
       text: 'Opposing politics is an anarchist principle...',
       textZh: '反对政治是无政府主义的原则......',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 5);
+        let newFactions = adjustFactionInfluence(state.factions, 'Faistas', 5);
         return { 
           factions: newFactions,
           ps_founded: true

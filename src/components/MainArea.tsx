@@ -33,7 +33,7 @@ export const MainArea = () => {
 
       <AnimatePresence mode="wait">
         {state.currentEvent ? (
-          <EventModal key="event" event={state.currentEvent} />
+          <EventModal key={state.currentEvent.id} event={state.currentEvent} />
         ) : state.phase === 'event' && state.pendingEvents.length > 0 ? (
           <EventBoard key="event-board" />
         ) : state.phase === 'action' ? (
@@ -154,7 +154,7 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
           const showEffectPreview = state.difficulty === 'easy' || state.difficulty === 'sandbox';
           const previewLines = showEffectPreview ? getOptionEffectPreview(state, opt) : [];
           return (
-            <div key={idx} className="relative group">
+            <div key={`${event.id}-${idx}`} className="relative group">
             <button
               disabled={!isAvailable}
               onClick={() => dispatch({ type: 'RESOLVE_EVENT', payload: opt.effect })}

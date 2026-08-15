@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
 
 const newsMeta = {
@@ -7,7 +7,7 @@ const newsMeta = {
 };
 
 export const birthOfFeDeLasJons: GameEvent = {
-  id: 'The Birth of FE de las JONS',
+  id: 'birth_of_fe_de_las_jons',
   meta: newsMeta,
   date: { year: 1934, month: 2 },
   condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1934, 2) && state.fe_founded && !state.falange_jons,
@@ -19,19 +19,19 @@ export const birthOfFeDeLasJons: GameEvent = {
     {
       text: 'Let us wait and see',
       textZh: '让我们静观其变',
+      subtitle: 'Strengthens FE support among landowners, the small bourgeoisie, and the clergy; forms FE de las JONS.',
+      subtitleZh: '提高贵族大地主、小资产阶级和天主教会对长枪党（FE）的支持，并完成长枪党与 JONS 的合并。',
       effect: (state) => {
         let newClasses = state.classes;
-        
-        // FE de las JONS gains more support
         newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'FE', 5);
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'FE', 10);
         newClasses = adjustClassSupport(newClasses, 'Clero', 'FE', 5);
-        
+
         return {
           classes: newClasses,
-          falange_jons: true
+          falange_jons: true,
         };
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,
@@ -19,7 +19,7 @@ export const workersAllianceFormation: GameEvent = {
     {
       text: 'Long live the Workers\' Alliance! Uníos Hermanos Proletarios!',
       textZh: '工人联盟万岁！联合无产阶级兄弟！',
-      effect: (state) => ({})
+      effect: () => ({})
     }
   ]
 };

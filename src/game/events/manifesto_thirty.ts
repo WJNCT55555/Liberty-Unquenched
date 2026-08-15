@@ -1,5 +1,5 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustFactionInfluence, adjustClassSupport, adjustFactionDissents, isAtOrAfter } from '../utils';
 
 const cntInternalSplitMeta = {
   category: 'cnt' as const,
@@ -8,16 +8,16 @@ const cntInternalSplitMeta = {
 };
 
 export const manifestoOfThirty: GameEvent = {
-  id: 'The Manifesto of the Thirty',
+  id: 'manifesto_of_the_thirty',
   meta: cntInternalSplitMeta,
   date: { year: 1931, month: 8 },
   condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 8) && !state.treintistasLeft,
   title: 'The Manifesto of the Thirty',
   titleZh: '三十人宣言',
   description: `The revolutionary rumblings of Durruti and Oliver, along with the crumbling authority of the more moderate National Committee, prompted its members and their allies to act. Thus in the final days of July they issued a manifesto, signed by, all in all, thirty syndicalists and "reformists", close to the Solidaridad circle.
-The manifesto claims that the convictions of the authors to the Confederation and to the pains of the working class are stornger than ever. It also points out that the CNT had its part in the fall of the monarchy while also criticizing the inaction of the Provisional government while the economic reality is becoming worse and worse. 
+The manifesto claims that the convictions of the authors to the Confederation and to the pains of the working class are stronger than ever. It also points out that the CNT had its part in the fall of the monarchy while also criticizing the inaction of the Provisional government while the economic reality is becoming worse and worse. 
 Its main criticism is pointed at the revolutionary fervour of a few "individuals" which romanticize "The Revolution" and its violence. It warns that these "militants" might endanger the collective by acting without preparation towards a revolution that has no clarity and trusts only to chance.
-What they propose is a preparation not in martiality, but a moral one, so that the revolution can be the achivement of "the masses", not a few individuals with authority.
+What they propose is a preparation not in martiality, but a moral one, so that the revolution can be the achievement of "the masses", not a few individuals with authority.
 
 "We are most certainly revolutionaries, but we are not cultivating the myth of revolution. 
 We seek an end to capitalism and the state, be it red, white or black, not so
@@ -28,7 +28,7 @@ shape today. We do not want a revolution that is offered to us, perpetrated by
 a handful of individuals who, were they to succeed, would, however they label it,
 inevitably convert themselves into dictators on the morrow of their triumph. "
 
-While some have agreed with their positions, the more radical comrades and especially those of the FAI feel attacked. They claim that the manifesto is a last ditch attempt of the bureacratic union leaders to preserve their power and call for resignations and deunciations of that shamefull document.`,
+While some have agreed with their positions, the more radical comrades and especially those of the FAI feel attacked. They claim that the manifesto is a last ditch attempt of the bureaucratic union leaders to preserve their power and call for resignations and denunciations of that shameful document.`,
   descriptionZh: `杜鲁蒂和奥利弗的革命骚动，以及较为温和的全国委员会权威的崩溃，促使其成员及其盟友采取行动。因此，在7月的最后几天，他们发布了一份宣言，总共有30名工团主义者和“改良派”签署，这些人与《团结报》圈子关系密切。
 该宣言声称作者对联盟和工人阶级痛苦的信念比以往任何时候都更加坚定。它还指出，CNT在君主制垮台过程中发挥了作用，同时也批评了临时政府在经济现实日益恶化时的不作为。
 其主要批评针对少数“个人”的革命热忱，这些人将“革命”及其暴力浪漫化。它警告说，这些“激进分子”可能会因为在没有准备的情况下采取行动而危及集体，走向一场不明朗且仅凭运气的革命。
@@ -44,9 +44,7 @@ While some have agreed with their positions, the more radical comrades and espec
       text: 'Wait and see',
       textZh: '静观其变',
       effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Treintistas.dissent += 5;
-        newFactions.Faistas.dissent += 5;
+        const newFactions = adjustFactionDissents(state.factions, { Treintistas: 5, Faistas: 5 });
         return { factions: newFactions };
       },
     },
@@ -59,9 +57,10 @@ While some have agreed with their positions, the more radical comrades and espec
                faistasInfluence > state.factions.Cenetistas.influence &&
                faistasInfluence > state.factions.Puristas.influence;
       },
+      unavailableSubtitle: () => 'Requires the Faistas to be the dominant faction.',
+      unavailableSubtitleZh: () => '需要无政府主义者（Faistas）成为主导派系。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', -state.factions.Treintistas.influence);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', -state.factions.Treintistas.influence);
         
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', -5);

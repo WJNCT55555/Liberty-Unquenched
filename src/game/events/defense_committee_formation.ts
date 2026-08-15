@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 
 const cntMilitaryMeta = {
   category: 'cnt' as const,

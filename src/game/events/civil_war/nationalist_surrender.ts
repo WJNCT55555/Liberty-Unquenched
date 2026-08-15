@@ -1,4 +1,4 @@
-import { GameEvent } from '../../types';
+import type { GameEvent } from '../../types';
 import { MapFaction } from '../../../map/types_map';
 
 const civilWarTerminalMeta = {

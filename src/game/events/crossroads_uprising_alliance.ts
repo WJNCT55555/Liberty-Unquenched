@@ -1,4 +1,4 @@
-import { GameEvent } from '../types';
+import type { GameEvent } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { formCoalition } from '../utils/coalition';
 

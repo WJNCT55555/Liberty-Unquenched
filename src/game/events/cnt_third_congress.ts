@@ -1,16 +1,26 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
 import { elections1931Results } from './elections_1931_results';
 
 const cntThirdCongressMeta = {
   category: 'cnt' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['cnt_congress_1931'],
+};
+
+const cntThirdCongressNodeMeta = {
+  ...cntThirdCongressMeta,
+  flow: 'inline.node' as const,
+};
+
+const cntThirdCongressLeafMeta = {
+  ...cntThirdCongressMeta,
+  flow: 'inline.leaf' as const,
 };
 
 export const cnt_third_congress_6: GameEvent = {
   id: 'cnt_third_congress_6',
-  meta: cntThirdCongressMeta,
+  meta: cntThirdCongressLeafMeta,
   title: 'Closing of the Congress',
   titleZh: '大会闭幕',
   description: `After six consecutive days and nights of intense debate, quarreling, compromise, and oaths, the Third Congress of the CNT in 1931 finally drew to a close in Madrid. This was not merely a gathering of laborers, but the largest demonstration of proletarian power in modern Spanish history.
@@ -36,7 +46,7 @@ As the radio waves of the closing rally dissipate into the night sky of the Iber
 
 export const cnt_third_congress_5: GameEvent = {
   id: 'cnt_third_congress_5',
-  meta: cntThirdCongressMeta,
+  meta: cntThirdCongressNodeMeta,
   title: 'The Constituent Cortes and "Political Poison"',
   titleZh: '制宪会议与“政治毒药”',
   description: `The Republic is preparing for the elections to the Constituent Cortes. Some segments of the working class harbor illusions about the parliament, and a small minority of CNT members have even attempted to run for office. However, the mainstream voice at the congress scoffs at the parliamentary path, maintaining that any government power is inherently oppressive. Delegates emphasize that the CNT must adhere to the principles of anti-parliamentarianism and direct action. Some have even proposed that regulations must be strictly enforced: any union member running for public office should be immediately expelled.`,
@@ -48,11 +58,9 @@ export const cnt_third_congress_5: GameEvent = {
       subtitle: '"Faced with dictatorship or hypocritical democracy, our only answer is the revolutionary general strike!"',
       subtitleZh: '“面对独裁或虚伪的民主，我们唯一的回答是革命总罢工！”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 10);
+        let newFactions = adjustFactionInfluence(state.factions, 'Faistas', 10);
         newFactions = adjustFactionInfluence(newFactions, 'Puristas', 10);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 15);
+        newFactions = adjustFactionDissents(newFactions, { Puristas: -5, Treintistas: 15 });
         
         return {
           cntStance: 'oppose' as const,
@@ -72,18 +80,12 @@ export const cnt_third_congress_5: GameEvent = {
       subtitle: '"While we reject the bourgeois state, during the drafting of the new constitution, we must ensure that the bottom-line rights of labor are written into law."',
       subtitleZh: '“虽然我们拒绝资产阶级国家，但在新宪法制定期间，我们必须确保劳工的底线权利被写入法律。”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 15);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 5);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 10);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 15);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 15);
+        newFactions = adjustFactionDissents(newFactions, { Cenetistas: 5, Faistas: 10, Puristas: 15 });
         
         return {
           cntStance: 'oppose' as const,
           cntVotingRate: Math.min(100, state.cntVotingRate + 8),
-          stats: {
-            ...state.stats
-          },
           factions: newFactions,
           currentEvent: cnt_third_congress_6
         };
@@ -95,11 +97,8 @@ export const cnt_third_congress_5: GameEvent = {
       subtitle: '"We must use every tool available, including the ballot box, to defend the working class."',
       subtitleZh: '“我们必须利用一切可用的工具，包括投票箱，来捍卫工人阶级。”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 25);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 5);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 10);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 15);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 25);
+        newFactions = adjustFactionDissents(newFactions, { Cenetistas: 5, Faistas: 10, Puristas: 15 });
         
         return {
           cntStance: 'cooperate' as const,
@@ -118,7 +117,7 @@ export const cnt_third_congress_5: GameEvent = {
 
 export const cnt_third_congress_4: GameEvent = {
   id: 'cnt_third_congress_4',
-  meta: cntThirdCongressMeta,
+  meta: cntThirdCongressNodeMeta,
   title: "The CNT's Battlefield of Opinion",
   titleZh: 'CNT舆论阵地',
   description: `Propaganda is the vanguard of revolution. The sixth item on the congress agenda points out that to compete with bourgeois newspapers, the CNT urgently needs a large-scale national daily based in the capital, Madrid. A newspaper of at least 12 pages could radiate anarchist ideals across the country. However, this requires a massive sum: an estimated 1.17 million pesetas in initial funding. The congress proposes that each member contribute 3 pesetas and that union stamp taxes be increased by 5 centimos. Various local unions, especially those in Catalonia, have expressed grievances, fearing this will drain the lifeblood of regional publications.`,
@@ -130,6 +129,7 @@ export const cnt_third_congress_4: GameEvent = {
       subtitle: '"We need a powerful mouthpiece! Let the printing presses in Madrid roar, and spread our voice to every corner!"',
       subtitleZh: '“我们需要一个强大的喉舌！让马德里的印刷机轰鸣，把我们的声音传遍每一个角落！”',
       condition: (state) => state.resources >= 3,
+      unavailableSubtitle: () => 'Requires 3 resources.',
       unavailableSubtitleZh: () => '需要至少3资源',
       effect: (state) => {
         let newClasses = state.classes;
@@ -154,13 +154,14 @@ export const cnt_third_congress_4: GameEvent = {
       subtitle: '"Catalonia needs its own newspaper, and this newspaper can fully sustain its operations relying on its own resources."',
       subtitleZh: '“加泰罗尼亚需要自己的报纸，而这份报纸完全可以依靠自身资源维持运营。”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 2);
+        let newFactions = adjustFactionInfluence(state.factions, 'Cenetistas', 2);
         newFactions = adjustFactionInfluence(newFactions, 'Faistas', 3);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 2);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 2);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 2);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 2);
+        newFactions = adjustFactionDissents(newFactions, {
+          Treintistas: 2,
+          Cenetistas: 2,
+          Faistas: 2,
+          Puristas: 2,
+        });
         
         return {
           stats: {
@@ -178,7 +179,7 @@ export const cnt_third_congress_4: GameEvent = {
 
 export const cnt_third_congress_3: GameEvent = {
   id: 'cnt_third_congress_3',
-  meta: cntThirdCongressMeta,
+  meta: cntThirdCongressNodeMeta,
   title: 'Organizing the Workers of the Land',
   titleZh: '土地劳动者的组织',
   description: `The congress's agenda has turned to the agricultural problems that have long plagued Spain and the worsening unemployment crisis. Delegates point out that the land reforms being brewed by the Provisional Government are extremely weak and "will eventually vanish into thin air." Meanwhile, faced with the crisis of capitalism and overproduction, the working class is suffering. The congress has drafted a set of radical economic demands: the unconditional confiscation of large estates (Latifundios) to be managed collectively by peasant unions, and an immediate demand for a six-hour workday to resolve the unemployment issue.`,
@@ -193,7 +194,8 @@ export const cnt_third_congress_3: GameEvent = {
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
         newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 8);
-        
+
+        // The Andalusian fire event is triggered separately by the Asturias war chain (andalusia_fire.ts).
         return {
           stats: {
             ...state.stats,
@@ -201,7 +203,6 @@ export const cnt_third_congress_3: GameEvent = {
           },
           classes: newClasses,
           currentEvent: cnt_third_congress_4
-          // TODO: Trigger event "安达卢西亚的野火"
         };
       }
     },
@@ -211,11 +212,8 @@ export const cnt_third_congress_3: GameEvent = {
       subtitle: '"The CNT will provide the broadest practical and moral solidarity in the peasant movement\'s struggle."',
       subtitleZh: '"CNT将在农民运动的斗争行动中，提供最广泛的务实和道德团结。"',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 8);
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 8);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 10);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 15);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 8);
+        newFactions = adjustFactionDissents(newFactions, { Treintistas: -8, Faistas: 10, Puristas: 15 });
         
         return {
           stats: {
@@ -233,6 +231,7 @@ export const cnt_third_congress_3: GameEvent = {
       subtitle: '"We should not make hasty decisions without deeply studying the problems of the agricultural regions." (-1 Resource)',
       subtitleZh: '“在没有深入研究农业地区问题时，我们不应该贸然做出决定。” (-1 资源)',
       condition: (state) => state.resources >= 1,
+      unavailableSubtitle: () => 'Requires 1 resource.',
       unavailableSubtitleZh: () => '需要至少1资源',
       effect: (state) => {
         return {
@@ -250,7 +249,7 @@ export const cnt_third_congress_3: GameEvent = {
 
 export const cnt_third_congress_2: GameEvent = {
   id: 'cnt_third_congress_2',
-  meta: cntThirdCongressMeta,
+  meta: cntThirdCongressNodeMeta,
   title: 'CNT Restructuring Plan',
   titleZh: '全国劳工联盟重组计划',
   description: `With the establishment of the Republic, Spanish capitalism is evolving toward more thorough industrial and economic concentration. At the CNT Third Congress in Madrid, the National Committee proposed a major restructuring plan: while retaining the original local single unions, "National Industrial Federations" (Federaciones Nacionales de Industria) would be established. Proponents argue this is a necessary means to counter bourgeois monopolies and eventually take over the national economy. However, traditional anarchists warn that this would undermine the federalist principles of union autonomy and lead to bureaucratic centralization.`,
@@ -262,11 +261,9 @@ export const cnt_third_congress_2: GameEvent = {
       subtitle: '"Only through industrial concentration can the proletariat have equal fighting power when facing the capitalists."',
       subtitleZh: '“只有通过产业集中，无产阶级才能在面对资本家时拥有同等的战斗力。”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 8);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 8);
         newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 5);
-        newFactions.Faistas.dissent = Math.min(100, newFactions.Faistas.dissent + 5);
-        newFactions.Puristas.dissent = Math.min(100, newFactions.Puristas.dissent + 5);
+        newFactions = adjustFactionDissents(newFactions, { Faistas: 5, Puristas: 5 });
         
         return {
           stats: {
@@ -284,13 +281,14 @@ export const cnt_third_congress_2: GameEvent = {
       subtitle: '"Any top-down national authority is a betrayal of the original intent of anarcho-syndicalism!"',
       subtitleZh: '“任何自上而下的全国性权力机构，都是对无政府工团主义初衷的背叛！”',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 10);
+        let newFactions = adjustFactionInfluence(state.factions, 'Faistas', 10);
         newFactions = adjustFactionInfluence(newFactions, 'Puristas', 5);
-        newFactions.Faistas.dissent = Math.max(0, newFactions.Faistas.dissent - 5);
-        newFactions.Puristas.dissent = Math.max(0, newFactions.Puristas.dissent - 5);
-        newFactions.Treintistas.dissent = Math.min(100, newFactions.Treintistas.dissent + 10);
-        newFactions.Cenetistas.dissent = Math.min(100, newFactions.Cenetistas.dissent + 5);
+        newFactions = adjustFactionDissents(newFactions, {
+          Faistas: -5,
+          Puristas: -5,
+          Treintistas: 10,
+          Cenetistas: 5,
+        });
         
         return {
           factions: newFactions,
@@ -303,9 +301,9 @@ export const cnt_third_congress_2: GameEvent = {
 
 export const cnt_third_congress_1: GameEvent = {
   id: 'cnt_third_congress_1',
+  meta: cntThirdCongressMeta,
   date: { year: 1931, month: 6 },
   condition: (state) => state.scenario === '1931' && isAtOrAfter(state, 1931, 6),
-  meta: cntThirdCongressMeta,
   title: 'The Third CNT Congress Opens',
   titleZh: 'CNT第三次代表大会召开',
   description: `The proclamation of the Second Republic has plunged all of Spain into a state of unprecedented fever and anticipation. However, in the eyes of the anarcho-syndicalists of the CNT, the "Democratic Republic" cheered by bourgeois politicians is nothing more than the old machinery of oppression in a fancy new suit.

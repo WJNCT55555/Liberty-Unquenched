@@ -1,15 +1,25 @@
-import { GameEvent } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import type { GameEvent } from '../types';
+import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 
 const casasViejasMeta = {
   category: 'politics' as const,
-  flow: 'inline' as const,
+  flow: 'inline.root' as const,
   series: ['casas_viejas', 'government_crisis'],
+};
+
+const casasViejasNodeMeta = {
+  ...casasViejasMeta,
+  flow: 'inline.node' as const,
+};
+
+const casasViejasLeafMeta = {
+  ...casasViejasMeta,
+  flow: 'inline.leaf' as const,
 };
 
 export const generalStrikeFails: GameEvent = {
   id: 'general_strike_fails',
-  meta: casasViejasMeta,
+  meta: casasViejasLeafMeta,
   title: 'The Collapsed Strike: General Strike Fails',
   titleZh: '瓦解的罢工：总罢工失败',
   description:
@@ -19,7 +29,7 @@ export const generalStrikeFails: GameEvent = {
   options: [
     {
       text: 'A bitter setback... We must lick our wounds and reorganize.',
-      textZh: '一次沉痛的折卷……我们必须退却、舔舐伤口并重新整顿。',
+      textZh: '一次沉痛的挫折……我们必须退却、舔舐伤口并重新整顿。',
       effect: (state) => {
         return {
           stats: {
@@ -34,7 +44,7 @@ export const generalStrikeFails: GameEvent = {
 
 export const casasViejas2Insurrection: GameEvent = {
   id: 'casas_viejas_2_insurrection',
-  meta: casasViejasMeta,
+  meta: casasViejasNodeMeta,
   title: 'The Ashes of Seisdedos: Insurrection Massacre',
   titleZh: '塞斯德多斯的余烬：起义惨案',
   description:
@@ -45,7 +55,7 @@ export const casasViejas2Insurrection: GameEvent = {
     {
       text: 'Declare an all-out, nation-wide revolutionary general strike to shatter the cabinet!',
       textZh: '宣告全国范围的革命总罢工，一举粉碎内阁！',
-      subtitle: 'Massive rise in revolutionary fervor and worker control; catastrophic relations with reformist parties and a major blow to state stability. Triggers structural response.',
+      subtitle: 'Massive rise in revolutionary fervor and worker control; catastrophic relations with reformist parties and a major blow to state stability. Triggers the collapsed general strike result event.',
       subtitleZh: '革命热情与工人控制度极大幅度提升；与改良派政党关系受到灾难性打击，并沉重打击国家体制稳定性。弹出总罢工结果子事件。',
       effect: (state) => {
         let newClasses = state.classes;
@@ -130,7 +140,7 @@ export const casasViejas2Insurrection: GameEvent = {
 
 export const casasViejas2Crackdown: GameEvent = {
   id: 'casas_viejas_2_crackdown',
-  meta: casasViejasMeta,
+  meta: casasViejasLeafMeta,
   title: 'The Blood of Casas Viejas: Preventive Slaughter',
   titleZh: '卡萨斯-维耶哈斯之血：防范性杀戮',
   description:
@@ -182,7 +192,7 @@ export const casasViejas2Crackdown: GameEvent = {
     {
       text: 'Leverage the outrage to declare a 24-hour national protest strike.',
       textZh: '借助舆论愤慨，在全国范围内宣布进行一次为期24小时的抗议总罢工。',
-      subtitle: 'A heavy blows to government authority and stable economy; boosts CNT solidarity across all internal groups.',
+      subtitle: 'A heavy blow to government authority and economic stability; boosts CNT solidarity across all internal groups.',
       subtitleZh: '对政府威信与经济稳定造成沉重打击；大幅凝聚 CNT 内部各派系的团结。',
       effect: (state) => {
         let newClasses = state.classes;
@@ -223,7 +233,7 @@ export const casasViejas2Crackdown: GameEvent = {
 
 export const casasViejas2Peace: GameEvent = {
   id: 'casas_viejas_2_peace',
-  meta: casasViejasMeta,
+  meta: casasViejasLeafMeta,
   title: 'The Truce of Casas Viejas: A Compromised Peace',
   titleZh: '卡萨斯-维耶哈斯的休战：充满妥协的和平',
   description:
@@ -234,12 +244,13 @@ export const casasViejas2Peace: GameEvent = {
     {
       text: 'Defend the compromise: pragmatism saved the lives of our comrades and extended our legal foothold.',
       textZh: '为妥协辩解：务实主义挽救了同志们的生命，并扩大了我们的合法立足点。',
-      subtitle: 'Strengthens Treintistas influence; reduces stress and revolutionary fervor, but substantially increases Faistas dissent.',
-      subtitleZh: '巩固三十人集团（Treintistas）的影响力；降低社会局势动荡度，但也大幅度推高无政府主义者（Faistas）的内部异议值。',
+      subtitle: 'Strengthens Treintistas influence; reduces revolutionary fervor but bolsters republican authority, while substantially increasing Faistas and Puristas dissent.',
+      subtitleZh: '巩固三十人集团（Treintistas）的影响力；降低革命热情但提升共和权威，同时大幅推高无政府主义者（Faistas）与纯粹派（Puristas）的内部异议值。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 20);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 15);
+        let newFactions = adjustFactionDissents(state.factions, {
+          Faistas: 20,
+          Puristas: 15,
+        });
         newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 15);
 
         return {
@@ -260,11 +271,13 @@ export const casasViejas2Peace: GameEvent = {
     {
       text: 'Pacify the radicals by securing immediate land deeds for the local village council, showing that cooperation delivers tangible fruit.',
       textZh: '安抚激进派：立刻敦促内阁向当地村自治会发放土地所有权证书，力证合作执政确能取得实质成果。',
-      subtitle: 'Slightly raises agrarian support and CNT unity; requires budget allocation to compensate the landowners.',
-      subtitleZh: '小幅提升基层雇农支持度和 CNT 的团结度；需要消耗财政预算用以赔偿贵族大地主。',
+      subtitle: 'Slightly raises agrarian support and CNT unity; costs 1 budget to compensate the landowners.',
+      subtitleZh: '小幅提升基层雇农支持度和 CNT 的团结度；消耗 1 点财政预算用以赔偿贵族大地主。',
+      condition: (state) => state.budget >= 1,
+      unavailableSubtitle: () => 'Requires at least 1 budget.',
+      unavailableSubtitleZh: () => '需要至少 1 点财政预算。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 8);
+        let newFactions = adjustFactionDissents(state.factions, { Faistas: 8 });
         newFactions = adjustFactionInfluence(newFactions, 'Cenetistas', 10);
 
         let newClasses = state.classes;
@@ -316,10 +329,9 @@ export const casasViejas1: GameEvent = {
       subtitle: 'Massively ignites revolutionary expectations, but commits our resources to a physical clash with Madrid.',
       subtitleZh: '最大限度地点燃革命期望，但也将我们的全部资源卷入与马德里中央政权的直接抗衡中。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 10);
+        let newFactions = adjustFactionInfluence(state.factions, 'Faistas', 10);
         newFactions = adjustFactionInfluence(newFactions, 'Puristas', 10);
-        newFactions.Treintistas.dissent = Math.min(100, (newFactions.Treintistas.dissent || 0) + 15);
+        newFactions = adjustFactionDissents(newFactions, { Treintistas: 15 });
 
         return {
           factions: newFactions,
@@ -339,10 +351,11 @@ export const casasViejas1: GameEvent = {
       subtitle: 'Boosts moderate syndicalists; prepares local defense but stays short of full insurrection.',
       subtitleZh: '振奋稳健派联合工会力量；组织局部自卫但极力克制全面武装起义爆发。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 10);
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 12);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 12);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 10);
+        newFactions = adjustFactionDissents(newFactions, {
+          Faistas: 12,
+          Puristas: 12,
+        });
 
         return {
           factions: newFactions,
@@ -361,11 +374,14 @@ export const casasViejas1: GameEvent = {
       subtitle: 'Only available if PRRevS is formed and we participate in government. Achieves a peaceful truce, but radically increases faistas rage.',
       subtitleZh: '仅在PRRevS成立且我们进入政府联合执政时可选。达成了和平休战，但大幅激化极左翼内部怒火。',
       condition: (state) => state.isPRRevSFormed && state.cntStance === 'govern',
+      unavailableSubtitle: () => 'Requires the PRRevS to be formed and the CNT in government.',
+      unavailableSubtitleZh: () => '需要PRRevS成立且CNT参与执政。',
       effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 15);
-        newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 20);
-        newFactions.Puristas.dissent = Math.min(100, (newFactions.Puristas.dissent || 0) + 20);
+        let newFactions = adjustFactionInfluence(state.factions, 'Treintistas', 15);
+        newFactions = adjustFactionDissents(newFactions, {
+          Faistas: 20,
+          Puristas: 20,
+        });
 
         return {
           factions: newFactions,
