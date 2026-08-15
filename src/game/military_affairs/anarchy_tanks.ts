@@ -131,7 +131,7 @@ export const anarchyTanks: Card = {
             const failureLine = s.difficulty === 'hard'
               ? textPreview(
                   'Failure: tank progress resets to 0, CNT-FAI militia -1000, Faistas dissent +5, Puristas dissent +10.',
-                  '失败：坦克进度归零，CNT-FAI民兵 -1000，FAI派不满 +5，纯粹派不满 +10。',
+                  '失败：坦克进度归零，CNT-FAI民兵 -1000，无政府主义者不满 +5，纯粹派不满 +10。',
                   'negative'
                 )
               : s.difficulty === 'easy' || s.difficulty === 'sandbox'

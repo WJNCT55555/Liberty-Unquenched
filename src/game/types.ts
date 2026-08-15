@@ -4,9 +4,10 @@ import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type { Party };
-// `Right` is used by the initial state and the editor sandbox as a temporary
-// umbrella affiliation before a concrete party is assigned.
-export type MinisterParty = Party | 'CNT' | 'Right';
+// Ministers belong to a concrete party, CNT, or the unaligned `Other` party.
+// `Right` is not a party identity and must not be stored as a minister value.
+// PRRevS is the CNT's electoral phase, not a separate ministerial identity.
+export type MinisterParty = Exclude<Party, 'PRRevS'> | 'CNT';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
 export type RegionalStatus = 'direct' | 'autonomy' | 'independent';
@@ -419,6 +420,9 @@ export interface GameState {
   ps_founded: boolean;
   fe_founded: boolean;
   poum_founded: boolean;
+  ceda_formed: boolean;
+  ir_formed: boolean;
+  ur_formed: boolean;
   falange_jons: boolean;
   isCasasViejasTriggered: boolean;
   isJabaliTriggered: boolean;

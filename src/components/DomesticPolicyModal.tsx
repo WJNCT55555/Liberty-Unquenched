@@ -746,7 +746,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -818,7 +818,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -890,7 +890,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         {/* Current Law Icon on Left */}
                         <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
                           <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
+                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${policy.levels.find(l => l.level === currentValue)?.name.en || ''}.png`}
                             alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
                             referrerPolicy="no-referrer"
                             className="absolute inset-0 w-full h-full object-cover"
@@ -974,7 +974,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                         <div className="mt-1 flex-shrink-0 relative">
                           <div className="relative w-14 h-14 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm">
                             <img 
-                              src={`${(import.meta as any).env.BASE_URL || '/'}Law/${lvl.name.en}.png`}
+                              src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${lvl.name.en}.png`}
                               alt={lvl.name.en}
                               referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover"

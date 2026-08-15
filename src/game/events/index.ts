@@ -35,6 +35,7 @@ import { presidentialElectionDecision, presidentialElectionPrimary, presidential
 import { asturiasRevolution, asturiasWarFailed } from './asturias_revolution';
 import { andalusiaFireEvent } from './andalusia_fire';
 import { cnt_fourth_congress_0 } from './cnt_fourth_congress';
+import { formationOfIzquierdaRepublicana, formationOfUnionRepublicana } from './republican_party_mergers';
 
 export { 
   civilWarSetup, 
@@ -82,6 +83,8 @@ export const INITIAL_EVENTS = [
   birthOfFeDeLasJons,
   foundingOfPOUM,
   formationOfPRRevS,
+  formationOfIzquierdaRepublicana,
+  formationOfUnionRepublicana,
   laSanjurjada,
   jabaliEvent,
   juradosMixtos,

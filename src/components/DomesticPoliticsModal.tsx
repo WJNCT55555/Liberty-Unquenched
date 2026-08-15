@@ -54,14 +54,18 @@ interface CabinetDeptCardProps {
   dept: typeof MINISTRIES_DEF[number];
   state: GameState;
   isZh: boolean;
-  rulingMembers: Party[];
+  rulingMembers: (Party | 'CNT_FAI')[];
 }
 
 const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, rulingMembers }) => {
   const [isHovered, setIsHovered] = useState(false);
   const ministerParty = state.ministers[dept.id as keyof typeof state.ministers] || 'Other';
-  const color = getPartyColor(state, ministerParty);
-  const isRulingParty = rulingMembers.includes(ministerParty);
+  const ministerPartyKey: Party | 'CNT_FAI' = ministerParty === 'CNT' ? 'CNT_FAI' : ministerParty;
+  const ministerPartyLabel = ministerParty === 'CNT'
+    ? getPartyName(state, 'CNT_FAI', isZh, true)
+    : getPartyName(state, ministerParty, isZh, true);
+  const color = getPartyColor(state, ministerPartyKey);
+  const isRulingParty = rulingMembers.includes(ministerPartyKey);
 
   const cleanParty = ministerParty || 'Other';
   const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
@@ -82,7 +86,7 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
       <div className="flex items-center justify-between mt-2 border-t border-dashed border-ink/10 pt-2">
         <span className="font-mono text-xs font-bold flex items-center gap-1.5" style={{ color }}>
           <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
-          {ministerParty}
+          {ministerPartyLabel}
         </span>
         <span 
           className={`text-[8px] px-1.5 py-0.5 rounded-xs font-mono font-bold ${
@@ -126,7 +130,7 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
                 {isZh ? '部长政党背景的影响' : 'Minister Party Influence'}
               </div>
               <div className="text-cnt-red font-bold mb-1.5">
-                {isZh ? partyInfo.name.zh : partyInfo.name.en}
+                {ministerPartyLabel}
               </div>
               
               <div className="mb-1.5 text-[10px] leading-tight">

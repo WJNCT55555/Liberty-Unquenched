@@ -7,7 +7,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PARTY_COLORS } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getPartySupport } from '../game/utils/coalition';
-import { Party, Faction } from '../game/types';
+import { Party } from '../game/types';
+import { FACTION_NAMES } from '../game/labels';
 
 const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -46,13 +47,7 @@ export const EndingScreen = () => {
   if (!endingDetail) return null;
 
   
-  const factionNames: Record<Faction, { en: string, zh: string }> = {
-    Treintistas: { en: 'Treintistas', zh: '三十人集团' },
-    Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
-    Faistas: { en: 'Faistas', zh: '无政府主义者' },
-    Puristas: { en: 'Puristas', zh: '纯粹派' },
-    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
-  };
+  const factionNames = FACTION_NAMES;
 
   const PARTIES: ('CNT_FAI' | Party)[] = [
     'CNT_FAI',
@@ -307,4 +302,3 @@ export const EndingScreen = () => {
     </div>
   );
 };
-

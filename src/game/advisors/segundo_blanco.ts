@@ -8,7 +8,7 @@ export const segundoBlanco: Advisor = {
   faction: 'Cenetistas',
   description: 'An influential Asturian teacher and militant of the CNT who later served as General Secretary and Minister of Public Education and Health during the Civil War. He was a champion of unity with the UGT under the "UHP" banner.',
   descriptionZh: '有威望的阿斯图里亚斯教师、无政府主义活动家。曾任CNT全国总书记，并在内阁中出任公共教育与卫生部长，是“无产阶级兄弟联盟（UHP）”和工会团结协作路线的坚定拥护者。',
-  image: 'img/Advisors/Joan_Peiro.png',
+  image: 'img/Advisors/Segundo_Blanco.png',
   actions: [
     {
       id: 'blanco_promote_workers_alliance',

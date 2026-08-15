@@ -37,6 +37,7 @@ export const cedaFormation: GameEvent = {
 
         return {
           resources: state.resources - 1,
+          ceda_formed: true,
           classes: newClasses,
           stats: {
             ...state.stats,
@@ -64,6 +65,7 @@ export const cedaFormation: GameEvent = {
         newClasses = adjustClassSupport(newClasses, 'Clero', 'CT', -10);
 
         return {
+          ceda_formed: true,
           classes: newClasses,
           factions: adjustFactionInfluence(state.factions, 'Faistas', 5),
           stats: {

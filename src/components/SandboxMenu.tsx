@@ -6,6 +6,8 @@ import { Faction } from '../game/types';
 import { MapFaction } from '../map/types_map';
 import { COALITION_DEFS } from '../game/coalitions';
 import { formCoalition } from '../game/utils/coalition';
+import { FACTION_NAMES } from '../game/labels';
+import { getPartyName } from '../game/partyNames';
 
 export const SandboxMenu = () => {
   const { state, dispatch } = useGame();
@@ -65,24 +67,18 @@ export const SandboxMenu = () => {
   };
 
   const ministerRoles = [
-    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
-    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['PSOE', 'CNT', 'IR', 'PRR', 'AP', 'Other', 'DLR', 'ERC', 'UR'] },
+    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
+    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
   ] as const;
 
-  const factionNames: Record<Faction, { en: string, zh: string }> = {
-    Treintistas: { en: 'Treintistas', zh: '三十人集团' },
-    Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
-    Faistas: { en: 'Faistas', zh: '无政府主义者' },
-    Puristas: { en: 'Puristas', zh: '纯粹派' },
-    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
-  };
+  const factionNames = FACTION_NAMES;
 
   return (
     <AnimatePresence>
@@ -242,21 +238,15 @@ export const SandboxMenu = () => {
                           {isZh ? labelZh : labelEn}
                         </label>
                         <select
-                          value={currentVal || 'AP'}
+                          value={currentVal || 'Other'}
                           onChange={(e) => handleMinisterChange(role, e.target.value)}
                           className="bg-paper text-ink border border-ink/30 px-2 py-1.5 font-sans text-sm shortcut-focus outline-none focus:border-cnt-red transition-all cursor-pointer"
                         >
                           {options.map((opt) => (
                             <option key={opt} value={opt}>
-                              {opt === 'CNT' && (isZh ? 'CNT (无政府工团)' : 'CNT')}
-                              {opt === 'PSOE' && (isZh ? 'PSOE (社会党)' : 'PSOE')}
-                              {opt === 'IR' && (isZh ? 'IR (共和左翼)' : 'IR')}
-                              {opt === 'PRR' && (isZh ? 'PRR (激进共和党)' : 'PRR')}
-                              {opt === 'AP' && (isZh ? 'Right (保守右翼)' : 'AP')}
-                              {opt === 'Other' && (isZh ? 'Other (其他第三方)' : 'Other')}
-                              {opt === 'DLR' && (isZh ? 'DLR (共和自由右翼)' : 'DLR')}
-                              {opt === 'ERC' && (isZh ? 'ERC (加泰共和左翼)' : 'ERC')}
-                              {opt === 'UR' && (isZh ? 'UR (共和联盟)' : 'UR')}
+                              {opt === 'CNT'
+                                ? (isZh ? 'CNT（无政府工团）' : 'CNT')
+                                : getPartyName(state, opt as any, isZh, true)}
                             </option>
                           ))}
                         </select>

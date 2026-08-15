@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../game/GameContext';
-import { Faction, Party, SocialClass, GameState } from '../game/types';
+import { Party, SocialClass, GameState } from '../game/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
@@ -8,6 +8,7 @@ import { getPartyName, getPartyColor } from '../game/partyNames';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport, updateCoalitions } from '../game/utils/coalition';
 import { MapFaction } from '../map/types_map';
+import { FACTION_NAMES } from '../game/labels';
 
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
   let totalSupport = 0;
@@ -40,13 +41,7 @@ export const SidePanel = () => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
 
-  const factionNames: Record<Faction, { en: string, zh: string }> = {
-    Treintistas: { en: 'Treintistas', zh: '三十人集团' },
-    Cenetistas: { en: 'Cenetistas', zh: '工团分子' },
-    Faistas: { en: 'Faistas', zh: '无政府主义者' },
-    Puristas: { en: 'Puristas', zh: '纯粹派' },
-    Jabalistas: { en: 'Jabalistas', zh: '野猪议员' }
-  };
+  const factionNames = FACTION_NAMES;
 
   
   const pieData = [
@@ -656,7 +651,7 @@ export const SidePanel = () => {
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs font-mono mb-1">
               <span>{isZh ? '左翼' : 'Left'}</span>
-              <span>{isZh ? '右翼' : 'AP'}</span>
+              <span>{getPartyName(state, 'AP', isZh, true)}</span>
             </div>
             <div className="h-4 w-full flex rounded-sm overflow-hidden border border-ink bg-paper-dark">
               {(Object.entries(state.cortes) as [Party, number][])
@@ -1277,7 +1272,7 @@ export const PARTY_INFLUENCE_INFO: Record<string, {
     name: { en: "CNT (Anarcho-Syndicalist)", zh: "CNT (无政府工团主义)" },
     dissent: { 
       en: "Minimizes dissent among Cenetistas and Faistas. However, it provokes severe outrage and dissent among Treintistas and moderate constitutionalists who oppose radical overreach.", 
-      zh: "极大降低工团派与无政府主义者群体的分歧度。然而，由于路线激进且反宪政，反过来会在三十人派及温和民主人士中引发强烈不满，显著推高其分歧度。" 
+      zh: "极大降低工团派与无政府主义者群体的分歧度。然而，由于路线激进且反宪政，反过来会在三十人集团及温和民主人士中引发强烈不满，显著推高其分歧度。"
     },
     stability: { 
       en: "Harshly reduces Government Stability. Republican allies (IR, PRR) view CNT control of core ministries with existential alarm, leading to minimal consensus and high risk of gridlock.", 
@@ -1292,7 +1287,7 @@ export const PARTY_INFLUENCE_INFO: Record<string, {
     name: { en: "PSOE (Socialist)", zh: "PSOE (工人社会党 / 左翼)" },
     dissent: { 
       en: "Soothes Treintistas who respect public reformist policies. However, Cenetistas and Faistas remain highly suspicious of socialist state-builder centralized doctrines, mildly raising radical dissent.", 
-      zh: "能够有效安抚主张公开改良主义的「三十人派」。但是，强硬的工团分子与无政府纯粹派对社会党的中央权力与官僚体制教条抱有天然警惕，导致激进分歧缓慢累积。" 
+      zh: "能够有效安抚主张公开改良主义的「三十人集团」。但是，强硬的工团派与无政府主义者、纯粹派对社会党的中央权力与官僚体制教条抱有天然警惕，导致激进分歧缓慢累积。"
     },
     stability: { 
       en: "Maintains high Government Stability. PSOE represents a massive parliamentary force capable of sustaining state bureaucracies and commanding respect among middle-class progressives.", 
@@ -1307,7 +1302,7 @@ export const PARTY_INFLUENCE_INFO: Record<string, {
     name: { en: "IR (Left Republican)", zh: "IR (左翼共和国人 / 自由左翼)" },
     dissent: { 
       en: "Satisfies Treintistas expecting constitutional preservation, but severely worsens dissent among radical Faistas and Puristas who view the bourgeois democratic establishment as an obstacle to revolution.", 
-      zh: "深受企盼宪政稳定的三十人派温和派人士支持；然而这对于彻底推倒代议制政体的无政府纯粹派和杜鲁蒂之友而言意味着革命力量被资本主义体制驯服，将引起极高分歧。" 
+      zh: "深受企盼宪政稳定的三十人集团温和派人士支持；然而这对于彻底推倒代议制政体的无政府主义者、纯粹派和杜鲁蒂之友而言意味着革命力量被资本主义体制驯服，将引起极高分歧。"
     },
     stability: { 
       en: "Excellent Government Stability. They embody constitutional legitimacy and the rule of law, reassuring foreign democratic powers, civil administrators, and constitutional military officers.", 
@@ -1331,21 +1326,6 @@ export const PARTY_INFLUENCE_INFO: Record<string, {
     desc: {
       en: "A centrist anti-clerical party whose opportunist concessions toward conservative and clerical factions alienate the left-wing coalition.",
       zh: "中右翼机会主义世俗派。在土地与工人工资等核心利益上频繁偏袒雇主，极度缺乏工人阶级支持，饱受争议。"
-    }
-  },
-  Right: {
-    name: { en: "Right (Conservatives / Catholics)", zh: "Right (右翼保守派 / 天主教CEDA)" },
-    dissent: { 
-      en: "Provokes maximal dissent across all anarchist, worker, and progressive factions. Seen as the direct political facade of reactive landowners and military conspirators, triggering mass unrest.", 
-      zh: "在无政府、工会以及所有反法西斯力量中挑起毁灭性的最高级别分歧。右翼掌权被视作大资本家和旧军警反攻倒算的丧钟，势必挑起激进的大众暴动。" 
-    },
-    stability: { 
-      en: "Extremely low Government Stability under progressive lens. Instantly triggers general strikes, intense class warfare in urban regions, and the complete collapse of central coalition coordination.", 
-      zh: "处于完全崩溃的超低稳定性。极易诱发毁坏性的全国总罢工、激烈的城市武装流血斗争以及中央对地方管制权力的彻底空心化。" 
-    },
-    desc: {
-      en: "Represents clerical reaction, landowners, and elements of the old regime. Actively hostile to agrarian reform, union leverage, and secularization.",
-      zh: "代表着宗教守旧势力、大种植园地主与极保守军事势力门阀。积极反对土地分配、削弱工会权威，谋求全面回到旧社会秩序。"
     }
   },
   DLR: {
@@ -1484,6 +1464,9 @@ const MinisterRow: React.FC<{
 
   const cleanParty = party || 'Other';
   const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
+  const partyLabel = party === 'CNT'
+    ? getPartyName(state, 'CNT_FAI', isZh, true)
+    : getPartyName(state, party as Party, isZh, true);
   const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
 
   const isUpward = ['interior', 'agriculture', 'war', 'finance'].includes(deptKey);
@@ -1495,7 +1478,7 @@ const MinisterRow: React.FC<{
       onMouseLeave={() => setIsHovered(false)}
     >
       <span>{isZh ? nameZh : nameEn}</span>
-      <span className={party === 'CNT' ? 'text-cnt-red font-bold' : ''}>{party}</span>
+      <span className={party === 'CNT' ? 'text-cnt-red font-bold' : ''}>{partyLabel}</span>
 
       {/* Tooltip on Hover positioned to stay within the SidePanel bounds and prevent horizontal clipping */}
       <AnimatePresence>
@@ -1523,7 +1506,7 @@ const MinisterRow: React.FC<{
                 {isZh ? '部长政党背景的影响' : 'Minister Party Influence'}
               </div>
               <div className="text-cnt-red font-bold mb-1.5">
-                {isZh ? partyInfo.name.zh : partyInfo.name.en}
+                {partyLabel}
               </div>
               
               <div className="mb-1.5 text-[10px] leading-tight">

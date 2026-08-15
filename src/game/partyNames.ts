@@ -43,6 +43,34 @@ export const PARTY_NAMES_SHORT_MAPPING: Record<Party | 'CNT_FAI', { en: string; 
 };
 
 export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
+  // Acción Popular reorganizes as CEDA in March 1933 while retaining one AP
+  // identity. The date fallback keeps older saves without the new flag usable.
+  const cedaFormed = state.ceda_formed ?? (state.year > 1933 || (state.year === 1933 && state.month >= 3));
+  if (party === 'AP' && !cedaFormed) {
+    return isZh
+      ? (short ? 'AP' : '人民行动党 (AP)')
+      : (short ? 'AP' : 'AP (Popular Action)');
+  }
+
+  // Acción Republicana became Izquierda Republicana in April 1934. Keep the
+  // underlying IR party key so support, relations, seats, and coalitions do
+  // not split across two technical parties.
+  const irFormed = state.ir_formed ?? (state.year > 1934 || (state.year === 1934 && state.month >= 4));
+  if (party === 'IR' && !irFormed) {
+    return isZh
+      ? (short ? 'AR' : '共和行动 (AR)')
+      : (short ? 'AR' : 'AR (Republican Action)');
+  }
+
+  // The Radical Socialist Republican phase became Unión Republicana in
+  // September 1934. It likewise remains one underlying UR party identity.
+  const urFormed = state.ur_formed ?? (state.year > 1934 || (state.year === 1934 && state.month >= 9));
+  if (party === 'UR' && !urFormed) {
+    return isZh
+      ? (short ? 'PRRS' : '激进社会共和党 (PRRS)')
+      : (short ? 'PRRS' : 'PRRS (Radical Socialist Republican Party)');
+  }
+
   // PRRevS logic for CNT_FAI
   if (party === 'CNT_FAI' && state.isPRRevSFormed) {
     return isZh 

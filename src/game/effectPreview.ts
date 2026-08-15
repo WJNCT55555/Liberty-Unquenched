@@ -72,6 +72,9 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
 
 const BOOLEAN_FIELDS: Record<string, Labels> = {
   isPRRevSFormed: { label: 'PRRevS formed', labelZh: 'PRRevS成立' },
+  ceda_formed: { label: 'CEDA formed', labelZh: 'CEDA成立' },
+  ir_formed: { label: 'Izquierda Republicana formed', labelZh: '共和左翼成立' },
+  ur_formed: { label: 'Unión Republicana formed', labelZh: '共和联盟成立' },
   fijl_established: { label: 'FIJL established', labelZh: 'FIJL成立' },
   mujeres_libres_established: { label: 'Mujeres Libres established', labelZh: '自由妇女组织成立' },
   internationalBrigadesFormed: { label: 'International Brigades formed', labelZh: '国际纵队成立' },
@@ -136,22 +139,22 @@ const RELATION_LABELS: Record<keyof GameState['relations'], Labels> = {
 };
 
 const FACTION_LABELS: Record<Faction, Labels> = {
-  Treintistas: { label: 'Treintistas', labelZh: '三十人派' },
+  Treintistas: { label: 'Treintistas', labelZh: '三十人集团' },
   Cenetistas: { label: 'Cenetistas', labelZh: '工团派' },
-  Faistas: { label: 'FAIstas', labelZh: 'FAI派' },
+  Faistas: { label: 'Faistas', labelZh: '无政府主义者' },
   Puristas: { label: 'Puristas', labelZh: '纯粹派' },
-  Jabalistas: { label: 'Jabalistas', labelZh: '哈巴利派' }
+  Jabalistas: { label: 'Jabalistas', labelZh: '野猪议员' }
 };
 
 const CLASS_LABELS: Record<SocialClass, Labels> = {
-  Obreros: { label: 'Obreros', labelZh: '工人' },
+  Obreros: { label: 'Obreros', labelZh: '产业工人' },
   Braceros: { label: 'Braceros', labelZh: '雇农' },
   Labradores: { label: 'Labradores', labelZh: '自耕农' },
-  Latifundistas: { label: 'Latifundistas', labelZh: '大地主' },
-  PequenaBurguesia: { label: 'Petite bourgeoisie', labelZh: '小资产阶级' },
-  Intelectuales: { label: 'Intellectuals', labelZh: '知识分子' },
-  Burguesia: { label: 'Bourgeoisie', labelZh: '资产阶级' },
-  Clero: { label: 'Clergy', labelZh: '教会' }
+  Latifundistas: { label: 'Latifundistas', labelZh: '贵族大地主' },
+  PequenaBurguesia: { label: 'Pequeña Burguesía', labelZh: '小资产阶级' },
+  Intelectuales: { label: 'Intelectuales', labelZh: '知识分子' },
+  Burguesia: { label: 'Burguesía', labelZh: '工业资产阶级' },
+  Clero: { label: 'Clero', labelZh: '天主教会' }
 };
 
 const PARTY_LABELS: Record<'CNT_FAI' | Party, Labels> = {
@@ -161,12 +164,12 @@ const PARTY_LABELS: Record<'CNT_FAI' | Party, Labels> = {
   PSOE: { label: 'PSOE', labelZh: 'PSOE' },
   PS: { label: 'Syndicalist Party', labelZh: '工团党' },
   ERC: { label: 'ERC', labelZh: 'ERC' },
-  IR: { label: 'Republican Left', labelZh: '共和左翼' },
-  UR: { label: 'Republican Union', labelZh: '共和联盟' },
+  IR: { label: 'AR / IR', labelZh: '共和行动 / 共和左翼' },
+  UR: { label: 'PRRS / UR', labelZh: '激进社会共和党 / 共和联盟' },
   PNV: { label: 'PNV', labelZh: 'PNV' },
   PRR: { label: 'PRR', labelZh: '共和激进党' },
   DLR: { label: 'DLR', labelZh: '自由共和右翼' },
-  AP: { label: 'Popular Action', labelZh: '人民行动党' },
+  AP: { label: 'AP / CEDA', labelZh: 'AP / CEDA阶段' },
   RE: { label: 'Spanish Renovation', labelZh: '西班牙革新党' },
   CT: { label: 'Traditionalist Communion', labelZh: '传统主义联盟' },
   FE: { label: 'Falange', labelZh: '长枪党' },
@@ -498,27 +501,31 @@ const addFactionsDiffs = (
 
 const addPartyRelationDiffs = (
   lines: EffectPreviewLine[],
+  state: GameState,
   before: GameState['partyRelations'],
   after?: Partial<GameState['partyRelations']>
 ) => {
   if (!after) return;
   (Object.keys(before) as Exclude<Party, 'PRRevS'>[]).forEach((party) => {
     if (!(party in after)) return;
-    const labels = PARTY_LABELS[party];
-    addNumericDelta(lines, { label: `Relations with ${labels.label}`, labelZh: `与${labels.labelZh}关系` }, before[party], after[party]);
+    const partyLabel = getPartyName(state, party, false, true);
+    const partyLabelZh = getPartyName(state, party, true, true);
+    addNumericDelta(lines, { label: `Relations with ${partyLabel}`, labelZh: `与${partyLabelZh}关系` }, before[party], after[party]);
   });
 };
 
 const addPartySupportDiffs = (
   lines: EffectPreviewLine[],
+  state: GameState,
   before: GameState['partySupport'],
   after?: Partial<GameState['partySupport']>
 ) => {
   if (!after) return;
   (Object.keys(before) as Party[]).forEach((party) => {
     if (!(party in after)) return;
-    const labels = PARTY_LABELS[party];
-    addNumericDelta(lines, { label: `${labels.label} support`, labelZh: `${labels.labelZh}支持率` }, before[party], after[party]);
+    const partyLabel = getPartyName(state, party, false, true);
+    const partyLabelZh = getPartyName(state, party, true, true);
+    addNumericDelta(lines, { label: `${partyLabel} support`, labelZh: `${partyLabelZh}支持率` }, before[party], after[party]);
   });
 };
 
@@ -698,8 +705,8 @@ const buildFallbackPreview = (
   } else {
     addClassSupportDiffs(lines, state.classes, partial.classes);
   }
-  addPartyRelationDiffs(lines, state.partyRelations, partial.partyRelations);
-  addPartySupportDiffs(lines, state.partySupport, partial.partySupport);
+  addPartyRelationDiffs(lines, state, state.partyRelations, partial.partyRelations);
+  addPartySupportDiffs(lines, state, state.partySupport, partial.partySupport);
   addRelationsDiffs(lines, state.relations, partial.relations);
   addArmedForcesDiffs(lines, state.armedForces, partial.armedForces);
   addGovernmentDiffs(lines, state.government, partial.government);

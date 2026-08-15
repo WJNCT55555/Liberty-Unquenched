@@ -4,6 +4,7 @@ import { Advisor, AdvisorAction } from '../game/types';
 import { cn } from '../lib/utils';
 import { UserPlus, X, Users, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FACTION_NAMES } from '../game/labels';
 
 // Note: Cabinet Ministers tooltips on hover are implemented in SidePanel.tsx (where the Cabinet UI is rendered)
 
@@ -47,13 +48,7 @@ export const AdvisorPanel = () => {
   const [selectedAdvisor, setSelectedAdvisor] = useState<Advisor | null>(null);
   const isZh = state.language === 'zh';
 
-  const factionNames: Record<string, string> = {
-    Treintistas: '三十人集团',
-    Cenetistas: '工团派',
-    Faistas: '无政府主义者',
-    Puristas: '纯粹派',
-    Jabalistas: '野猪议员'
-  };
+  const factionNames = FACTION_NAMES;
 
   const handleActionClick = (action: AdvisorAction) => {
     if (action.condition(state) && state.actionsLeft > 0) {
@@ -97,7 +92,7 @@ export const AdvisorPanel = () => {
                   {/* Faction Stamp */}
                   {advisor.faction !== 'None' && (
                     <div className="absolute -top-2 -left-2 bg-ink text-paper text-[8px] font-typewriter px-1.5 py-0.5 border border-ink shadow-[2px_2px_0px_0px_rgba(204,0,0,1)] z-20 transform -rotate-6">
-                      {isZh ? factionNames[advisor.faction] : advisor.faction}
+                      {isZh ? (factionNames[advisor.faction as keyof typeof factionNames]?.zh || advisor.faction) : advisor.faction}
                     </div>
                   )}
 
@@ -214,7 +209,7 @@ export const AdvisorPanel = () => {
                     {/* Faction Badge */}
                     {advisor.faction !== 'None' && (
                       <div className="absolute top-0 right-0 bg-ink text-paper text-[10px] font-typewriter px-2 py-1 border-b-2 border-l-2 border-ink">
-                        {isZh ? factionNames[advisor.faction] : advisor.faction}
+                        {isZh ? (factionNames[advisor.faction as keyof typeof factionNames]?.zh || advisor.faction) : advisor.faction}
                       </div>
                     )}
 
@@ -312,7 +307,7 @@ export const AdvisorPanel = () => {
                       {isZh ? '派系 / FACTION' : 'FACTION'}
                     </span>
                     <span className="font-typewriter text-sm font-bold">
-                      {isZh ? factionNames[selectedAdvisor.faction] : selectedAdvisor.faction}
+                    {isZh ? (factionNames[selectedAdvisor.faction as keyof typeof factionNames]?.zh || selectedAdvisor.faction) : selectedAdvisor.faction}
                     </span>
                   </div>
                 </div>

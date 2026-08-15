@@ -229,13 +229,13 @@ export const casasViejas2Peace: GameEvent = {
   description:
     'Thanks to the desperate behind-the-scenes lobbying by our labor ministers and PRRevS deputies inside the state apparatus, an outright slaughter was averted. The Ministry of the Interior issued an emergency direct order to Captain Rojas to freeze his assault and halt the guards. A joint delegation comprising CNT representatives and government negotiators was dispatched to Casas Viejas. After a tense, nerve-wracking standoff, Seisdedos and his family agreed to surrender in exchange for a full civilian trial, local amnesty for uninvolved villagers, and immediate, binding hearings on local land expropriation.\n\nWhile this pragmatic compromise saved lives and prevented the total collapse of our legal presence, many radical elements, particularly the *Faistas*, are absolutely furious. They accuse the leadership of "class collaboration" and of acting as "firefighters for the bourgeois state" when they should have fueled the revolutionary flames. The internal cracks in our movement are widening.',
   descriptionZh:
-    '幸而依靠全劳联（CNT）在政府中的劳动部长以及PRRevS议员在国家机器幕后的紧急交涉，一场彻头彻尾的血腥屠杀才得以避免。内政部下达紧急指令，责令罗哈斯上尉暂停攻击并原地待命。随后一个由 CNT 代表与政府高级谈判代表组成的联合小组火速赶往卡萨斯-维耶哈斯村。在让人屏气凝神的对峙后，“六指”塞斯德多斯和他的同志们同意交出武器，换取公开、平等的平民法庭审判，并保证不对无辜村民进行报复，同时要求立即就该片区的土地纠纷展开听证会。\n\n虽然这一务实的妥协保全了无辜性命，也维护了我们合法的参政空间，但 CNT 内部的激进派（尤其是法伊主义派 *Faistas*）对此感到彻底愤怒。他们愤怒指责领导层在应该点燃革命雄火时却成了“资产阶级国家的消防员”，犯下了卑鄙的“阶级妥协罪”。我们组织内部的裂痕正在迅速扩大。',
+    '幸而依靠全劳联（CNT）在政府中的劳动部长以及PRRevS议员在国家机器幕后的紧急交涉，一场彻头彻尾的血腥屠杀才得以避免。内政部下达紧急指令，责令罗哈斯上尉暂停攻击并原地待命。随后一个由 CNT 代表与政府高级谈判代表组成的联合小组火速赶往卡萨斯-维耶哈斯村。在让人屏气凝神的对峙后，“六指”塞斯德多斯和他的同志们同意交出武器，换取公开、平等的平民法庭审判，并保证不对无辜村民进行报复，同时要求立即就该片区的土地纠纷展开听证会。\n\n虽然这一务实的妥协保全了无辜性命，也维护了我们合法的参政空间，但 CNT 内部的激进派（尤其是无政府主义者 *Faistas*）对此感到彻底愤怒。他们愤怒指责领导层在应该点燃革命雄火时却成了“资产阶级国家的消防员”，犯下了卑鄙的“阶级妥协罪”。我们组织内部的裂痕正在迅速扩大。',
   options: [
     {
       text: 'Defend the compromise: pragmatism saved the lives of our comrades and extended our legal foothold.',
       textZh: '为妥协辩解：务实主义挽救了同志们的生命，并扩大了我们的合法立足点。',
       subtitle: 'Strengthens Treintistas influence; reduces stress and revolutionary fervor, but substantially increases Faistas dissent.',
-      subtitleZh: '巩固三十人派（Treintistas）的影响力；降低社会局势动荡度，但也大幅度推高野兽派（Faistas）的内部异议值。',
+      subtitleZh: '巩固三十人集团（Treintistas）的影响力；降低社会局势动荡度，但也大幅度推高无政府主义者（Faistas）的内部异议值。',
       effect: (state) => {
         let newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 20);
@@ -261,7 +261,7 @@ export const casasViejas2Peace: GameEvent = {
       text: 'Pacify the radicals by securing immediate land deeds for the local village council, showing that cooperation delivers tangible fruit.',
       textZh: '安抚激进派：立刻敦促内阁向当地村自治会发放土地所有权证书，力证合作执政确能取得实质成果。',
       subtitle: 'Slightly raises agrarian support and CNT unity; requires budget allocation to compensate the landowners.',
-      subtitleZh: '小幅提升基层雇农支持度和 CNT 的团结度；需要消耗财政预算用以赔偿土地贵族。',
+      subtitleZh: '小幅提升基层雇农支持度和 CNT 的团结度；需要消耗财政预算用以赔偿贵族大地主。',
       effect: (state) => {
         let newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions.Faistas.dissent = Math.min(100, (newFactions.Faistas.dissent || 0) + 8);
@@ -302,7 +302,7 @@ export const casasViejas1: GameEvent = {
   description:
     'In the dry, sun-baked hills of Andalusia, under the blazing shadow of massive latifundia estates, the small village of Casas Viejas has reached its boiling point. Frustrated by the Agonizingly slow pace of land reform under the Republican-Socialist government, local landless peasants and CNT braceros have declared Comunismo Libertario.\n\nThey have cut the telegraph lines, surrounded the localized Civil Guard post, and proudly raised the red-and-black anarchist flag over the village square. In Madrid, Prime Minister Manuel Azaña and his cabinet are under massive pressure from landowners and conservatives. They have labeled this event as "rebellious criminality" and ordered a powerful dispatch of Assault Guards from Cadiz to suppress the village. The air is thick with anticipation of gunshots. How does the National Committee of the CNT respond?',
   descriptionZh:
-    '在安达卢西亚干旱炎热的山丘上，在庞大贵族庄园残暴阴影的笼罩下，卡萨斯-维耶哈斯这个小村庄已达到了沸点。出于对共和-社会党内阁极度拖沓的土地改革的不满，当地失去土地的雇农与 CNT 组织人员共同宣布建立“自由共产主义”政权。\n\n他们切断了电话，包围了当地的国民警卫队，并在村庄广场上高高升起了两色的无政府主义红黑旗。在马德里，首相曼努埃尔·阿萨尼亚和他的内阁正承受着来自土地贵族和保守派的极高限度施压。他们将此时定性为“反叛性质刑事犯罪”，并调派了驻守在加的斯的精锐突击卫队开赴该村。激烈的流血冲突一触即发。全劳联（CNT）全国委员会应如何做出反应？',
+    '在安达卢西亚干旱炎热的山丘上，在庞大贵族庄园残暴阴影的笼罩下，卡萨斯-维耶哈斯这个小村庄已达到了沸点。出于对共和-社会党内阁极度拖沓的土地改革的不满，当地失去土地的雇农与 CNT 组织人员共同宣布建立“自由共产主义”政权。\n\n他们切断了电话，包围了当地的国民警卫队，并在村庄广场上高高升起了两色的无政府主义红黑旗。在马德里，首相曼努埃尔·阿萨尼亚和他的内阁正承受着来自贵族大地主和保守派的极高限度施压。他们将此时定性为“反叛性质刑事犯罪”，并调派了驻守在加的斯的精锐突击卫队开赴该村。激烈的流血冲突一触即发。全劳联（CNT）全国委员会应如何做出反应？',
   image: 'agrarian_strike',
   condition: (state) =>
     !state.isCasasViejasTriggered &&

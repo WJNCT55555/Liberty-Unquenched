@@ -82,7 +82,7 @@ export const presidentialElectionPrimary: GameEvent = {
       text: 'Azaña. The Republic must be reformed, not shattered.',
       textZh: '阿萨尼亚。共和国需要改革，而非粉碎。',
       subtitle: 'A stable left alliance with the PSOE and IR. Predictable and trusted by bourgeois republicans we despise but need.',
-      subtitleZh: '与PSOE and IR建立稳定的左翼联盟。行事温和而容易被社会主流及资产阶级共和派接受。会引起法伊主义者的不悦。',
+      subtitleZh: '与PSOE and IR建立稳定的左翼联盟。行事温和而容易被社会主流及资产阶级共和派接受。会引起无政府主义者的不悦。',
       effect: (state) => {
         let f = { ...state.factions };
         f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 10) };
@@ -144,7 +144,7 @@ export const presidentialElectionCandidateSelection: GameEvent = {
       text: (state) => `Support the Left — [${state.presidentElectionLeftCandidate === 'ramon_franco' ? 'Ramón Franco' : 'Manuel Azaña'}].`,
       textZh: (state) => `支持左翼—— [${state.presidentElectionLeftCandidate === 'ramon_franco' ? '拉蒙·佛朗哥' : '曼努埃尔·阿萨尼亚'}]。`,
       subtitle: 'The disciplined choice. Our votes will strengthen the reformist bloc against right-wing reaction.',
-      subtitleZh: '有纪律的选择。我们的选票将强化改革派阵营，用以阻击右翼反动势力。法伊派对此保持一贯的克制态度。',
+      subtitleZh: '有纪律的选择。我们的选票将强化改革派阵营，用以阻击右翼反动势力。无政府主义者对此保持一贯的克制态度。',
       effect: (state) => {
         const f = { ...state.factions };
         f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 5) };
@@ -160,7 +160,7 @@ export const presidentialElectionCandidateSelection: GameEvent = {
       text: 'Support Diego Martínez Barrio — the Democratic Center.',
       textZh: '支持迭戈·马丁内斯·巴里奥——民主中间派。',
       subtitle: 'Leader of the PRR\'s democratic wing. Refused to follow Lerroux into CEDA\'s embrace. Sometimes the middle is where the Republic survives.',
-      subtitleZh: '激进党民主翼的领袖，拒绝同勒鲁一块投入CEDA怀抱。他坐在极端之间——有时中间派就是共和国得以维系的关键。纯洁派和法伊派对此极度不满。',
+      subtitleZh: '激进党民主翼的领袖，拒绝同勒鲁一块投入CEDA怀抱。他坐在极端之间——有时中间派就是共和国得以维系的关键。纯粹派和无政府主义者对此极度不满。',
       effect: (state) => {
         let f = { ...state.factions };
         f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 15) };
@@ -183,7 +183,7 @@ export const presidentialElectionCandidateSelection: GameEvent = {
       text: 'Support José María Gil-Robles (CEDA) — a pact with the Devil.',
       textZh: '支持何塞·马利亚·吉尔-罗伯斯（CEDA）——与魔鬼的交易。',
       subtitle: 'The unthinkable. Back the Catholic authoritarian to prevent something worse, or to sharpen the revolution against a clear enemy.',
-      subtitleZh: '不可想象之事。支持天主教威权主义者以阻止更坏的结局，或者是为了用外部大敌磨砺工人的革命斗志。我们的纯洁派和法伊派会彻底暴怒！',
+      subtitleZh: '不可想象之事。支持天主教威权主义者以阻止更坏的结局，或者是为了用外部大敌磨砺工人的革命斗志。我们的纯粹派和无政府主义者会彻底暴怒！',
       effect: (state) => {
         let f = { ...state.factions };
         f.Faistas = { ...f.Faistas, dissent: Math.min(100, (f.Faistas?.dissent || 0) + 50) };

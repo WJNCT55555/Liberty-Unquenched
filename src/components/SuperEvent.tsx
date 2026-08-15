@@ -127,7 +127,7 @@ export const SuperEvent: React.FC = () => {
 
         {/* Layer 3: Interactive Content Area (z-30) */}
         <div 
-          className="absolute flex flex-col justify-between pt-6 px-10 pb-4 z-30"
+          className="absolute z-30"
           style={{
             left: '88.67px',
             top: '175.33px',
@@ -135,8 +135,10 @@ export const SuperEvent: React.FC = () => {
             height: '449.33px',
           }}
         >
-          {/* Title Area */}
-          <div className="h-[60px] flex items-center justify-center text-center">
+          {/* Title Area: keep the heading in the upper part of the image. */}
+          <div
+            className="absolute inset-x-0 top-7 h-[60px] flex items-center justify-center px-10 text-center"
+          >
             <h1 
               style={textShadowStyle}
               className="text-2xl md:text-3xl font-bold text-red-600 uppercase tracking-widest font-display leading-tight"
@@ -145,32 +147,38 @@ export const SuperEvent: React.FC = () => {
             </h1>
           </div>
           
-          {/* Quote Area */}
-          <div className="flex-1 flex items-center justify-center px-6 py-2 overflow-hidden">
+          {/* Quote Area: anchor the description to the lower, darkened part of the image. */}
+          <div
+            className="absolute inset-x-0 bottom-[18px] h-[150px] flex items-end justify-center px-8 overflow-hidden"
+          >
             <p 
               style={textShadowStyle}
-              className="text-base md:text-lg italic text-zinc-100 font-serif leading-relaxed text-center max-w-[620px]"
+              className="max-h-full max-w-[660px] overflow-hidden text-base md:text-lg italic text-zinc-100 font-serif leading-relaxed text-center"
             >
               {isZh ? quoteZh : quote}
             </p>
           </div>
 
-          {/* Button Area */}
-          <div className="h-[55px] flex items-center justify-center shrink-0">
-            <button
-              onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}
-              className="w-[280px] h-[48px] flex items-center justify-center text-stone-100 hover:text-white hover:brightness-115 active:scale-95 cursor-pointer font-display font-extrabold uppercase transition-all duration-150 relative border-none outline-none bg-transparent"
-              style={{
-                backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/SupereventButton.png)`,
-                backgroundSize: '100% 100%',
-                backgroundRepeat: 'no-repeat',
-              }}
-            >
-              <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-sm tracking-widest font-black px-4 text-center truncate">
-                {isZh ? buttonTextZh : buttonText}
-              </span>
-            </button>
-          </div>
+        </div>
+
+        {/* Button Area: place the action below the image, in the frame's lower paper margin. */}
+        <div
+          className="absolute inset-x-0 bottom-[12px] z-30 h-[55px] flex items-center justify-center"
+        >
+          <button
+            onClick={() => dispatch({ type: 'DISMISS_SUPER_EVENT' })}
+            type="button"
+            className="w-[280px] h-[48px] flex items-center justify-center text-stone-100 hover:text-white hover:brightness-115 active:scale-95 cursor-pointer font-display font-extrabold uppercase transition-all duration-150 relative border-none outline-none bg-transparent"
+            style={{
+              backgroundImage: `url(${(import.meta as any).env.BASE_URL || '/'}img/Superevents/SupereventButton.png)`,
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
+            <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-sm tracking-widest font-black px-4 text-center truncate">
+              {isZh ? buttonTextZh : buttonText}
+            </span>
+          </button>
         </div>
       </motion.div>
     </div>
