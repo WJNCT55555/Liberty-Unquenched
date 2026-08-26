@@ -1,7 +1,6 @@
 import React from 'react';
 import type { GameEvent, GameState } from '../types';
-import { adjustFactionDissents, adjustFactionInfluence } from '../utils';
-import { calculatePresidentialVotes } from '../utils/election';
+import { adjustFactionDissents, adjustFactionInfluence, calculatePresidentialVotes } from '../utils';
 
 const presidentialElectionMeta = {
   category: 'politics' as const,

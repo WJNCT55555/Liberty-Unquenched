@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import type { GameEvent, Party, GameState, MinisterParty } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
-import { calculateElectionResults } from '../utils/election';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
 import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
-import { formCoalition } from '../utils/coalition';
-import { adjustFactionDissents } from '../utils';
+import { calculateElectionResults, formCoalition, adjustFactionDissents } from '../utils';
 
 const election1931Meta = {
   category: 'politics' as const,

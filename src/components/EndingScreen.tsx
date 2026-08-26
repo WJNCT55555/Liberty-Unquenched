@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PARTY_COLORS } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
-import { getPartySupport } from '../game/utils/coalition';
+import { getPartySupport } from '../game/utils';
 import { Party } from '../game/types';
 import { FACTION_NAMES } from '../game/labels';
 

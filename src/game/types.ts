@@ -10,6 +10,48 @@ export type { Party };
 export type MinisterParty = Exclude<Party, 'PRRevS'> | 'CNT';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 
+// Legal stance identities intentionally exclude `PRRevS` and `Other`.
+// PRRevS is the CNT's electoral phase rather than an independent ideology;
+// `Other` is an electoral bucket without a coherent legal programme.  CNT is
+// represented separately and becomes a parliamentary actor only when it is in
+// government or has PRRevS seats.
+export type LawId =
+  | 'max_hours_law'
+  | 'min_wage'
+  | 'workplace_safety'
+  | 'union_status'
+  | 'land_law'
+  | 'political_rights'
+  | 'religion_policy'
+  | 'education_institutions'
+  | 'language_policy'
+  | 'public_order_law'
+  | 'security_corps_law'
+  | 'army_reform_law'
+  | 'militia_legality_law';
+
+export type LegalStanceParty = Exclude<Party, 'PRRevS' | 'Other'>;
+export type PoliticalActor = LegalStanceParty | 'CNT_FAI';
+export type LawStance =
+  | 'strongly_support'
+  | 'support'
+  | 'neutral'
+  | 'oppose'
+  | 'strongly_oppose';
+
+export interface LawStanceModifier {
+  actor: PoliticalActor;
+  lawId: LawId;
+  targetLevel?: number | 'all';
+  delta?: number;
+  override?: LawStance;
+  sourceType: 'event' | 'card' | 'decision' | 'party_congress' | 'scenario';
+  sourceId: string;
+  reasonZh?: string;
+  reasonEn?: string;
+  expiresAtMonth?: number;
+}
+
 export type RegionalStatus = 'direct' | 'autonomy' | 'independent';
 
 export interface RegionalStatuses {
@@ -277,6 +319,9 @@ export interface GameState {
   
   cortes?: Record<Party, number>;
   partySupport: Record<Party, number>;
+  // Optional for save compatibility.  Missing modifiers resolve to the
+  // historical baseline matrix.
+  lawStanceModifiers?: LawStanceModifier[];
   activeCoalitions: CoalitionState[];
   rulingCoalition: CoalitionId | null;
   coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];

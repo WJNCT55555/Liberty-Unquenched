@@ -5,7 +5,7 @@ import { X, Plus, Minus } from 'lucide-react';
 import { Faction } from '../game/types';
 import { MapFaction } from '../map/types_map';
 import { COALITION_DEFS } from '../game/coalitions';
-import { formCoalition } from '../game/utils/coalition';
+import { formCoalition } from '../game/utils';
 import { FACTION_NAMES } from '../game/labels';
 import { getPartyName } from '../game/partyNames';
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { GameState, Card, Advisor, GameEvent, EventHistory } from './types';
-import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils/coalition';
+import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
@@ -908,6 +908,7 @@ export const INITIAL_STATE: GameState = {
   partySupport: {
     POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, Other: 0, PRRevS: 0
   },
+  lawStanceModifiers: [],
   activeCoalitions: [],
   rulingCoalition: null,
   coalitionHistory: [],
@@ -958,7 +959,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 import { checkEndings } from './endings';
 import { checkAchievements } from './achievements';
 
-const gameReducer = (state: GameState, action: GameAction): GameState => {
+export const gameReducer = (state: GameState, action: GameAction): GameState => {
   let newState = state;
   switch (action.type) {
     case 'START_GAME': {
@@ -1081,8 +1082,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
 
       const startMapState = initializeMapState(action.payload.scenario, startCivilWarStatus);
+      const startingDomesticPolicy = action.payload.scenario === '1931'
+        ? {
+            ...INITIAL_STATE.domesticPolicy,
+            max_hours_law: 1,
+            union_status: 1,
+            political_rights: 1,
+            militia_legality_law: 0,
+          }
+        : INITIAL_STATE.domesticPolicy;
       const startEventState = {
         ...INITIAL_STATE,
+        domesticPolicy: startingDomesticPolicy,
         scenario: action.payload.scenario,
         difficulty: action.payload.difficulty,
         year: startYear,
@@ -1118,6 +1129,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
       newState = { 
         ...INITIAL_STATE, 
+        domesticPolicy: { ...startingDomesticPolicy },
         classes: action.payload.scenario === '1936' ? SCENARIO_1936_CLASSES : (action.payload.scenario === '1933' ? SCENARIO_1933_CLASSES : INITIAL_CLASSES),
         cortes: startCortes as any,
         ministers: startMinisters,
@@ -1947,8 +1959,19 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
         // Monthly Expenditures: Basic administration, plus social and military parameters
         let monthlyExpenditures = 1.0; // Basic civil administration
-        if (tempState.domesticPolicy.max_hours_law > 0) {
-          monthlyExpenditures += 0.3;
+        switch (tempState.domesticPolicy.max_hours_law) {
+          case 2: monthlyExpenditures += 0.15; break;
+          case 3: monthlyExpenditures += 0.25; break;
+          case 4: monthlyExpenditures += 0.4; break;
+          default: break;
+        }
+
+        switch (tempState.domesticPolicy.workplace_safety) {
+          case 1: monthlyExpenditures += 0.05; break;
+          case 2: monthlyExpenditures += 0.1; break;
+          case 3: monthlyExpenditures += 0.2; break;
+          case 4: monthlyExpenditures += 0.35; break;
+          default: break;
         }
         
         let minWageExpenditure = 0;
@@ -2037,22 +2060,48 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
         tempState.inflation_rate = parseFloat(Math.max(1, Math.min(100, nextInflation)).toFixed(2));
 
-        // 7. Unemployment Rate (clamped to 1% to 100%)
+        // 7. Unemployment Rate (clamped to 0% to 100%)
         let laborReformReduction = 0;
-        if (tempState.domesticPolicy.max_hours_law > 0) {
-          laborReformReduction += 1.5;
+        if (tempState.domesticPolicy.max_hours_law === 3) {
+          laborReformReduction = 1.0;
+        } else if (tempState.domesticPolicy.max_hours_law === 4) {
+          laborReformReduction = 1.5;
         }
         const highDebtUnemploymentFactor = nextDebt > 1500 ? 1.0 : 0.0;
         let nextUnemployment = 12.0 - ((tempState.economy_growth - 2.5) * 0.4) + (taxLowerRate * 1.0) + (taxMiddleRate * 1.5) + (taxUpperRate * 3.0) - (taxTarRate * 1.5) - laborReformReduction + highDebtUnemploymentFactor;
         if (isCivilWar) {
           nextUnemployment += 4.0;
         }
-        tempState.unemployment_rate = parseFloat(Math.max(1, Math.min(100, nextUnemployment)).toFixed(2));
+        tempState.unemployment_rate = parseFloat(Math.max(0, Math.min(100, nextUnemployment)).toFixed(2));
 
         tempState.stats = {
           ...tempState.stats,
           armyLoyalty: parseFloat(newArmyLoyalty.toFixed(1)),
         };
+
+        // Monthly action of maximum-hours and workplace-safety laws.
+        let laborFervorDelta = 0;
+        let laborAuthorityDelta = 0;
+        switch (tempState.domesticPolicy.max_hours_law) {
+          case 0: laborFervorDelta += 1; break;
+          case 1: laborFervorDelta += 0.5; break;
+          case 3: laborFervorDelta -= 0.5; laborAuthorityDelta += 0.5; break;
+          case 4: laborFervorDelta -= 1; break;
+          default: break;
+        }
+        switch (tempState.domesticPolicy.workplace_safety) {
+          case 0: laborFervorDelta += 1; break;
+          case 3: laborFervorDelta -= 0.5; laborAuthorityDelta += 0.5; break;
+          case 4: laborFervorDelta -= 1; break;
+          default: break;
+        }
+        if (laborFervorDelta !== 0 || laborAuthorityDelta !== 0) {
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: parseFloat(Math.min(100, Math.max(0, (tempState.stats.revolutionaryFervor || 0) + laborFervorDelta)).toFixed(2)),
+            republicanAuthority: parseFloat(Math.min(100, Math.max(0, (tempState.stats.republicanAuthority || 0) + laborAuthorityDelta)).toFixed(2)),
+          };
+        }
 
         if (!tempState.coupSystemActive) {
           tempState.coupProgress = 0;
@@ -2128,6 +2177,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01 * level);
             tempState.classes = adjustClassSupport(tempState.classes, 'Braceros', 'CNT_FAI', 0.06 * level);
           }
+        }
+
+        // Monthly action of Language Policy (语言政策)
+        if (tempState.domesticPolicy.language_policy === 2 || tempState.domesticPolicy.language_policy === 3) {
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: parseFloat(Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1).toFixed(2))
+          };
+        } else if (tempState.domesticPolicy.language_policy === 4) {
+          tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01);
+          tempState.relations = {
+            ...tempState.relations,
+            internationalSocialists: Math.min(100, (tempState.relations?.internationalSocialists ?? 0) + 1.5)
+          };
         }
 
         // Monthly action of Political Rights (政治权利)

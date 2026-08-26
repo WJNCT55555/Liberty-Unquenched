@@ -1,6 +1,5 @@
 import type { GameEvent } from '../types';
-import { adjustFactionInfluence } from '../utils';
-import { formCoalition } from '../utils/coalition';
+import { adjustFactionInfluence, formCoalition } from '../utils';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,

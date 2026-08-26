@@ -28,7 +28,7 @@ export function parliament() {
         data.each(function(this: any, d: any) {
             // if user did not provide, fill the svg:
             width = width ? width : this.getBoundingClientRect().width;
-            height = width ? width / 2 : this.getBoundingClientRect().width / 2;
+            height = height ? height : width / 2;
 
             const outerParliamentRadius = Math.min(width / 2, height);
             const innerParliementRadius = outerParliamentRadius * innerRadiusCoef;
@@ -192,6 +192,7 @@ export function parliament() {
 
     parliamentFn.height = function(value?: number): any {
         if (!arguments.length) return height;
+        height = value!;
         return parliamentFn;
     };
 

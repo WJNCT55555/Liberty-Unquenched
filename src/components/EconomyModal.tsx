@@ -316,7 +316,24 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
 
   // Live Expenditures Calculation (including new variables)
   let estimatedExpenditures = 1.0; // Basic civil administration
-  if (state.domesticPolicy.max_hours_law > 0) estimatedExpenditures += 0.3;
+  let maxHoursCost = 0;
+  switch (state.domesticPolicy.max_hours_law) {
+    case 2: maxHoursCost = 0.15; break;
+    case 3: maxHoursCost = 0.25; break;
+    case 4: maxHoursCost = 0.4; break;
+    default: maxHoursCost = 0; break;
+  }
+  estimatedExpenditures += maxHoursCost;
+
+  let workplaceSafetyCost = 0;
+  switch (state.domesticPolicy.workplace_safety) {
+    case 1: workplaceSafetyCost = 0.05; break;
+    case 2: workplaceSafetyCost = 0.1; break;
+    case 3: workplaceSafetyCost = 0.2; break;
+    case 4: workplaceSafetyCost = 0.35; break;
+    default: workplaceSafetyCost = 0; break;
+  }
+  estimatedExpenditures += workplaceSafetyCost;
   
   let minWageCost = 0;
   switch (state.domesticPolicy.min_wage) {
@@ -548,10 +565,16 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                     <span>{isZh ? '・政府基础行政款:' : '• Civilian Administration:'}</span>
                     <span className="font-bold text-ink">1.00M ₧</span>
                   </div>
-                  {state.domesticPolicy.max_hours_law > 0 && (
+                  {maxHoursCost > 0 && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
-                      <span>{isZh ? '・八小时工作制维稳:' : '• Max Hours Enforcement:'}</span>
-                      <span className="font-bold text-ink">0.30M ₧</span>
+                      <span>{isZh ? '・最高工时法执行:' : '• Max Hours Enforcement:'}</span>
+                      <span className="font-bold text-ink">{maxHoursCost.toFixed(2)}M ₧</span>
+                    </div>
+                  )}
+                  {workplaceSafetyCost > 0 && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・工作环境安全:' : '• Workplace Safety:'}</span>
+                      <span className="font-bold text-ink">{workplaceSafetyCost.toFixed(2)}M ₧</span>
                     </div>
                   )}
                   {minWageCost > 0 && (
@@ -629,7 +652,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                     <MinimalPieChart
                       data={[
                         { label: isZh ? '政府行政' : 'Civil Admin', value: 1.0, color: '#64748b' },
-                        { label: isZh ? '八小时工作' : 'Max Hours', value: state.domesticPolicy.max_hours_law > 0 ? 0.3 : 0, color: '#a855f7' },
+                        { label: isZh ? '最高工时' : 'Max Hours', value: maxHoursCost, color: '#a855f7' },
+                        { label: isZh ? '工作安全' : 'Workplace Safety', value: workplaceSafetyCost, color: '#7c3aed' },
                         { label: isZh ? '最低工资' : 'Min Wage', value: minWageCost, color: '#ec4899' },
                         { label: isZh ? '教育制度' : 'Education', value: educationCost, color: '#0ea5e9' },
                         { label: isZh ? '内战开销' : 'War Cost', value: isCivilWar ? 3.5 : 0, color: '#ef4444' },

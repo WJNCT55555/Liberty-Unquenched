@@ -1,5 +1,5 @@
 import { JournalEntryDef } from '../types';
-import { formCoalition } from '../utils/coalition';
+import { formCoalition } from '../utils';
 import { workersAllianceFormation } from '../events/workers_alliance_formation';
 
 export const alianzaObreraJournal: JournalEntryDef = {

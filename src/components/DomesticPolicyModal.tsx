@@ -29,31 +29,31 @@ export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[
           level: 0, 
           name: { en: 'No Limits', zh: '无限制' }, 
           desc: { en: 'Workers toil day and night with no legal protection.', zh: '工人们日以继夜地劳作，没有法律保护。' },
-          effect: { en: 'No monthly budget or unemployment rate effects.', zh: '无每月预算或失业率影响。' }
+          effect: { en: 'Monthly revolutionary fervor: +1.', zh: '革命热情：+1/月。' }
         },
         { 
           level: 1, 
-          name: { en: '70-Hour Week', zh: '70小时工作制' }, 
-          desc: { en: 'A harsh limit, but a limit nonetheless.', zh: '一个严苛的限制，但总算是个限制。' },
-          effect: { en: 'Monthly budget expenditure: +0.30M. Unemployment Rate: -1.5%.', zh: '每月预算支出：+0.30M。失业率：-1.5%。' }
+          name: { en: 'Non-strict 40-hour Workweek', zh: '非严格40小时工作制' },
+          desc: { en: 'A flexible 40-hour standard with broad exceptions and weak enforcement.', zh: '实行带有广泛例外、执行力度较弱的40小时标准。' },
+          effect: { en: 'Monthly revolutionary fervor: +0.5.', zh: '革命热情：+0.5/月。' }
         },
         { 
           level: 2, 
-          name: { en: '56-Hour Week', zh: '56小时工作制' }, 
-          desc: { en: 'Six days a week of intense labor.', zh: '一周六天的高强度劳动。' },
-          effect: { en: 'Monthly budget expenditure: +0.30M. Unemployment Rate: -1.5%.', zh: '每月预算支出：+0.30M。失业率：-1.5%。' }
+          name: { en: 'Urban 40-hour Workweek', zh: '城市40小时工作制' },
+          desc: { en: 'The 40-hour standard is funded and enforced in the main urban industries.', zh: '在主要城市工业部门提供财政支持并执行40小时工作制。' },
+          effect: { en: 'Monthly budget expenditure: +0.15M.', zh: '每月财政支出：+0.15M。' }
         },
         { 
           level: 3, 
-          name: { en: '40-Hour Week', zh: '40小时工作制' }, 
-          desc: { en: 'The historical eight hours a day victory.', zh: '历史性的八小时工作制胜利。' },
-          effect: { en: 'Monthly budget expenditure: +0.30M. Unemployment Rate: -1.5%.', zh: '每月预算支出：+0.30M。失业率：-1.5%。' }
+          name: { en: 'Strict 40-hour Workweek', zh: '严格40小时工作制' },
+          desc: { en: 'A rigorously enforced national 40-hour standard with public support for adjustment.', zh: '全国严格执行40小时标准，并由公共财政承担转型成本。' },
+          effect: { en: 'Monthly budget expenditure: +0.25M. Revolutionary fervor: -0.5. Republican authority: +0.5. Unemployment rate: -1%.', zh: '每月财政支出：+0.25M；革命热情：-0.5；共和国权威：+0.5；失业率：-1%。' }
         },
         { 
           level: 4, 
           name: { en: '36-Hour Week', zh: '36小时工作制' }, 
           desc: { en: 'Highly advanced worker protections.', zh: '高度发达的工人权益保障。' },
-          effect: { en: 'Monthly budget expenditure: +0.30M. Unemployment Rate: -1.5%.', zh: '每月预算支出：+0.30M。失业率：-1.5%。' }
+          effect: { en: 'Monthly budget expenditure: +0.40M. Revolutionary fervor: -1. Unemployment rate: -1.5%.', zh: '每月财政支出：+0.40M；革命热情：-1；失业率：-1.5%。' }
         }
       ]
     },
@@ -103,31 +103,31 @@ export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[
           level: 0, 
           name: { en: 'None', zh: '无' }, 
           desc: { en: 'Profits are paramount; lives are cheap.', zh: '利润至上；生命廉价。' },
-          effect: { en: 'No active monthly effects.', zh: '无主动的月度效果。' }
+          effect: { en: 'Monthly revolutionary fervor: +1.', zh: '革命热情：+1/月。' }
         },
         { 
           level: 1, 
           name: { en: 'Basic', zh: '基本' }, 
           desc: { en: 'Simple regulations to prevent massive disasters.', zh: '防止大规模灾难的简单规定。' },
-          effect: { en: 'Basic workplace protection (event factor).', zh: '提供基础的工作安全等级（影响事件触发）。' }
+          effect: { en: 'Monthly budget expenditure: +0.05M.', zh: '每月财政支出：+0.05M。' }
         },
         { 
           level: 2, 
           name: { en: 'Moderate', zh: '中等' }, 
           desc: { en: 'Regular inspections and mandatory gear.', zh: '定期检查和强制性装备。' },
-          effect: { en: 'Moderate workplace protection (event factor).', zh: '提供中等的工作安全等级（影响事件触发）。' }
+          effect: { en: 'Monthly budget expenditure: +0.10M.', zh: '每月财政支出：+0.10M。' }
         },
         { 
           level: 3, 
           name: { en: 'Strict', zh: '严格' }, 
           desc: { en: 'Workers can shut down unsafe operations.', zh: '工人可以叫停不安全的作业。' },
-          effect: { en: 'Strict workplace protection (event factor).', zh: '提供严格的工作安全等级（影响事件触发）。' }
+          effect: { en: 'Monthly budget expenditure: +0.20M. Revolutionary fervor: -0.5. Republican authority: +0.5.', zh: '每月财政支出：+0.20M；革命热情：-0.5；共和国权威：+0.5。' }
         },
         { 
           level: 4, 
           name: { en: 'Comprehensive', zh: '全面' }, 
           desc: { en: 'Total priority to human life over production speed.', zh: '人命绝对优先于生产速度。' },
-          effect: { en: 'Comprehensive workplace protection (event factor).', zh: '提供全面的工作安全等级（影响事件触发）。' }
+          effect: { en: 'Monthly budget expenditure: +0.35M. Revolutionary fervor: -1.', zh: '每月财政支出：+0.35M；革命热情：-1。' }
         }
       ]
     },
@@ -315,19 +315,19 @@ export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[
           level: 2,
           name: { en: 'Dual Track', zh: '自治双轨' },
           desc: { en: 'Co-official status of regional languages alongside Castilian in autonomous regions.', zh: '自治区域内，地方语言与卡斯蒂利亚语并列为共同官方语言。' },
-          effect: { en: 'None', zh: '暂无效果' }
+          effect: { en: 'Monthly revolutionary fervor: +1.', zh: '革命热情：+1/月。' }
         },
         {
           level: 3,
           name: { en: 'Multilingualism', zh: '多语制' },
           desc: { en: 'The state actively promotes and supports linguistic diversity across all institutions.', zh: '国家积极促进和支持所有机构的语言多样性。' },
-          effect: { en: 'None', zh: '暂无效果' }
+          effect: { en: 'Monthly revolutionary fervor: +1.', zh: '革命热情：+1/月。' }
         },
         {
           level: 4,
           name: { en: 'Esperanto', zh: '世界语' },
           desc: { en: 'Adopt the constructed international auxiliary language as a symbol of universal brotherhood.', zh: '采用人造国际辅助语言作为普遍手足情谊的象征。' },
-          effect: { en: 'None', zh: '暂无效果' }
+          effect: { en: 'Monthly Intellectuals support for CNT-FAI: +0.01. International Socialist relations: +1.5.', zh: '知识分子对CNT-FAI支持度：+0.01/月；国际社会主义者关系：+1.5/月。' }
         }
       ]
     }

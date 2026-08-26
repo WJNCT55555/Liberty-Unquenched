@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { COALITION_DEFS } from '../game/coalitions';
-import { getPartySupport, updateCoalitions } from '../game/utils/coalition';
+import { getPartySupport, updateCoalitions } from '../game/utils';
 import { MapFaction } from '../map/types_map';
 import { FACTION_NAMES } from '../game/labels';
 

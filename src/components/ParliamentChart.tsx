@@ -31,7 +31,7 @@ export const ParliamentChart: React.FC<ParliamentChartProps> = ({
     svg.selectAll('*').remove(); // Clear previous render
 
     const parliamentChart = parliament();
-    parliamentChart.width(width).innerRadiusCoef(innerRadiusCoef);
+    parliamentChart.width(width).height(height).innerRadiusCoef(innerRadiusCoef);
     parliamentChart.enter.fromCenter(true).smallToBig(true);
     parliamentChart.update.animate(true);
 

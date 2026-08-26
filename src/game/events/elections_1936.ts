@@ -1,8 +1,6 @@
 import React from 'react';
 import type { GameEvent, Party, MinisterParty } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
-import { calculateElectionResults } from '../utils/election';
-import { formCoalition } from '../utils/coalition';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElectionResults, formCoalition } from '../utils';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
