@@ -1849,7 +1849,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
         // Check Civil War Trigger
         if (newCivilWarStatus === 'not_started') {
-          const isHistoricalTrigger = nextYear === 1936 && nextMonth === 7;
+          const isHistoricalTrigger = state.difficulty === 'historical'
+            && nextYear === 1936
+            && nextMonth === 7;
           
           if (isHistoricalTrigger) {
             newSuperEvent = 'spanish_civil_war';
