@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
 import { GameState, Party, CoalitionId } from '../game/types';
@@ -7,8 +7,7 @@ import { getPartySupport } from '../game/parties';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { calculateElectionResults } from '../game/utils';
 import { ParliamentChart } from './ParliamentChart';
-import { X, Users, Vote, Briefcase, Info, Layers, UserCheck, Scale } from 'lucide-react';
-import { LawStanceModal } from './LawStanceModal';
+import { X, Users, Vote, Briefcase, Info, Layers, UserCheck } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -371,12 +370,6 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
 };
 
 export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }) => {
-  const [isLawStanceOpen, setIsLawStanceOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) setIsLawStanceOpen(false);
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   // 1. Parliament Details
@@ -568,21 +561,12 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
               {isZh ? '西班牙共和国国内政局与内阁' : 'Domestic Politics & Government Cabinet'}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsLawStanceOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-cnt-red text-cnt-red hover:bg-cnt-red/10 transition-colors font-typewriter text-xs"
-            >
-              <Scale className="w-4 h-4" />
-              {isZh ? '法律立场矩阵' : 'Legal Stances'}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-ink/10 transition-colors border border-transparent hover:border-ink"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-ink/10 transition-colors border border-transparent hover:border-ink"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         {/* Scrollable Contents */}
@@ -1023,12 +1007,6 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
         </div>
 
       </div>
-      <LawStanceModal
-        isOpen={isLawStanceOpen}
-        onClose={() => setIsLawStanceOpen(false)}
-        state={state}
-        isZh={isZh}
-      />
     </div>
   );
 };

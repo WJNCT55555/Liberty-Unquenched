@@ -207,8 +207,8 @@ export const cnt_third_congress_3: GameEvent = {
       }
     },
     {
-      text: 'Day laborers, tenant farmers, peasants, sharecroppers, unite! / ¡Jornaleros, arrendatarios, labradores y aparceros, uníos!',
-      textZh: '短工、佃农、农民、分成农，团结起来！/¡Jornaleros, arrendatarios, labradores y aparceros, uníos!',
+      text: '¡Jornaleros, arrendatarios, labradores y aparceros, uníos!',
+      textZh: '短工、佃农、农民、分成农，团结起来！',
       subtitle: '"The CNT will provide the broadest practical and moral solidarity in the peasant movement\'s struggle."',
       subtitleZh: '"CNT将在农民运动的斗争行动中，提供最广泛的务实和道德团结。"',
       effect: (state) => {

@@ -1,5 +1,5 @@
 import type { GameEvent, GameState } from '../../types';
-import { MapFaction, Province, Army } from '../../../map/types_map';
+import { MapFaction, Army } from '../../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../../../map/map_constants';
 
 const civilWarSetupRootMeta = {

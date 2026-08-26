@@ -96,7 +96,7 @@ export const elections1931Results: GameEvent = {
       textZh: (state) => {
         const cortes = calculateElectionResults(state);
         const seats = (cortes.PSOE || 0) + (cortes.IR || 0) + (cortes.ERC || 0) + (cortes.PRR || 0) + (cortes.UR || 0);
-        return `共和-社会党联盟（PSOE + IR + ERC + PRR + UR）获胜（${seats}席）`;
+        return `共和-社会党联盟（PSOE + AR + ERC + PRRS + PRR）获胜（${seats}席）`;
       },
       effect: (state) => {
         const newCortes = calculateElectionResults(state);
@@ -232,7 +232,7 @@ export const republicanCabinet1931: GameEvent = {
   title: (state) => {
     const cortes = calculateElectionResults(state);
     const seats = (cortes.ERC || 0) + (cortes.IR || 0) + (cortes.UR || 0) + (cortes.PRR || 0) + (cortes.DLR || 0);
-    return `Republican Coalition (ERC + IR + UR + PRR + DLR) Wins (${seats} seats)`;
+    return `Republican Coalition (ERC + AR + PRRS + PRR + DLR) Wins (${seats} seats)`;
   },
   titleZh: (state) => {
     const cortes = calculateElectionResults(state);

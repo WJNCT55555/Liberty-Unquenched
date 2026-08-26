@@ -310,6 +310,11 @@ export const casasViejas2Peace: GameEvent = {
 export const casasViejas1: GameEvent = {
   id: 'casas_viejas_1',
   meta: casasViejasMeta,
+  condition: (state) =>
+    !state.isCasasViejasTriggered &&
+    state.government.type === 'Republican-Socialist Cabinet' &&
+    state.domesticPolicy.land_reform_progress < 80 &&
+    (state.year > 1933 || (state.year === 1933 && state.month >= 1)),
   title: 'The Fire of Casas Viejas: Outbreak',
   titleZh: '卡萨斯-维耶哈斯之火：暴动爆发',
   description:
@@ -317,11 +322,6 @@ export const casasViejas1: GameEvent = {
   descriptionZh:
     '在安达卢西亚干旱炎热的山丘上，在庞大贵族庄园残暴阴影的笼罩下，卡萨斯-维耶哈斯这个小村庄已达到了沸点。出于对共和-社会党内阁极度拖沓的土地改革的不满，当地失去土地的雇农与 CNT 组织人员共同宣布建立“自由共产主义”政权。\n\n他们切断了电话，包围了当地的国民警卫队，并在村庄广场上高高升起了两色的无政府主义红黑旗。在马德里，首相曼努埃尔·阿萨尼亚和他的内阁正承受着来自贵族大地主和保守派的极高限度施压。他们将此时定性为“反叛性质刑事犯罪”，并调派了驻守在加的斯的精锐突击卫队开赴该村。激烈的流血冲突一触即发。全劳联（CNT）全国委员会应如何做出反应？',
   image: 'agrarian_strike',
-  condition: (state) =>
-    !state.isCasasViejasTriggered &&
-    state.government.type === 'Republican-Socialist Cabinet' &&
-    state.domesticPolicy.land_reform_progress < 80 &&
-    (state.year > 1933 || (state.year === 1933 && state.month >= 1)),
   options: [
     {
       text: 'Call for nationwide solidarity and prepare for armed resistance! Let the revolution spread!',

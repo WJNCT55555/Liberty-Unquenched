@@ -4,6 +4,7 @@ import { elections1933, elections1933Results } from './elections_1933';
 import { constitution1931 } from './constitution_1931';
 import { cnt_third_congress_1 } from './cnt_third_congress';
 import { burningConvents } from './burning_of_the_convents';
+import { azanaMilitaryReform } from './azana_military_reform';
 import { manifestoOfThirty } from './manifesto_thirty';
 import { foundingSyndicalistParty } from './founding_syndicalist_party';
 import { cedaFormation } from './ceda_formation';
@@ -64,6 +65,7 @@ export {
 export const INITIAL_EVENTS = [
   proclamationSecondRepublic,
   burningConvents,
+  azanaMilitaryReform,
   elections1931Results,
   cabinetFormation1931,
   ministerAllocation,

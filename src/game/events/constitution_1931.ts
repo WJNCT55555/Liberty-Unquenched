@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustFactionInfluence, isAtOrAfter } from '../utils';
+import { clampLawLevel } from '../lawStances';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -23,9 +24,10 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: Math.min(100, state.domesticPolicy.political_rights + 1),
-          religion_policy: Math.min(100, state.domesticPolicy.religion_policy + 2),
-          education_institutions: Math.min(100, state.domesticPolicy.education_institutions + 1)
+          political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights + 1),
+          womens_rights: clampLawLevel('womens_rights', state.domesticPolicy.womens_rights + 1),
+          religion_policy: clampLawLevel('religion_policy', state.domesticPolicy.religion_policy + 2),
+          education_institutions: clampLawLevel('education_institutions', state.domesticPolicy.education_institutions + 1)
         },
         stats: {
           ...state.stats,         
@@ -40,9 +42,10 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: Math.min(100, state.domesticPolicy.political_rights + 1),
-          religion_policy: Math.min(100, state.domesticPolicy.religion_policy + 2),
-          education_institutions: Math.min(100, state.domesticPolicy.education_institutions + 1)
+          political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights + 1),
+          womens_rights: clampLawLevel('womens_rights', state.domesticPolicy.womens_rights + 1),
+          religion_policy: clampLawLevel('religion_policy', state.domesticPolicy.religion_policy + 2),
+          education_institutions: clampLawLevel('education_institutions', state.domesticPolicy.education_institutions + 1)
         },
         stats: {
           ...state.stats,

@@ -9,6 +9,7 @@ import { useMusic, MusicPlayerUI } from './MusicPlayer';
 import { EconomyModal } from './EconomyModal';
 import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
+import { LawStanceModal } from './LawStanceModal';
 
 export const TopBar = () => {
   const { state, dispatch } = useGame();
@@ -18,6 +19,7 @@ export const TopBar = () => {
   const [isEconomyModalOpen, setIsEconomyModalOpen] = useState(false);
   const [isPoliticsModalOpen, setIsPoliticsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [isLawStanceModalOpen, setIsLawStanceModalOpen] = useState(false);
   const [message, setMessage] = useState('');
   const { isPlaying } = useMusic();
 
@@ -148,6 +150,11 @@ export const TopBar = () => {
             onClick={() => setIsPolicyModalOpen(true)}
             isActive={isPolicyModalOpen}
             label={isZh ? '法律' : 'LAW'} 
+          />
+          <TabButton
+            onClick={() => setIsLawStanceModalOpen(true)}
+            isActive={isLawStanceModalOpen}
+            label={isZh ? '法律立场' : 'STANCES'}
           />
           <TabButton 
             onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
@@ -310,6 +317,12 @@ export const TopBar = () => {
         onClose={() => setIsPolicyModalOpen(false)} 
         state={state} 
         isZh={isZh} 
+      />
+      <LawStanceModal
+        isOpen={isLawStanceModalOpen}
+        onClose={() => setIsLawStanceModalOpen(false)}
+        state={state}
+        isZh={isZh}
       />
     </>
   );

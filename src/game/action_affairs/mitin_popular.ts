@@ -20,6 +20,7 @@ import {
   statPreview,
   textPreview
 } from '../effectPreview';
+import { clampLawLevel } from '../lawStances';
 
 const MITIN_POPULAR_COOLDOWN = 6;
 
@@ -553,8 +554,8 @@ export const mitinPopular: Card = {
           factions,
           domesticPolicy: {
             ...s.domesticPolicy,
-            min_wage: Math.min(10, s.domesticPolicy.min_wage + 1),
-            workplace_safety: Math.min(10, s.domesticPolicy.workplace_safety + 1)
+            min_wage: clampLawLevel('min_wage', s.domesticPolicy.min_wage + 1),
+            workplace_safety: clampLawLevel('workplace_safety', s.domesticPolicy.workplace_safety + 1)
           },
           stats: {
             ...s.stats,

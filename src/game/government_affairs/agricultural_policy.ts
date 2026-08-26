@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { clampLawLevel } from '../lawStances';
 
 export const agriculturalPolicy: Card = {
   id: 'agricultural_policy',
@@ -64,8 +65,7 @@ export const agriculturalPolicy: Card = {
                 factions: newFactions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  // This option represents a legal reform; the exact law-step value may be revised later.
-                  min_wage: Math.min(100, s.domesticPolicy.min_wage + 1)
+                  min_wage: clampLawLevel('min_wage', s.domesticPolicy.min_wage + 1)
                 }
               };
             }

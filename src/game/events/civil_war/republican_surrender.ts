@@ -11,10 +11,6 @@ const civilWarTerminalMeta = {
 export const republicanSurrender: GameEvent = {
   id: 'republican_surrender',
   meta: civilWarTerminalMeta,
-  title: 'Republican Surrender',
-  titleZh: '共和国投降',
-  description: 'With Madrid, Barcelona, and Valencia all fallen to the nationalist rebels, and the remaining republican-controlled zones reduced to fragments with no strategic strength, the republican cabinet realizes that further bloodshed is pointless. A formal surrender document has been signed. The Second Spanish Republic has fallen.',
-  descriptionZh: '随着马德里、巴塞罗那和巴伦西亚全部落入叛军之手，其余共和军控制区也已四分五裂、失去战略价值，共和国政府不得不承认继续抵抗只会带来更大的牺牲。无条件投降书正式签署，西班牙第二共和国在悲壮中宣告覆灭。',
   condition: (state) => {
     if (state.civilWarStatus !== 'ongoing') return false;
 
@@ -38,6 +34,10 @@ export const republicanSurrender: GameEvent = {
 
     return totalStrategicValue < 50;
   },
+  title: 'Republican Surrender',
+  titleZh: '共和国投降',
+  description: 'With Madrid, Barcelona, and Valencia all fallen to the nationalist rebels, and the remaining republican-controlled zones reduced to fragments with no strategic strength, the republican cabinet realizes that further bloodshed is pointless. A formal surrender document has been signed. The Second Spanish Republic has fallen.',
+  descriptionZh: '随着马德里、巴塞罗那和巴伦西亚全部落入叛军之手，其余共和军控制区也已四分五裂、失去战略价值，共和国政府不得不承认继续抵抗只会带来更大的牺牲。无条件投降书正式签署，西班牙第二共和国在悲壮中宣告覆灭。',
   options: [
     {
       text: 'A dark day for liberty...',

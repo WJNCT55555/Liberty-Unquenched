@@ -11,6 +11,7 @@ import { calculateAiMoves } from '../map/lib/gameAi';
 import { civilWarSetup } from './events/civil_war/civil_war_setup';
 import { adjustClassSupport, shouldQueueEvent } from './utils';
 import { INITIAL_CLASSES, INITIAL_PARTY_RELATIONS, SCENARIO_1933_CLASSES, SCENARIO_1936_CLASSES } from './parties';
+import { normalizeDomesticPolicyLawLevels } from './lawStances';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -755,6 +756,7 @@ export const INITIAL_STATE: GameState = {
     min_wage: 0,
     workplace_safety: 0,
     political_rights: 0,
+    womens_rights: 0,
     religion_policy: 0,
     education_institutions: 0,
     language_policy: 0,
@@ -1994,6 +1996,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
         monthlyExpenditures += educationExpenditure;
 
+        const womensRightsExpenditure = [0, 0.05, 0.1, 0.15, 0.3][tempState.domesticPolicy.womens_rights] || 0;
+        monthlyExpenditures += womensRightsExpenditure;
+
         if (isCivilWar) {
           monthlyExpenditures += 3.5; // War efforts drain
         }
@@ -2208,6 +2213,30 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           tempState.classes = adjustClassSupport(tempState.classes, 'Labradores', 'PSOE', 0.05);
           tempState.classes = adjustClassSupport(tempState.classes, 'PequenaBurguesia', 'PSOE', 0.05);
           tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PCE', 0.05);
+        }
+
+        // Monthly action of Women's Rights (女性权利)
+        const womensRightsLevel = tempState.domesticPolicy.womens_rights;
+        let womensRightsAuthorityDelta = 0;
+        if (womensRightsLevel === 1) {
+          womensRightsAuthorityDelta = 0.2;
+        } else if (womensRightsLevel === 2) {
+          womensRightsAuthorityDelta = 0.3;
+        } else if (womensRightsLevel === 3) {
+          womensRightsAuthorityDelta = -0.2;
+        } else if (womensRightsLevel === 4) {
+          womensRightsAuthorityDelta = 0.4;
+          tempState.stats = {
+            ...tempState.stats,
+            revolutionaryFervor: parseFloat(Math.max(0, tempState.stats.revolutionaryFervor - 0.2).toFixed(2))
+          };
+          tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01);
+        }
+        if (womensRightsAuthorityDelta !== 0) {
+          tempState.stats = {
+            ...tempState.stats,
+            republicanAuthority: parseFloat(Math.min(100, Math.max(0, tempState.stats.republicanAuthority + womensRightsAuthorityDelta)).toFixed(2))
+          };
         }
 
         // Monthly action of Religion Policy (宗教权利)
@@ -2614,6 +2643,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
   
   // Normalize values to prevent overflow/underflow (0-100)
   if (newState !== state) {
+    if (newState.domesticPolicy) {
+      // Law levels use their own L0-L3/L4 scales. Journal progress fields,
+      // including land_reform_progress, remain independent 0-100 values.
+      newState.domesticPolicy = normalizeDomesticPolicyLawLevels(newState.domesticPolicy);
+    }
     if (!newState.wars) {
       newState.wars = {
         spanish_civil_war: 'not_started',

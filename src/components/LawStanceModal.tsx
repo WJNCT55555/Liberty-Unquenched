@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { X, Scale } from 'lucide-react';
+import { X } from 'lucide-react';
 import { GameState, Party, PoliticalActor } from '../game/types';
 import { calculateElectionResults } from '../game/utils';
 import { getPartyColor, getPartyName } from '../game/partyNames';
 import { ParliamentChart } from './ParliamentChart';
 import {
   getEffectiveLawStance,
+  getEffectiveLawStanceScore,
   getLegalActorSeats,
   getLegalStanceActors,
-  getPartyLawSatisfaction,
   getParliamentWeightedLawSatisfaction,
+  getPartyLawSatisfaction,
   LAW_DEFINITIONS,
   LawCategory,
 } from '../game/lawStances';
@@ -21,31 +22,31 @@ interface Props {
   isZh: boolean;
 }
 
-const CATEGORY_LABELS: Record<LawCategory, { zh: string; en: string }> = {
-  economy: { zh: '社会经济', en: 'Socio Economics' },
-  society: { zh: '社会权利', en: 'Social Rights' },
-  security: { zh: '社会安全', en: 'Social Security' },
+const CATEGORY_LABELS: Record<LawCategory, { zh: string; en: string; index: string }> = {
+  economy: { zh: '社会经济', en: 'Socio Economics', index: 'I' },
+  society: { zh: '社会权利', en: 'Social Rights', index: 'II' },
+  security: { zh: '社会安全', en: 'Social Security', index: 'III' },
 };
 
 const STANCE_META = {
-  strongly_support: { zh: '强烈支持', en: 'Strongly support', className: 'text-emerald-800' },
-  support: { zh: '支持', en: 'Support', className: 'text-emerald-700' },
-  neutral: { zh: '中立', en: 'Neutral', className: 'text-ink/70' },
-  oppose: { zh: '反对', en: 'Oppose', className: 'text-orange-800' },
-  strongly_oppose: { zh: '强烈反对', en: 'Strongly oppose', className: 'text-red-800' },
+  strongly_support: { zh: '强烈支持', en: 'Strongly support', className: 'text-[#14532d]' },
+  support: { zh: '支持', en: 'Support', className: 'text-[#3f6212]' },
+  neutral: { zh: '中立', en: 'Neutral', className: 'text-[#514b40]' },
+  oppose: { zh: '反对', en: 'Oppose', className: 'text-[#b45309]' },
+  strongly_oppose: { zh: '强烈反对', en: 'Strongly oppose', className: 'text-[#b91c1c]' },
 } as const;
 
-const formatSatisfaction = (value: number) => `${value > 0 ? '+' : ''}${value}`;
+const categoryOrder: LawCategory[] = ['economy', 'society', 'security'];
+const reportBorder = 'border-[#39342a]';
+const formatSigned = (value: number) => `${value > 0 ? '+' : ''}${value}`;
 
 const satisfactionTone = (value: number) => {
-  if (value >= 60) return 'text-emerald-800';
-  if (value >= 20) return 'text-emerald-700';
-  if (value <= -60) return 'text-red-800';
-  if (value <= -20) return 'text-orange-800';
-  return 'text-ink/70';
+  if (value >= 35) return 'text-[#14532d]';
+  if (value >= 10) return 'text-[#3f6212]';
+  if (value <= -35) return 'text-[#b91c1c]';
+  if (value <= -10) return 'text-[#b45309]';
+  return 'text-[#514b40]';
 };
-
-const categoryOrder: LawCategory[] = ['economy', 'society', 'security'];
 
 export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }) => {
   const [selectedActor, setSelectedActor] = useState<PoliticalActor>('PSOE');
@@ -56,8 +57,6 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
   const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0);
   const actors = getLegalStanceActors(state, cortes);
   const actor = actors.includes(selectedActor) ? selectedActor : actors[0];
-  const satisfaction = actor ? getPartyLawSatisfaction(state, actor) : null;
-  const parliamentSatisfaction = getParliamentWeightedLawSatisfaction(state, cortes);
   const parliamentChartData = Object.entries(cortes)
     .filter(([, seats]) => seats > 0)
     .sort(([, seatsA], [, seatsB]) => seatsB - seatsA)
@@ -71,108 +70,215 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
   const selectableLegendEntries = [
     ...parliamentChartData.map(item => ({
       id: item.id,
-      actor: item.id === 'PRRevS' ? 'CNT_FAI' as PoliticalActor : (actors.includes(item.id as PoliticalActor) ? item.id as PoliticalActor : undefined),
+      actor: item.id === 'PRRevS'
+        ? 'CNT_FAI' as PoliticalActor
+        : (actors.includes(item.id as PoliticalActor) ? item.id as PoliticalActor : undefined),
       name: item.name,
       seats: item.seats,
       color: item.color,
     })),
     ...actors
-      .filter(politicalActor => politicalActor === 'CNT_FAI' ? !chartPartyIds.has('PRRevS') : !chartPartyIds.has(politicalActor))
+      .filter(politicalActor => politicalActor === 'CNT_FAI'
+        ? !chartPartyIds.has('PRRevS')
+        : !chartPartyIds.has(politicalActor))
       .map(politicalActor => ({
         id: `actor-${politicalActor}`,
         actor: politicalActor,
-        name: actorLabelPlaceholder(politicalActor),
+        name: getActorLabel(politicalActor, true),
         seats: getLegalActorSeats(state, politicalActor, cortes),
         color: getPartyColor(state, politicalActor),
       })),
   ];
 
-  function actorLabelPlaceholder(politicalActor: PoliticalActor) {
-    const name = getPartyName(state, politicalActor, isZh, true);
-    return politicalActor === 'CNT_FAI' && state.isPRRevSFormed ? 'CNT/PRRevS' : name;
-  }
-
-  const actorLabel = (politicalActor: PoliticalActor, short = false) => {
+  function getActorLabel(politicalActor: PoliticalActor, short = false) {
     const name = getPartyName(state, politicalActor, isZh, short);
     if (politicalActor === 'CNT_FAI' && state.isPRRevSFormed) {
-      return short ? 'CNT/PRRevS' : `${name}（CNT-FAI法律立场）`;
+      return short ? 'CNT/PRRevS' : `${name} / PRRevS`;
     }
     return name;
+  }
+
+  const parliamentSatisfaction = getParliamentWeightedLawSatisfaction(state, cortes);
+  const satisfactionRows = actors.map(politicalActor => ({
+    actor: politicalActor,
+    score: getPartyLawSatisfaction(state, politicalActor).overall,
+    seats: getLegalActorSeats(state, politicalActor, cortes),
+  }));
+
+  const renderLawTable = (category: LawCategory) => {
+    const definitions = LAW_DEFINITIONS.filter(definition => definition.category === category);
+    const levelCount = Math.max(...definitions.map(definition => definition.levels.length));
+    const minWidth = category === 'security' ? 'min-w-[640px]' : 'min-w-[760px]';
+
+    return (
+      <section
+        key={category}
+        className={`grid grid-cols-[82px_minmax(0,1fr)] border-b-2 ${reportBorder} bg-[#f1e8d2] last:border-b-0 md:grid-cols-[104px_minmax(0,1fr)]`}
+      >
+        <div className={`flex flex-col items-center justify-center border-r-2 ${reportBorder} bg-[#ddd0b2] px-2 py-3 text-center`}>
+          <span className="font-mono text-[10px] font-bold">{CATEGORY_LABELS[category].index}.</span>
+          <h3 className="mt-1 font-serif text-xs font-bold leading-tight md:text-sm">
+            {isZh ? CATEGORY_LABELS[category].zh : CATEGORY_LABELS[category].en}
+          </h3>
+          <span className="mt-2 font-typewriter text-[7px] uppercase tracking-[0.12em] text-[#6b6254]">
+            {isZh ? '分类' : 'Section'}
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className={`w-full ${minWidth} table-fixed border-collapse text-[11px]`}>
+            <thead>
+              <tr className={`border-b-2 ${reportBorder}`}>
+                <th className={`w-12 border-r ${reportBorder} bg-[#e4d7b9] px-1.5 py-2 text-center font-typewriter text-[9px] uppercase tracking-widest`}>
+                  {isZh ? '等级' : 'Level'}
+                </th>
+                {definitions.map(definition => (
+                  <th
+                    key={definition.id}
+                    className={`border-r ${reportBorder} bg-[#e8ddc3] px-2 py-2 text-left font-serif text-xs font-bold last:border-r-0`}
+                  >
+                    <span className="block">{isZh ? definition.name.zh : definition.name.en}</span>
+                    <span className="mt-0.5 block font-typewriter text-[7px] font-normal uppercase tracking-[0.1em] text-[#665e50]">
+                      {definition.id.replaceAll('_', ' ')}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: levelCount }, (_, level) => (
+                <tr key={level} className={`border-b ${reportBorder} last:border-b-0`}>
+                  <th className={`border-r ${reportBorder} bg-[#e4d7b9] px-1.5 py-2.5 text-center align-middle font-typewriter text-xs font-bold`}>
+                    L{level}
+                  </th>
+                  {definitions.map(definition => {
+                    const levelDefinition = definition.levels[level];
+                    if (!levelDefinition) {
+                      return (
+                        <td key={definition.id} className={`border-r ${reportBorder} bg-[#e9dfc8] px-2 py-2.5 text-center text-[#8a806d] last:border-r-0`}>
+                          —
+                        </td>
+                      );
+                    }
+
+                    const currentLevel = Math.max(
+                      0,
+                      Math.min(definition.levels.length - 1, Number(state.domesticPolicy[definition.id] || 0))
+                    );
+                    const stance = getEffectiveLawStance(state, actor, definition.id, level);
+                    const stanceScore = getEffectiveLawStanceScore(state, actor, definition.id, level);
+                    const stanceMeta = STANCE_META[stance];
+                    const isCurrent = level === currentLevel;
+
+                    return (
+                      <td
+                        key={definition.id}
+                        className={`relative border-r ${reportBorder} px-2 py-2 align-top last:border-r-0 ${isCurrent ? 'bg-[#d9c58f]' : 'bg-[#f1e8d2]'}`}
+                      >
+                        <div className="min-h-[48px]">
+                          <div className="pr-8 font-serif text-[11px] font-semibold leading-tight text-[#27231d]">
+                            {isZh ? levelDefinition.name.zh : levelDefinition.name.en}
+                          </div>
+                          <div className={`mt-1.5 font-typewriter text-[10px] font-bold ${stanceMeta.className}`}>
+                            {isZh ? stanceMeta.zh : stanceMeta.en}
+                            <span className="ml-1 font-mono text-[9px]">({formatSigned(stanceScore)})</span>
+                          </div>
+                          {isCurrent && (
+                            <span className="absolute right-1.5 top-1.5 rotate-[-2deg] border border-[#7b2e28] px-1 py-0.5 font-typewriter text-[7px] font-bold uppercase tracking-wider text-[#7b2e28]">
+                              {isZh ? '现行' : 'In force'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 md:p-6">
-      <div className="bg-paper border-2 border-ink w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl">
-        <div className="border-b-2 border-ink/30 p-4 flex items-center justify-between bg-ink/5 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <Scale className="w-6 h-6 text-cnt-red shrink-0" />
-            <div className="min-w-0">
-              <h2 className="font-typewriter text-xl md:text-2xl font-bold truncate">
-                {isZh ? '法律立场矩阵与议会满意度' : 'Legal Stance Matrix & Parliamentary Satisfaction'}
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-2 md:p-5">
+      <div className={`flex h-[95vh] w-full max-w-[1500px] flex-col border-[3px] ${reportBorder} bg-[#ece2c8] bg-halftone shadow-[8px_8px_0_rgba(0,0,0,0.45)]`}>
+        <header className={`shrink-0 border-b-[3px] ${reportBorder} bg-[#e5d8ba] px-4 py-3 md:px-6`}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 text-center">
+              <div className="font-typewriter text-[9px] uppercase tracking-[0.28em] text-[#5b5346]">
+                República Española · Boletín estadístico
+              </div>
+              <h2 className="mt-1 font-serif text-xl font-bold uppercase tracking-[0.08em] text-[#27231d] md:text-2xl">
+                {isZh ? '共和国法律与政党意见统计公报' : 'Statistical Bulletin of Laws and Party Opinion'}
               </h2>
-              <p className="text-[10px] md:text-xs text-ink/60 mt-0.5">
-                {isZh ? '法律为行，法律等级为列；点击政党切换其支持表格。' : 'Laws are rows and levels are columns; select a party to view its table.'}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-ink/10 border border-transparent hover:border-ink shrink-0" aria-label={isZh ? '关闭' : 'Close'}>
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-halftone space-y-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="border border-ink/25 bg-paper p-3">
-              <div className="text-[9px] uppercase text-ink-light font-bold">{isZh ? '议会席位' : 'Cortes Seats'}</div>
-              <div className="font-mono font-bold text-xl">{totalSeats} / 470</div>
-              <div className="text-[10px] text-ink/60">{isZh ? '通过门槛：236席' : 'Majority: 236 seats'}</div>
-            </div>
-            <div className="border border-ink/25 bg-paper p-3">
-              <div className="text-[9px] uppercase text-ink-light font-bold">{isZh ? '议会法律满意度' : 'Parliamentary satisfaction'}</div>
-              <div className={`font-mono font-bold text-xl ${satisfactionTone(parliamentSatisfaction)}`}>{formatSatisfaction(parliamentSatisfaction)}</div>
-              <div className="text-[10px] text-ink/60">{isZh ? '按纳入计算的席位加权' : 'Weighted by included seats'}</div>
-            </div>
-            <div className="border border-ink/25 bg-paper p-3 col-span-2">
-              <div className="text-[9px] uppercase text-ink-light font-bold mb-1">{isZh ? '计算规则' : 'Calculation rule'}</div>
-              <div className="text-[11px] leading-relaxed text-ink/75">
-                {isZh ? '强烈支持 +2，支持 +1，中立 0，反对 -1，强烈反对 -2。PRRevS 与 Other 不拥有独立法律立场。' : 'Strongly support +2, support +1, neutral 0, oppose -1, strongly oppose -2. PRRevS and Other have no independent legal stance.'}
+              <div className="mt-1 flex flex-wrap justify-center gap-x-5 gap-y-1 font-typewriter text-[9px] uppercase tracking-widest text-[#5b5346]">
+                <span>{isZh ? `${state.year}年${state.month}月` : `${state.month}/${state.year}`}</span>
+                <span>{isZh ? `议会登记席位 ${totalSeats}` : `Registered Cortes seats ${totalSeats}`}</span>
+                <span>{isZh ? `第 ${state.scenario} 年情景档案` : `Scenario archive ${state.scenario}`}</span>
               </div>
             </div>
+            <button
+              onClick={onClose}
+              className={`shrink-0 border ${reportBorder} bg-transparent p-1 text-[#302b24] hover:bg-[#d7c9a9]`}
+              aria-label={isZh ? '关闭' : 'Close'}
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
+        </header>
 
-          <section className="border-2 border-ink bg-paper p-4">
-            <div className="border-b border-ink/20 pb-3 mb-3">
-              <h3 className="font-typewriter text-lg font-bold">{isZh ? '议会席位图与政党选择' : 'Parliamentary Seat Chart & Party Selection'}</h3>
-              <p className="text-[10px] text-ink/60 mt-1">{isZh ? '点击右侧图例中的政党，切换其法律立场表格。' : 'Click a party in the legend to switch its legal stance table.'}</p>
+        <div className="flex-1 overflow-y-auto bg-[#ece2c8] bg-halftone px-3 py-4 md:px-6 md:py-5">
+          <section className={`border-2 ${reportBorder} bg-[#f1e8d2]`}>
+            <div className={`border-b-2 ${reportBorder} bg-[#e4d7b9] px-3 py-2`}>
+              <h3 className="font-serif text-base font-bold uppercase tracking-wide">
+                {isZh ? '议会席位登记与党派选择' : 'Cortes Seat Register and Party Selection'}
+              </h3>
             </div>
-            <div className="flex flex-col lg:flex-row gap-5 items-center">
-              <div className="w-full lg:w-3/5 flex justify-center overflow-hidden">
+
+            <div className="grid items-center gap-4 p-3 lg:grid-cols-[minmax(420px,0.9fr)_minmax(500px,1.1fr)]">
+              <div className="flex min-h-[260px] w-full items-center justify-center overflow-visible">
                 {parliamentChartData.length > 0 ? (
-                  <ParliamentChart data={parliamentChartData} width={460} height={220} />
+                  <ParliamentChart data={parliamentChartData} width={520} height={260} />
                 ) : (
-                  <div className="text-center py-8 text-ink/45 font-typewriter text-sm">
+                  <div className="py-12 text-center font-typewriter text-xs text-[#6b6254]">
                     {isZh ? '议会目前没有有效席位数据' : 'No active parliamentary seat data'}
                   </div>
                 )}
               </div>
-              <div className="w-full lg:w-2/5 grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 xl:grid-cols-4">
                 {selectableLegendEntries.map(item => {
                   const isSelected = item.actor !== undefined && item.actor === actor;
                   const content = (
                     <>
-                      <span className="w-2.5 h-2.5 shrink-0 border border-ink/15" style={{ backgroundColor: item.color }} />
-                      <span className="truncate flex-1 text-left">{item.name}</span>
-                      <span className="font-bold shrink-0">{item.seats}{isZh ? '席' : 'S'}</span>
+                      <span className="h-2.5 w-2.5 shrink-0 border border-[#39342a]" style={{ backgroundColor: item.color }} />
+                      <span className="min-w-0 flex-1 truncate text-left">{item.name}</span>
+                      <span className="shrink-0 font-mono font-bold">
+                        {item.actor === 'CNT_FAI' && item.seats === 0 ? (isZh ? '院外' : 'EXT') : item.seats}
+                      </span>
                     </>
                   );
+
                   if (item.actor === undefined) {
-                    return <div key={item.id} className="flex items-center gap-1.5 px-1.5 py-1 text-[10px] font-mono text-ink/55">{content}</div>;
+                    return (
+                      <div key={item.id} className="flex items-center gap-1.5 border-b border-[#7b725f]/40 px-1 py-1.5 font-typewriter text-[10px] text-[#817765] opacity-70">
+                        {content}
+                      </div>
+                    );
                   }
+
                   return (
                     <button
                       key={item.id}
                       onClick={() => setSelectedActor(item.actor!)}
-                      className={`flex items-center gap-1.5 px-1.5 py-1 text-[10px] font-mono border text-left ${isSelected ? 'border-cnt-red bg-cnt-red/10 text-cnt-red' : 'border-transparent hover:border-ink/30'}`}
+                      className={`flex items-center gap-1.5 border-b px-1 py-1.5 font-typewriter text-[10px] transition-colors ${
+                        isSelected
+                          ? 'border-[#7b2e28] bg-[#ded0ad] font-bold text-[#7b2e28]'
+                          : 'border-[#7b725f]/40 text-[#302b24] hover:bg-[#e4d7b9]'
+                      }`}
+                      aria-pressed={isSelected}
                     >
                       {content}
                     </button>
@@ -182,71 +288,77 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
             </div>
           </section>
 
-          {actor && satisfaction && (
-            <section className="border-2 border-ink bg-paper p-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-                <div>
-                  <h3 className="font-typewriter text-lg font-bold">{actorLabel(actor)}</h3>
+          <div className="mt-4 grid grid-cols-[190px_minmax(0,1fr)] gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+            <aside className={`self-start border-2 ${reportBorder} bg-[#e8ddc3]`}>
+              <div className={`border-b-2 ${reportBorder} bg-[#ddd0b2] px-2 py-2`}>
+                <h3 className="font-serif text-sm font-bold leading-tight">
+                  {isZh ? '现行法律体系满意度' : 'Satisfaction with Laws in Force'}
+                </h3>
+                <div className="mt-1 font-typewriter text-[7px] uppercase tracking-[0.12em] text-[#665e50]">
+                  {isZh ? '负100 至 正100' : 'Index from -100 to +100'}
                 </div>
-                <div className={`font-mono font-bold text-2xl ${satisfactionTone(satisfaction.overall)}`}>{formatSatisfaction(satisfaction.overall)} / 100</div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {categoryOrder.map(category => (
-                  <div key={category} className="border border-ink/15 p-2">
-                    <div className="text-[9px] text-ink-light uppercase font-bold">{isZh ? CATEGORY_LABELS[category].zh : CATEGORY_LABELS[category].en}</div>
-                    <div className={`font-mono font-bold ${satisfactionTone(satisfaction.byCategory[category])}`}>{formatSatisfaction(satisfaction.byCategory[category])}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
 
-          <section className="border-2 border-ink bg-paper">
-            <div className="border-b-2 border-ink/20 px-4 py-3 bg-ink/5">
-              <h3 className="font-typewriter text-lg font-bold">{isZh ? '法律立场表格' : 'Legal Stance Table'}</h3>
-              <p className="text-[10px] text-ink/60 mt-1">{isZh ? '当前法律等级使用浅色高亮；立场分数保留用于未来法案支持计算。' : 'The current level is highlighted; stance scores remain available for future bill support calculations.'}</p>
+              <div className={`border-b-2 ${reportBorder} bg-[#d9c58f] px-2 py-2.5`}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-serif text-xs font-bold">{isZh ? '议会综合' : 'Cortes Total'}</span>
+                  <span className={`font-mono text-base font-black ${satisfactionTone(parliamentSatisfaction)}`}>
+                    {formatSigned(parliamentSatisfaction)}
+                  </span>
+                </div>
+                <div className="mt-1 h-1 border border-[#514b40] bg-[#eee4cc]">
+                  <div
+                    className={`h-full ${parliamentSatisfaction < 0 ? 'bg-[#b91c1c]' : 'bg-[#3f6212]'}`}
+                    style={{ width: `${Math.abs(parliamentSatisfaction)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="divide-y divide-[#7b725f]/50">
+                {satisfactionRows.map(item => {
+                  const isSelected = item.actor === actor;
+                  return (
+                    <button
+                      key={item.actor}
+                      onClick={() => setSelectedActor(item.actor)}
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2 py-1.5 text-left ${
+                        isSelected ? 'bg-[#d9c58f]' : 'hover:bg-[#e1d4b6]'
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-typewriter text-[9px] font-bold text-[#302b24]">
+                          {getActorLabel(item.actor, true)}
+                        </span>
+                        <span className="block font-typewriter text-[7px] uppercase tracking-wide text-[#746b5b]">
+                          {item.actor === 'CNT_FAI' && item.seats === 0
+                            ? (isZh ? '议会外' : 'Extra-parliamentary')
+                            : (isZh ? `${item.seats} 席` : `${item.seats} seats`)}
+                        </span>
+                      </span>
+                      <span className={`font-mono text-xs font-black ${satisfactionTone(item.score)}`}>
+                        {formatSigned(item.score)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <div className="min-w-0">
+              <div className={`flex min-h-[42px] flex-wrap items-baseline justify-between gap-2 border-2 border-b-0 ${reportBorder} bg-[#ded0ad] px-3 py-2`}>
+                <div className="font-serif text-sm font-bold text-[#27231d] md:text-base">
+                  {getActorLabel(actor)}
+                </div>
+                <div className="font-typewriter text-[8px] uppercase tracking-[0.12em] text-[#5b5346]">
+                  {isZh ? '法律等级立场登记' : 'Position by statutory level'}
+                </div>
+              </div>
+              <div className={`border-2 ${reportBorder}`}>
+                {categoryOrder.map(renderLawTable)}
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-ink/25 bg-ink/[0.03]">
-                    <th className="sticky left-0 z-10 bg-paper text-left p-2 min-w-[220px] font-typewriter">{isZh ? '法律（当前等级）' : 'Law (current level)'}</th>
-                    {[0, 1, 2, 3, 4].map(level => <th key={level} className="p-2 min-w-[130px] text-center font-mono">L{level}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {LAW_DEFINITIONS.map(definition => {
-                    const currentLevel = Math.max(0, Math.min(definition.levels.length - 1, Number(state.domesticPolicy[definition.id] || 0)));
-                    return (
-                      <tr key={definition.id} className="border-b border-ink/10 hover:bg-ink/[0.02]">
-                        <td className="sticky left-0 z-10 bg-paper p-2 align-top">
-                          <div className="flex items-start gap-1.5 text-left w-full">
-                            <span>
-                              <span className="block font-bold font-typewriter">{isZh ? definition.name.zh : definition.name.en}</span>
-                              <span className="block text-[10px] text-cnt-red font-mono mt-0.5">{isZh ? `当前 L${currentLevel}：${definition.levels[currentLevel].name.zh}` : `Current L${currentLevel}: ${definition.levels[currentLevel].name.en}`}</span>
-                            </span>
-                          </div>
-                        </td>
-                        {[0, 1, 2, 3, 4].map(level => {
-                          const levelDefinition = definition.levels[level];
-                          if (!levelDefinition) return <td key={level} className="p-2 text-center text-ink/20">—</td>;
-                          const stance = getEffectiveLawStance(state, actor!, definition.id, level);
-                          const meta = STANCE_META[stance];
-                          return (
-                            <td key={level} className={`p-2 text-center ${level === currentLevel ? 'bg-amber-100/60' : ''}`}>
-                              <div title={`${levelDefinition.name.en}: ${isZh ? meta.zh : meta.en}`} className={`mx-auto flex items-center justify-center w-[112px] h-9 font-typewriter font-bold text-[11px] ${meta.className}`}>
-                                {isZh ? meta.zh : meta.en}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          </div>
 
         </div>
       </div>

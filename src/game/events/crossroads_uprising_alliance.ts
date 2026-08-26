@@ -11,16 +11,16 @@ const uhpAsturiasMeta = {
 export const crossroadsUprisingAlliance: GameEvent = {
   id: 'crossroads_uprising_alliance',
   meta: uhpAsturiasMeta,
-  title: 'Crossroads: Proletarian Uprising or Anti-Fascist Alliance?',
-  titleZh: '十字路口：无产阶级起义还是反法西斯同盟？',
-  description: 'With the workers mobilizing under the banner of UHP, we face a historical crossroads. Do we focus entirely on the revolutionary Workers\' Alliance to launch a social revolution and prepare for a proletarian uprising? Or do we pivot to a broad Anti-Fascist Alliance (Popular Front) with the bourgeois republicans (IR, ERC) and the PCE to win the upcoming elections and save the Republic?',
-  descriptionZh: '随着工人们在“联合无产阶级兄弟”（UHP）的旗帜下动员起来，我们面临着一个历史性的十字路口。我们是应当完全专注于革命的工人联盟（Alianza Obrera），发起社会革命并为无产阶级起义做好准备？还是转向与资产阶级共和派（IR、ERC）及共产党（PCE）结成广泛的反法西斯同盟（人民阵线），以赢得即将举行的大选并挽救共和国？',
   condition: (state) => {
     // Triggers once UHP has been attempted, and we are in 1934 or 1935, and have not yet decided this crossroads
     const isReady = state.uhp_attempt_triggered && !state.crossroads_uprising_alliance_decided;
     const isYearMatch = state.year >= 1934;
     return isReady && isYearMatch;
   },
+  title: 'Crossroads: Proletarian Uprising or Anti-Fascist Alliance?',
+  titleZh: '十字路口：无产阶级起义还是反法西斯同盟？',
+  description: 'With the workers mobilizing under the banner of UHP, we face a historical crossroads. Do we focus entirely on the revolutionary Workers\' Alliance to launch a social revolution and prepare for a proletarian uprising? Or do we pivot to a broad Anti-Fascist Alliance (Popular Front) with the bourgeois republicans (IR, ERC) and the PCE to win the upcoming elections and save the Republic?',
+  descriptionZh: '随着工人们在“联合无产阶级兄弟”（UHP）的旗帜下动员起来，我们面临着一个历史性的十字路口。我们是应当完全专注于革命的工人联盟（Alianza Obrera），发起社会革命并为无产阶级起义做好准备？还是转向与资产阶级共和派（IR、ERC）及共产党（PCE）结成广泛的反法西斯同盟（人民阵线），以赢得即将举行的大选并挽救共和国？',
   options: [
     {
       text: 'Option A: The Proletarian Uprising! We will tolerate no class collaboration.',

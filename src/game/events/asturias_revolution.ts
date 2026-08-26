@@ -48,10 +48,6 @@ export const asturiasWarFailed: GameEvent = {
 export const asturiasRevolution: GameEvent = {
   id: 'asturias_revolution',
   meta: asturiasRootMeta,
-  title: 'The Asturian Revolution Erupts',
-  titleZh: '阿斯图里亚斯革命爆发',
-  description: 'As the right-wing CEDA joined the Lerroux government, its radical rightward policies have enraged the working class across the country. Under the great slogan of "United Proletarian Brothers" (UHP), the miners of Asturias have risen in armed revolt! They have seized the arsenals, taken control of the mining districts, established revolutionary committees, and declared war on the reactionary regime! How should we respond to this great proletarian storm?',
-  descriptionZh: '随着右翼CEDA党加入勒鲁政府，激进的右翼化政策彻底激怒了全国的工人阶级。在“联合无产阶级兄弟”（UHP）的伟大口号下，阿斯图里亚斯的矿工们率先发起了武装起义！他们夺取了军火库，控制了矿区，建立起革命委员会，并向反动政权宣战！这场伟大的无产阶级风暴，我们应当如何应对？',
   condition: (state) => {
     const isAsturiasWarStarted = state.wars?.asturias_war && state.wars.asturias_war !== 'not_started';
     if (state.civilWarStatus === 'ongoing' || state.activeWar || isAsturiasWarStarted) return false;
@@ -71,6 +67,10 @@ export const asturiasRevolution: GameEvent = {
       );
     }
   },
+  title: 'The Asturian Revolution Erupts',
+  titleZh: '阿斯图里亚斯革命爆发',
+  description: 'As the right-wing CEDA joined the Lerroux government, its radical rightward policies have enraged the working class across the country. Under the great slogan of "United Proletarian Brothers" (UHP), the miners of Asturias have risen in armed revolt! They have seized the arsenals, taken control of the mining districts, established revolutionary committees, and declared war on the reactionary regime! How should we respond to this great proletarian storm?',
+  descriptionZh: '随着右翼CEDA党加入勒鲁政府，激进的右翼化政策彻底激怒了全国的工人阶级。在“联合无产阶级兄弟”（UHP）的伟大口号下，阿斯图里亚斯的矿工们率先发起了武装起义！他们夺取了军火库，控制了矿区，建立起革命委员会，并向反动政权宣战！这场伟大的无产阶级风暴，我们应当如何应对？',
   options: [
     {
       text: 'The CNT will join the revolution with all its strength!',

@@ -11,10 +11,6 @@ const andalusiaMeta = {
 export const andalusiaFireEvent: GameEvent = {
   id: 'andalusia_fire',
   meta: andalusiaMeta,
-  title: 'Fire in Andalusia',
-  titleZh: '安达卢西亚之火',
-  description: 'As the Asturian uprising holds on, the sparks of revolution are blazing across the southern land of Andalusia! Revolutionary workers and radical youth in the provinces of Cádiz and Málaga have launched strikes and armed uprisings, establishing workers\' self-defense councils in active solidarity with the Asturian revolution in the north!',
-  descriptionZh: '随着阿斯图里亚斯起义的坚持，革命的星火已在南方安达卢西亚大地上熊熊燃烧！加第斯和马拉加两个省份的革命工人与激进青年发起了罢工与武装起义，建立了工人自治联盟，积极响应北方的阿斯图里亚斯革命！',
   condition: (state) => {
     return !!(
       state.activeWar === 'asturias_war' &&
@@ -22,6 +18,10 @@ export const andalusiaFireEvent: GameEvent = {
       !state.isAndalusiaFireTriggered
     );
   },
+  title: 'Fire in Andalusia',
+  titleZh: '安达卢西亚之火',
+  description: 'As the Asturian uprising holds on, the sparks of revolution are blazing across the southern land of Andalusia! Revolutionary workers and radical youth in the provinces of Cádiz and Málaga have launched strikes and armed uprisings, establishing workers\' self-defense councils in active solidarity with the Asturian revolution in the north!',
+  descriptionZh: '随着阿斯图里亚斯起义的坚持，革命的星火已在南方安达卢西亚大地上熊熊燃烧！加第斯和马拉加两个省份的革命工人与激进青年发起了罢工与武装起义，建立了工人自治联盟，积极响应北方的阿斯图里亚斯革命！',
   options: [
     {
       text: 'Welcome our southern revolutionary comrades and open a second front!',

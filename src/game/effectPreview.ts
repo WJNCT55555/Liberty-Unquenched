@@ -117,6 +117,7 @@ const DOMESTIC_POLICY_LABELS: Record<keyof GameState['domesticPolicy'], Labels &
   min_wage: { label: 'Minimum wage', labelZh: '最低工资' },
   workplace_safety: { label: 'Workplace safety', labelZh: '工作场所安全' },
   political_rights: { label: 'Political rights', labelZh: '政治权利' },
+  womens_rights: { label: "Women's rights", labelZh: '女性权利' },
   religion_policy: { label: 'Religious policy', labelZh: '宗教政策' },
   education_institutions: { label: 'Education institutions', labelZh: '教育机构' },
   language_policy: { label: 'Language policy', labelZh: '语言政策' },

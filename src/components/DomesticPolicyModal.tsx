@@ -233,6 +233,43 @@ export const POLICIES_DEF: Record<'economy' | 'society' | 'security', PolicyDef[
       ]
     },
     {
+      id: 'womens_rights',
+      name: { en: "Women's Rights", zh: '女性权利' },
+      icon: <Users className="w-5 h-5" />,
+      levels: [
+        {
+          level: 0,
+          name: { en: 'Traditional Status of Women', zh: '传统妇女地位' },
+          desc: { en: 'Marriage, family authority, and civil life remain governed by traditional patriarchal rules.', zh: '婚姻、家庭权力和民事生活仍受传统家长制规范支配。' },
+          effect: { en: 'No monthly effects.', zh: '无月度效果。' }
+        },
+        {
+          level: 1,
+          name: { en: 'Civil Marriage Legalized', zh: '民事婚姻合法化' },
+          desc: { en: 'Citizens may enter a legal marriage without church administration.', zh: '公民可以在不经教会主持的情况下缔结具有法律效力的婚姻。' },
+          effect: { en: 'Monthly budget expenditure: +0.05M. Republican authority: +0.2 per month.', zh: '每月财政支出：+0.05M；共和国权威：+0.2/月。' }
+        },
+        {
+          level: 2,
+          name: { en: 'Divorce Legalized', zh: '离婚合法化' },
+          desc: { en: 'Civil courts recognize the right of spouses to dissolve a marriage.', zh: '民事法院承认配偶解除婚姻关系的法定权利。' },
+          effect: { en: 'Monthly budget expenditure: +0.10M. Republican authority: +0.3 per month.', zh: '每月财政支出：+0.10M；共和国权威：+0.3/月。' }
+        },
+        {
+          level: 3,
+          name: { en: 'Abortion Rights for Women', zh: '女性堕胎权' },
+          desc: { en: 'Women receive a legally protected right to terminate a pregnancy through regulated medical care.', zh: '女性获得通过受监管医疗服务终止妊娠的法定权利。' },
+          effect: { en: 'Monthly budget expenditure: +0.15M. Republican authority: -0.2 per month.', zh: '每月财政支出：+0.15M；共和国权威：-0.2/月。' }
+        },
+        {
+          level: 4,
+          name: { en: 'Full Gender Equality', zh: '全面性别平等' },
+          desc: { en: 'Civil, economic, educational, and political institutions enforce equal status regardless of gender.', zh: '民事、经济、教育和政治机构全面落实不分性别的平等地位。' },
+          effect: { en: 'Monthly budget expenditure: +0.30M. Republican authority: +0.4. Revolutionary fervor: -0.2. Intellectual support for CNT-FAI: +0.01 per month.', zh: '每月财政支出：+0.30M；共和国权威：+0.4；革命热情：-0.2；知识分子对CNT-FAI支持度：+0.01/月。' }
+        }
+      ]
+    },
+    {
       id: 'religion_policy',
       name: { en: 'Religion Policy', zh: '宗教权利' },
       icon: <Heart className="w-5 h-5" />,

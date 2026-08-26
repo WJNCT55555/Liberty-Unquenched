@@ -22,6 +22,7 @@ export type LawId =
   | 'union_status'
   | 'land_law'
   | 'political_rights'
+  | 'womens_rights'
   | 'religion_policy'
   | 'education_institutions'
   | 'language_policy'
@@ -298,6 +299,10 @@ export interface GameState {
   isPRRevSFormed: boolean;
   prrevs_formed_months: number;
   prrevsConstructionLevel: number;
+  // PRRevS formation can be deferred for three months or abandoned permanently
+  // (see formation_of_prrevs event); both fields are optional for save compatibility.
+  prrevsDeferralDate?: { year: number; month: number };
+  prrevsAbandoned?: boolean;
   cntStance: 'oppose' | 'cooperate' | 'govern';
   sandboxCardChoiceEnabled?: boolean;
 
@@ -395,6 +400,7 @@ export interface GameState {
     min_wage: number;
     workplace_safety: number;
     political_rights: number;
+    womens_rights: number;
     religion_policy: number;
     education_institutions: number;
     language_policy: number;

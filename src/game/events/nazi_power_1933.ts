@@ -1,5 +1,5 @@
 import type { GameEvent } from '../types';
-import { adjustClassSupport, isAtOrAfter } from '../utils';
+import { isAtOrAfter } from '../utils';
 
 const newsMeta = {
   category: 'news' as const,

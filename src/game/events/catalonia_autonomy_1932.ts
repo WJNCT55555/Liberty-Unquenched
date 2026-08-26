@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
+import { clampLawLevel } from '../lawStances';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -28,6 +29,10 @@ export const cataloniaAutonomy1932: GameEvent = {
         partyRelations: {
           ...state.partyRelations,
           ERC: Math.min(100, (state.partyRelations.ERC || 0) + 15)
+        },
+        domesticPolicy: {
+          ...state.domesticPolicy,
+          language_policy: clampLawLevel('language_policy', state.domesticPolicy.language_policy + 1)
         }
       })
     }

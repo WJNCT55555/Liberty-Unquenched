@@ -4,6 +4,7 @@ import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElect
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
+import { clampLawLevel } from '../lawStances';
 
 const election1933Meta = {
   category: 'politics' as const,
@@ -212,8 +213,8 @@ export const elections1933Results: GameEvent = {
           domesticPolicy: {
             ...state.domesticPolicy,
             land_reform_progress: Math.max(0, state.domesticPolicy.land_reform_progress - 20),
-            max_hours_law: Math.max(0, state.domesticPolicy.max_hours_law - 20),
-            min_wage: Math.max(0, state.domesticPolicy.min_wage - 20)
+            max_hours_law: clampLawLevel('max_hours_law', state.domesticPolicy.max_hours_law - 1),
+            min_wage: clampLawLevel('min_wage', state.domesticPolicy.min_wage - 1)
           },
           stats: {
             ...state.stats,

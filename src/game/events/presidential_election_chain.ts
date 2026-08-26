@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GameEvent, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, calculatePresidentialVotes } from '../utils';
+import { clampLawLevel } from '../lawStances';
 
 const presidentialElectionMeta = {
   category: 'politics' as const,
@@ -25,16 +26,16 @@ const presidentialElectionLeafMeta = {
 export const presidentialElectionDecision: GameEvent = {
   id: 'presidential_election_decision',
   meta: presidentialElectionMeta,
-  title: 'The Presidential Election',
-  titleZh: '共和国总统选举',
-  description: 'Niceto Alcalá-Zamora has been impeached and removed from office. Speaker Diego Martínez Barrio is acting as interim president until a new president is chosen by an electoral college of 940 members — the 470 current deputies of the Cortes and 470 newly elected electors.\n\nThe left-wing camp is split between two camps: Manuel Azaña, representing republican order and stable reforms, and — if the CNT is ready to unleash this beast — Ramón Franco with his radical Iberian federalist dream. In the center stands interim president Martínez Barrio of the moderate democratic wing of the Radical Republicans. On the right, the forces are united under José María Gil-Robles of CEDA.\n\nThe CNT National Committee now faces the first major threshold: shall we intervene and participate in this state election?',
-  descriptionZh: '尼塞托·阿尔卡拉-萨莫拉已被弹劾罢免。议长迭戈·马丁内斯·巴里奥将担任临时总统，直至新总统经由940名选举人团成员——470名现任议员加上470名另行普选的选举人——选出。\n\n左翼阵营分裂为两股力量：曼努埃尔·阿萨尼亚代表着共和秩序与渐进改革，而——若CNT准备释放这头野兽——拉蒙·佛朗哥代表着极端联邦派的狂想。在中间地带站着临时总统马丁内斯·巴里奥本人，激进共和党的温和民主翼。右翼则统一在CEDA领袖吉尔-罗伯斯的旗下。\n\n全国委员会现在面临第一道门槛：我们是否介入并参与这场总统大选？',
   condition: (state) => {
     // Only triggers automatically if president has been impeached, civil war hasn't started, and we haven't seen it yet.
     return state.isPresidentImpeached === true && 
            state.civilWarStatus === 'not_started' && 
            !state.presidentElectionSeen;
   },
+  title: 'The Presidential Election',
+  titleZh: '共和国总统选举',
+  description: 'Niceto Alcalá-Zamora has been impeached and removed from office. Speaker Diego Martínez Barrio is acting as interim president until a new president is chosen by an electoral college of 940 members — the 470 current deputies of the Cortes and 470 newly elected electors.\n\nThe left-wing camp is split between two camps: Manuel Azaña, representing republican order and stable reforms, and — if the CNT is ready to unleash this beast — Ramón Franco with his radical Iberian federalist dream. In the center stands interim president Martínez Barrio of the moderate democratic wing of the Radical Republicans. On the right, the forces are united under José María Gil-Robles of CEDA.\n\nThe CNT National Committee now faces the first major threshold: shall we intervene and participate in this state election?',
+  descriptionZh: '尼塞托·阿尔卡拉-萨莫拉已被弹劾罢免。议长迭戈·马丁内斯·巴里奥将担任临时总统，直至新总统经由940名选举人团成员——470名现任议员加上470名另行普选的选举人——选出。\n\n左翼阵营分裂为两股力量：曼努埃尔·阿萨尼亚代表着共和秩序与渐进改革，而——若CNT准备释放这头野兽——拉蒙·佛朗哥代表着极端联邦派的狂想。在中间地带站着临时总统马丁内斯·巴里奥本人，激进共和党的温和民主翼。右翼则统一在CEDA领袖吉尔-罗伯斯的旗下。\n\n全国委员会现在面临第一道门槛：我们是否介入并参与这场总统大选？',
   options: [
     {
       text: 'Abstain. "Aborrecemos a todo gobernante."',
@@ -77,11 +78,11 @@ export const presidentialElectionDecision: GameEvent = {
 export const presidentialElectionPrimary: GameEvent = {
   id: 'presidential_election_primary',
   meta: presidentialElectionNodeMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: 'Left Primary Selection',
   titleZh: '左翼阵营初选',
   description: 'The Left must unite behind a single presidential candidate. Manuel Azaña represents the path of republican order, constitutionalism, and stable governance in cooperation with the PSOE and IR. Ramón Franco, if backed, represents a radical decentralized vision — an Iberian federalist republic that shatters centralized power. Our decision here determines who represents the Left in the three-way general election.',
   descriptionZh: '左翼阵营必须统合在唯一的候选人身后。曼努埃尔·阿萨尼亚代表着共和秩序——渐进改革、宪法框架、与工社党(PSOE)和共和左翼(IR)的稳固联盟。拉蒙·佛朗哥代表着另一条道路——粉碎中央集权、建立伊比利亚联邦、让每一个地区自决。两人的政见截然不同。我们的选择将决定谁代表左翼出战三阵营大选。',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   options: [
     {
       text: 'Azaña. The Republic must be reformed, not shattered.',
@@ -135,11 +136,11 @@ export const presidentialElectionPrimary: GameEvent = {
 export const presidentialElectionCandidateSelection: GameEvent = {
   id: 'presidential_election_candidate_selection',
   meta: presidentialElectionNodeMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: 'Endorsing a Presidential Candidate',
   titleZh: '大选候选人背书',
   description: 'With the Left candidate chosen, we now face the three-way general election. The CNT National Committee must decide where our underground networks, street mobs, and workers\' assemblies will throw their support. The Left is our natural class ally — but Diego Martínez Barrio represents the moderate center that refused to bow to CEDA. José María Gil-Robles, on the other hand, is the leader of the authoritarian clerical Right... supporting him would shock our base, but perhaps it is a necessary deal, or a way to provoke the revolution.',
   descriptionZh: '左翼代表已经确定。现在大选迫在眉睫，全国委员会必须决定，将CNT的街头力量、地下组织和工会大会投向三方中的哪一方。左翼是我们的天然阶级盟友——但迭戈·马丁内斯·巴里奥代表了那个拒绝屈服于CEDA的温和共和中间派。而何塞·马利亚·吉尔-罗伯斯则是反动 clerical 右翼的领袖……支持他会彻底震惊我们的基本盘，但也许这是避免更坏结果的交易，或者能磨砺出真正的革命洪流。',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   options: [
     {
       text: (state) => `Support the Left — [${state.presidentElectionLeftCandidate === 'ramon_franco' ? 'Ramón Franco' : 'Manuel Azaña'}].`,
@@ -211,11 +212,11 @@ export const presidentialElectionCandidateSelection: GameEvent = {
 export const presidentialElectionCampaignMenu: GameEvent = {
   id: 'presidential_election_campaign_menu',
   meta: presidentialElectionNodeMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: (state) => `Campaign Lobby – Round ${state.presidentElectionRound || 1}`,
   titleZh: (state) => `大选竞选大厅 — 第 ${state.presidentElectionRound || 1} 轮`,
   description: 'The political machine of Spain is operating at its maximum. Behind the closed doors of parliamentary offices, in smoke-filled cafes, and in the restless streets of working-class neighborhoods, the future of the republic is being bought, sold, and negotiated. How will we mobilize our network and resources to swing the vote?',
   descriptionZh: '西班牙的政治机器正在全速运转。在议会大厅关闭的门后、在充满雪茄烟雾的咖啡馆里、以及在工人阶级居民区动荡不宁的街头，共和国的未来正在被交易、说服和妥协。我们该如何动员自己的网络和资源来扭转局势？',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   options: [
     // --- Option A: Lobby PSOE ---
     {
@@ -427,11 +428,11 @@ export const presidentialElectionCampaignMenu: GameEvent = {
 export const presidentialElectionResults: GameEvent = {
   id: 'presidential_election_results',
   meta: presidentialElectionNodeMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: 'Presidential General Election – First Round Results',
   titleZh: '总统大选第一轮计票结果',
   description: 'The ballots of Spain\'s general election for the presidency are being counted. Under the bicameral design, the Cortes deputies and elector delegations have completed their voting. The results will determine if a direct 2/3 majority can be achieved, or if we must proceed to a secondary runoff.',
   descriptionZh: '大选的第一轮投计票结果已经出炉。在宪法设计下，议会议员票与普选选举人票汇聚在此处。大选第一轮计票将判断是否有人能夺得2/3的绝对多数，否则将举行第二轮简单多数决。',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   renderContent: (state) => renderResultsTable(state, false),
   options: [
     {
@@ -477,11 +478,11 @@ export const presidentialElectionResults: GameEvent = {
 export const presidentialElectionResultsRound2: GameEvent = {
   id: 'presidential_election_results_round2',
   meta: presidentialElectionLeafMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: 'Presidential General Election – Second Round Runoff Results',
   titleZh: '总统大选第二轮最终计票结果',
   description: 'The final runoff ballots are being tallied. Under the rules of the Second Republic, the candidate with the highest total of combined deputy and elector votes in the second round is elected President. No further stalling is possible.',
   descriptionZh: '第二轮决胜轮的最终投计票工作已经宣告结束。在简单多数制下，得票最高者将直接宣誓就职第二共和国新一任总统，大局已定。',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   renderContent: (state) => renderResultsTable(state, true),
   options: [
     {
@@ -503,11 +504,11 @@ export const presidentialElectionResultsRound2: GameEvent = {
 export const presidentialElectionAutoResolve: GameEvent = {
   id: 'presidential_election_auto_resolve',
   meta: presidentialElectionLeafMeta,
+  condition: () => false, // Handled sequentially via currentEvent transitions
   title: 'Presidential Election: Abstention Path',
   titleZh: '总统选举：弃权路线',
   description: 'The CNT has stood aside, refusing to participate in the presidential election. In our absence, the 470 deputies of the Cortes and the 470 newly elected electors convene to cast their votes based on the prevailing strength of each political party.',
   descriptionZh: 'CNT选择不介入总统选举。议会的议员和另行普选的选举人将按照各党派现有的政治力量自行投票。整个大选在没有工会干涉的情况下进行。',
-  condition: () => false, // Handled sequentially via currentEvent transitions
   renderContent: (state) => {
     const isZh = state.language === 'zh';
     const results = calculatePresidentialVotes(state, 'azana', null);
@@ -654,7 +655,7 @@ function getWinnerEffects(state: GameState, winner: string) {
     
     const dp = { ...state.domesticPolicy };
     dp.land_reform_progress = Math.min(100, (dp.land_reform_progress || 0) + 5);
-    dp.political_rights = Math.min(100, (dp.political_rights || 0) + 5);
+    dp.political_rights = clampLawLevel('political_rights', (dp.political_rights || 0) + 1);
     
     const pr = { ...state.partyRelations };
     pr.PRR = Math.min(100, (pr.PRR || 0) + 20);
@@ -681,10 +682,10 @@ function getWinnerEffects(state: GameState, winner: string) {
     
     const dp = { ...state.domesticPolicy };
     dp.land_reform_progress = Math.max(0, (dp.land_reform_progress || 0) - 35);
-    dp.max_hours_law = Math.max(0, (dp.max_hours_law || 0) - 30);
-    dp.min_wage = Math.max(0, (dp.min_wage || 0) - 30);
-    dp.religion_policy = Math.max(0, (dp.religion_policy || 0) - 35);
-    dp.political_rights = Math.max(0, (dp.political_rights || 0) - 15);
+    dp.max_hours_law = clampLawLevel('max_hours_law', (dp.max_hours_law || 0) - 1);
+    dp.min_wage = clampLawLevel('min_wage', (dp.min_wage || 0) - 1);
+    dp.religion_policy = clampLawLevel('religion_policy', (dp.religion_policy || 0) - 1);
+    dp.political_rights = clampLawLevel('political_rights', (dp.political_rights || 0) - 1);
     
     const pr = { ...state.partyRelations };
     pr.PSOE = Math.max(-100, (pr.PSOE || 0) - 35);
