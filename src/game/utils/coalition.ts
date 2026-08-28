@@ -1,6 +1,5 @@
-import { GameState, CoalitionState, CoalitionId, Party, SocialClass } from '../types';
+import type { GameState, CoalitionState, CoalitionId, GovernmentCrisisCause, Party } from '../types';
 import { COALITION_DEFS } from '../coalitions';
-import { CLASS_INFO } from '../constants';
 import { getPartySupport, updatePartySupport } from '../parties';
 
 export { getPartySupport, updatePartySupport };
@@ -51,38 +50,39 @@ export function updateCoalitions(state: GameState): CoalitionState[] {
   });
 }
 
-export function formCoalition(state: GameState, id: CoalitionId, isRuling = false): GameState {
+function establishCoalition(state: GameState, id: CoalitionId, asRuling: boolean): GameState {
   const def = COALITION_DEFS.find(d => d.id === id);
   if (!def) return state;
 
-  // A party can only be in one coalition. Strip members from other active coalitions.
-  let currentActive = [...(state.activeCoalitions || [])];
-  
-  let shouldDissolveIds: CoalitionId[] = [];
-  
-  currentActive = currentActive.map(c => {
-    const cDef = COALITION_DEFS.find(d => d.id === c.activeId);
-    if (!cDef) return c;
-    
-    // Check overlap
-    const hasOverlap = cDef.members.some(m => def.members.includes(m));
-    if (hasOverlap) {
-      shouldDissolveIds.push(c.activeId);
-    }
-    return c;
-  });
+  const existingCoalitions = [...(state.activeCoalitions || [])];
+  if (!asRuling && existingCoalitions.some(coalition => coalition.activeId === id)) {
+    return state;
+  }
+
+  // Ordinary alliances may overlap with the elected government, but never
+  // replace or promote themselves into the ruling-coalition slot. An election
+  // result replaces the previous government and conflicting alliances.
+  const replacedCoalitionIds = existingCoalitions
+    .filter(c => {
+      if (!asRuling && c.activeId === state.rulingCoalition) return false;
+      if (asRuling && c.activeId === state.rulingCoalition) return true;
+
+      const cDef = COALITION_DEFS.find(d => d.id === c.activeId);
+      return c.activeId === id || Boolean(cDef?.members.some(member => def.members.includes(member)));
+    })
+    .map(c => c.activeId);
+
+  const currentActive = existingCoalitions.filter(c => !replacedCoalitionIds.includes(c.activeId));
 
   const history = [...(state.coalitionHistory || [])];
-  
-  shouldDissolveIds.forEach(did => {
-    const idx = currentActive.findIndex(c => c.activeId === did);
-    if (idx > -1) {
+  replacedCoalitionIds.forEach(replacedId => {
+    const replaced = existingCoalitions.find(c => c.activeId === replacedId);
+    if (replaced) {
       history.push({
-        id: currentActive[idx].activeId,
-        from: currentActive[idx].formedAt,
+        id: replaced.activeId,
+        from: replaced.formedAt,
         to: { year: state.year, month: state.month }
       });
-      currentActive.splice(idx, 1);
     }
   });
 
@@ -98,17 +98,32 @@ export function formCoalition(state: GameState, id: CoalitionId, isRuling = fals
     formedAt: { year: state.year, month: state.month }
   };
 
-  currentActive.push(coalition);
+  const nextActive = [...currentActive, coalition];
 
-  const newState = {
+  const newState: GameState = {
     ...state,
-    activeCoalitions: currentActive,
+    activeCoalitions: nextActive,
     coalitionHistory: history,
-    rulingCoalition: isRuling ? id : (shouldDissolveIds.includes(state.rulingCoalition as CoalitionId) ? id : state.rulingCoalition)
+    rulingCoalition: asRuling ? id : state.rulingCoalition
   };
 
   newState.activeCoalitions = updateCoalitions(newState);
   return newState;
+}
+
+/** Forms a non-governing political or labor alliance. */
+export function formCoalition(state: GameState, id: CoalitionId): GameState {
+  return establishCoalition(state, id, false);
+}
+
+/** The only public runtime API allowed to install an elected government. */
+export function formRulingCoalitionFromElection(state: GameState, id: CoalitionId): GameState {
+  const nextState = establishCoalition(state, id, true);
+  return {
+    ...nextState,
+    governmentCrisis: null,
+    earlyElectionInProgress: false,
+  };
 }
 
 export function adjustMemberContribution(state: GameState, party: Party, amount: number, targetCoalitionId?: CoalitionId): GameState {
@@ -139,32 +154,26 @@ export function checkCoalitionDissolve(state: GameState): GameState {
   const history = [...(state.coalitionHistory || [])];
   let isRepublicanSocialistDissolved = state.isRepublicanSocialistDissolved;
   let isCedaRadicalDissolved = state.isCedaRadicalDissolved;
-  let coalitionJustDissolved = false;
+  let anyCoalitionDissolved = false;
   let newRulingCoalition = state.rulingCoalition;
+  let governmentCrisis = state.governmentCrisis;
+  let governmentCrisisSequence = state.governmentCrisisSequence;
 
   for (let i = currentActive.length - 1; i >= 0; i--) {
     const coalition = currentActive[i];
     const def = COALITION_DEFS.find(d => d.id === coalition.activeId);
     if (!def) continue;
 
-    let shouldDissolve = false;
+    let dissolutionCause: GovernmentCrisisCause | null = null;
 
     if (coalition.cohesion < def.dissolveThreshold) {
-      shouldDissolve = true;
+      dissolutionCause = 'cohesion';
     }
     if (def.shouldDissolve && def.shouldDissolve(state, coalition)) {
-      shouldDissolve = true;
-    }
-    if (state.cortes) {
-      const memberSeats = def.members.reduce((sum, m) => sum + (m === 'CNT_FAI' ? 0 : (state.cortes?.[m as Party] || 0)), 0);
-      const totalSeats = Object.values(state.cortes).reduce((sum, v) => sum + v, 0) || 470;
-      const seatShare = memberSeats / totalSeats;
-      if (seatShare < def.minSeatShare) {
-        shouldDissolve = true;
-      }
+      dissolutionCause = 'scripted';
     }
 
-    if (shouldDissolve) {
+    if (dissolutionCause) {
       history.push({
         id: coalition.activeId,
         from: coalition.formedAt,
@@ -172,32 +181,36 @@ export function checkCoalitionDissolve(state: GameState): GameState {
       });
       if (coalition.activeId === 'republican_socialist') isRepublicanSocialistDissolved = true;
       if (coalition.activeId === 'ceda_radical') isCedaRadicalDissolved = true;
-      coalitionJustDissolved = true;
+      anyCoalitionDissolved = true;
       
       if (state.rulingCoalition === coalition.activeId) {
         newRulingCoalition = null;
+        governmentCrisisSequence += 1;
+        governmentCrisis = {
+          sequence: governmentCrisisSequence,
+          coalitionId: coalition.activeId,
+          cause: dissolutionCause,
+          occurredAt: { year: state.year, month: state.month },
+        };
       }
       
       currentActive.splice(i, 1);
     }
   }
 
-  if (coalitionJustDissolved) {
+  if (anyCoalitionDissolved) {
     return {
       ...state,
       activeCoalitions: currentActive,
       coalitionHistory: history,
       isRepublicanSocialistDissolved,
       isCedaRadicalDissolved,
-      coalition_just_dissolved: true,
-      rulingCoalition: newRulingCoalition
+      rulingCoalition: newRulingCoalition,
+      governmentCrisis,
+      governmentCrisisSequence,
     };
   }
 
-  return state;
-}
-
-export function autoFormCoalitionIfNeeded(state: GameState): GameState {
   return state;
 }
 
@@ -206,13 +219,13 @@ export function initializeStartingCoalition(state: GameState): GameState {
   s.partySupport = updatePartySupport(s);
   
   if (s.scenario === '1931') {
-    s = formCoalition(s, 'provisional_government', true);
+    s = establishCoalition(s, 'provisional_government', true);
     s.cntStance = 'oppose';
   } else if (s.scenario === '1933') {
-    s = formCoalition(s, 'ceda_radical', true);
+    s = establishCoalition(s, 'ceda_radical', true);
     s.cntStance = 'oppose';
   } else if (s.scenario === '1936') {
-    s = formCoalition(s, 'popular_front', true);
+    s = establishCoalition(s, 'popular_front', true);
     s.cntStance = 'cooperate';
   }
   

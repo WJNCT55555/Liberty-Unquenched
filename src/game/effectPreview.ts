@@ -38,6 +38,8 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   advisorActionTimer: { label: 'Advisor cooldown', labelZh: '顾问冷却', reverseTone: true },
   fundraising_timer: { label: 'Fundraising cooldown', labelZh: '筹款冷却', reverseTone: true },
   propaganda_timer: { label: 'Media cooldown', labelZh: '媒体冷却', reverseTone: true },
+  propaganda_by_deed_timer: { label: 'Propaganda by the Deed cooldown', labelZh: '以行动宣传冷却', reverseTone: true },
+  assassination_success_base: { label: 'Assassination success base', labelZh: '暗杀成功率基准' },
   mitin_popular_timer: { label: 'Popular Assembly cooldown', labelZh: '群众集会冷却', reverseTone: true },
   prrevs_campaign_timer: { label: 'PRRevS campaign cooldown', labelZh: 'PRRevS竞选冷却', reverseTone: true },
   organizations_timer: { label: 'Organizations cooldown', labelZh: '组织事务冷却', reverseTone: true },

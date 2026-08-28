@@ -25,11 +25,11 @@ export const syndicateExpansion: Card = {
           subtitleZh: '专注于工业中心和工厂的组织工作，巩固城市无产阶级基础。',
           effect: (s) => {
             let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 10);
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3);
             return {
               classes: newClasses,
-              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 5) },
-              factions: adjustFactionInfluence(s.factions, 'Cenetistas', 10)
+              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 2) },
+              factions: adjustFactionInfluence(s.factions, 'Cenetistas', 5)
             };
           }
         },
@@ -40,11 +40,11 @@ export const syndicateExpansion: Card = {
           subtitleZh: '在农村地区建立无政府主义集体，争取贫苦农民的坚定支持。',
           effect: (s) => {
             let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 10);
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 3);
             return {
               classes: newClasses,
-              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 5) },
-              factions: adjustFactionInfluence(s.factions, 'Faistas', 10)
+              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 1) },
+              factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
             };
           }
         },

@@ -31,6 +31,7 @@ import { workersAllianceFormation } from './workers_alliance_formation';
 import { crossroadsUprisingAlliance } from './crossroads_uprising_alliance';
 import { elections1936, elections1936Results } from './elections_1936';
 import { presidentialDissolutionOfCortes } from './presidential_dissolution';
+import { earlyGeneralElectionResults } from './early_general_election';
 import { ramonCampaignEvent1, ramonCampaignEvent2, ramonCampaignEvent3 } from './ramon_campaign_events';
 import { presidentialElectionDecision, presidentialElectionPrimary, presidentialElectionCandidateSelection, presidentialElectionAutoResolve, presidentialElectionCampaignMenu, presidentialElectionResults, presidentialElectionResultsRound2 } from './presidential_election_chain';
 import { asturiasRevolution, asturiasWarFailed } from './asturias_revolution';
@@ -47,6 +48,7 @@ export {
   elections1936, 
   elections1936Results, 
   presidentialDissolutionOfCortes, 
+  earlyGeneralElectionResults,
   ramonCampaignEvent1, 
   ramonCampaignEvent2, 
   ramonCampaignEvent3,
@@ -108,6 +110,7 @@ export const INITIAL_EVENTS = [
   elections1936,
   elections1936Results,
   presidentialDissolutionOfCortes,
+  earlyGeneralElectionResults,
   ramonCampaignEvent1,
   ramonCampaignEvent2,
   ramonCampaignEvent3,

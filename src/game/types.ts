@@ -9,6 +9,16 @@ export type { Party };
 // PRRevS is the CNT's electoral phase, not a separate ministerial identity.
 export type MinisterParty = Exclude<Party, 'PRRevS'> | 'CNT';
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
+// Targets of the Propaganda by the Deed assassination card.
+export type AssassinationTarget =
+  | 'franco'
+  | 'queipo'
+  | 'sanjurjo'
+  | 'sotelo'
+  | 'primo'
+  | 'ramiro'
+  | 'zamora'
+  | 'alfonso';
 
 // Legal stance identities intentionally exclude `PRRevS` and `Other`.
 // PRRevS is the CNT's electoral phase rather than an independent ideology;
@@ -155,6 +165,7 @@ export interface Card {
 export type CoalitionId =
   | 'provisional_government'
   | 'republican_socialist'   // 共和-社会党联盟
+  | 'republican_coalition'    // 共和派联盟
   | 'popular_front'           // 人民阵线
   | 'ceda_radical'            // CEDA-激进联盟
   | 'workers_alliance'        // 工人联盟 (PSOE + CNT)
@@ -168,13 +179,20 @@ export interface CoalitionState {
   formedAt: { year: number; month: number };
 }
 
+export type GovernmentCrisisCause = 'cohesion' | 'scripted';
+
+export interface GovernmentCrisis {
+  sequence: number;
+  coalitionId: CoalitionId;
+  cause: GovernmentCrisisCause;
+  occurredAt: { year: number; month: number };
+}
+
 export interface CoalitionDef {
   id: CoalitionId;
   name: string;
   nameZh: string;
   members: (Party | 'CNT_FAI')[];
-  minSeatShare: number;
-  canForm?: (state: GameState) => boolean;
   shouldDissolve?: (state: GameState, coalition: CoalitionState) => boolean;
   dissolveThreshold: number;
 }
@@ -210,17 +228,28 @@ export interface EventHistory {
   resolved: string[];
 }
 
+/**
+ * The subset of the game dispatcher that an event's custom UI may need.
+ * Keeping this contract in the data types prevents event definitions from
+ * importing GameContext and creating a runtime dependency cycle.
+ */
+export type GameEventDispatch = (action: {
+  type: 'RESOLVE_EVENT';
+  payload: (state: GameState) => Partial<GameState>;
+}) => void;
+
 export interface GameEvent {
   id: string;
   meta?: GameEventMeta;
   date?: { year: number; month: number };
   condition?: (state: GameState) => boolean;
+  repeatable?: boolean;
   title: string | ((state: GameState) => string);
   titleZh?: string | ((state: GameState) => string);
   description: string;
   descriptionZh?: string;
   image?: string;
-  renderContent?: (state: GameState) => React.ReactNode;
+  renderContent?: (state: GameState, dispatch?: GameEventDispatch) => React.ReactNode;
   options: {
     text: string | ((state: GameState) => string);
     textZh?: string | ((state: GameState) => string);
@@ -264,6 +293,7 @@ export interface GameState {
   dues: number;
   fundraising_timer: number;
   propaganda_timer: number;
+  propaganda_by_deed_timer: number;
   mitin_popular_timer: number;
   prrevs_campaign_timer: number;
   organizations_timer: number;
@@ -330,6 +360,9 @@ export interface GameState {
   activeCoalitions: CoalitionState[];
   rulingCoalition: CoalitionId | null;
   coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];
+  governmentCrisis: GovernmentCrisis | null;
+  governmentCrisisSequence: number;
+  earlyElectionInProgress: boolean;
 
   coalition_dissent?: number;
   gibraltar_resolved?: boolean;
@@ -458,6 +491,18 @@ export interface GameState {
   ideological_propaganda: number;
   radio: number;
   cinema: number;
+  // Propaganda by the Deed state: a global assassination success-rate baseline
+  // that drops after every attempt (success drops it more), plus per-target and
+  // general training bonuses.
+  assassination_success_base: number;
+  assassination_training: Partial<Record<AssassinationTarget, number>>;
+  assassination_training_general: number;
+  calvoSoteloStatus: 'alive' | 'dead';
+  primoDeRiveraStatus: 'alive' | 'dead';
+  ramiroLedesmaStatus: 'alive' | 'dead';
+  zamoraStatus: 'alive' | 'dead';
+  alfonsoXIIIStatus: 'alive' | 'dead';
+  fe_leadership_crisis: boolean;
   socialism: number;
   nationalism: number;
   pacifism: number;
@@ -493,10 +538,9 @@ export interface GameState {
   dissolutionCount: number;
   impeachPresidentAvailable: boolean;
   isPresidentImpeached: boolean;
-  coalition_just_dissolved: boolean;
   coupSystemActive: boolean;
   molaStatus: 'republic' | 'nationalist';
-  queipoStatus: 'republic' | 'nationalist';
+  queipoStatus: 'republic' | 'nationalist' | 'dead';
   coupTriggered10: boolean;
   coupTriggered20: boolean;
   coupTriggered30: boolean;

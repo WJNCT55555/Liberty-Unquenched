@@ -143,7 +143,7 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
         </p>
         {event.renderContent && (
           <div className="mt-6">
-            {event.renderContent(state)}
+            {event.renderContent(state, dispatch)}
           </div>
         )}
       </div>

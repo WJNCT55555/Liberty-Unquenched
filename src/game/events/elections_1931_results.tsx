@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import type { GameEvent, Party, GameState, MinisterParty } from '../types';
+import type { GameEvent, Party, GameState, GameEventDispatch, MinisterParty } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
-import { useGame } from '../GameContext';
 import { cn } from '../../lib/utils';
-import { calculateElectionResults, formCoalition, adjustFactionDissents } from '../utils';
+import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
 
 const election1931Meta = {
   category: 'politics' as const,
@@ -150,7 +149,7 @@ export const elections1931Results: GameEvent = {
         };
 
         // Directly activate the 'republican_socialist' coalition!
-        const finalState = formCoalition(baseState, 'republican_socialist', true);
+        const finalState = formRulingCoalitionFromElection(baseState, 'republican_socialist');
         return {
           ...finalState,
           currentEvent: null
@@ -209,7 +208,8 @@ export const elections1931Results: GameEvent = {
           }
         }
 
-        return {
+        const baseState = {
+          ...state,
           cortes: newCortes,
           ministers: updatedMinisters,
           government: {
@@ -220,6 +220,12 @@ export const elections1931Results: GameEvent = {
             primeMinisterZh: pmZh
           },
           pendingEvents: nextEvents
+        };
+
+        const finalState = formRulingCoalitionFromElection(baseState, 'republican_coalition');
+        return {
+          ...finalState,
+          currentEvent: null
         };
       }
     }
@@ -317,8 +323,7 @@ export const cabinetFormation1931: GameEvent = {
   ]
 };
 
-const MinisterSelectionComponent: React.FC<{ state: GameState }> = ({ state }) => {
-  const { dispatch } = useGame();
+const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEventDispatch }> = ({ state, dispatch }) => {
   const isZh = state.language === 'zh';
   const initialLeverage = state.leverage ?? 15;
 
@@ -546,8 +551,8 @@ export const ministerAllocation: GameEvent = {
   titleZh: '部长分配',
   description: 'We have agreed to join the cabinet. We now have political leverage to demand specific ministries. The more powerful the ministry, the more leverage it requires. What shall we demand?',
   descriptionZh: '我们同意加入内阁。我们现在拥有政治筹码来要求特定的部长职位。部门越强大，需要的筹码就越多。我们要要求什么？',
-  renderContent: (state) => {
-    return <MinisterSelectionComponent state={state} />;
+  renderContent: (state, dispatch) => {
+    return dispatch ? <MinisterSelectionComponent state={state} dispatch={dispatch} /> : null;
   },
   options: []
 };

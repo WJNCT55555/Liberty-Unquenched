@@ -45,7 +45,7 @@ export const strike: Card = {
             return {
               stats: {
                 ...s.stats,
-                workerControl: Math.min(100, s.stats.workerControl + 15),
+                workerControl: Math.min(100, s.stats.workerControl + 5),
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10 * multiplier),
               },
               factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
@@ -64,7 +64,7 @@ export const strike: Card = {
               factions: adjustAllActiveFactionDissent(s.factions, -5),
               stats: {
                 ...s.stats,
-                revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 8 * multiplier),
+                revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 3 * multiplier),
               }
             };
           }
@@ -76,8 +76,8 @@ export const strike: Card = {
           subtitleZh: '将罢工重点放在具体的经济和工作场所诉求上：更高的薪资、安全标准和缩短工时。',
           effect: (s) => {
             let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 5);
-            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 5);
+            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2);
+            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2);
 
             return {
               classes: newClasses,

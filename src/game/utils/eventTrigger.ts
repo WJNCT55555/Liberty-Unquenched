@@ -24,7 +24,7 @@ export function isAtOrAfter(value: YearMonth, year: number, month: number): bool
 }
 
 export function isEventRepeatable(event: GameEvent): boolean {
-  return event.meta?.tags?.includes('repeatable') ?? false;
+  return event.repeatable ?? false;
 }
 
 export function hasEventBeenHandled(state: GameState, eventId: string): boolean {

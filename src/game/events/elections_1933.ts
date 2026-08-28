@@ -1,6 +1,6 @@
 import React from 'react';
 import type { GameEvent, Party, MinisterParty } from '../types';
-import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElectionResults, formCoalition } from '../utils';
+import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElectionResults, formRulingCoalitionFromElection } from '../utils';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
@@ -222,18 +222,11 @@ export const elections1933Results: GameEvent = {
           }
         };
 
-        const finalState = formCoalition(baseState, 'ceda_radical', true);
+        const finalState = formRulingCoalitionFromElection(baseState, 'ceda_radical');
 
         return {
-          cortes: finalState.cortes,
-          cntStance: finalState.cntStance,
-          ministers: finalState.ministers,
-          government: finalState.government,
-          domesticPolicy: finalState.domesticPolicy,
-          stats: finalState.stats,
-          rulingCoalition: finalState.rulingCoalition,
-          activeCoalitions: finalState.activeCoalitions,
-          coalitionHistory: finalState.coalitionHistory
+          ...finalState,
+          currentEvent: null
         };
       }
     }

@@ -72,7 +72,6 @@ export const crossroadsUprisingAlliance: GameEvent = {
           factions: newFactions,
           journal: updatedJournal,
           activeCoalitions: nextState.activeCoalitions,
-          rulingCoalition: nextState.rulingCoalition,
           coalitionHistory: nextState.coalitionHistory,
           stats: {
             ...nextState.stats

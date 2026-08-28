@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { GameState, Card, Advisor, GameEvent, EventHistory } from './types';
-import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve, autoFormCoalitionIfNeeded } from './utils';
+import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve } from './utils';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
@@ -659,6 +659,7 @@ export const INITIAL_STATE: GameState = {
   dues: 2,
   fundraising_timer: 0,
   propaganda_timer: 0,
+  propaganda_by_deed_timer: 0,
   mitin_popular_timer: 0,
   prrevs_campaign_timer: 0,
   organizations_timer: 0,
@@ -817,6 +818,15 @@ export const INITIAL_STATE: GameState = {
   ideological_propaganda: 0,
   radio: 0,
   cinema: 0,
+  assassination_success_base: 65,
+  assassination_training: {},
+  assassination_training_general: 0,
+  calvoSoteloStatus: 'alive',
+  primoDeRiveraStatus: 'alive',
+  ramiroLedesmaStatus: 'alive',
+  zamoraStatus: 'alive',
+  alfonsoXIIIStatus: 'alive',
+  fe_leadership_crisis: false,
   socialism: 0,
   nationalism: 0,
   pacifism: 0,
@@ -850,7 +860,6 @@ export const INITIAL_STATE: GameState = {
   dissolutionCount: 0,
   impeachPresidentAvailable: false,
   isPresidentImpeached: false,
-  coalition_just_dissolved: false,
   coupSystemActive: false,
   molaStatus: 'republic',
   queipoStatus: 'republic',
@@ -914,6 +923,9 @@ export const INITIAL_STATE: GameState = {
   activeCoalitions: [],
   rulingCoalition: null,
   coalitionHistory: [],
+  governmentCrisis: null,
+  governmentCrisisSequence: 0,
+  earlyElectionInProgress: false,
   coalition_dissent: 0,
 };
 
@@ -1158,7 +1170,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         impeachPresidentAvailable: action.payload.scenario === '1936',
         isPresidentImpeached: action.payload.scenario === '1936', // In July 1936, the impeachment has already completed and Azaña is president
         presidentElectionSeen: action.payload.scenario === '1936',
-        coalition_just_dissolved: false,
         government: {
           type: action.payload.scenario === '1936' ? 'Popular Front Cabinet' : (action.payload.scenario === '1933' ? 'Radical-CEDA Coalition' : 'Provisional Government'),
           typeZh: action.payload.scenario === '1936' ? '人民阵线内阁' : (action.payload.scenario === '1933' ? '激进党-CEDA联合政府' : '临时政府'),
@@ -1860,31 +1871,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           }
         }
 
-        const eventCheckState = {
-          ...state,
-          month: nextMonth,
-          year: nextYear,
-          civilWarStatus: newCivilWarStatus,
-          prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0
-        } as GameState;
-
-        // Add other regular events based on date or condition
-        let monthlyEvents = INITIAL_EVENTS.filter(e => shouldQueueEvent(e, eventCheckState, {
-          mode: getEventTriggerMode(state.difficulty),
-          date: { year: nextYear, month: nextMonth },
-          pendingEvents: state.pendingEvents,
-          currentEvent: state.currentEvent,
-        }));
-
-        if (state.forceAsturiasRevolutionNextMonth) {
-          const asturiasEventObj = INITIAL_EVENTS.find(e => e.id === 'asturias_revolution');
-          if (asturiasEventObj && !monthlyEvents.some(e => e.id === 'asturias_revolution') && !state.pendingEvents.some(pe => pe.id === 'asturias_revolution') && state.currentEvent?.id !== 'asturias_revolution') {
-            monthlyEvents.push(asturiasEventObj);
-          }
-        }
-
-        newPendingEvents = [...newPendingEvents, ...monthlyEvents];
-        
         // Map updates: resource income and move reset
         const nextMapResources = { ...state.mapResources } as Record<MapFaction, ResourceSet>;
         const updatedNextArmies = (state.armies || []).map(army => ({
@@ -2331,7 +2317,48 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           tempState.activeCoalitions = updateCoalitions(tempState);
         }
         tempState = checkCoalitionDissolve(tempState);
-        tempState = autoFormCoalitionIfNeeded(tempState);
+
+        // Event conditions observe the fully updated next-month state, including
+        // coalition maintenance and any newly created government crisis.
+        newPendingEvents = [...tempState.pendingEvents];
+        let monthlyEvents = INITIAL_EVENTS.filter(e => shouldQueueEvent(e, tempState, {
+          mode: getEventTriggerMode(state.difficulty),
+          date: { year: nextYear, month: nextMonth },
+          pendingEvents: newPendingEvents,
+          currentEvent: state.currentEvent,
+        }));
+
+        if (state.forceAsturiasRevolutionNextMonth) {
+          const asturiasEventObj = INITIAL_EVENTS.find(e => e.id === 'asturias_revolution');
+          if (asturiasEventObj && !monthlyEvents.some(e => e.id === 'asturias_revolution') && !newPendingEvents.some(pe => pe.id === 'asturias_revolution') && state.currentEvent?.id !== 'asturias_revolution') {
+            monthlyEvents.push(asturiasEventObj);
+          }
+        }
+
+        newPendingEvents = [...newPendingEvents, ...monthlyEvents];
+
+        const electionChainIds = new Set([
+          'elections_1933',
+          'elections_1933_results',
+          'elections_1936',
+          'elections_1936_results',
+          'presidential_dissolution_of_cortes',
+          'early_general_election_results',
+        ]);
+        const electionAlreadyScheduled = newPendingEvents.some(event => electionChainIds.has(event.id))
+          || Boolean(state.currentEvent && electionChainIds.has(state.currentEvent.id));
+
+        if (
+          tempState.governmentCrisis
+          && !tempState.earlyElectionInProgress
+          && tempState.civilWarStatus !== 'ongoing'
+          && !electionAlreadyScheduled
+        ) {
+          const dissolutionEvent = INITIAL_EVENTS.find(event => event.id === 'presidential_dissolution_of_cortes');
+          if (dissolutionEvent) {
+            newPendingEvents = [dissolutionEvent, ...newPendingEvents];
+          }
+        }
 
         let finalProvinces = tempState.provinces || state.provinces || INITIAL_PROVINCES;
         let finalArmies = tempState.armies || state.armies || INITIAL_ARMIES;
@@ -2362,6 +2389,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           militiaReorgTimer: Math.max(0, state.militiaReorgTimer - 1),
           tankTimer: Math.max(0, state.tankTimer - 1),
           propaganda_timer: Math.max(0, state.propaganda_timer - 1),
+          propaganda_by_deed_timer: Math.max(0, state.propaganda_by_deed_timer - 1),
           internationalBrigades: newIntBrigades,
           internationalBrigadesFormed: newIntBrigadesFormed,
           superEvent: newSuperEvent,
@@ -2758,7 +2786,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Level 60: 凯波入局
       if (newState.coupProgress >= 60 && !newState.coupTriggered60) {
         newState.coupTriggered60 = true;
-        newState.queipoStatus = 'nationalist';
+        // A dead Queipo de Llano cannot join the conspiracy; the level's effect is skipped.
+        if (newState.queipoStatus !== 'dead') {
+          newState.queipoStatus = 'nationalist';
+        }
       }
       // Level 70: 外援暗流
       if (newState.coupProgress >= 70 && !newState.coupTriggered70) {
@@ -2771,10 +2802,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Level 80: 佛朗哥倒戈
       if (newState.coupProgress >= 80 && !newState.coupTriggered80) {
         newState.coupTriggered80 = true;
-        if (newState.armedForces && newState.armedForces.regularArmy) {
-          newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 5);
+        // A dead Franco cannot defect; the whole level effect is skipped.
+        if (newState.francoStatus !== 'dead') {
+          if (newState.armedForces && newState.armedForces.regularArmy) {
+            newState.armedForces.regularArmy.loyalty = Math.max(0, newState.armedForces.regularArmy.loyalty - 5);
+          }
+          newState.francoStatus = 'nationalist';
         }
-        newState.francoStatus = 'nationalist';
       }
       // Level 90: 箭在弦上
       if (newState.coupProgress >= 90 && !newState.coupTriggered90) {

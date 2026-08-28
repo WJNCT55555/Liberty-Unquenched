@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && node scripts/audit-coalition-authority.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

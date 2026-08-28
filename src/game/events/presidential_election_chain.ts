@@ -27,15 +27,16 @@ export const presidentialElectionDecision: GameEvent = {
   id: 'presidential_election_decision',
   meta: presidentialElectionMeta,
   condition: (state) => {
-    // Only triggers automatically if president has been impeached, civil war hasn't started, and we haven't seen it yet.
+    // Only triggers automatically if the president has left office (impeachment
+    // or assassination), civil war hasn't started, and we haven't seen it yet.
     return state.isPresidentImpeached === true && 
            state.civilWarStatus === 'not_started' && 
            !state.presidentElectionSeen;
   },
   title: 'The Presidential Election',
   titleZh: '共和国总统选举',
-  description: 'Niceto Alcalá-Zamora has been impeached and removed from office. Speaker Diego Martínez Barrio is acting as interim president until a new president is chosen by an electoral college of 940 members — the 470 current deputies of the Cortes and 470 newly elected electors.\n\nThe left-wing camp is split between two camps: Manuel Azaña, representing republican order and stable reforms, and — if the CNT is ready to unleash this beast — Ramón Franco with his radical Iberian federalist dream. In the center stands interim president Martínez Barrio of the moderate democratic wing of the Radical Republicans. On the right, the forces are united under José María Gil-Robles of CEDA.\n\nThe CNT National Committee now faces the first major threshold: shall we intervene and participate in this state election?',
-  descriptionZh: '尼塞托·阿尔卡拉-萨莫拉已被弹劾罢免。议长迭戈·马丁内斯·巴里奥将担任临时总统，直至新总统经由940名选举人团成员——470名现任议员加上470名另行普选的选举人——选出。\n\n左翼阵营分裂为两股力量：曼努埃尔·阿萨尼亚代表着共和秩序与渐进改革，而——若CNT准备释放这头野兽——拉蒙·佛朗哥代表着极端联邦派的狂想。在中间地带站着临时总统马丁内斯·巴里奥本人，激进共和党的温和民主翼。右翼则统一在CEDA领袖吉尔-罗伯斯的旗下。\n\n全国委员会现在面临第一道门槛：我们是否介入并参与这场总统大选？',
+  description: 'Niceto Alcalá-Zamora has left the presidency. Speaker Diego Martínez Barrio is acting as interim president until a new president is chosen by an electoral college of 940 members — the 470 current deputies of the Cortes and 470 newly elected electors.\n\nThe left-wing camp is split between two camps: Manuel Azaña, representing republican order and stable reforms, and — if the CNT is ready to unleash this beast — Ramón Franco with his radical Iberian federalist dream. In the center stands interim president Martínez Barrio of the moderate democratic wing of the Radical Republicans. On the right, the forces are united under José María Gil-Robles of CEDA.\n\nThe CNT National Committee now faces the first major threshold: shall we intervene and participate in this state election?',
+  descriptionZh: '尼塞托·阿尔卡拉-萨莫拉已离开总统职位。议长迭戈·马丁内斯·巴里奥将担任临时总统，直至新总统经由940名选举人团成员——470名现任议员加上470名另行普选的选举人——选出。\n\n左翼阵营分裂为两股力量：曼努埃尔·阿萨尼亚代表着共和秩序与渐进改革，而——若CNT准备释放这头野兽——拉蒙·佛朗哥代表着极端联邦派的狂想。在中间地带站着临时总统马丁内斯·巴里奥本人，激进共和党的温和民主翼。右翼则统一在CEDA领袖吉尔-罗伯斯的旗下。\n\n全国委员会现在面临第一道门槛：我们是否介入并参与这场总统大选？',
   options: [
     {
       text: 'Abstain. "Aborrecemos a todo gobernante."',

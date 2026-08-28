@@ -475,7 +475,15 @@ export const SandboxMenu = () => {
                       {state.activeCoalitions && state.activeCoalitions.length > 0 && (
                         <button 
                           onClick={() => {
-                            dispatch({ type: 'SANDBOX_EDIT', payload: { activeCoalitions: [], rulingCoalition: null } });
+                            dispatch({
+                              type: 'SANDBOX_EDIT',
+                              payload: {
+                                activeCoalitions: [],
+                                rulingCoalition: null,
+                                governmentCrisis: null,
+                                earlyElectionInProgress: false,
+                              },
+                            });
                           }}
                           className="p-2 border border-dashed border-cnt-red text-[11px] font-mono text-center uppercase tracking-wide text-cnt-red hover:bg-cnt-red hover:text-paper hover:border-solid transition-all mt-1"
                         >

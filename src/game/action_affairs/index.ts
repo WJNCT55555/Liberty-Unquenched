@@ -10,6 +10,7 @@ import { cntFaiDisunityManagement } from './cnt_fai_disunity_management';
 import { cntChooseEnemies } from './choosing_our_enemies';
 import { cntInterPartyRelationships } from './inter_party_relationships';
 import { landAndFreedom } from './land_and_freedom';
+import { propagandaByDeed } from './propaganda_by_deed';
 
 export const ACTION_AFFAIRS = [
   strike,
@@ -23,5 +24,6 @@ export const ACTION_AFFAIRS = [
   cntFaiDisunityManagement,
   cntChooseEnemies,
   cntInterPartyRelationships,
-  landAndFreedom
+  landAndFreedom,
+  propagandaByDeed
 ];

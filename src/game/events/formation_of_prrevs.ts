@@ -28,6 +28,7 @@ export const formationOfPRRevS: GameEvent = {
       !state.prrevsAbandoned &&
       deferralElapsed;
   },
+  repeatable: true,
   title: 'Formation of the PRRevS',
   titleZh: '建立革命共和工团党',
   description: 'Ángel Pestaña and the moderate wing of the CNT have been laying the groundwork for a political party. They argue that traditional anarcho-syndicalism is insufficient to protect workers\' interests within the Republic. They propose the creation of the Partido Republicano Revolucionario Sindicalista (PRRevS) to contest elections and participate in the government. This move would fundamentally change the nature of our movement, alienating the purists but potentially gaining us political power.',
