@@ -894,8 +894,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
                     {isZh
-                      ? '【军费决定忠诚】国防常规开销比例（和平时期预期 15% ）。低于预期会导致常规陆军军官深感愤怒不满，右翼军官暗中勾结，军事政变概率持续飙升；增加国防支出可以极高抑制政变并每月自动生产多达数十倍的武器军备。'
-                      : 'Defense funding limits. Underfunding below 15% Peacetime standard sparks army officer mutiny, directly accelerating military coup progress. Higher rates yield automated armaments.'}
+                      ? '【军费决定忠诚】该指标衡量西班牙国家整体军事开支，只影响财政支出、军官忠诚与政变风险，不会增加 CNT 私藏军备。和平时期军备每两个月增加 1，战争时期每月增加 1。'
+                      : "This measures Spain's national military spending. It affects the budget, officer loyalty, and coup risk, but does not generate the CNT's clandestine armaments. Armaments increase by 1 every two months in peace and by 1 each month at war."}
                   </p>
                   <div className="flex justify-end gap-1">
                     <button onClick={() => handleAdjustValue('military_spending', -10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-10%</button>

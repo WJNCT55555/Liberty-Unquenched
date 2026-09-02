@@ -1,5 +1,50 @@
-import { Card } from '../types';
+import { Card, GameEvent, GameState } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionInfluence } from '../utils';
+import { effectPreviewFromEffect } from '../effectPreview';
+
+type SyndicateExpansionEffect = GameEvent['options'][number]['effect'];
+
+const organizeUrbanFactories: SyndicateExpansionEffect = (state: GameState): Partial<GameState> => {
+  const classes = adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 3);
+
+  return {
+    classes,
+    factions: adjustFactionInfluence(state.factions, 'Cenetistas', 5),
+    stats: {
+      ...state.stats,
+      workerControl: Math.min(100, state.stats.workerControl + 2)
+    }
+  };
+};
+
+const organizeRuralCollectives: SyndicateExpansionEffect = (state: GameState): Partial<GameState> => {
+  const classes = adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', 3);
+
+  return {
+    classes,
+    factions: adjustFactionInfluence(state.factions, 'Faistas', 5),
+    stats: {
+      ...state.stats,
+      workerControl: Math.min(100, state.stats.workerControl + 1)
+    }
+  };
+};
+
+const focusOnCurrentIssues: SyndicateExpansionEffect = (state: GameState): Partial<GameState> => {
+  const factions = adjustAllActiveFactionDissent(state.factions, 3);
+
+  return {
+    factions,
+    stats: {
+      ...state.stats,
+      revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5)
+    }
+  };
+};
+
+const preview = (effect: SyndicateExpansionEffect) => (state: GameState) => {
+  return effectPreviewFromEffect(state, effect);
+};
 
 export const syndicateExpansion: Card = {
   id: 'syndicate_expansion',
@@ -19,51 +64,28 @@ export const syndicateExpansion: Card = {
       descriptionZh: '我们的力量源于组织。从巴塞罗那庞大的纺织厂到安达卢西亚阳光普照的橄榄林，我们必须织就一张革命工团的网络。每一位新成员都是新社会基石上的一块砖。我们必须选择将组织者派往何处：是无产阶级集中的工业中心，还是公有制精神依然旺盛的农村村落。',
       options: [
         {
-          text: 'Urban Factories (+Workers Support, +Cenetistas)',
-          textZh: '城市工厂 (+工人支持, +工团派影响力)',
+          text: 'Urban Factories',
+          textZh: '城市工厂',
           subtitle: 'Focus on organizing in industrial hubs and factories.',
           subtitleZh: '专注于工业中心和工厂的组织工作，巩固城市无产阶级基础。',
-          effect: (s) => {
-            let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3);
-            return {
-              classes: newClasses,
-              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 2) },
-              factions: adjustFactionInfluence(s.factions, 'Cenetistas', 5)
-            };
-          }
+          effectPreview: preview(organizeUrbanFactories),
+          effect: organizeUrbanFactories
         },
         {
-          text: 'Rural Collectives (+Peasants Support, +Faistas)',
-          textZh: '农村集体农庄 (+农民支持, +无政府派影响力)',
+          text: 'Rural Collectives',
+          textZh: '农村集体农庄',
           subtitle: 'Establish anarchist collectives in the countryside.',
           subtitleZh: '在农村地区建立无政府主义集体，争取贫苦农民的坚定支持。',
-          effect: (s) => {
-            let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 3);
-            return {
-              classes: newClasses,
-              stats: { ...s.stats, workerControl: Math.min(100, s.stats.workerControl + 1) },
-              factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
-            };
-          }
+          effectPreview: preview(organizeRuralCollectives),
+          effect: organizeRuralCollectives
         },
         {
-          text: 'Focus on current issues (All Faction Dissent +3, -5 Revolutionary Fervor)',
-          textZh: '专注现有问题 (所有派系分歧 +3, -5 革命热情)',
+          text: 'Focus on current issues',
+          textZh: '专注现有问题',
           subtitle: 'Address internal administrative issues instead of expanding.',
           subtitleZh: '处理内部行政和琐碎事务而非扩张，这会引发无休止的讨论并降低革命热情。',
-          effect: (s) => {
-            const newFactions = adjustAllActiveFactionDissent(s.factions, 3);
-
-            return {
-              factions: newFactions,
-              stats: { 
-                ...s.stats, 
-                revolutionaryFervor: Math.max(0, s.stats.revolutionaryFervor - 5) 
-              }
-            };
-          }
+          effectPreview: preview(focusOnCurrentIssues),
+          effect: focusOnCurrentIssues
         }
       ]
     }

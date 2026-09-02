@@ -723,6 +723,18 @@ const buildFallbackPreview = (
   return lines;
 };
 
+/**
+ * Builds a deterministic preview from the same effect callback that resolves
+ * an option. Card definitions can use this for an explicit effectPreview
+ * without duplicating gameplay arithmetic in a second callback.
+ */
+export const effectPreviewFromEffect = (
+  state: GameState,
+  effect: GameEvent['options'][number]['effect']
+): EffectPreviewLine[] => {
+  return buildFallbackPreview(state, { text: '', effect });
+};
+
 export const getOptionEffectPreview = (
   state: GameState,
   option: GameEvent['options'][number]

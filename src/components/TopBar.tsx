@@ -11,6 +11,12 @@ import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
 import { LawStanceModal } from './LawStanceModal';
 
+const formatCompactNumber = (value: number): string => {
+  if (!Number.isFinite(value)) return '0';
+  const rounded = Math.abs(value) < 0.005 ? 0 : Number(value.toFixed(2));
+  return String(rounded);
+};
+
 export const TopBar = () => {
   const { state, dispatch } = useGame();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -76,7 +82,7 @@ export const TopBar = () => {
               {isZh ? '自由未烬' : 'Liberty Unquenched'}
             </h1>
             <span className="font-typewriter text-[10px] tracking-widest uppercase opacity-70">
-              `${getPartyName(state, 'CNT_FAI', isZh, true)} ${isZh ? '全国委员会' : 'Comité Nacional'}`
+              {`${getPartyName(state, 'CNT_FAI', isZh, true)} ${isZh ? '全国委员会' : 'Comité Nacional'}`}
             </span>
           </div>
           
@@ -344,7 +350,7 @@ const StatItem = ({ icon, label, value, isAlert }: { icon: React.ReactNode; labe
   <div className="flex flex-col items-center">
     <div className={cn("flex items-center gap-1.5 mb-1", isAlert ? "text-cnt-red animate-pulse" : "")}>
       {icon}
-      <span className="font-mono text-lg tracking-tight">{value}%</span>
+      <span className="font-mono text-lg tracking-tight">{formatCompactNumber(value)}%</span>
     </div>
     <span className="text-[9px] uppercase tracking-widest opacity-60">{label}</span>
   </div>
@@ -354,7 +360,7 @@ const ResourceItem = ({ icon, label, value }: { icon: React.ReactNode; label: st
   <div className="flex flex-col items-center">
     <div className="flex items-center gap-1.5 mb-1">
       {icon}
-      <span className="font-mono text-lg tracking-tight">{value}</span>
+      <span className="font-mono text-lg tracking-tight">{formatCompactNumber(value)}</span>
     </div>
     <span className="text-[9px] uppercase tracking-widest opacity-60">{label}</span>
   </div>

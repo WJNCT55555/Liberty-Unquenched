@@ -929,6 +929,11 @@ export const INITIAL_STATE: GameState = {
   coalition_dissent: 0,
 };
 
+export const getMonthlyArmamentIncome = (isAtWar: boolean, nextMonth: number): number => {
+  if (isAtWar) return 1;
+  return nextMonth % 2 === 0 ? 1 : 0;
+};
+
 interface GameContextType {
   state: GameState;
   dispatch: (action: GameAction) => void;
@@ -1833,8 +1838,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Calculate periodic income
         // Base income + bonus from worker control (collectivization)
         const resourceIncome = 1 + Math.floor(state.stats.workerControl / 20);
-        // Base armament income
-        const armamentIncome = 1;
+        // CNT clandestine armaments are independent from Spain's national
+        // military budget: +1 every two months in peace, +1 monthly at war.
+        const isAtWar = state.civilWarStatus === 'ongoing' || Boolean(state.activeWar);
+        const armamentIncome = getMonthlyArmamentIncome(isAtWar, nextMonth);
         
         // International Brigades Logic
         let newIntBrigades = state.internationalBrigades;
@@ -2024,10 +2031,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const nextFx = (tempState.foreign_exchange !== undefined ? tempState.foreign_exchange : 180.0) + tradeFxYield;
         tempState.foreign_exchange = parseFloat(Math.max(0, Math.min(2500, nextFx)).toFixed(2));
 
-        // 4. Arms Generation & Army Loyalty based on Military Spending
-        const monthlyArmamentsYield = (milSpendVal / 15) * 0.15 * (isCivilWar ? 2.5 : 1.0);
-        tempState.armaments = parseFloat((tempState.armaments + monthlyArmamentsYield).toFixed(2));
-
+        // 4. Army Loyalty based on Spain's national military spending.
         const milLoyaltyFactor = (milSpendVal - 15) * 0.12;
         const newArmyLoyalty = Math.max(0, Math.min(100, (tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50) + milLoyaltyFactor));
 

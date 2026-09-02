@@ -1,5 +1,5 @@
 import type { GameEvent } from '../types';
-import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
+import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 
 const cntFourthCongressMeta = {
   category: 'cnt' as const,
@@ -420,7 +420,7 @@ export const cnt_fourth_congress_0: GameEvent = {
   id: 'cnt_fourth_congress_0',
   meta: cntFourthCongressMeta,
   date: { year: 1936, month: 5 },
-  condition: (state) => isAtOrAfter(state, 1936, 5),
+  condition: (state) => state.year === 1936 && state.month === 5,
   title: 'The Fourth Congress of the CNT Convenes',
   titleZh: 'CNT第四次代表大会召开',
   description: `May 1, 1936, Zaragoza. Hundreds of delegates gathered together, representing over a million proletarians across the Iberian Peninsula, officially kicking off the Fourth Congress of the CNT. But before discussing the grand blueprint of the revolution, the Congress must first set the tone. Thousands of comrades are still suffering in capitalist prisons at home and abroad; the Congress unanimously approved the proposal of the National Committee to send greetings to all social prisoners, and even to all so-called common prisoners throughout the world, wishing them an early freedom.`,

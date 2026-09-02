@@ -1,6 +1,144 @@
 import { Card, GameState, GameEvent } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionDissent, adjustFactionDissents, getDissentMultiplier } from '../utils';
+import { effectPreviewFromEffect } from '../effectPreview';
 
+type MediaEffect = GameEvent['options'][number]['effect'];
+
+const broadenAppeal: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
+  const factions = adjustFactionDissents(state.factions, { Faistas: 10, Puristas: 10 });
+
+  return {
+    resources: state.resources + 1,
+    classes,
+    factions,
+    commercialized_propaganda: state.commercialized_propaganda + 1
+  };
+};
+
+const strengthenMobilization: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
+
+  return {
+    resources: state.resources - 1,
+    classes,
+    campaign_propaganda: state.campaign_propaganda + 1
+  };
+};
+
+const encourageIdeologicalDebate: MediaEffect = (state: GameState): Partial<GameState> => {
+  const factions = adjustAllActiveFactionDissent(state.factions, -6);
+
+  return {
+    factions,
+    socialism: state.socialism + 1,
+    nationalism: state.nationalism + 1,
+    pacifism: state.pacifism + 1,
+    democratization: state.democratization + 1,
+    pro_republic: state.pro_republic + 1,
+    ideological_propaganda: state.ideological_propaganda + 1
+  };
+};
+
+const fundClandestineRadio: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
+  const factions = adjustFactionDissent(state.factions, 'Faistas', 5);
+
+  return {
+    resources: state.resources - 2,
+    classes,
+    factions,
+    radio: 1,
+    socialism: state.socialism + 3 * dissentFactor,
+    nationalism: state.pacifism > 1
+      ? state.nationalism - 3 * dissentFactor
+      : state.nationalism,
+    pro_republic: state.democratization > 1
+      ? state.pro_republic + 3 * dissentFactor
+      : state.pro_republic
+  };
+};
+
+const expandRadioNetwork: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
+
+  return {
+    resources: state.resources - 1,
+    classes,
+    radio: state.radio + 1,
+    socialism: state.socialism + 3 * dissentFactor,
+    nationalism: state.pacifism > 2
+      ? state.nationalism - 3 * dissentFactor * (state.pacifism - 2)
+      : state.nationalism,
+    pro_republic: state.democratization > 2
+      ? state.pro_republic + 3 * dissentFactor * (state.democratization - 2)
+      : state.pro_republic
+  };
+};
+
+const expandSelfSufficientRadio: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Intelectuales', 'CNT_FAI', 4 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Braceros', 'CNT_FAI', 3 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', 2 * dissentFactor);
+
+  return {
+    classes,
+    radio: state.radio + 1,
+    socialism: state.socialism + 3 * dissentFactor,
+    nationalism: state.pacifism > 2
+      ? state.nationalism - 3 * dissentFactor * (state.pacifism - 2)
+      : state.nationalism,
+    pro_republic: state.democratization > 2
+      ? state.pro_republic + 3 * dissentFactor * (state.democratization - 2)
+      : state.pro_republic
+  };
+};
+
+const fundAnarchistCinema: MediaEffect = (state: GameState): Partial<GameState> => {
+  const dissentFactor = getDissentMultiplier(state.factions);
+  let classes = state.classes;
+  classes = adjustClassSupport(classes, 'Intelectuales', 'CNT_FAI', 5 * dissentFactor);
+  classes = adjustClassSupport(classes, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
+  classes = adjustClassSupport(classes, 'Braceros', 'CNT_FAI', dissentFactor);
+  const factions = adjustFactionDissent(state.factions, 'Treintistas', 3);
+
+  return {
+    resources: state.resources - 3,
+    classes,
+    factions,
+    cinema: 1,
+    socialism: state.socialism + 2 * dissentFactor,
+    nationalism: state.nationalism - dissentFactor,
+    pro_republic: state.democratization > 1
+      ? state.pro_republic + 2 * dissentFactor
+      : state.pro_republic
+  };
+};
+
+const waitOnPropaganda: MediaEffect = (): Partial<GameState> => ({});
+
+const preview = (effect: MediaEffect) => (state: GameState) => {
+  return effectPreviewFromEffect(state, effect);
+};
 
 export const media: Card = {
   id: 'media',
@@ -14,194 +152,97 @@ export const media: Card = {
   effect: (state) => {
     const options: GameEvent['options'] = [
       {
-        text: 'Make our publications more accessible by broadening their appeal beyond militant circles.',
-        textZh: '通过扩大受众范围，使我们的出版物超越激进圈子，从而更易获得。',
+        text: 'Broaden Our Appeal',
+        textZh: '扩大受众',
         subtitle: 'This might upset ideological purists, but it may bring in more funds and perhaps expose the middle class to libertarian socialist ideas.',
         subtitleZh: '这可能会让意识形态纯粹主义者不满，但它可能带来更多资金，并可能让中产阶级接触到自由社会主义思想。',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
-          
-          const newFactions = adjustFactionDissents(s.factions, { Faistas: 10, Puristas: 10 });
-          
-          return {
-            resources: s.resources + 1,
-            commercialized_propaganda: s.commercialized_propaganda + 1,
-            classes: newClasses,
-            factions: newFactions,
-          };
-        },
+        effectPreview: preview(broadenAppeal),
+        effect: broadenAppeal
       },
       {
-        text: 'The purpose of our propaganda is to strengthen revolutionary mobilization. (-1 resource)',
-        textZh: '我们宣传的目的是加强革命动员。 (-1 资源)',
+        text: 'Strengthen Revolutionary Mobilization',
+        textZh: '加强革命动员',
         subtitle: 'Our newspapers will focus on the revolutionary struggle and union organizing.',
         subtitleZh: '我们的报纸将专注于革命斗争和工会组织。',
         condition: (s: GameState) => s.resources >= 1,
-        unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
-        unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 2 * dissentFactor);
-          
-          return {
-            resources: s.resources - 1,
-            campaign_propaganda: s.campaign_propaganda + 1,
-            classes: newClasses,
-          };
-        },
+        unavailableSubtitle: () => 'Need at least 1 resource',
+        unavailableSubtitleZh: () => '需要至少 1 资源',
+        effectPreview: preview(strengthenMobilization),
+        effect: strengthenMobilization
       },
       {
-        text: 'We will have vibrant ideological debate within our publications.',
-        textZh: '我们将在出版物中进行充满活力的意识形态辩论。',
+        text: 'Encourage Ideological Debate',
+        textZh: '鼓励意识形态辩论',
         subtitle: 'There will be space for all tendencies—Treintistas, Cenetistas, Faistas, and Puristas—to air their views.',
         subtitleZh: '所有派别——三十人集团、工团派、无政府主义者和纯粹派——都有空间发表自己的观点。',
-        effect: (s: GameState) => {
-          const newFactions = adjustAllActiveFactionDissent(s.factions, -6);
-          
-          return { 
-            factions: newFactions,
-            socialism: s.socialism + 1,
-            nationalism: s.nationalism + 1,
-            pacifism: s.pacifism + 1,
-            democratization: s.democratization + 1,
-            pro_republic: s.pro_republic + 1,
-            ideological_propaganda: s.ideological_propaganda + 1,
-          };
-        },
+        effectPreview: preview(encourageIdeologicalDebate),
+        effect: encourageIdeologicalDebate
       },
     ];
 
     // Radio options
     if (state.radio === 0) {
       options.push({
-        text: 'Why not fund a clandestine radio station? (-2 resources)',
-        textZh: '为什么不资助一个秘密广播电台呢？ (-2 资源)',
+        text: 'Fund a Clandestine Radio Station',
+        textZh: '资助秘密广播电台',
         subtitle: 'Radio can reach those who cannot read, spreading our message across the airwaves.',
         subtitleZh: '广播可以触及那些不识字的人，通过电波传播我们的信息。',
         condition: (s: GameState) => s.resources >= 2,
-        unavailableSubtitle: (s: GameState) => 'Need at least 2 resources',
-        unavailableSubtitleZh: (s: GameState) => '需要至少 2 资源',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 4 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
-          
-          const newFactions = adjustFactionDissent(s.factions, 'Faistas', 5);
-          
-          return {
-            radio: 1,
-            resources: s.resources - 2,
-            classes: newClasses,
-            factions: newFactions,
-            socialism: s.socialism + 3 * dissentFactor,
-            nationalism: s.pacifism > 1 ? s.nationalism - 3 * dissentFactor : s.nationalism,
-            pro_republic: s.democratization > 1 ? s.pro_republic + 3 * dissentFactor : s.pro_republic,
-          };
-        },
+        unavailableSubtitle: () => 'Need at least 2 resources',
+        unavailableSubtitleZh: () => '需要至少 2 资源',
+        effectPreview: preview(fundClandestineRadio),
+        effect: fundClandestineRadio
       });
     }
 
     if (state.radio > 0 && state.radio <= 3) {
       options.push({
-        text: 'We must keep on building up our radio network. (-1 resources)',
-        textZh: '我们必须继续建立我们的广播网络。 (-1 资源)',
+        text: 'Expand the Radio Network',
+        textZh: '扩建广播网络',
         subtitle: 'Expand our reach to more cities and towns.',
         subtitleZh: '将我们的影响力扩展到更多的城镇。',
         condition: (s: GameState) => s.resources >= 1,
-        unavailableSubtitle: (s: GameState) => 'Need at least 1 resource',
-        unavailableSubtitleZh: (s: GameState) => '需要至少 1 资源',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 3 * dissentFactor);
-          
-          return {
-            radio: s.radio + 1,
-            resources: s.resources - 1,
-            classes: newClasses,
-            socialism: s.socialism + 3 * dissentFactor,
-            nationalism: s.pacifism > 2 ? s.nationalism - 3 * dissentFactor * (s.pacifism - 2) : s.nationalism,
-            pro_republic: s.democratization > 2 ? s.pro_republic + 3 * dissentFactor * (s.democratization - 2) : s.pro_republic,
-          };
-        },
+        unavailableSubtitle: () => 'Need at least 1 resource',
+        unavailableSubtitleZh: () => '需要至少 1 资源',
+        effectPreview: preview(expandRadioNetwork),
+        effect: expandRadioNetwork
       });
     }
 
     if (state.radio > 3 && state.radio <= 5) {
       options.push({
-        text: 'We must keep on building up our radio network. (Self-sufficient)',
-        textZh: '我们必须继续建立我们的广播网络。 (自给自足)',
+        text: 'Expand the Self-Sufficient Radio Network',
+        textZh: '扩建自给自足的广播网络',
         subtitle: 'Our network is now large enough to sustain itself through local contributions.',
         subtitleZh: '我们的网络现在已经大到足以通过地方捐助维持自身运转。',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 5 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 4 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 4 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Labradores', 'CNT_FAI', 2 * dissentFactor);
-          
-          return {
-            radio: s.radio + 1,
-            classes: newClasses,
-            socialism: s.socialism + 3 * dissentFactor,
-            nationalism: s.pacifism > 2 ? s.nationalism - 3 * dissentFactor * (s.pacifism - 2) : s.nationalism,
-            pro_republic: s.democratization > 2 ? s.pro_republic + 3 * dissentFactor * (s.democratization - 2) : s.pro_republic,
-          };
-        },
+        effectPreview: preview(expandSelfSufficientRadio),
+        effect: expandSelfSufficientRadio
       });
     }
 
     // Cinema option
     if (state.cinema === 0) {
       options.push({
-        text: 'Anarchism on the Silver Screen (-3 resources)',
-        textZh: '银幕上的无政府主义 (-3 资源)',
+        text: 'Anarchism on the Silver Screen',
+        textZh: '银幕上的无政府主义',
         subtitle: 'Cinema is a powerful tool for mass education and inspiration.',
         subtitleZh: '电影是进行大众教育和激励的强大工具。',
         condition: (s: GameState) => s.resources >= 3,
-        unavailableSubtitle: (s: GameState) => 'Need at least 3 resources',
-        unavailableSubtitleZh: (s: GameState) => '需要至少 3 资源',
-        effect: (s: GameState) => {
-          const dissentFactor = getDissentMultiplier(s.factions);
-          let newClasses = s.classes;
-          newClasses = adjustClassSupport(newClasses, 'Intelectuales', 'CNT_FAI', 5 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'CNT_FAI', 3 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2 * dissentFactor);
-          newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 1 * dissentFactor);
-          
-          const newFactions = adjustFactionDissent(s.factions, 'Treintistas', 3);
-          
-          return {
-            cinema: 1,
-            resources: s.resources - 3,
-            classes: newClasses,
-            factions: newFactions,
-            socialism: s.socialism + 2 * dissentFactor,
-            nationalism: s.nationalism - 1 * dissentFactor,
-            pro_republic: s.democratization > 1 ? s.pro_republic + 2 * dissentFactor : s.pro_republic,
-          };
-        },
+        unavailableSubtitle: () => 'Need at least 3 resources',
+        unavailableSubtitleZh: () => '需要至少 3 资源',
+        effectPreview: preview(fundAnarchistCinema),
+        effect: fundAnarchistCinema
       });
     }
 
     // Final option
     options.push({
-      text: 'We should not do anything with propaganda at the moment.',
-      textZh: '目前我们不应该对宣传采取任何行动。',
+      text: 'Do Nothing for Now',
+      textZh: '暂不行动',
       subtitle: 'Sometimes the best action is to wait and see.',
       subtitleZh: '有时最好的行动就是静观其变。',
-      effect: (s: GameState) => ({}),
+      effectPreview: preview(waitOnPropaganda),
+      effect: waitOnPropaganda
     });
 
     return {
@@ -218,6 +259,4 @@ export const media: Card = {
     };
   },
 };
-
-
 
