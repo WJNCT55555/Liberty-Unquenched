@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { EventBoard } from './EventBoard';
 import { EffectPreviewTooltip } from './EffectPreviewTooltip';
 import { getOptionEffectPreview } from '../game/effectPreview';
+import { isOrganizationEstablished } from '../game/organizations';
 
 export const MainArea = () => {
   const { state, dispatch } = useGame();
@@ -49,7 +50,7 @@ export const MainArea = () => {
               <div className="flex flex-row gap-8 justify-center">
                 <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
                 <DeckView type="Governmental" onSelectOpen={setSelectedDeckForChoice} />
-                {(state.civilWarStatus !== 'not_started' || state.militaryDeckEnabled) && (
+                {(state.civilWarStatus !== 'not_started' || isOrganizationEstablished(state, 'DC')) && (
                   <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
                 )}
               </div>

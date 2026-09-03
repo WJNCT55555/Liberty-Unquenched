@@ -3,6 +3,7 @@ import { adjustClassSupport, adjustFactionDissent, adjustFactionInfluence } from
 import { ramonFranco } from '../advisors/ramon_franco';
 import { eduardoBarriobero } from '../advisors/eduardo_barriobero';
 import { pedroVallina } from '../advisors/pedro_vallina';
+import { isOrganizationEstablished } from '../organizations';
 
 const prrevsMeta = {
   category: 'politics' as const,
@@ -14,7 +15,7 @@ export const jabaliEvent: GameEvent = {
   id: 'jabali',
   meta: prrevsMeta,
   condition: (state) => {
-    return !state.isJabaliTriggered && state.isPRRevSFormed && state.prrevs_formed_months >= 1;
+    return !state.isJabaliTriggered && isOrganizationEstablished(state, 'PRRevS') && state.prrevs_formed_months >= 1;
   },
   title: 'Jabalí?',
   titleZh: '野猪议员？',

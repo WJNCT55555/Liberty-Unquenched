@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents } from '../utils';
+import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
 
 const prrevsMeta = {
   category: 'cnt' as const,
@@ -24,7 +25,7 @@ export const formationOfPRRevS: GameEvent = {
       state.cntStance === 'govern' &&
       state.factions.Treintistas.influence > 60 &&
       state.prrevsConstructionLevel >= 4 &&
-      !state.isPRRevSFormed &&
+      !isOrganizationEstablished(state, 'PRRevS') &&
       !state.prrevsAbandoned &&
       deferralElapsed;
   },
@@ -55,7 +56,7 @@ export const formationOfPRRevS: GameEvent = {
             bureaucratization: Math.min(100, state.stats.bureaucratization + 5),
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 15)
           },
-          isPRRevSFormed: true,
+          ...setOrganizationEstablished(state, 'PRRevS'),
           prrevsDeferralDate: undefined,
           prrevsAbandoned: undefined
         };

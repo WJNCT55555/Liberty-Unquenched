@@ -126,6 +126,16 @@ export function formRulingCoalitionFromElection(state: GameState, id: CoalitionI
   };
 }
 
+/** Debug-only ruling-coalition installation for the sandbox controls. */
+export function formRulingCoalitionFromSandbox(state: GameState, id: CoalitionId): GameState {
+  const nextState = establishCoalition(state, id, true);
+  return {
+    ...nextState,
+    governmentCrisis: null,
+    earlyElectionInProgress: false,
+  };
+}
+
 export function adjustMemberContribution(state: GameState, party: Party, amount: number, targetCoalitionId?: CoalitionId): GameState {
   if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
   

@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { isOrganizationEstablished } from '../organizations';
 
 export const angelPestana: Advisor = {
   id: 'Ángel Pestaña',
@@ -64,7 +65,7 @@ export const angelPestana: Advisor = {
       subtitleZh: '为建立工团主义政党奠定基础。',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0 && !state.isPRRevSFormed,
+      condition: (state) => state.advisorActionTimer <= 0 && !isOrganizationEstablished(state, 'PRRevS'),
       effect: (state) => {
         let newFactions = JSON.parse(JSON.stringify(state.factions));
         newFactions = adjustFactionInfluence(newFactions, 'Treintistas', 2);

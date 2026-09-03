@@ -1,5 +1,6 @@
 import React from 'react';
 import { GameState } from '../game/types';
+import { calculateMonthlyEconomy, ECONOMIC_RULES } from '../game/rules/economy';
 import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, ShieldCheck, HelpCircle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
 
 interface Props {
@@ -92,180 +93,181 @@ const SingleIndicatorLineChart: React.FC<{
   currentYear: number;
   currentMonth: number;
   metric: 'growth' | 'inflation' | 'unemployment';
+  currentValue: number;
   color: string;
   isZh: boolean;
-}> = ({ history, currentYear, currentMonth, metric, color, isZh }) => {
-  // Generate data for months 1 to 12 of currentYear
-  const monthsData = Array.from({ length: 12 }, (_, i) => {
-    const m = i + 1;
-    const record = history.find(h => h.year === currentYear && h.month === m);
+}> = ({ history, currentYear, currentMonth, metric, currentValue, color, isZh }) => {
+  const monthsData = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const record = history.find(item => item.year === currentYear && item.month === month);
     return {
-      month: m,
-      value: record ? record[metric] : null
+      month,
+      // The current state is not written to history until the month advances.
+      // Include it immediately so a new game still has a meaningful data point.
+      value: record?.[metric] ?? (month === currentMonth ? currentValue : null),
     };
   });
 
-  // Filter out nulls to find min and max for scaling
-  const activePoints = monthsData.filter(d => d.value !== null) as { month: number; value: number }[];
+  const activePoints = monthsData.filter((point): point is { month: number; value: number } => point.value !== null);
+  const values = activePoints.map(point => point.value);
+  const rawMin = values.length > 0 ? Math.min(...values) : currentValue;
+  const rawMax = values.length > 0 ? Math.max(...values) : currentValue;
+  const rawRange = rawMax - rawMin;
+  const minimumRange = metric === 'growth' ? 1 : 0.5;
+  const paddedRange = Math.max(rawRange * 1.2, minimumRange);
+  const paddedMin = rawMin - (paddedRange - rawRange) / 2;
+  const paddedMax = rawMax + (paddedRange - rawRange) / 2;
 
-  let minVal = 0;
-  let maxVal = 10;
-  if (activePoints.length > 0) {
-    const values = activePoints.map(p => p.value);
-    minVal = Math.max(0, Math.min(...values) - 0.5);
-    maxVal = Math.max(1, Math.max(...values) + 0.5);
-  }
-  const valRange = maxVal - minVal || 1;
+  // Use a small set of human-readable ticks, similar to grand-strategy UI
+  // charts, while keeping the scale focused on the months actually played.
+  const roughStep = (paddedMax - paddedMin) / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, Number.EPSILON)));
+  const normalizedStep = roughStep / magnitude;
+  const niceStep = (normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10) * magnitude;
+  const minVal = Math.floor(paddedMin / niceStep) * niceStep;
+  const maxVal = Math.ceil(paddedMax / niceStep) * niceStep;
+  const valRange = Math.max(maxVal - minVal, niceStep);
+  const yTicks = Array.from({ length: 5 }, (_, index) => maxVal - index * (valRange / 4));
+  const tickStep = valRange / 4;
 
-  const width = 180;
-  const height = 50;
-  const padLeft = 16;
-  const padRight = 6;
-  const padTop = 6;
-  const padBottom = 12;
-
-  const getX = (m: number) => {
-    return padLeft + ((m - 1) / 11) * (width - padLeft - padRight);
+  const formatValue = (value: number) => {
+    const decimals = tickStep >= 1 ? 0 : tickStep >= 0.25 ? 1 : 2;
+    return `${value.toFixed(decimals).replace(/\.0+$|(?<=\.[0-9])0+$/, '')}%`;
   };
 
-  const getY = (v: number) => {
-    const ratio = (v - minVal) / valRange;
-    return height - padBottom - ratio * (height - padTop - padBottom);
-  };
-
-  // Generate SVG path for the active line segment
-  let pathD = '';
-  if (activePoints.length > 0) {
-    pathD = activePoints
-      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(p.month).toFixed(1)} ${getY(p.value).toFixed(1)}`)
-      .join(' ');
-  }
-
-  const monthLabels = isZh 
-    ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
-    : ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-
+  const width = 240;
+  const height = 126;
+  const padLeft = 38;
+  const padRight = 8;
+  const padTop = 8;
+  const padBottom = 23;
+  const plotWidth = width - padLeft - padRight;
+  const plotHeight = height - padTop - padBottom;
+  const getX = (month: number) => padLeft + ((month - 1) / 11) * plotWidth;
+  const getQuarterBoundaryX = (lastMonthInQuarter: number) => (getX(lastMonthInQuarter) + getX(lastMonthInQuarter + 1)) / 2;
+  const getY = (value: number) => height - padBottom - ((value - minVal) / valRange) * plotHeight;
+  const pathD = activePoints
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${getX(point.month).toFixed(1)} ${getY(point.value).toFixed(1)}`)
+    .join(' ');
   const [hoveredM, setHoveredM] = React.useState<number | null>(null);
+  const hoveredPoint = hoveredM === null ? null : activePoints.find(point => point.month === hoveredM);
 
   return (
-    <div className="flex flex-col justify-between select-none">
-      <div className="relative w-full h-[50px]">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-          {/* Horizontal dashed guide grid lines */}
-          {[0, 0.5, 1].map((r, i) => {
-            const val = minVal + r * valRange;
-            const y = getY(val);
-            return (
-              <g key={i} className="opacity-20">
-                <line
-                  x1={padLeft}
-                  y1={y}
-                  x2={width - padRight}
-                  y2={y}
-                  stroke="currentColor"
-                  strokeWidth="0.3"
-                  strokeDasharray="1 1.5"
-                  className="text-ink"
-                />
-                <text
-                  x={padLeft - 3}
-                  y={y + 1.5}
-                  textAnchor="end"
-                  fontSize="5.5"
-                  className="fill-ink-light font-mono"
-                >
-                  {val.toFixed(0)}
-                </text>
-              </g>
-            );
-          })}
+    <div className="relative w-full h-[126px] select-none">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+        {/* Horizontal grid and dynamic Y-axis labels. */}
+        {yTicks.map((tick, index) => {
+          const y = getY(tick);
+          return (
+            <g key={`y-${index}`}>
+              <line
+                x1={padLeft}
+                y1={y}
+                x2={width - padRight}
+                y2={y}
+                stroke="currentColor"
+                strokeWidth="0.35"
+                strokeDasharray="1.5 2"
+                className="text-ink opacity-25"
+              />
+              <text x={padLeft - 4} y={y + 2.5} textAnchor="end" fontSize="7" className="fill-ink-light font-mono">
+                {formatValue(tick)}
+              </text>
+            </g>
+          );
+        })}
 
-          {/* Line Path */}
-          {pathD && (
-            <path
-              d={pathD}
-              fill="none"
-              stroke={color}
-              strokeWidth="1.25"
-              strokeLinecap="round"
-              className="opacity-90"
+        {/* Monthly guides plus quarter dividers between March/April, June/July, and September/October. */}
+        {monthsData.map(point => {
+          return (
+            <line
+              key={`x-${point.month}`}
+              x1={getX(point.month)}
+              y1={padTop}
+              x2={getX(point.month)}
+              y2={height - padBottom}
+              stroke="currentColor"
+              strokeWidth="0.3"
+              strokeDasharray="1 2"
+              className="text-ink opacity-20"
             />
-          )}
+          );
+        })}
+        {[3, 6, 9].map(lastMonthInQuarter => (
+          <line
+            key={`quarter-${lastMonthInQuarter}`}
+            x1={getQuarterBoundaryX(lastMonthInQuarter)}
+            y1={padTop}
+            x2={getQuarterBoundaryX(lastMonthInQuarter)}
+            y2={height - padBottom}
+            stroke="currentColor"
+            strokeWidth="0.8"
+            className="text-ink opacity-45"
+          />
+        ))}
 
-          {/* Invisible interactive columns for month hovering */}
-          {monthsData.map((d, i) => {
-            const x = getX(d.month);
-            const colWidth = (width - padLeft - padRight) / 11;
-            return (
+        {/* Explicit axes. */}
+        <line x1={padLeft} y1={padTop} x2={padLeft} y2={height - padBottom} stroke="currentColor" strokeWidth="0.8" className="text-ink opacity-70" />
+        <line x1={padLeft} y1={height - padBottom} x2={width - padRight} y2={height - padBottom} stroke="currentColor" strokeWidth="0.8" className="text-ink opacity-70" />
+
+        {pathD && (
+          <path d={pathD} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="opacity-90" />
+        )}
+
+        {/* Month hover targets and labels. */}
+        {monthsData.map(point => {
+          const x = getX(point.month);
+          const isCurrent = point.month === currentMonth;
+          const isFuture = point.month > currentMonth;
+          const colWidth = plotWidth / 11;
+          return (
+            <g key={`month-${point.month}`}>
               <rect
-                key={i}
                 x={x - colWidth / 2}
                 y={padTop}
                 width={colWidth}
-                height={height - padTop - padBottom}
+                height={plotHeight}
                 fill="transparent"
                 className="cursor-pointer"
-                onMouseEnter={() => d.value !== null && setHoveredM(d.month)}
+                onMouseEnter={() => point.value !== null && setHoveredM(point.month)}
                 onMouseLeave={() => setHoveredM(null)}
               />
-            );
-          })}
-
-          {/* Active dots */}
-          {activePoints.map((p, i) => {
-            const cx = getX(p.month);
-            const cy = getY(p.value);
-            const isCurrent = p.month === currentMonth;
-            const isHovered = p.month === hoveredM;
-            return (
-              <g key={i}>
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={isCurrent ? "2.2" : isHovered ? "2.0" : "1.2"}
-                  fill={color}
-                  stroke={isCurrent || isHovered ? "#fff" : "none"}
-                  strokeWidth="0.75"
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Hover label */}
-        {hoveredM !== null && (() => {
-          const point = activePoints.find(p => p.month === hoveredM);
-          if (!point) return null;
-          return (
-            <div className="absolute right-1 top-1 bg-slate-900 border border-white/10 text-white text-[7px] font-mono rounded px-1 py-0.5 pointer-events-none select-none z-50">
-              {hoveredM}{isZh ? '月' : 'M'}: <span className="font-bold">{point.value.toFixed(1)}%</span>
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* X-axis labels */}
-      <div className="flex justify-between text-[7px] font-mono text-ink-light px-1 border-t border-ink/5 pt-0.5 mt-0.5">
-        {monthLabels.map((lbl, idx) => {
-          const m = idx + 1;
-          const isCurrent = m === currentMonth;
-          const isFut = m > currentMonth;
-          return (
-            <span 
-              key={idx} 
-              className={`w-3 text-center transition-all ${
-                isCurrent 
-                  ? 'font-bold text-ink scale-110' 
-                  : isFut 
-                    ? 'opacity-30' 
-                    : 'opacity-70'
-              }`}
-            >
-              {lbl}
-            </span>
+              <text
+                x={x}
+                y={height - 7}
+                textAnchor="middle"
+                fontSize="7"
+                className={`font-mono ${isCurrent ? 'fill-ink font-bold' : isFuture ? 'fill-ink-light opacity-35' : 'fill-ink-light opacity-75'}`}
+              >
+                {point.month}
+              </text>
+            </g>
           );
         })}
-      </div>
+
+        {/* Active data points. */}
+        {activePoints.map(point => {
+          const isCurrent = point.month === currentMonth;
+          const isHovered = point.month === hoveredM;
+          return (
+            <circle
+              key={`point-${point.month}`}
+              cx={getX(point.month)}
+              cy={getY(point.value)}
+              r={isCurrent ? 2.6 : isHovered ? 2.3 : 1.5}
+              fill={color}
+              stroke={isCurrent || isHovered ? '#fff' : 'none'}
+              strokeWidth="0.8"
+            />
+          );
+        })}
+      </svg>
+
+      {hoveredPoint && (
+        <div className="absolute right-1 top-1 bg-slate-900 border border-white/10 text-white text-[8px] font-mono rounded px-1.5 py-0.5 pointer-events-none select-none z-50">
+          {hoveredPoint.month}{isZh ? '月' : 'M'}: <span className="font-bold">{formatValue(hoveredPoint.value)}</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -287,9 +289,15 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
     min = 1,
     max = 100
   ) => {
-    const currentVal = state[key] !== undefined 
-      ? (state[key] as number) 
-      : (key === 'military_spending' ? 15 : 10);
+    const defaults: Record<typeof key, number> = {
+      tax_lower_class: ECONOMIC_RULES.defaults.lowerTax,
+      tax_middle_class: ECONOMIC_RULES.defaults.middleTax,
+      tax_upper_class: ECONOMIC_RULES.defaults.upperTax,
+      tax_tariff: ECONOMIC_RULES.defaults.tariff,
+      tax_consumption: ECONOMIC_RULES.defaults.consumptionTax,
+      military_spending: ECONOMIC_RULES.defaults.militarySpending,
+    };
+    const currentVal = state[key] !== undefined ? (state[key] as number) : defaults[key];
     const newVal = Math.max(min, Math.min(max, currentVal + amount));
     dispatch({
       type: 'UPDATE_TAXES',
@@ -299,73 +307,27 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
     });
   };
 
-  const isCivilWar = state.civilWarStatus === 'ongoing';
-  const milSpendVal = state.military_spending !== undefined ? state.military_spending : 15;
-
-  // Live Revenue Calculation
-  const taxLowerRate = (state.tax_lower_class !== undefined ? state.tax_lower_class : 5) / 100;
-  const taxMiddleRate = (state.tax_middle_class !== undefined ? state.tax_middle_class : 15) / 100;
-  const taxUpperRate = (state.tax_upper_class !== undefined ? state.tax_upper_class : 25) / 100;
-  const taxTarRate = (state.tax_tariff !== undefined ? state.tax_tariff : 10) / 100;
-  const taxConsRate = (state.tax_consumption !== undefined ? state.tax_consumption : 8) / 100;
-
-  const incomeTaxRev = (taxLowerRate * 4.0) + (taxMiddleRate * 3.5) + (taxUpperRate * 4.5);
-  const tariffRev = taxTarRate * (isCivilWar ? 2.0 : 5.0);
-  const consumptionTaxRev = taxConsRate * 8.0;
-  const estimatedRevenue = incomeTaxRev + tariffRev + consumptionTaxRev;
-
-  // Live Expenditures Calculation (including new variables)
-  let estimatedExpenditures = 1.0; // Basic civil administration
-  let maxHoursCost = 0;
-  switch (state.domesticPolicy.max_hours_law) {
-    case 2: maxHoursCost = 0.15; break;
-    case 3: maxHoursCost = 0.25; break;
-    case 4: maxHoursCost = 0.4; break;
-    default: maxHoursCost = 0; break;
-  }
-  estimatedExpenditures += maxHoursCost;
-
-  let workplaceSafetyCost = 0;
-  switch (state.domesticPolicy.workplace_safety) {
-    case 1: workplaceSafetyCost = 0.05; break;
-    case 2: workplaceSafetyCost = 0.1; break;
-    case 3: workplaceSafetyCost = 0.2; break;
-    case 4: workplaceSafetyCost = 0.35; break;
-    default: workplaceSafetyCost = 0; break;
-  }
-  estimatedExpenditures += workplaceSafetyCost;
-  
-  let minWageCost = 0;
-  switch (state.domesticPolicy.min_wage) {
-    case 1: minWageCost = 0.05; break;
-    case 2: minWageCost = 0.15; break;
-    case 3: minWageCost = 0.30; break;
-    case 4: minWageCost = 0.50; break;
-    default: minWageCost = 0; break;
-  }
-  estimatedExpenditures += minWageCost;
-
-  let educationCost = 0;
-  if (state.domesticPolicy.education_institutions === 2) {
-    educationCost = 0.05;
-  } else if (state.domesticPolicy.education_institutions === 3) {
-    educationCost = 0.10;
-  }
-  estimatedExpenditures += educationCost;
-
-  if (isCivilWar) estimatedExpenditures += 3.5;
-
-  const milCost = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
-  const debtInterestCost = (state.public_debt !== undefined ? state.public_debt : 500.0) * ((isCivilWar ? 0.05 : 0.02) / 12);
-  const landLawLevel = state.domesticPolicy.land_law ?? (state.domesticPolicy.land_reform_law_enabled ? 1 : 0);
-  const isLandReformPaused = (landLawLevel === 1) && (state.budget <= 0);
-  const landCompCost = (landLawLevel === 1 && !isLandReformPaused) ? 0.4 : 0.0;
-
-  estimatedExpenditures += milCost;
-  estimatedExpenditures += debtInterestCost;
-  estimatedExpenditures += landCompCost;
-
-  const estimatedDelta = estimatedRevenue - estimatedExpenditures;
+  const economy = calculateMonthlyEconomy(state);
+  const isCivilWar = economy.isCivilWar;
+  const manualTaxAdjustmentEnabled = state.difficulty === 'sandbox'
+    && state.sandboxManualTaxAdjustmentEnabled === true;
+  const milSpendVal = state.military_spending !== undefined ? state.military_spending : ECONOMIC_RULES.defaults.militarySpending;
+  const taxDefaults = ECONOMIC_RULES.defaults;
+  const { incomeTax: incomeTaxRev, tariff: tariffRev, consumptionTax: consumptionTaxRev, total: estimatedRevenue } = economy.revenue;
+  const {
+    civilAdministration: civilAdministrationCost,
+    maxHours: maxHoursCost,
+    workplaceSafety: workplaceSafetyCost,
+    minimumWage: minWageCost,
+    education: educationCost,
+    womensRights: womensRightsCost,
+    warMobilization: warMobilizationCost,
+    military: milCost,
+    debtInterest: debtInterestCost,
+    landCompensation: landCompCost,
+    total: estimatedExpenditures,
+  } = economy.expenditure;
+  const { budgetDelta: estimatedDelta, landLawLevel, landReformPaused: isLandReformPaused } = economy;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -416,6 +378,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       currentYear={state.year}
                       currentMonth={state.month}
                       metric="growth"
+                      currentValue={state.economy_growth ?? ECONOMIC_RULES.defaults.growth}
                       color="#2563eb"
                       isZh={isZh}
                     />
@@ -437,6 +400,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       currentYear={state.year}
                       currentMonth={state.month}
                       metric="inflation"
+                      currentValue={state.inflation_rate ?? ECONOMIC_RULES.defaults.inflation}
                       color="#dc2626"
                       isZh={isZh}
                     />
@@ -458,6 +422,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       currentYear={state.year}
                       currentMonth={state.month}
                       metric="unemployment"
+                      currentValue={state.unemployment_rate ?? 11.2}
                       color="#7e22ce"
                       isZh={isZh}
                     />
@@ -563,7 +528,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
 
                   <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                     <span>{isZh ? '・政府基础行政款:' : '• Civilian Administration:'}</span>
-                    <span className="font-bold text-ink">1.00M ₧</span>
+                    <span className="font-bold text-ink">{civilAdministrationCost.toFixed(2)}M ₧</span>
                   </div>
                   {maxHoursCost > 0 && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
@@ -589,10 +554,16 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       <span className="font-bold text-ink">{educationCost.toFixed(2)}M ₧</span>
                     </div>
                   )}
+                  {womensRightsCost > 0 && (
+                    <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
+                      <span>{isZh ? '・女性权利财政拨款:' : '• Women’s Rights Allocation:'}</span>
+                      <span className="font-bold text-ink">{womensRightsCost.toFixed(2)}M ₧</span>
+                    </div>
+                  )}
                   {isCivilWar && (
                     <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                       <span>{isZh ? '・内战全面动员战争开销:' : '• War Mobilization Cost:'}</span>
-                      <span className="font-bold text-ink">3.50M ₧</span>
+                      <span className="font-bold text-ink">{warMobilizationCost.toFixed(2)}M ₧</span>
                     </div>
                   )}
                   <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
@@ -651,12 +622,13 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   <div className="flex flex-col items-center text-center gap-1.5 leading-none">
                     <MinimalPieChart
                       data={[
-                        { label: isZh ? '政府行政' : 'Civil Admin', value: 1.0, color: '#64748b' },
+                        { label: isZh ? '政府行政' : 'Civil Admin', value: civilAdministrationCost, color: '#64748b' },
                         { label: isZh ? '最高工时' : 'Max Hours', value: maxHoursCost, color: '#a855f7' },
                         { label: isZh ? '工作安全' : 'Workplace Safety', value: workplaceSafetyCost, color: '#7c3aed' },
                         { label: isZh ? '最低工资' : 'Min Wage', value: minWageCost, color: '#ec4899' },
                         { label: isZh ? '教育制度' : 'Education', value: educationCost, color: '#0ea5e9' },
-                        { label: isZh ? '内战开销' : 'War Cost', value: isCivilWar ? 3.5 : 0, color: '#ef4444' },
+                        { label: isZh ? '女性权利' : 'Women’s Rights', value: womensRightsCost, color: '#f472b6' },
+                        { label: isZh ? '内战开销' : 'War Cost', value: warMobilizationCost, color: '#ef4444' },
                         { label: isZh ? '常备军费' : 'Defense Mil', value: milCost, color: '#b91c1c' },
                         { label: isZh ? '债务利息' : 'Debt Int', value: debtInterestCost, color: '#0f172a' },
                         { label: isZh ? '土改补偿' : 'Land Comp', value: landLawLevel === 1 ? landCompCost : 0, color: '#eab308' },
@@ -760,7 +732,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       {isZh ? '无产阶级所得税' : 'Working Class Income Tax'}
                     </span>
                     <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
-                      {state.tax_lower_class !== undefined ? state.tax_lower_class : 5}%
+                      {state.tax_lower_class !== undefined ? state.tax_lower_class : taxDefaults.lowerTax}%
                     </span>
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
@@ -768,12 +740,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '直接对广大工农无产阶级个人课税。由于其人数极其庞杂，稍微增加一百分点会导致购买力严重缩水，损害整体 GDP 增长率，但能稍许降低总通胀。'
                       : 'A tax on the bulk of the population. Higher rates squeeze general consumer spending and GDP growth, but curb high inflation.'}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('tax_lower_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('tax_lower_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('tax_lower_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('tax_lower_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('tax_lower_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                      <button onClick={() => handleAdjustValue('tax_lower_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('tax_lower_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('tax_lower_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Middle Class Tax */}
@@ -784,7 +758,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       {isZh ? '中产阶层所得税' : 'Middle Class Income Tax'}
                     </span>
                     <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
-                      {state.tax_middle_class !== undefined ? state.tax_middle_class : 15}%
+                      {state.tax_middle_class !== undefined ? state.tax_middle_class : taxDefaults.middleTax}%
                     </span>
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
@@ -792,12 +766,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '针对办事员、小职员、中小商业家等阶层的税率。相较无产阶级，购买力挤压温和一些，是较为平稳的国库来源。'
                       : 'Levy on local shopkeepers and civil servants. Solid treasury contribution with slightly reduced populist anger, but mildly slows trade.'}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('tax_middle_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('tax_middle_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('tax_middle_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('tax_middle_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('tax_middle_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                      <button onClick={() => handleAdjustValue('tax_middle_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('tax_middle_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('tax_middle_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 3. Upper Class Tax */}
@@ -808,7 +784,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       {isZh ? '上层阶级所得税' : 'Upper Class Income Tax'}
                     </span>
                     <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
-                      {state.tax_upper_class !== undefined ? state.tax_upper_class : 25}%
+                      {state.tax_upper_class !== undefined ? state.tax_upper_class : taxDefaults.upperTax}%
                     </span>
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
@@ -816,12 +792,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '课征于寡头、重工豪强和庄园大地主的累进税。最丰厚的财富来源，但过高征税会导致资本外流或停产罢工，失业率会随之明显攀升。'
                       : 'Highly progressive income levy on industrial magnates and landed grandees. Deep treasury yield, but too high levels freeze local hiring.'}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('tax_upper_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('tax_upper_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('tax_upper_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('tax_upper_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('tax_upper_class', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                      <button onClick={() => handleAdjustValue('tax_upper_class', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('tax_upper_class', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('tax_upper_class', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 4. Import Tariffs */}
@@ -832,7 +810,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       {isZh ? '对外关税' : 'Import Tariffs'}
                     </span>
                     <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
-                      {state.tax_tariff !== undefined ? state.tax_tariff : 10}%
+                      {state.tax_tariff !== undefined ? state.tax_tariff : taxDefaults.tariff}%
                     </span>
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
@@ -840,12 +818,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '对海外竞品设置重重壁垒以保护民族轻重工商业。能保证稳固外汇与部分关税收入，但直接抬高国内进口商品零售物价，导致极高通胀率。'
                       : 'Protects domestic trade via import walls. Generates protective tariff pools, but drives up raw price index (imports inflation).'}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('tax_tariff', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('tax_tariff', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('tax_tariff', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('tax_tariff', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('tax_tariff', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                      <button onClick={() => handleAdjustValue('tax_tariff', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('tax_tariff', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('tax_tariff', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 5. Consumption Tax */}
@@ -856,7 +836,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       {isZh ? '消费税' : 'Consumption Tax'}
                     </span>
                     <span className="font-mono font-bold text-xs bg-ink/5 px-1 py-0.5 rounded-sm">
-                      {state.tax_consumption !== undefined ? state.tax_consumption : 8}%
+                      {state.tax_consumption !== undefined ? state.tax_consumption : taxDefaults.consumptionTax}%
                     </span>
                   </div>
                   <p className="text-[9px] text-ink-light leading-snug mb-1.5">
@@ -864,12 +844,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '针对一切商业交易中的附加增值流通税。最不易随政治波动的全民税项，能极稳定提供收入，但对中低阶层购买力略带抑制。'
                       : 'A steady and broad transaction tax. Very stable revenue source, but broad levels reduce merchant exchange slightly.'}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('tax_consumption', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
-                    <button onClick={() => handleAdjustValue('tax_consumption', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('tax_consumption', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('tax_consumption', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('tax_consumption', -5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-5%</button>
+                      <button onClick={() => handleAdjustValue('tax_consumption', -1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('tax_consumption', 1, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('tax_consumption', 5, 1, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+5%</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

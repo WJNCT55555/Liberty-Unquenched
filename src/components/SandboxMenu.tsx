@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../game/GameContext';
 import { X, Plus, Minus } from 'lucide-react';
-import { Faction } from '../game/types';
+import type { CoalitionId, Faction } from '../game/types';
 import { MapFaction } from '../map/types_map';
 import { COALITION_DEFS } from '../game/coalitions';
-import { formCoalition } from '../game/utils';
+import { formCoalition, formRulingCoalitionFromSandbox } from '../game/utils';
 import { FACTION_NAMES } from '../game/labels';
 import { getPartyName } from '../game/partyNames';
+
+type CoalitionRole = 'ruling' | 'opposition';
 
 export const SandboxMenu = () => {
   const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
+  const [coalitionRole, setCoalitionRole] = useState<CoalitionRole>('opposition');
+  const [selectedCoalitionId, setSelectedCoalitionId] = useState<CoalitionId | null>(null);
   const isZh = state.language === 'zh';
 
   useEffect(() => {
@@ -79,6 +83,10 @@ export const SandboxMenu = () => {
   ] as const;
 
   const factionNames = FACTION_NAMES;
+  const activeCoalitions = state.activeCoalitions || [];
+  const selectedActiveCoalition = activeCoalitions.find(c => c.activeId === selectedCoalitionId)
+    || activeCoalitions.find(c => c.activeId === state.rulingCoalition)
+    || activeCoalitions[0];
 
   return (
     <AnimatePresence>
@@ -197,6 +205,31 @@ export const SandboxMenu = () => {
                     </span>
                     <span className="font-mono text-xs text-ink/75">
                       {isZh ? '启用后，点击三个牌库（行动、政府、武装）时将弹出所有卡牌面板供手选加入手牌。' : 'When enabled, clicking a card deck opens a panel of all available cards in that deck for you to select, rather than drawing randomly.'}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Sandbox Fiscal Controls */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '沙盒财政调试' : 'Sandbox Fiscal Controls'}
+                </h3>
+                <label className="flex items-center gap-3 bg-ink/5 p-4 cursor-pointer hover:bg-ink/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={state.sandboxManualTaxAdjustmentEnabled || false}
+                    onChange={(e) => handleEdit('sandboxManualTaxAdjustmentEnabled', e.target.checked)}
+                    className="w-5 h-5 accent-cnt-red cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-display text-lg">
+                      {isZh ? '开启手动调整税收' : 'Enable Manual Tax Adjustment'}
+                    </span>
+                    <span className="font-mono text-xs text-ink/75">
+                      {isZh
+                        ? '开启后，财政模态框中会显示 -5、-1、+1、+5 税率按钮。'
+                        : 'When enabled, the Finance modal shows -5, -1, +1, and +5 tax-rate buttons.'}
                     </span>
                   </div>
                 </label>
@@ -448,31 +481,68 @@ export const SandboxMenu = () => {
               {/* Coalition Sandbox Controls */}
               <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
                 <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
-                  {isZh ? '调试: 执政联盟' : 'Debug: Alliances & Coalitions'}
+                  {isZh ? '调试: 联盟与执政地位' : 'Debug: Alliances & Governing Status'}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Coalition selectors */}
                   <div className="flex flex-col gap-2">
                     <span className="text-xs font-semibold text-ink/70">
-                      {isZh ? '强行组建联盟' : 'Force Coalition Formation'}
+                      {isZh ? '强行组建联盟（选择地位）' : 'Force Coalition Formation (Choose Status)'}
                     </span>
+                    <div className="grid grid-cols-2 gap-1">
+                      <button
+                        onClick={() => setCoalitionRole('ruling')}
+                        className={`p-2 border text-[10px] font-mono text-center uppercase tracking-wide transition-all ${
+                          coalitionRole === 'ruling' ? 'bg-ink text-paper border-ink font-bold' : 'border-ink/40 hover:bg-ink/5'
+                        }`}
+                      >
+                        {isZh ? '执政联盟' : 'Governing'}
+                      </button>
+                      <button
+                        onClick={() => setCoalitionRole('opposition')}
+                        className={`p-2 border text-[10px] font-mono text-center uppercase tracking-wide transition-all ${
+                          coalitionRole === 'opposition' ? 'bg-ink text-paper border-ink font-bold' : 'border-ink/40 hover:bg-ink/5'
+                        }`}
+                      >
+                        {isZh ? '非执政联盟' : 'Non-governing'}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-ink/60 leading-relaxed">
+                      {coalitionRole === 'ruling'
+                        ? (isZh ? '将该联盟设为当前执政联盟，并结束当前政府危机/提前选举状态。' : 'Installs this coalition as the ruling government and clears any government crisis or early-election state.')
+                        : (isZh ? '保留当前执政联盟，仅新增一个非执政政治联盟。' : 'Keeps the current government and adds a non-governing political alliance.')}
+                    </p>
                     <div className="flex flex-col gap-1.5">
-                      {COALITION_DEFS.map(def => (
+                      {COALITION_DEFS.map(def => {
+                        const isActive = activeCoalitions.some(c => c.activeId === def.id);
+                        const isRuling = state.rulingCoalition === def.id;
+                        return (
                         <button 
                           key={def.id}
                           onClick={() => {
-                            const res = formCoalition(state, def.id);
+                            const res = coalitionRole === 'ruling'
+                              ? formRulingCoalitionFromSandbox(state, def.id)
+                              : formCoalition(state, def.id);
                             dispatch({ type: 'SANDBOX_EDIT', payload: res });
+                            setSelectedCoalitionId(def.id);
                           }}
                           className={`p-2 border text-[11px] font-mono text-left uppercase tracking-wide hover:bg-ink hover:text-paper transition-all ${
-                            (state.activeCoalitions || []).some(c => c.activeId === def.id) ? 'bg-ink text-paper border-ink font-bold' : 'border-ink bg-transparent'
+                            isActive ? 'bg-ink text-paper border-ink font-bold' : 'border-ink bg-transparent'
                           }`}
                         >
-                          {isZh ? def.nameZh : def.name}
+                          <span className="flex items-center justify-between gap-2">
+                            <span>{isZh ? def.nameZh : def.name}</span>
+                            {isActive && (
+                              <span className="text-[9px] tracking-normal whitespace-nowrap">
+                                {isRuling ? (isZh ? '执政' : 'RULING') : (isZh ? '非执政' : 'OPPOSITION')}
+                              </span>
+                            )}
+                          </span>
                         </button>
-                      ))}
-                      {state.activeCoalitions && state.activeCoalitions.length > 0 && (
+                      );
+                      })}
+                      {activeCoalitions.length > 0 && (
                         <button 
                           onClick={() => {
                             dispatch({
@@ -499,23 +569,52 @@ export const SandboxMenu = () => {
                       {isZh ? '活跃联盟微调' : 'Active Alliance Parameters'}
                     </span>
 
-                    {state.activeCoalitions && state.activeCoalitions.length > 0 ? (() => { const activeCoalition = state.activeCoalitions.find(c => c.activeId === state.rulingCoalition) || state.activeCoalitions[0]; return (
+                    {selectedActiveCoalition ? (
                       <div className="flex flex-col gap-3">
+                        {activeCoalitions.length > 1 && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-ink/60 uppercase">
+                              {isZh ? '选择要调整的活跃联盟' : 'Select an active coalition to adjust'}
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {activeCoalitions.map(coalition => {
+                                const def = COALITION_DEFS.find(item => item.id === coalition.activeId);
+                                const isRuling = state.rulingCoalition === coalition.activeId;
+                                return (
+                                  <button
+                                    key={coalition.activeId}
+                                    onClick={() => setSelectedCoalitionId(coalition.activeId)}
+                                    className={`px-2 py-1 border text-[9px] font-mono uppercase transition-all ${
+                                      coalition.activeId === selectedActiveCoalition.activeId
+                                        ? 'bg-ink text-paper border-ink font-bold'
+                                        : 'border-ink/30 hover:bg-ink/5'
+                                    }`}
+                                  >
+                                    {def ? (isZh ? def.nameZh : def.name) : coalition.activeId}
+                                    {' · '}
+                                    {isRuling ? (isZh ? '执政' : 'Ruling') : (isZh ? '非执政' : 'Opposition')}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex flex-col gap-1">
                           <div className="flex justify-between">
                             <span>{isZh ? '联盟团结度 (0-100)' : 'Cohesion (0-100)'}</span>
-                            <span className="font-bold">{activeCoalition.cohesion}%</span>
+                            <span className="font-bold">{selectedActiveCoalition.cohesion}%</span>
                           </div>
                           <input 
                             type="range"
                             min="0" max="100"
-                            value={activeCoalition.cohesion}
+                            value={selectedActiveCoalition.cohesion}
                             onChange={(e) => {
                               const cohesionVal = parseInt(e.target.value);
                               dispatch({ 
                                 type: 'SANDBOX_EDIT', 
                                 payload: { 
-                                  activeCoalitions: state.activeCoalitions.map(c => c.activeId === activeCoalition.activeId ? { ...c, cohesion: cohesionVal } : c)
+                                  activeCoalitions: activeCoalitions.map(c => c.activeId === selectedActiveCoalition.activeId ? { ...c, cohesion: cohesionVal } : c)
                                 } 
                               });
                             }}
@@ -526,18 +625,18 @@ export const SandboxMenu = () => {
                         <div className="flex flex-col gap-1">
                           <div className="flex justify-between">
                             <span>{isZh ? '对CNT态度 (进度条: 0-100)' : 'CNT Attitude (Bar scale: 0-100)'}</span>
-                            <span className="font-bold">{activeCoalition.cntAttitude} (➡️ {Math.round((activeCoalition.cntAttitude + 100) / 2)}/100)</span>
+                            <span className="font-bold">{selectedActiveCoalition.cntAttitude} (➡️ {Math.round((selectedActiveCoalition.cntAttitude + 100) / 2)}/100)</span>
                           </div>
                           <input 
                             type="range"
                             min="-100" max="100"
-                            value={activeCoalition.cntAttitude}
+                            value={selectedActiveCoalition.cntAttitude}
                             onChange={(e) => {
                               const attVal = parseInt(e.target.value);
                               dispatch({ 
                                 type: 'SANDBOX_EDIT', 
                                 payload: { 
-                                  activeCoalitions: state.activeCoalitions.map(c => c.activeId === activeCoalition.activeId ? { ...c, cntAttitude: attVal } : c)
+                                  activeCoalitions: activeCoalitions.map(c => c.activeId === selectedActiveCoalition.activeId ? { ...c, cntAttitude: attVal } : c)
                                 } 
                               });
                             }}
@@ -545,7 +644,7 @@ export const SandboxMenu = () => {
                           />
                         </div>
                       </div>
-                    )})() : (
+                    ) : (
                       <div className="flex flex-col items-center justify-center h-20 text-ink/40 text-center uppercase tracking-wider text-[10px] leading-relaxed">
                         {isZh ? '当前无活跃执政党联盟\n请在左侧强制组建一个。' : 'No active coalition.\nSelect one from the left to start fine-tuning.'}
                       </div>

@@ -1,6 +1,7 @@
 import { GameState, Party, SocialClass } from '../types';
 import { CLASS_INFO } from '../constants';
 import { getPartySupport } from './coalition';
+import { isOrganizationEstablished } from '../organizations';
 
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
@@ -32,7 +33,7 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
   const actualCntVotes = cntVotes * cntVoteFraction;
 
   if (actualCntVotes > 0) {
-    if (state.isPRRevSFormed) {
+    if (isOrganizationEstablished(state, 'PRRevS')) {
       votes['PRRevS'] += actualCntVotes;
     } else {
       const eligibleParties = (Object.keys(state.partyRelations) as Party[]).filter(p => {

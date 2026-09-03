@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Lock, Star } from 'lucide-react';
 import { ACHIEVEMENTS, getUnlockedGlobalAchievements, getUnlockedHistoricalAchievements } from '../game/achievements';
-import { useGame } from '../game/GameContext';
+import { useGameSelector } from '../game/GameContext';
 
 interface AchievementsModalProps {
   onClose: () => void;
@@ -19,8 +19,8 @@ const getImageUrl = (url?: string) => {
 };
 
 export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
+  const language = useGameSelector(state => state.language);
+  const isZh = language === 'zh';
   const unlockedIds = getUnlockedGlobalAchievements();
   const historicalIds = getUnlockedHistoricalAchievements();
 

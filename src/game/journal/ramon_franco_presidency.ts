@@ -1,5 +1,6 @@
 import { JournalEntryDef } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { isOrganizationEstablished } from '../organizations';
 
 export const ramonFrancoPresidencyJournal: JournalEntryDef = {
   id: 'journal_ramon_franco_presidency',
@@ -24,7 +25,7 @@ export const ramonFrancoPresidencyJournal: JournalEntryDef = {
       const hasRamon = state.advisorPool.some(a => a?.id === 'Ramón Franco') || state.activeAdvisors.some(a => a?.id === 'Ramón Franco');
       const isReady = (state.factions.Jabalistas?.influence ?? 0) >= 15 &&
                       hasRamon &&
-                      state.isPRRevSFormed &&
+                      isOrganizationEstablished(state, 'PRRevS') &&
                       state.civilWarStatus === 'not_started' &&
                       !state.journal_ramon_franco_presidency_seen;
       

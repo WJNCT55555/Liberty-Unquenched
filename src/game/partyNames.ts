@@ -1,5 +1,6 @@
 import { GameState } from './types';
 import { Party } from './parties';
+import { isOrganizationEstablished } from './organizations';
 
 // Unified party names translation mapping
 export const PARTY_NAMES_MAPPING: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
@@ -42,7 +43,9 @@ export const PARTY_NAMES_SHORT_MAPPING: Record<Party | 'CNT_FAI', { en: string; 
   PRRevS: { en: 'PRRevS', zh: 'PRRevS' }
 };
 
-export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
+type PartyNameState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'isPRRevSFormed' | 'falange_jons' | 'organizations'>;
+
+export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
   // Acción Popular reorganizes as CEDA in March 1933 while retaining one AP
   // identity. The date fallback keeps older saves without the new flag usable.
   const cedaFormed = state.ceda_formed ?? (state.year > 1933 || (state.year === 1933 && state.month >= 3));
@@ -72,7 +75,7 @@ export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: b
   }
 
   // PRRevS logic for CNT_FAI
-  if (party === 'CNT_FAI' && state.isPRRevSFormed) {
+  if (party === 'CNT_FAI' && isOrganizationEstablished(state, 'PRRevS')) {
     return isZh 
       ? (short ? 'PRRevS' : '革命共和工团党 (PRRevS)') 
       : (short ? 'PRRevS' : 'PRRevS (Revolutionary Republican Syndicalist Party)');
@@ -92,7 +95,7 @@ export function getPartyName(state: GameState, party: Party | 'CNT_FAI', isZh: b
 import { PARTY_COLORS } from './parties';
 
 export function getPartyColor(state: GameState, party: Party | 'CNT_FAI'): string {
-  if (party === 'CNT_FAI' && state.isPRRevSFormed) {
+  if (party === 'CNT_FAI' && isOrganizationEstablished(state, 'PRRevS')) {
     return PARTY_COLORS['PS'] || '#4b5563'; // Use PS color for PRRevS based on SidePanel
   }
   return PARTY_COLORS[party] || '#9ca3af';

@@ -1,4 +1,5 @@
 import type { GameEvent } from '../types';
+import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
 
 const cntMilitaryMeta = {
   category: 'cnt' as const,
@@ -14,7 +15,7 @@ export const defenseCommitteeFormation: GameEvent = {
     const fervor = state.stats?.revolutionaryFervor ?? 0;
     const puristas = state.factions?.Puristas?.influence ?? 0;
     const faistas = state.factions?.Faistas?.influence ?? 0;
-    return !state.militaryDeckEnabled && tension > 60 && fervor > 70 && state.cntStance !== 'govern' && (puristas + faistas) > 60;
+    return !isOrganizationEstablished(state, 'DC') && tension > 60 && fervor > 70 && state.cntStance !== 'govern' && (puristas + faistas) > 60;
   },
   title: 'Establishment of the Defense Committee',
   titleZh: '防御委员会成立',
@@ -25,7 +26,7 @@ export const defenseCommitteeFormation: GameEvent = {
       text: 'Organize the defense committees and coordinate our militia forces.',
       textZh: '组织防御委员会，并协调我们的民兵力量。',
       effect: (state) => ({
-        militaryDeckEnabled: true
+        ...setOrganizationEstablished(state, 'DC'),
       })
     }
   ]

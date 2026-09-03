@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, ReactNod
 import { Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle, Volume2, VolumeX, Radio, Disc3, Star, X, List, Music } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { useGame } from '../game/GameContext';
+import { useGameSelector } from '../game/GameContext';
 
 export type PlayMode = 'list' | 'loop' | 'random';
 export type PlaylistName = 'Republicana' | 'Nacional';
@@ -176,8 +176,8 @@ export const useMusic = () => {
 };
 
 export const MusicPlayerUI = ({ onClose }: { onClose?: () => void }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
+  const language = useGameSelector(state => state.language);
+  const isZh = language === 'zh';
   const {
     currentPlaylist, currentTrackIndex, isPlaying, playMode, volume, progress, duration,
     setPlaylist, setTrack, togglePlay, nextTrack, prevTrack, setPlayMode, setVolume, seek, currentTrack

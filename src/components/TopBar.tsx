@@ -1,8 +1,8 @@
 import { getPartyName } from "../game/partyNames";
 import React, { useState } from 'react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSelector, shallowEqual } from '../game/GameContext';
 import { cn } from '../lib/utils';
-import { Calendar, Coins, ShieldAlert, Zap, Factory, Settings, Save, Download, Globe, X, Trophy, Radio } from 'lucide-react';
+import { Calendar, Coins, ShieldAlert, Zap, Factory, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AchievementsModal } from './AchievementsModal';
 import { useMusic, MusicPlayerUI } from './MusicPlayer';
@@ -10,6 +10,7 @@ import { EconomyModal } from './EconomyModal';
 import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
 import { LawStanceModal } from './LawStanceModal';
+import { SaveManagerModal } from './SaveManagerModal';
 
 const formatCompactNumber = (value: number): string => {
   if (!Number.isFinite(value)) return '0';
@@ -18,7 +19,6 @@ const formatCompactNumber = (value: number): string => {
 };
 
 export const TopBar = () => {
-  const { state, dispatch } = useGame();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [isRadioOpen, setIsRadioOpen] = useState(false);
@@ -26,7 +26,26 @@ export const TopBar = () => {
   const [isPoliticsModalOpen, setIsPoliticsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isLawStanceModalOpen, setIsLawStanceModalOpen] = useState(false);
-  const [message, setMessage] = useState('');
+  const [isSaveManagerOpen, setIsSaveManagerOpen] = useState(false);
+  const hasOpenDetailModal = isEconomyModalOpen || isPoliticsModalOpen || isPolicyModalOpen || isLawStanceModalOpen;
+
+  const state = useGameSelector(snapshot => ({
+    language: snapshot.language,
+    year: snapshot.year,
+    month: snapshot.month,
+    difficulty: snapshot.difficulty,
+    workerControl: snapshot.stats.workerControl,
+    resources: snapshot.resources,
+    armaments: snapshot.armaments,
+    currentView: snapshot.currentView,
+    ceda_formed: snapshot.ceda_formed,
+    ir_formed: snapshot.ir_formed,
+    ur_formed: snapshot.ur_formed,
+    isPRRevSFormed: snapshot.isPRRevSFormed,
+    organizations: snapshot.organizations,
+    falange_jons: snapshot.falange_jons,
+  }), shallowEqual);
+  const { dispatch } = useGameActions();
   const { isPlaying } = useMusic();
 
   const isZh = state.language === 'zh';
@@ -44,29 +63,6 @@ export const TopBar = () => {
   const monthName = isZh ? monthNamesZh[state.month - 1] : monthNamesEn[state.month - 1];
   const isHardOrHistorical = state.difficulty === 'historical' || state.difficulty === 'hard';
   const isSandbox = state.difficulty === 'sandbox';
-
-  const handleSave = () => {
-    if (isHardOrHistorical) return;
-    localStorage.setItem('cnt_fai_save', JSON.stringify(state));
-    setMessage(isZh ? '游戏已保存！' : 'Game Saved!');
-    setTimeout(() => setMessage(''), 3000);
-  };
-
-  const handleLoad = () => {
-    if (isHardOrHistorical) return;
-    const saved = localStorage.getItem('cnt_fai_save');
-    if (saved) {
-      dispatch({ type: 'LOAD_STATE', payload: JSON.parse(saved) });
-      setMessage(isZh ? '游戏已读取！' : 'Game Loaded!');
-      setTimeout(() => {
-        setMessage('');
-        setIsSettingsOpen(false);
-      }, 1500);
-    } else {
-      setMessage(isZh ? '未找到存档！' : 'No save found!');
-      setTimeout(() => setMessage(''), 3000);
-    }
-  };
 
   const toggleLanguage = () => {
     dispatch({ type: 'SET_LANGUAGE', payload: isZh ? 'en' : 'zh' });
@@ -96,7 +92,7 @@ export const TopBar = () => {
 
         <div className="flex items-center gap-4 md:gap-8 font-typewriter text-sm overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto justify-start lg:justify-end hide-scrollbar">
           <div className="flex gap-4 md:gap-6">
-            <StatItem icon={<Factory className="w-4 h-4 opacity-70" />} label={isZh ? '工人控制' : 'Worker Control'} value={state.stats.workerControl} />
+            <StatItem icon={<Factory className="w-4 h-4 opacity-70" />} label={isZh ? '工人控制' : 'Worker Control'} value={state.workerControl} />
           </div>
           
           <div className="h-8 w-px bg-paper opacity-20 hidden md:block"></div>
@@ -229,22 +225,15 @@ export const TopBar = () => {
                   {isZh ? 'Language: English' : '语言: 中文'}
                 </button>
 
-                <button 
-                  onClick={isHardOrHistorical ? undefined : handleSave}
-                  disabled={isHardOrHistorical}
-                  className={`w-full flex items-center justify-center gap-3 p-4 border-2 border-ink transition-colors font-typewriter text-lg uppercase tracking-wider ${isHardOrHistorical ? 'opacity-50 cursor-not-allowed grayscale bg-ink/10' : 'hover:bg-ink hover:text-paper'}`}
+                <button
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    setIsSaveManagerOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-3 p-4 border-2 border-ink hover:bg-ink hover:text-paper transition-colors font-typewriter text-lg uppercase tracking-wider"
                 >
-                  <Save className="w-6 h-6" />
-                  {isZh ? (isHardOrHistorical ? '当前模式禁用存档' : '保存游戏') : (isHardOrHistorical ? 'Save Disabled' : 'Save Game')}
-                </button>
-
-                <button 
-                  onClick={isHardOrHistorical ? undefined : handleLoad}
-                  disabled={isHardOrHistorical}
-                  className={`w-full flex items-center justify-center gap-3 p-4 border-2 border-ink transition-colors font-typewriter text-lg uppercase tracking-wider ${isHardOrHistorical ? 'opacity-50 cursor-not-allowed grayscale bg-ink/10' : 'hover:bg-ink hover:text-paper'}`}
-                >
-                  <Download className="w-6 h-6" />
-                  {isZh ? (isHardOrHistorical ? '当前模式禁用读档' : '读取游戏') : (isHardOrHistorical ? 'Load Disabled' : 'Load Game')}
+                  <HardDrive className="w-6 h-6" />
+                  {isZh ? (isHardOrHistorical ? '自动存档' : '存档管理') : (isHardOrHistorical ? 'Autosave' : 'Save Archives')}
                 </button>
 
                 {isSandbox && (
@@ -263,15 +252,6 @@ export const TopBar = () => {
                 )}
               </div>
 
-              {message && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 p-3 bg-cnt-red text-paper text-center font-typewriter font-bold"
-                >
-                  {message}
-                </motion.div>
-              )}
             </motion.div>
           </motion.div>
         )}
@@ -305,29 +285,82 @@ export const TopBar = () => {
         )}
       </AnimatePresence>
 
+      {hasOpenDetailModal && (
+        <TopBarModalLayer
+          isEconomyModalOpen={isEconomyModalOpen}
+          isPoliticsModalOpen={isPoliticsModalOpen}
+          isPolicyModalOpen={isPolicyModalOpen}
+          isLawStanceModalOpen={isLawStanceModalOpen}
+          onCloseEconomy={() => setIsEconomyModalOpen(false)}
+          onClosePolitics={() => setIsPoliticsModalOpen(false)}
+          onClosePolicy={() => setIsPolicyModalOpen(false)}
+          onCloseLawStance={() => setIsLawStanceModalOpen(false)}
+          isZh={isZh}
+        />
+      )}
+      <SaveManagerModal
+        isOpen={isSaveManagerOpen}
+        onClose={() => setIsSaveManagerOpen(false)}
+        isZh={isZh}
+        canSaveManual={!isHardOrHistorical}
+        canLoadManual={!isHardOrHistorical}
+      />
+    </>
+  );
+};
+
+interface TopBarModalLayerProps {
+  isEconomyModalOpen: boolean;
+  isPoliticsModalOpen: boolean;
+  isPolicyModalOpen: boolean;
+  isLawStanceModalOpen: boolean;
+  onCloseEconomy: () => void;
+  onClosePolitics: () => void;
+  onClosePolicy: () => void;
+  onCloseLawStance: () => void;
+  isZh: boolean;
+}
+
+/** Supplies a complete snapshot only while one of the top-bar detail modals is open. */
+const TopBarModalLayer: React.FC<TopBarModalLayerProps> = ({
+  isEconomyModalOpen,
+  isPoliticsModalOpen,
+  isPolicyModalOpen,
+  isLawStanceModalOpen,
+  onCloseEconomy,
+  onClosePolitics,
+  onClosePolicy,
+  onCloseLawStance,
+  isZh,
+}) => {
+  const modalState = useGameSelector(snapshot => snapshot);
+  const { dispatch } = useGameActions();
+
+  return (
+    <>
       <EconomyModal
         isOpen={isEconomyModalOpen}
-        onClose={() => setIsEconomyModalOpen(false)}
-        state={state}
+        onClose={onCloseEconomy}
+        state={modalState}
         dispatch={dispatch}
         isZh={isZh}
       />
       <DomesticPoliticsModal
         isOpen={isPoliticsModalOpen}
-        onClose={() => setIsPoliticsModalOpen(false)}
-        state={state}
+        onClose={onClosePolitics}
+        state={modalState}
         isZh={isZh}
       />
-      <DomesticPolicyModal 
-        isOpen={isPolicyModalOpen} 
-        onClose={() => setIsPolicyModalOpen(false)} 
-        state={state} 
-        isZh={isZh} 
+      <DomesticPolicyModal
+        isOpen={isPolicyModalOpen}
+        onClose={onClosePolicy}
+        state={modalState}
+        isZh={isZh}
       />
       <LawStanceModal
         isOpen={isLawStanceModalOpen}
-        onClose={() => setIsLawStanceModalOpen(false)}
-        state={state}
+        onClose={onCloseLawStance}
+        state={modalState}
         isZh={isZh}
       />
     </>

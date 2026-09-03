@@ -4,7 +4,8 @@ import { fundraising } from './fundraising';
 import { mitinPopular } from './mitin_popular';
 import { prrevsCampaigning } from './prrevs_campaigning';
 import { media } from './media';
-import { organizationsCard } from './organizations';
+import { organizationsCard, fijlCard } from './organizations';
+import { mujeresLibresCard } from './mujeres_libres';
 import { internationalContacts } from './international_contacts';
 import { cntFaiDisunityManagement } from './cnt_fai_disunity_management';
 import { cntChooseEnemies } from './choosing_our_enemies';
@@ -20,6 +21,8 @@ export const ACTION_AFFAIRS = [
   prrevsCampaigning,
   media,
   organizationsCard,
+  fijlCard,
+  mujeresLibresCard,
   internationalContacts,
   cntFaiDisunityManagement,
   cntChooseEnemies,

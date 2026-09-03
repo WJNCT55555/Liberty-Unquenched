@@ -7,6 +7,7 @@ import {
   getDissentMultiplier
 } from '../utils';
 import type { ClassPoliticalForce } from '../utils';
+import { isOrganizationEstablished } from '../organizations';
 
 const PRREVS_CAMPAIGN_COOLDOWN = 3;
 const PRREVS_CAMPAIGN_RESOURCE_COST = 1;
@@ -56,7 +57,7 @@ export const prrevsCampaigning: Card = {
     return (
       !state.treintistasLeft &&
       state.factions.Treintistas.influence > 0 &&
-      state.isPRRevSFormed &&
+      isOrganizationEstablished(state, 'PRRevS') &&
       state.prrevs_campaign_timer <= 0
     );
   },
@@ -215,7 +216,7 @@ export const prrevsCampaigning: Card = {
       unavailableSubtitle: campaignResourceUnavailable,
       unavailableSubtitleZh: campaignResourceUnavailableZh,
       effect: (s: GameState): Partial<GameState> => {
-        const mujeresBonus = s.mujeres_libres_established ? 1.5 : 1;
+        const mujeresBonus = isOrganizationEstablished(s, 'ML') ? 1.5 : 1;
         const classes = adjustClassSupports(s.classes, [
           ['Obreros', 'CNT_FAI', 8 * dissentFactor],
           ['Intelectuales', 'CNT_FAI', 4 * dissentFactor],

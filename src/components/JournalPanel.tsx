@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useGame } from '../game/GameContext';
+import { useGameSelector } from '../game/GameContext';
 import { getJournalEntryDef } from '../game/journal';
 import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock } from 'lucide-react';
 
 export const JournalPanel: React.FC = () => {
-  const { state } = useGame();
+  const state = useGameSelector(snapshot => ({
+    journal: snapshot.journal,
+    language: snapshot.language,
+  }), (left, right) => left.journal === right.journal && left.language === right.language);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [order, setOrder] = useState<string[]>([]);
@@ -270,4 +273,3 @@ export const JournalPanel: React.FC = () => {
     </div>
   );
 };
-

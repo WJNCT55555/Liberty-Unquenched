@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, GameState, GameEvent } from '../types';
 import { useGame } from '../GameContext';
 import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
+import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from '../rules/fiscalPolicy';
 
 // Define the custom Adjuster components
 export const IncomeTaxAdjuster: React.FC = () => {
@@ -16,42 +17,14 @@ export const IncomeTaxAdjuster: React.FC = () => {
   const delta_middle = state.tax_middle_class - initial_middle;
   const delta_upper = state.tax_upper_class - initial_upper;
 
-  // Calculate predicted gains
-  let budgetChange = 0;
-  let lowerClassSupport = 0;
-  let middleClassSupport = 0;
-  let upperClassSupport = 0;
-  let radicalDissentChange = 0;
-
-  // Lower Tax Impacts
-  if (delta_lower < 0) {
-    lowerClassSupport += Math.abs(delta_lower) * 1.5;
-    budgetChange -= Math.abs(delta_lower) * 0.15;
-  } else if (delta_lower > 0) {
-    lowerClassSupport -= delta_lower * 2.0;
-    radicalDissentChange += delta_lower * 1.0;
-    budgetChange += delta_lower * 0.20;
-  }
-
-  // Middle Tax Impacts
-  if (delta_middle > 0) {
-    middleClassSupport -= delta_middle * 1.0;
-    budgetChange += delta_middle * 0.15;
-  } else if (delta_middle < 0) {
-    middleClassSupport += Math.abs(delta_middle) * 0.8;
-    budgetChange -= Math.abs(delta_middle) * 0.10;
-  }
-
-  // Upper Tax Impacts
-  if (delta_upper > 0) {
-    upperClassSupport -= delta_upper * 1.5;
-    budgetChange += delta_upper * 0.25;
-    radicalDissentChange -= delta_upper * 0.4;
-  } else if (delta_upper < 0) {
-    radicalDissentChange += Math.abs(delta_upper) * 1.5;
-    upperClassSupport += Math.abs(delta_upper) * 0.3;
-    budgetChange -= Math.abs(delta_upper) * 0.20;
-  }
+  const adjustment = calculateIncomeTaxAdjustment(delta_lower, delta_middle, delta_upper);
+  const {
+    budgetChange,
+    workingClassSupport: lowerClassSupport,
+    middleClassSupport,
+    upperClassSupport,
+    faistasDissent: radicalDissentChange,
+  } = adjustment;
 
   const adjustValue = (type: 'lower' | 'middle' | 'upper', amount: number) => {
     let current = 0;
@@ -180,31 +153,14 @@ export const TariffConsumptionAdjuster: React.FC = () => {
   const delta_tariff = state.tax_tariff - initial_tariff;
   const delta_consumption = state.tax_consumption - initial_consumption;
 
-  let budgetChange = 0;
-  let lowerClassSupport = 0;
-  let radicalDissentChange = 0;
-  let interRelationsChange = 0;
-  let forexChange = 0;
-
-  // Tariffs
-  if (delta_tariff > 0) {
-    budgetChange += delta_tariff * 0.15;
-    interRelationsChange -= delta_tariff * 0.5;
-    forexChange += delta_tariff * 1.0;
-  } else if (delta_tariff < 0) {
-    budgetChange -= Math.abs(delta_tariff) * 0.12;
-    interRelationsChange += Math.abs(delta_tariff) * 0.3;
-  }
-
-  // Consumption
-  if (delta_consumption < 0) {
-    lowerClassSupport += Math.abs(delta_consumption) * 1.0;
-    budgetChange -= Math.abs(delta_consumption) * 0.18;
-  } else if (delta_consumption > 0) {
-    lowerClassSupport -= delta_consumption * 1.5;
-    budgetChange += delta_consumption * 0.22;
-    radicalDissentChange += delta_consumption * 0.8;
-  }
+  const adjustment = calculateTariffConsumptionAdjustment(delta_tariff, delta_consumption);
+  const {
+    budgetChange,
+    workingClassSupport: lowerClassSupport,
+    internationalFriction: interRelationsChange,
+    foreignExchangeGain: forexChange,
+    faistasDissent: radicalDissentChange,
+  } = adjustment;
 
   const adjustValue = (type: 'tariff' | 'consumption', amount: number) => {
     let current = 0;
@@ -330,46 +286,15 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
         const delta_lower = state.tax_lower_class - initial_lower;
         const delta_middle = state.tax_middle_class - initial_middle;
         const delta_upper = state.tax_upper_class - initial_upper;
-
-        let working_class_support = 0;
-        let middle_class_support = 0;
-        let upper_class_support = 0;
-        let budget_flow = 0;
-        let faistas_dissent = 0;
-        let puristas_dissent = 0;
-
-        // Apply Lower class tax dynamic impacts
-        if (delta_lower < 0) {
-          working_class_support += Math.abs(delta_lower) * 1.5;
-          budget_flow -= Math.abs(delta_lower) * 0.15;
-        } else if (delta_lower > 0) {
-          working_class_support -= delta_lower * 2.0;
-          faistas_dissent += delta_lower * 1.0;
-          puristas_dissent += delta_lower * 1.0;
-          budget_flow += delta_lower * 0.20;
-        }
-
-        // Apply Middle class tax dynamic impacts
-        if (delta_middle > 0) {
-          middle_class_support -= delta_middle * 1.0;
-          budget_flow += delta_middle * 0.15;
-        } else if (delta_middle < 0) {
-          middle_class_support += Math.abs(delta_middle) * 0.8;
-          budget_flow -= Math.abs(delta_middle) * 0.10;
-        }
-
-        // Apply Upper class tax dynamic impacts
-        if (delta_upper > 0) {
-          upper_class_support -= delta_upper * 1.5;
-          budget_flow += delta_upper * 0.25;
-          faistas_dissent -= delta_upper * 0.4;
-          puristas_dissent -= delta_upper * 0.4;
-        } else if (delta_upper < 0) {
-          faistas_dissent += Math.abs(delta_upper) * 1.5;
-          puristas_dissent += Math.abs(delta_upper) * 1.5;
-          upper_class_support += Math.abs(delta_upper) * 0.3;
-          budget_flow -= Math.abs(delta_upper) * 0.20;
-        }
+        const adjustment = calculateIncomeTaxAdjustment(delta_lower, delta_middle, delta_upper);
+        const {
+          workingClassSupport: working_class_support,
+          middleClassSupport: middle_class_support,
+          upperClassSupport: upper_class_support,
+          budgetChange: budget_flow,
+          faistasDissent: faistas_dissent,
+          puristasDissent: puristas_dissent,
+        } = adjustment;
 
         let newClasses = state.classes;
         // Working Class: Obreros + Braceros
@@ -441,36 +366,15 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
 
         const delta_tariff = state.tax_tariff - initial_tariff;
         const delta_consumption = state.tax_consumption - initial_consumption;
-
-        let working_class_support = 0;
-        let budget_flow = 0;
-        let faistas_dissent = 0;
-        let puristas_dissent = 0;
-        let international_friction = 0;
-        let forex_gain = 0;
-
-        // Tariffs
-        if (delta_tariff > 0) {
-          budget_flow += delta_tariff * 0.15;
-          international_friction -= delta_tariff * 0.5;
-          forex_gain += delta_tariff * 1.0;
-        } else if (delta_tariff < 0) {
-          budget_flow -= Math.abs(delta_tariff) * 0.12;
-          international_friction += Math.abs(delta_tariff) * 0.3;
-        }
-
-        // Consumption
-        if (delta_consumption < 0) {
-          working_class_support += Math.abs(delta_consumption) * 1.0;
-          budget_flow -= Math.abs(delta_consumption) * 0.18;
-          faistas_dissent -= Math.abs(delta_consumption) * 0.5;
-          puristas_dissent -= Math.abs(delta_consumption) * 0.5;
-        } else if (delta_consumption > 0) {
-          working_class_support -= delta_consumption * 1.5;
-          budget_flow += delta_consumption * 0.22;
-          faistas_dissent += delta_consumption * 0.8;
-          puristas_dissent += delta_consumption * 0.8;
-        }
+        const adjustment = calculateTariffConsumptionAdjustment(delta_tariff, delta_consumption);
+        const {
+          workingClassSupport: working_class_support,
+          budgetChange: budget_flow,
+          faistasDissent: faistas_dissent,
+          puristasDissent: puristas_dissent,
+          internationalFriction: international_friction,
+          foreignExchangeGain: forex_gain,
+        } = adjustment;
 
         let newClasses = state.classes;
         // Working Class: Obreros + Braceros

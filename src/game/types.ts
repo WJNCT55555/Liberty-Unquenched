@@ -4,6 +4,23 @@ import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type { Party };
+
+/**
+ * Organizations are deliberately separate from parties and internal factions:
+ * a party can sponsor several organizations, while an organization may exist
+ * before (or without) a parliamentary party.  Keep this list extensible as
+ * future party organizations are added to the registry.
+ */
+export type OrganizationId = 'CNT' | 'FAI' | 'FIJL' | 'ML' | 'FNA' | 'DC' | 'PRRevS';
+export type OrganizationType = 'union' | 'political' | 'youth' | 'women' | 'agricultural' | 'militia';
+export type OrganizationOwner = Party | 'CNT_FAI';
+
+export interface OrganizationState {
+  established: boolean;
+  establishedAt?: { year: number; month: number };
+}
+
+export type OrganizationStateMap = Partial<Record<OrganizationId, OrganizationState>>;
 // Ministers belong to a concrete party, CNT, or the unaligned `Other` party.
 // `Right` is not a party identity and must not be stored as a minister value.
 // PRRevS is the CNT's electoral phase, not a separate ministerial identity.
@@ -326,6 +343,7 @@ export interface GameState {
 
   workersAllianceProgress: number;
   cntVotingRate: number;
+  /** @deprecated Use organizations.PRRevS.established. Kept for save compatibility. */
   isPRRevSFormed: boolean;
   prrevs_formed_months: number;
   prrevsConstructionLevel: number;
@@ -335,9 +353,15 @@ export interface GameState {
   prrevsAbandoned?: boolean;
   cntStance: 'oppose' | 'cooperate' | 'govern';
   sandboxCardChoiceEnabled?: boolean;
+  sandboxManualTaxAdjustmentEnabled?: boolean;
+
+  /** Registry-backed organization state. Optional for loading pre-registry saves. */
+  organizations?: OrganizationStateMap;
 
   ateneos_established: number;
+  /** @deprecated Use organizations.FIJL.established. Kept for save compatibility. */
   fijl_established: boolean;
+  /** @deprecated Use organizations.ML.established. Kept for save compatibility. */
   mujeres_libres_established: boolean;
   
   advisorActionTimer: number;
@@ -516,6 +540,7 @@ export interface GameState {
   moscowGoldTransferred: boolean;
   pceInPower: boolean;
   pceAcceptsComintern: boolean;
+  /** @deprecated Use organizations.DC.established. Kept for save compatibility. */
   militaryDeckEnabled: boolean;
   
   ps_founded: boolean;
@@ -594,6 +619,8 @@ export interface GameState {
   advisorPool: Advisor[];
   
   currentEvent: GameEvent | null;
+  /** Runtime rollback point for the easy-mode card refund option. */
+  easyUndoState?: GameState | null;
   hand: Card[];
   actionDeck: Card[];
   governmentDeck: Card[];

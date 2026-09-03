@@ -7,12 +7,13 @@ import React, { useState, useEffect } from 'react';
 import { ProvinceMap } from './ProvinceMap';
 import { MapFaction as Faction, Province, Army } from './types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES } from './map_constants';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useMapState } from '../game/GameContext';
 import { Sidebar } from './Sidebar';
 import { WarSummary } from './WarSummary';
 
 export const MapView: React.FC = () => {
-  const { state: gameState, dispatch } = useGame();
+  const gameState = useMapState();
+  const { dispatch } = useGameActions();
   const isZh = gameState.language === 'zh';
   const [showWarSummary, setShowWarSummary] = useState(false);
 

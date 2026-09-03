@@ -16,6 +16,8 @@ import { foundingOfFalange } from './founding_of_falange';
 import { birthOfFeDeLasJons } from './birth_of_fe_de_las_jons';
 import { foundingOfPOUM } from './founding_of_poum';
 import { formationOfPRRevS } from './formation_of_prrevs';
+import { fijlFormation } from './fijl_formation';
+import { mujeresLibresFormation } from './mujeres_libres_formation';
 import { laSanjurjada } from './la_sanjurjada';
 import { jabaliEvent } from './jabali';
 import { juradosMixtos } from './jurados_mixtos';
@@ -38,10 +40,16 @@ import { asturiasRevolution, asturiasWarFailed } from './asturias_revolution';
 import { andalusiaFireEvent } from './andalusia_fire';
 import { cnt_fourth_congress_0 } from './cnt_fourth_congress';
 import { formationOfIzquierdaRepublicana, formationOfUnionRepublicana } from './republican_party_mergers';
+import * as civilWarSetupDefinitions from './civil_war/civil_war_setup';
+import * as cntThirdCongressDefinitions from './cnt_third_congress';
+import * as cntFourthCongressDefinitions from './cnt_fourth_congress';
+import type { GameEvent } from '../types';
 
 export { 
   civilWarSetup, 
   defenseCommitteeFormation, 
+  fijlFormation,
+  mujeresLibresFormation,
   workersAllianceAttempt, 
   workersAllianceFormation, 
   crossroadsUprisingAlliance, 
@@ -87,6 +95,8 @@ export const INITIAL_EVENTS = [
   birthOfFeDeLasJons,
   foundingOfPOUM,
   formationOfPRRevS,
+  fijlFormation,
+  mujeresLibresFormation,
   formationOfIzquierdaRepublicana,
   formationOfUnionRepublicana,
   laSanjurjada,
@@ -125,4 +135,27 @@ export const INITIAL_EVENTS = [
   asturiasWarFailed,
   andalusiaFireEvent,
   cnt_fourth_congress_0
+];
+
+const isGameEvent = (value: unknown): value is GameEvent => Boolean(
+  value
+  && typeof value === 'object'
+  && typeof (value as GameEvent).id === 'string'
+  && Array.isArray((value as GameEvent).options),
+);
+
+/**
+ * Runtime event definitions used only to rebuild functions when loading a save.
+ * Chain nodes belong here without being added to INITIAL_EVENTS, because adding
+ * them to the scheduled-event list could change when gameplay events trigger.
+ */
+export const RESTORABLE_EVENTS: GameEvent[] = [
+  ...new Map(
+    [
+      ...INITIAL_EVENTS,
+      ...Object.values(civilWarSetupDefinitions).filter(isGameEvent),
+      ...Object.values(cntThirdCongressDefinitions).filter(isGameEvent),
+      ...Object.values(cntFourthCongressDefinitions).filter(isGameEvent),
+    ].map((event) => [event.id, event]),
+  ).values(),
 ];

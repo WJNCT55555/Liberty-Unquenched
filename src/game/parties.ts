@@ -1,5 +1,6 @@
 import { GameState, SocialClass } from './types';
 import { CLASS_INFO } from './constants';
+import { isOrganizationEstablished } from './organizations';
 
 export type Party = 'POUM' | 'PCE' | 'PSOE' | 'PS' | 'ERC' | 'IR' | 'UR' | 'PNV' | 'PRR' | 'DLR' | 'AP' | 'RE' | 'CT' | 'FE' | 'Other' | 'PRRevS';
 
@@ -79,7 +80,7 @@ export const INITIAL_PARTY_RELATIONS: Record<Exclude<Party, 'PRRevS'>, number> =
  */
 export function getPartySupport(state: GameState, party: 'CNT_FAI' | Party): number {
   if (party === 'PRRevS') {
-    if (!state.isPRRevSFormed) return 0;
+    if (!isOrganizationEstablished(state, 'PRRevS')) return 0;
     const cntSupport = getPartySupport(state, 'CNT_FAI');
     const rate = state.cntVotingRate !== undefined ? state.cntVotingRate : 0;
     return Number((cntSupport * (rate / 100)).toFixed(2));

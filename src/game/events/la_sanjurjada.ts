@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
+import { isOrganizationEstablished } from '../organizations';
 
 const governmentCrisisMeta = {
   category: 'politics' as const,
@@ -38,7 +39,7 @@ export const laSanjurjada: GameEvent = {
     {
       text: 'We must pressure the officials in government to forcefully implement the military reform act.',
       textZh: '我们必须照会在政府中的官员，强硬推行军官改革法案。',
-      condition: (state) => state.isPRRevSFormed && state.cntStance === 'govern',
+      condition: (state) => isOrganizationEstablished(state, 'PRRevS') && state.cntStance === 'govern',
       unavailableSubtitle: () => 'Requires the PRRevS to be formed and the CNT in government.',
       unavailableSubtitleZh: () => '需要PRRevS成立且CNT参与执政。',
       effect: (state) => {

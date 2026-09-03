@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameState } from './types';
 import { ENDINGS } from './endings';
+import { getOverallFactionDissent } from './utils/factionEffects';
 
 import { toast } from 'sonner';
 
@@ -114,8 +115,7 @@ export const checkAchievements = (state: GameState): GameState => {
   checkAndUnlock('A_RICH', state.armaments >= 50);
   checkAndUnlock('A_BARRICADES', state.armedForces.militias.cntFai > 100000);
   
-  const totalInfluence = Object.values(state.factions).reduce((sum, f) => sum + f.influence, 0);
-  const overallDissent = totalInfluence > 0 ? Object.values(state.factions).reduce((sum, f) => sum + (f.influence * f.dissent), 0) / 100 : 0;
+  const overallDissent = getOverallFactionDissent(state.factions);
   checkAndUnlock('A_UNITY', overallDissent === 0);
 
   const isFaistasDominant = state.factions.Faistas.influence > Math.max(

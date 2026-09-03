@@ -1,4 +1,5 @@
 import { GameState } from './types';
+import { getOverallFactionDissent } from './utils/factionEffects';
 
 export const ENDINGS = {
   CHILDREN_OF_THE_PEOPLE: 'CHILDREN_OF_THE_PEOPLE',
@@ -73,12 +74,7 @@ export const checkEndings = (state: GameState): GameState => {
 
   let triggeredEnding: string | null = null;
 
-  // Calculate overall dissent
-  const factions = Object.values(state.factions);
-  const totalInfluence = factions.reduce((sum, f) => sum + f.influence, 0);
-  const overallDissent = totalInfluence > 0 
-    ? factions.reduce((sum, f) => sum + (f.influence * f.dissent), 0) / 100 
-    : 0;
+  const overallDissent = getOverallFactionDissent(state.factions);
 
   // 1. The Great Purge
   if (state.partySupport['PCE'] > 80 && state.cntStance === 'govern') {

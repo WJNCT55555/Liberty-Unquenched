@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Province, MapFaction as Faction, GameState, Army } from './types_map';
 import { FACTION_COLORS, UI_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
+import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from './rules/costs';
 import { Shield, Target, ScrollText, MapPin, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -491,10 +492,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [state.selectedProvinceId]);
 
   // Calculations for mobilize costs
-  const reqManpower = recruitInf + recruitArt + recruitTnk;
-  const reqSupplies = Math.floor(recruitInf * 0.03 + recruitArt * 0.06 + recruitTnk * 1.2);
-  const reqIndustry = Math.floor(recruitArt * 0.04 + recruitTnk * 0.08);
-  const reqTankReserve = recruitTnk;
+  const recruitCost = armyRecruitCost({ infantry: recruitInf, artillery: recruitArt, tanks: recruitTnk });
+  const reqManpower = recruitCost.manpower;
+  const reqSupplies = recruitCost.supplies;
+  const reqIndustry = recruitCost.ic;
+  const reqTankReserve = recruitCost.tankReserve;
 
   const playerRes = state.resources[state.currentPlayer];
   const hasEnoughManpower = (playerRes?.manpower || 0) >= reqManpower;
@@ -783,18 +785,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {/* Tactical Reinforcement Panel */}
                   {isArmyReinforceable ? (
                     (() => {
-                      const designedComp = selectedArmy.designedComposition || selectedArmy.composition;
-                      const maxInfRestored = Math.max(0, Math.floor((designedComp.infantry - selectedArmy.composition.infantry) * 0.5));
-                      const maxArtRestored = Math.max(0, Math.floor((designedComp.artillery - selectedArmy.composition.artillery) * 0.5));
-                      const maxTnkRestored = Math.max(0, Math.floor((designedComp.tanks - selectedArmy.composition.tanks) * 0.5));
+                      const maxRestored = reinforceTarget(selectedArmy);
+                      const maxInfRestored = maxRestored.infantry;
+                      const maxArtRestored = maxRestored.artillery;
+                      const maxTnkRestored = maxRestored.tanks;
 
                       const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
                       
                       let scale = 1.0;
-                      const targetManpower = totalMaxRestored;
-                      const targetSupplies = Math.floor(maxInfRestored * 0.03 + maxArtRestored * 0.06 + maxTnkRestored * 1.2);
-                      const targetIndustrial = Math.floor(maxArtRestored * 0.04 + maxTnkRestored * 0.08);
-                      const targetTankReserve = maxTnkRestored;
+                      const targetCost = reinforceCost(maxRestored);
+                      const targetManpower = targetCost.manpower;
+                      const targetSupplies = targetCost.supplies;
+                      const targetIndustrial = targetCost.ic;
+                      const targetTankReserve = targetCost.tankReserve;
 
                       const clientManpower = playerRes?.manpower || 0;
                       const clientSupplies = playerRes?.supplies || 0;
@@ -811,12 +814,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       const actualInf = Math.floor(maxInfRestored * scale);
                       const actualArt = Math.floor(maxArtRestored * scale);
                       const actualTnk = Math.floor(maxTnkRestored * scale);
-                      const actualTotal = actualInf + actualArt + actualTnk;
+                      const actualCost = reinforceCost({ infantry: actualInf, artillery: actualArt, tanks: actualTnk });
+                      const actualTotal = actualCost.manpower;
 
-                      const costManpower = actualTotal;
-                      const costSupplies = Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2);
-                      const costIndustrial = Math.floor(actualArt * 0.04 + actualTnk * 0.08);
-                      const costTankReserve = actualTnk;
+                      const costManpower = actualCost.manpower;
+                      const costSupplies = actualCost.supplies;
+                      const costIndustrial = actualCost.ic;
+                      const costTankReserve = actualCost.tankReserve;
 
                       const hasCasualties = (selectedArmy.maxManpower || selectedArmy.manpower) > selectedArmy.manpower;
                       const canAffordSupplement = actualTotal > 0 && 
@@ -1454,7 +1458,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             max: 1,
                             desc: lang === 'zh' ? '防线力量整编：只有预先设置兵营的行省才能在最初游戏剧本开启中分配与自动部署守土驻防师（Garrison Forces）。' : 'Only provinces structured with barracks can initially allocate starting garrison battalions on state setup.',
                             restrict: lang === 'zh' ? '无特殊建筑条件限制' : 'None',
-                            cost: { supplies: 120, ic: 80, manpower: 0 },
+                            cost: getBuildingCost('barracks'),
                             checkRestriction: () => true,
                             IconComponent: Building,
                             designBg: 'bg-[#EFE8D4]'
@@ -1465,11 +1469,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             max: 3,
                             desc: lang === 'zh' ? '阵地工事防御：提供该行省防御等级 +1/+2/+3 级，且驻防军队遭受突击时核心战斗力量系数提高 ×1.10/×1.20/×1.30 倍。' : 'Fortification lines +1/+2/+3, multiplying defending division active power output by x1.10 / x1.20 / x1.30.',
                             restrict: lang === 'zh' ? '无特殊限制（最高可建造与升级至 3 级）' : 'None. Maximum upgrade level 3',
-                            cost: (lvl: number) => {
-                              if (lvl === 1) return { supplies: 150, ic: 100, manpower: 0 };
-                              if (lvl === 2) return { supplies: 250, ic: 180, manpower: 0 };
-                              return { supplies: 400, ic: 280, manpower: 0 };
-                            },
+                            cost: (lvl: number) => getBuildingCost('fortress', lvl),
                             checkRestriction: () => true,
                             IconComponent: Shield,
                             designBg: 'bg-[#FAF6EC]/90'
@@ -1480,7 +1480,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             max: 1,
                             desc: lang === 'zh' ? '兵员招募集结处：进行作战力量新编的必须基地。拥有征兵所的行省才可以随时开展军事力量的新编动员。' : 'Central enlistment office. Must have a recruitment office to mobilize and train brand-new division regiments in this province.',
                             restrict: lang === 'zh' ? '仅限大本营评估后「行省战略价值」 (Strategic Value) ≥ 4 的行省建造' : 'Only erectable in central sectors with strategic value of score 4 or higher',
-                            cost: { supplies: 100, ic: 60, manpower: 30 },
+                            cost: getBuildingCost('recruitingOffice'),
                             checkRestriction: () => selectedProvince.strategicValue >= 4,
                             IconComponent: Users,
                             designBg: 'bg-[#DAE2DC]'
@@ -1491,10 +1491,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             max: 2,
                             desc: lang === 'zh' ? '前线重工制造车间：每回合开始时会为您的政权产出高额的额外军事补给品：1 级产生 +10 Supplies/turn，2 级产生 +20 Supplies/turn。' : 'Heavy munitions factory. Produces extra strategic supplies for your command structure every turn: +10 supplies at Lvl 1; +20 supplies at Lvl 2.',
                             restrict: lang === 'zh' ? '由于重化工配套，仅能在「城市」 (Urban) 地貌的工业化都市中兴建' : 'Can only be manufactured in highly populated urban districts',
-                            cost: (lvl: number) => {
-                              if (lvl === 1) return { supplies: 200, ic: 150, manpower: 0 };
-                              return { supplies: 300, ic: 220, manpower: 0 };
-                            },
+                            cost: (lvl: number) => getBuildingCost('ammoFactory', lvl),
                             checkRestriction: () => selectedProvince.terrain === 'urban',
                             IconComponent: Wrench,
                             designBg: 'bg-[#D6E0EC]'

@@ -1,9 +1,14 @@
 import React from 'react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSelector, shallowEqual } from '../game/GameContext';
 import { motion } from 'motion/react';
 
 export const SuperEvent: React.FC = () => {
-  const { state, dispatch } = useGame();
+  const state = useGameSelector(snapshot => ({
+    superEvent: snapshot.superEvent,
+    civilWarStatus: snapshot.civilWarStatus,
+    language: snapshot.language,
+  }), shallowEqual);
+  const { dispatch } = useGameActions();
   const [scale, setScale] = React.useState(1);
 
   React.useEffect(() => {

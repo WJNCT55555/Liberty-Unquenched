@@ -12,6 +12,9 @@ const electionAuthorityFiles = new Set([
   'src/game/events/elections_1933.ts',
   'src/game/events/elections_1936.ts'
 ]);
+const sandboxAuthorityFiles = new Set([
+  'src/components/SandboxMenu.tsx'
+]);
 const resetOnlyFiles = new Set([
   'src/game/GameContext.tsx',
   'src/components/SandboxMenu.tsx'
@@ -182,12 +185,23 @@ const auditSourceFile = (absolutePath) => {
           addIssue(sourceFile, node, 'formRulingCoalitionFromElection calls must pass exactly state and coalition id.');
         }
       }
+      if (name === 'formRulingCoalitionFromSandbox') {
+        if (!sandboxAuthorityFiles.has(relativePath)) {
+          addIssue(sourceFile, node, 'only the sandbox controls may install a ruling coalition through the sandbox API.');
+        }
+        if (node.arguments.length !== 2) {
+          addIssue(sourceFile, node, 'formRulingCoalitionFromSandbox calls must pass exactly state and coalition id.');
+        }
+      }
     }
 
     if (ts.isImportSpecifier(node)) {
       const importedName = node.propertyName?.text || node.name.text;
       if (importedName === 'formRulingCoalitionFromElection' && !electionAuthorityFiles.has(relativePath)) {
         addIssue(sourceFile, node, 'ruling-coalition authority may only be imported by approved election-result modules.');
+      }
+      if (importedName === 'formRulingCoalitionFromSandbox' && !sandboxAuthorityFiles.has(relativePath)) {
+        addIssue(sourceFile, node, 'sandbox ruling-coalition authority may only be imported by SandboxMenu.');
       }
     }
 

@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSelector } from '../game/GameContext';
 import { AchievementsModal } from './AchievementsModal';
 import { Star } from 'lucide-react';
+import { SaveManagerModal } from './SaveManagerModal';
+import { readSaveLibrary } from '../game/saveGame';
 
 export const StartScreen = () => {
-  const { state, dispatch } = useGame();
+  const language = useGameSelector(state => state.language);
+  const { dispatch } = useGameActions();
   const [showAchievements, setShowAchievements] = useState(false);
   const [showScenarioSelect, setShowScenarioSelect] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<'1931' | '1933' | '1936'>('1931');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'normal' | 'hard' | 'historical' | 'sandbox'>('normal');
   const [hasSave, setHasSave] = useState(false);
-  const isZh = state.language === 'zh';
+  const [showSaveManager, setShowSaveManager] = useState(false);
+  const isZh = language === 'zh';
 
   useEffect(() => {
-    setHasSave(!!localStorage.getItem('cnt_fai_save'));
+    const refresh = () => {
+      const library = readSaveLibrary();
+      setHasSave(Boolean(library.autosave || library.manualSlots.some((slot) => slot.record)));
+    };
+    refresh();
+    window.addEventListener('cnt-fai-save-library-changed', refresh);
+    return () => window.removeEventListener('cnt-fai-save-library-changed', refresh);
   }, []);
 
   const handleNewGame = () => {
@@ -26,10 +36,7 @@ export const StartScreen = () => {
   };
 
   const handleLoadGame = () => {
-    const saved = localStorage.getItem('cnt_fai_save');
-    if (saved) {
-      dispatch({ type: 'LOAD_STATE', payload: JSON.parse(saved) });
-    }
+    setShowSaveManager(true);
   };
 
   const toggleLanguage = () => {
@@ -216,6 +223,17 @@ export const StartScreen = () => {
 
       <AnimatePresence>
         {showAchievements && <AchievementsModal onClose={() => setShowAchievements(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showSaveManager && (
+          <SaveManagerModal
+            isOpen={showSaveManager}
+            onClose={() => setShowSaveManager(false)}
+            isZh={isZh}
+            canSaveManual={false}
+            canLoadManual
+          />
+        )}
       </AnimatePresence>
     </div>
   );

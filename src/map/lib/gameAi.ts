@@ -5,6 +5,7 @@
 
 import { GameState, MapFaction as Faction, Province, Army } from '../types_map';
 import { PROVINCE_ADJACENCY, isPortugalProvince } from '../map_constants';
+import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../rules/costs';
 
 export interface AiAction {
   type: 'BUILD' | 'REINFORCE' | 'RECRUIT' | 'MOVE' | 'END_TURN';
@@ -76,22 +77,16 @@ export function calculateAiMoves(
       .sort((a, b) => (a.manpower / a.maxManpower) - (b.manpower / b.maxManpower));
 
     for (const army of damagedArmies) {
-      const designedComp = army.designedComposition || army.composition;
-      const infLoss = Math.max(0, designedComp.infantry - army.composition.infantry);
-      const artLoss = Math.max(0, designedComp.artillery - army.composition.artillery);
-      const tnkLoss = Math.max(0, designedComp.tanks - army.composition.tanks);
-
       // Max 50% replenishment target
-      const infRestored = Math.floor(infLoss * 0.5);
-      const artRestored = Math.floor(artLoss * 0.5);
-      const tnkRestored = Math.floor(tnkLoss * 0.5);
-      const totalTargetRestored = infRestored + artRestored + tnkRestored;
+      const target = reinforceTarget(army);
+      const totalTargetRestored = target.infantry + target.artillery + target.tanks;
 
       if (totalTargetRestored > 0) {
-        const costManpower = totalTargetRestored;
-        const costSupplies = Math.floor(infRestored * 0.03 + artRestored * 0.06 + tnkRestored * 1.2);
-        const costIC = Math.floor(artRestored * 0.04 + tnkRestored * 0.08);
-        const costTankReserve = tnkRestored;
+        const cost = reinforceCost(target);
+        const costManpower = cost.manpower;
+        const costSupplies = cost.supplies;
+        const costIC = cost.ic;
+        const costTankReserve = cost.tankReserve;
 
         if (simManpower >= costManpower && simSupplies >= costSupplies && simIC >= costIC && simTankReserve >= costTankReserve) {
           simManpower -= costManpower;
@@ -119,14 +114,11 @@ export function calculateAiMoves(
       // 1. Fortresses: Core choke point defense
       if (isFrontline(province.id) && (buildings.fortress || 0) < (difficulty === 'hard' ? 3 : 2)) {
         const nextLevel = (buildings.fortress || 0) + 1;
-        let costSupplies = 150;
-        let costIC = 100;
-        if (nextLevel === 2) { costSupplies = 250; costIC = 180; }
-        else if (nextLevel === 3) { costSupplies = 400; costIC = 280; }
+        const cost = getBuildingCost('fortress', nextLevel);
 
-        if (simSupplies >= costSupplies && simIC >= costIC) {
-          simSupplies -= costSupplies;
-          simIC -= costIC;
+        if (simSupplies >= cost.supplies && simIC >= cost.ic) {
+          simSupplies -= cost.supplies;
+          simIC -= cost.ic;
           actions.push({
             type: 'BUILD',
             payload: { provinceId: province.id, buildingType: 'fortress' }
@@ -138,12 +130,11 @@ export function calculateAiMoves(
       // 2. Ammunition Factories: Urban logistical expansion
       if (province.terrain === 'urban' && (buildings.ammoFactory || 0) < (difficulty === 'hard' ? 2 : 1)) {
         const nextLevel = (buildings.ammoFactory || 0) + 1;
-        const costSupplies = nextLevel === 1 ? 200 : 300;
-        const costIC = nextLevel === 1 ? 150 : 220;
+        const cost = getBuildingCost('ammoFactory', nextLevel);
 
-        if (simSupplies >= costSupplies && simIC >= costIC) {
-          simSupplies -= costSupplies;
-          simIC -= costIC;
+        if (simSupplies >= cost.supplies && simIC >= cost.ic) {
+          simSupplies -= cost.supplies;
+          simIC -= cost.ic;
           actions.push({
             type: 'BUILD',
             payload: { provinceId: province.id, buildingType: 'ammoFactory' }
@@ -154,14 +145,12 @@ export function calculateAiMoves(
 
       // 3. Recruiting Offices: Focus on high strategic rate territories (strategic value >= 4)
       if (province.strategicValue >= 4 && (buildings.recruitingOffice || 0) < 1) {
-        const costSupplies = 100;
-        const costIC = 60;
-        const costManpower = 30;
+        const cost = getBuildingCost('recruitingOffice');
 
-        if (simSupplies >= costSupplies && simIC >= costIC && simManpower >= costManpower) {
-          simSupplies -= costSupplies;
-          simIC -= costIC;
-          simManpower -= costManpower;
+        if (simSupplies >= cost.supplies && simIC >= cost.ic && simManpower >= cost.manpower) {
+          simSupplies -= cost.supplies;
+          simIC -= cost.ic;
+          simManpower -= cost.manpower;
           actions.push({
             type: 'BUILD',
             payload: { provinceId: province.id, buildingType: 'recruitingOffice' }
@@ -172,12 +161,11 @@ export function calculateAiMoves(
 
       // 4. Barracks: Expand garrison structures
       if ((buildings.barracks || 0) < 1) {
-        const costSupplies = 120;
-        const costIC = 80;
+        const cost = getBuildingCost('barracks');
 
-        if (simSupplies >= costSupplies && simIC >= costIC) {
-          simSupplies -= costSupplies;
-          simIC -= costIC;
+        if (simSupplies >= cost.supplies && simIC >= cost.ic) {
+          simSupplies -= cost.supplies;
+          simIC -= cost.ic;
           actions.push({
             type: 'BUILD',
             payload: { provinceId: province.id, buildingType: 'barracks' }
@@ -206,11 +194,11 @@ export function calculateAiMoves(
         comp = { infantry: 2000, artillery: 450, tanks: 150 };
       }
 
-      const totalMobilized = comp.infantry + comp.artillery + comp.tanks;
-      const costManpower = totalMobilized;
-      const costSupplies = Math.floor(comp.infantry * 0.03 + comp.artillery * 0.06 + comp.tanks * 1.2);
-      const costIC = Math.floor(comp.artillery * 0.04 + comp.tanks * 0.08);
-      const costTankReserve = comp.tanks;
+      const cost = armyRecruitCost(comp);
+      const costManpower = cost.manpower;
+      const costSupplies = cost.supplies;
+      const costIC = cost.ic;
+      const costTankReserve = cost.tankReserve;
 
       if (
         simManpower >= costManpower && 

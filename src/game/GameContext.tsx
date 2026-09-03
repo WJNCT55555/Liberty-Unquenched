@@ -1,17 +1,35 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { GameState, Card, Advisor, GameEvent, EventHistory } from './types';
-import { initializeStartingCoalition, updatePartySupport, updateCoalitions, checkCoalitionDissolve } from './utils';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore, ReactNode } from 'react';
+import { GameState, GameEvent } from './types';
+import { initializeStartingCoalition, updatePartySupport, shouldQueueEvent } from './utils';
 import { INITIAL_CARDS, INITIAL_EVENTS } from './data';
 import { INITIAL_ADVISORS } from './advisors';
 import { MILITARY_AFFAIRS } from './military_affairs';
 import { JOURNAL_ENTRIES, getJournalEntryDef } from './journal';
 import { INITIAL_PROVINCES, INITIAL_ARMIES, PROVINCE_ADJACENCY, getCombatWidth, isPortugalProvince, initializeMapState } from '../map/map_constants';
-import { MapFaction, Army, ResourceSet } from '../map/types_map';
+import { MapFaction, Army } from '../map/types_map';
 import { calculateAiMoves } from '../map/lib/gameAi';
-import { civilWarSetup } from './events/civil_war/civil_war_setup';
-import { adjustClassSupport, shouldQueueEvent } from './utils';
+import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../map/rules/costs';
 import { INITIAL_CLASSES, INITIAL_PARTY_RELATIONS, SCENARIO_1933_CLASSES, SCENARIO_1936_CLASSES } from './parties';
 import { normalizeDomesticPolicyLawLevels } from './lawStances';
+import { RESTORABLE_EVENTS } from './events';
+import {
+  deserializeGameState,
+  writeAutosave,
+  type SaveGameSnapshot,
+} from './saveGame';
+import { ECONOMIC_RULES } from './rules/economy';
+import { calculateMonthlyIncome } from './rules/income';
+import { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance, calculateMonthlyEventQueue } from './rules/monthlyPipeline';
+import { getDefaultOrganizationState, isOrganizationEstablished } from './organizations';
+import type { GameAction } from './reducers/types';
+export type { GameAction } from './reducers/types';
+import { reduceEconomy } from './reducers/economyReducer';
+import { reducePolitical } from './reducers/politicalReducer';
+import { reduceMap, reduceMapWarAction } from './reducers/mapReducer';
+import { reduceEvent } from './reducers/eventReducer';
+import { reduceSave } from './reducers/saveReducer';
+import { checkEndings } from './endings';
+import { checkAchievements } from './achievements';
 
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -22,37 +40,6 @@ const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   };
   return acc;
 }, {} as Record<string, any>);
-
-const createEmptyEventHistory = (): EventHistory => ({
-  triggered: [],
-  resolved: [],
-});
-
-const appendEventHistoryId = (
-  history: EventHistory | undefined,
-  bucket: keyof EventHistory,
-  eventId?: string | null
-): EventHistory => {
-  const base = history || createEmptyEventHistory();
-  if (!eventId || base[bucket].includes(eventId)) {
-    return base;
-  }
-
-  return {
-    ...base,
-    [bucket]: [...base[bucket], eventId],
-  };
-};
-
-const isBeforeYearMonth = (date: { year: number; month: number }, year: number, month: number) =>
-  date.year < year || (date.year === year && date.month < month);
-
-const createLegacySaveEventHistory = (state: Pick<GameState, 'year' | 'month'>): EventHistory => ({
-  triggered: [],
-  resolved: INITIAL_EVENTS
-    .filter((event) => event.date && isBeforeYearMonth(event.date, state.year, state.month))
-    .map((event) => event.id),
-});
 
 const getEventTriggerMode = (difficulty: GameState['difficulty']) =>
   difficulty === 'historical' ? 'historical' : 'nonHistorical';
@@ -442,19 +429,7 @@ function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): 
       const currentLevel = currentBuildings[buildingType as keyof typeof currentBuildings] || 0;
       const nextLevel = currentLevel + 1;
 
-      let cost = { supplies: 0, ic: 0, manpower: 0 };
-      if (buildingType === 'barracks') {
-        cost = { supplies: 120, ic: 80, manpower: 0 };
-      } else if (buildingType === 'fortress') {
-        if (nextLevel === 1) cost = { supplies: 150, ic: 100, manpower: 0 };
-        else if (nextLevel === 2) cost = { supplies: 250, ic: 180, manpower: 0 };
-        else cost = { supplies: 400, ic: 280, manpower: 0 };
-      } else if (buildingType === 'recruitingOffice') {
-        cost = { supplies: 100, ic: 60, manpower: 30 };
-      } else if (buildingType === 'ammoFactory') {
-        if (nextLevel === 1) cost = { supplies: 200, ic: 150, manpower: 0 };
-        else cost = { supplies: 300, ic: 220, manpower: 0 };
-      }
+      const cost = getBuildingCost(buildingType, nextLevel);
 
       if (
         playerRes.supplies >= cost.supplies &&
@@ -491,17 +466,18 @@ function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): 
       const playerRes = mapResources[aiFaction];
       if (!army || !playerRes) return;
 
-      const designedComp = army.designedComposition || army.composition;
-      const maxInfRestored = Math.max(0, Math.floor((designedComp.infantry - army.composition.infantry) * 0.5));
-      const maxArtRestored = Math.max(0, Math.floor((designedComp.artillery - army.composition.artillery) * 0.5));
-      const maxTnkRestored = Math.max(0, Math.floor((designedComp.tanks - army.composition.tanks) * 0.5));
+      const maxRestored = reinforceTarget(army);
+      const maxInfRestored = maxRestored.infantry;
+      const maxArtRestored = maxRestored.artillery;
+      const maxTnkRestored = maxRestored.tanks;
 
       const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
       let scale = 1.0;
       const targetManpower = totalMaxRestored;
-      const targetSupplies = Math.floor(maxInfRestored * 0.03 + maxArtRestored * 0.06 + maxTnkRestored * 1.2);
-      const targetIndustrial = Math.floor(maxArtRestored * 0.04 + maxTnkRestored * 0.08);
-      const targetTankReserve = maxTnkRestored;
+      const targetCost = reinforceCost(maxRestored);
+      const targetSupplies = targetCost.supplies;
+      const targetIndustrial = targetCost.ic;
+      const targetTankReserve = targetCost.tankReserve;
 
       if (targetManpower > 0) {
         if (playerRes.manpower < targetManpower) scale = Math.min(scale, playerRes.manpower / targetManpower);
@@ -514,14 +490,15 @@ function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): 
       const actualArt = Math.floor(maxArtRestored * scale);
       const actualTnk = Math.floor(maxTnkRestored * scale);
       const actualTotal = actualInf + actualArt + actualTnk;
+      const actualCost = reinforceCost({ infantry: actualInf, artillery: actualArt, tanks: actualTnk });
 
       if (actualTotal > 0) {
         mapResources[aiFaction] = {
           ...playerRes,
-          manpower: Math.max(0, playerRes.manpower - actualTotal),
-          supplies: Math.max(0, playerRes.supplies - Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2)),
-          industrialCapacity: Math.max(0, playerRes.industrialCapacity - Math.floor(actualArt * 0.04 + actualTnk * 0.08)),
-          tankReserve: Math.max(0, playerRes.tankReserve - actualTnk),
+          manpower: Math.max(0, playerRes.manpower - actualCost.manpower),
+          supplies: Math.max(0, playerRes.supplies - actualCost.supplies),
+          industrialCapacity: Math.max(0, playerRes.industrialCapacity - actualCost.ic),
+          tankReserve: Math.max(0, playerRes.tankReserve - actualCost.tankReserve),
         };
 
         armies = armies.map(a => {
@@ -554,10 +531,11 @@ function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): 
       const playerRes = mapResources[aiFaction];
       if (!playerRes) return;
 
-      const reqManpower = infantry + artillery + tanks;
-      const reqSupplies = Math.floor(infantry * 0.03 + artillery * 0.06 + tanks * 1.2);
-      const reqIndustry = Math.floor(artillery * 0.04 + tanks * 0.08);
-      const reqTankReserve = tanks;
+      const recruitCost = armyRecruitCost({ infantry, artillery, tanks });
+      const reqManpower = recruitCost.manpower;
+      const reqSupplies = recruitCost.supplies;
+      const reqIndustry = recruitCost.ic;
+      const reqTankReserve = recruitCost.tankReserve;
 
       if (
         playerRes.manpower >= reqManpower &&
@@ -672,8 +650,8 @@ export const INITIAL_STATE: GameState = {
   labor_affairs_timer: 0,
   fiscal_policy_timer: 0,
   coupProgress: 0,
-  economy_growth: 2.5,
-  inflation_rate: 3.5,
+  economy_growth: ECONOMIC_RULES.defaults.growth,
+  inflation_rate: ECONOMIC_RULES.defaults.inflation,
   unemployment_rate: 11.2,
   economyHistory: [
     { year: 1930, month: 10, growth: 2.1, inflation: 3.1, unemployment: 10.5 },
@@ -683,17 +661,17 @@ export const INITIAL_STATE: GameState = {
     { year: 1931, month: 2, growth: 2.5, inflation: 3.6, unemployment: 11.1 },
     { year: 1931, month: 3, growth: 2.5, inflation: 3.5, unemployment: 11.2 }
   ],
-  budget: 12.0,
-  tax_lower_class: 5,
-  tax_middle_class: 15,
-  tax_upper_class: 25,
-  tax_tariff: 10,
-  tax_consumption: 8,
-  gold_reserves: 2200,
-  foreign_exchange: 180,
-  public_debt: 500,
+  budget: ECONOMIC_RULES.defaults.budget,
+  tax_lower_class: ECONOMIC_RULES.defaults.lowerTax,
+  tax_middle_class: ECONOMIC_RULES.defaults.middleTax,
+  tax_upper_class: ECONOMIC_RULES.defaults.upperTax,
+  tax_tariff: ECONOMIC_RULES.defaults.tariff,
+  tax_consumption: ECONOMIC_RULES.defaults.consumptionTax,
+  gold_reserves: ECONOMIC_RULES.defaults.goldReserves,
+  foreign_exchange: ECONOMIC_RULES.defaults.foreignExchange,
+  public_debt: ECONOMIC_RULES.defaults.debt,
   has_issued_war_bonds: false,
-  military_spending: 15,
+  military_spending: ECONOMIC_RULES.defaults.militarySpending,
   workersAllianceProgress: 0,
   cntVotingRate: 15,
   isPRRevSFormed: false,
@@ -701,6 +679,8 @@ export const INITIAL_STATE: GameState = {
   prrevsConstructionLevel: 0,
   cntStance: 'oppose',
   sandboxCardChoiceEnabled: false,
+  sandboxManualTaxAdjustmentEnabled: false,
+  organizations: getDefaultOrganizationState('1931'),
   ateneos_established: 0,
   fijl_established: false,
   mujeres_libres_established: false,
@@ -911,6 +891,7 @@ export const INITIAL_STATE: GameState = {
   activeAdvisors: [null, null, null],
   advisorPool: INITIAL_ADVISORS.filter(a => a.id !== 'Ramón Franco' && a.id !== 'Pedro Vallina' && a.id !== 'Eduardo Barriobero'),
   currentEvent: null,
+  easyUndoState: null,
   hand: [],
   actionDeck: INITIAL_CARDS.filter(c => c.type === 'Action'),
   governmentDeck: INITIAL_CARDS.filter(c => c.type === 'Government'),
@@ -929,57 +910,32 @@ export const INITIAL_STATE: GameState = {
   coalition_dissent: 0,
 };
 
-export const getMonthlyArmamentIncome = (isAtWar: boolean, nextMonth: number): number => {
-  if (isAtWar) return 1;
-  return nextMonth % 2 === 0 ? 1 : 0;
-};
+// Kept as a compatibility export for existing tests and integrations. The
+// implementation lives in the pure rules/income calculator.
+export { getMonthlyArmamentIncome } from './rules/income';
 
-interface GameContextType {
+export interface GameContextType {
   state: GameState;
   dispatch: (action: GameAction) => void;
+  loadSave: (snapshot: SaveGameSnapshot) => { ok: true } | { ok: false; error: string };
 }
 
-type GameAction =
-  | { type: 'START_GAME'; payload: { scenario: '1931' | '1933' | '1936'; difficulty: 'easy' | 'normal' | 'hard' | 'historical' | 'sandbox' } }
-  | { type: 'RETURN_TO_START' }
-  | { type: 'NEXT_PHASE' }
-  | { type: 'PLAY_CARD'; payload: Card }
-  | { type: 'RESOLVE_EVENT'; payload: (state: GameState) => Partial<GameState> }
-  | { type: 'DISMISS_SUPER_EVENT' }
-  | { type: 'SELECT_EVENT'; payload: { eventId: string } }
-  | { type: 'ADD_ADVISOR'; payload: { advisor: Advisor; slotIndex: number } }
-  | { type: 'REMOVE_ADVISOR'; payload: { slotIndex: number } }
-  | { type: 'DRAW_CARD'; payload: 'Action' | 'Governmental' | 'Military' }
-  | { type: 'DRAW_SPECIFIC_CARD'; payload: { cardId: string; deckType: 'Action' | 'Governmental' | 'Military' } }
-  | { type: 'CHECK_EVENT' }
-  | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' }
-  | { type: 'LOAD_STATE'; payload: GameState }
-  | { type: 'UPDATE_TAXES'; payload: { tax_lower_class?: number; tax_middle_class?: number; tax_upper_class?: number; tax_tariff?: number; tax_consumption?: number; military_spending?: number } }
-  | { type: 'SELL_GOLD_FOR_FX' }
-  | { type: 'ISSUE_WAR_BONDS' }
-  | { type: 'BUY_RESOURCES_URGENT' }
-  | { type: 'DEBUG_TRIGGER_ENDING'; payload: string }
-  | { type: 'SANDBOX_EDIT'; payload: Partial<GameState> }
-  | { type: 'SET_REGIONAL_STATUS'; payload: { region: 'andalusia' | 'catalonia' | 'basque' | 'galicia' | 'asturias'; status: 'direct' | 'autonomy' | 'independent' } }
-  | { type: 'TOGGLE_MAP_VIEW' }
-  | { type: 'END_MAP_PLAYER_TURN' }
-  | { type: 'SELECT_MAP_PROVINCE'; payload: string | null }
-  | { type: 'SELECT_MAP_ARMY'; payload: { armyId: string | null; isShift: boolean } }
-  | { type: 'MOVE_MAP_ARMY'; payload: { armyId: string; targetProvinceId: string } }
-  | { type: 'RECRUIT_MAP_ARMY'; payload: { provinceId: string; composition: { infantry: number; artillery: number; tanks: number } } }
-  | { type: 'REINFORCE_MAP_ARMY'; payload: { armyId: string } }
-  | { type: 'MERGE_MAP_ARMIES' }
-  | { type: 'DISBAND_MAP_ARMIES' }
-  | { type: 'SPLIT_MAP_ARMY'; payload: { armyId: string; composition: { infantry: number; artillery: number; tanks: number } } }
-  | { type: 'BUILD_MAP_BUILDING'; payload: { provinceId: string; buildingType: string } };
+interface GameStore {
+  getSnapshot: () => GameState;
+  subscribe: (listener: () => void) => () => void;
+  dispatch: (action: GameAction) => void;
+  loadSave: (snapshot: SaveGameSnapshot) => { ok: true } | { ok: false; error: string };
+}
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
-
-import { checkEndings } from './endings';
-import { checkAchievements } from './achievements';
+const GameContext = createContext<GameStore | undefined>(undefined);
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   let newState = state;
+  const reduceMapWar = (mapState: GameState, mapAction: GameAction) => reduceMapWarAction(mapState, mapAction, {
+    resolveBattle,
+    executeAiTurn,
+    checkWarStatus,
+  });
   switch (action.type) {
     case 'START_GAME': {
       let startYear = 1931;
@@ -1115,6 +1071,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         domesticPolicy: startingDomesticPolicy,
         scenario: action.payload.scenario,
         difficulty: action.payload.difficulty,
+        organizations: getDefaultOrganizationState(action.payload.scenario),
         year: startYear,
         month: startMonth,
         civilWarStatus: startCivilWarStatus,
@@ -1128,23 +1085,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         respectHistory: false,
       }));
 
-      const initialHistory = [];
-      let tempY = startYear;
-      let tempM = startMonth;
-      for (let i = 0; i < 6; i++) {
-        tempM--;
-        if (tempM <= 0) {
-          tempM = 12;
-          tempY--;
-        }
-        initialHistory.unshift({
-          year: tempY,
-          month: tempM,
-          growth: parseFloat((start_growth * (0.9 + Math.random() * 0.2)).toFixed(2)),
-          inflation: parseFloat((start_inflation * (0.9 + Math.random() * 0.2)).toFixed(2)),
-          unemployment: parseFloat((start_unemployment * (0.95 + Math.random() * 0.1)).toFixed(2)),
-        });
-      }
+       // Start charts at the scenario's first playable month. Older versions
+       // synthesized six pre-start records, which made a 1931.4 start appear
+       // to have January–March economic history that never occurred in-game.
+       const initialHistory: GameState['economyHistory'] = [{
+         year: startYear,
+         month: startMonth,
+         growth: start_growth,
+         inflation: start_inflation,
+         unemployment: start_unemployment,
+       }];
 
       newState = { 
         ...INITIAL_STATE, 
@@ -1201,6 +1151,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         public_debt: start_debt,
         has_issued_war_bonds: start_has_bonds,
         military_spending: start_mil_spend,
+        fijl_established: action.payload.scenario === '1933' || action.payload.scenario === '1936',
+        mujeres_libres_established: action.payload.scenario === '1936',
+        militaryDeckEnabled: action.payload.scenario === '1936',
+        organizations: getDefaultOrganizationState(action.payload.scenario),
         regionalStatuses: {
           andalusia: 'direct',
           catalonia: (action.payload.scenario === '1933' || action.payload.scenario === '1936') ? 'autonomy' : 'direct',
@@ -1213,608 +1167,56 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'RETURN_TO_START':
-      newState = { ...state, screen: 'start' };
+    case 'LOAD_STATE':
+      newState = reduceSave(state, action) || state;
       break;
     case 'SET_LANGUAGE':
-      newState = { ...state, language: action.payload };
-      break;
-    case 'LOAD_STATE': {
-      const hydrateCards = (cards: Card[]) => {
-        return cards.map(c => {
-          const original = INITIAL_CARDS.find(ic => ic.id === c.id);
-          return original ? { ...c, effect: original.effect, condition: original.condition } : c;
-        });
-      };
-
-      const hydrateAdvisors = (advisors: (Advisor | null)[]) => {
-        return advisors.map(a => {
-          if (!a) return null;
-          const original = INITIAL_ADVISORS.find(ia => ia.id === a.id);
-          if (!original) return a;
-          return {
-            ...a,
-            actions: a.actions.map(action => {
-              const originalAction = original.actions.find(oa => oa.id === action.id);
-              return originalAction ? { ...action, condition: originalAction.condition, effect: originalAction.effect } : action;
-            })
-          };
-        });
-      };
-
-      const hydrateEvents = (events: GameEvent[]) => {
-        return events.map(e => {
-          const original = INITIAL_EVENTS.find(ie => ie.id === e.id);
-          if (!original) return e;
-          return {
-            ...e,
-            condition: original.condition,
-            options: e.options.map((opt, idx) => {
-              const originalOpt = original.options[idx];
-              return originalOpt ? { ...opt, condition: originalOpt.condition, effect: originalOpt.effect } : opt;
-            })
-          };
-        });
-      };
-
-      newState = { 
-        ...action.payload, 
-        screen: 'game',
-        hand: hydrateCards(action.payload.hand || []),
-        actionDeck: hydrateCards(action.payload.actionDeck || []),
-        governmentDeck: hydrateCards(action.payload.governmentDeck || []),
-        militaryDeck: hydrateCards(action.payload.militaryDeck || []),
-        discard: hydrateCards(action.payload.discard || []),
-        activeAdvisors: hydrateAdvisors(action.payload.activeAdvisors || [null, null, null]),
-        advisorPool: hydrateAdvisors(action.payload.advisorPool || []) as Advisor[],
-        pendingEvents: hydrateEvents(action.payload.pendingEvents || []),
-        currentEvent: action.payload.currentEvent ? hydrateEvents([action.payload.currentEvent])[0] : null,
-        eventHistory: action.payload.eventHistory || createLegacySaveEventHistory(action.payload),
-      };
-      break;
-    }
-    case 'UPDATE_TAXES':
-      newState = {
-        ...state,
-        tax_lower_class: action.payload.tax_lower_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_lower_class)) : state.tax_lower_class,
-        tax_middle_class: action.payload.tax_middle_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_middle_class)) : state.tax_middle_class,
-        tax_upper_class: action.payload.tax_upper_class !== undefined ? Math.max(1, Math.min(100, action.payload.tax_upper_class)) : state.tax_upper_class,
-        tax_tariff: action.payload.tax_tariff !== undefined ? Math.max(1, Math.min(100, action.payload.tax_tariff)) : state.tax_tariff,
-        tax_consumption: action.payload.tax_consumption !== undefined ? Math.max(1, Math.min(100, action.payload.tax_consumption)) : state.tax_consumption,
-        military_spending: action.payload.military_spending !== undefined ? Math.max(5, Math.min(100, action.payload.military_spending)) : (state.military_spending !== undefined ? state.military_spending : 15),
-      };
-      break;
-    case 'SELL_GOLD_FOR_FX':
-      if ((state.gold_reserves ?? 2200) >= 100) {
-        newState = {
-          ...state,
-          gold_reserves: (state.gold_reserves ?? 2200) - 100,
-          foreign_exchange: (state.foreign_exchange ?? 180) + 100,
-          inflation_rate: state.inflation_rate + 1.5,
-        };
-      }
-      break;
-    case 'ISSUE_WAR_BONDS':
-      newState = {
-        ...state,
-        budget: state.budget + 50.0,
-        foreign_exchange: (state.foreign_exchange ?? 180) + 10.0,
-        public_debt: (state.public_debt ?? 500) + 60.0,
-        has_issued_war_bonds: true,
-        inflation_rate: state.inflation_rate + 1.2,
-      };
-      break;
-    case 'BUY_RESOURCES_URGENT':
-      if ((state.foreign_exchange ?? 180) >= 25.0) {
-        newState = {
-          ...state,
-          foreign_exchange: (state.foreign_exchange ?? 180) - 25.0,
-          resources: state.resources + 2,
-          armaments: state.armaments + 1,
-        };
-      }
-      break;
     case 'DEBUG_TRIGGER_ENDING':
-      newState = { ...state, isGameOver: true, ending: action.payload };
-      break;
     case 'SANDBOX_EDIT':
-      if (state.difficulty === 'sandbox') {
-        newState = { ...state, ...action.payload };
-      }
-      break;
     case 'SET_REGIONAL_STATUS':
-      newState = {
-        ...state,
-        regionalStatuses: {
-          ...state.regionalStatuses,
-          [action.payload.region]: action.payload.status,
-        },
-      };
+      newState = reducePolitical(state, action) || state;
+      break;
+    case 'UPDATE_TAXES':
+    case 'SELL_GOLD_FOR_FX':
+    case 'ISSUE_WAR_BONDS':
+    case 'BUY_RESOURCES_URGENT':
+      newState = reduceEconomy(state, action) || state;
       break;
     case 'TOGGLE_MAP_VIEW':
-      newState = {
-        ...state,
-        currentView: state.currentView === 'map' ? 'standard' : 'map',
-      };
-      break;
     case 'SELECT_MAP_PROVINCE':
-      newState = {
-        ...state,
-        mapSelectedProvinceId: action.payload,
-      };
+    case 'SELECT_MAP_ARMY':
+      newState = reduceMap(state, action) || state;
       break;
-    case 'SELECT_MAP_ARMY': {
-      const { armyId, isShift } = action.payload;
-      if (!isShift) {
-        newState = {
-          ...state,
-          mapSelectedArmyId: armyId,
-          mapSelectedArmyIds: armyId ? [armyId] : [],
-        };
-      } else {
-        const currentIds = state.mapSelectedArmyIds || [];
-        const isSelected = armyId ? currentIds.includes(armyId) : false;
-        let nextIds = [...currentIds];
-        if (armyId) {
-          if (isSelected) {
-            nextIds = nextIds.filter(id => id !== armyId);
-          } else {
-            nextIds.push(armyId);
-          }
-        }
-        newState = {
-          ...state,
-          mapSelectedArmyId: nextIds[nextIds.length - 1] || null,
-          mapSelectedArmyIds: nextIds,
-        };
-      }
-      break;
-    }
     case 'MOVE_MAP_ARMY': {
-      if (state.phase !== 'war') return state;
-      const { armyId, targetProvinceId } = action.payload;
-      const armies = state.armies || [];
-      const movedArmy = armies.find(a => a.id === armyId);
-      if (!movedArmy) break;
-
-      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
-
-      // Player movement is only valid during the player's map turn, with one of
-      // the player's armies, and into an adjacent province.
-      if (
-        state.mapCurrentPlayer !== currentPlayerFaction ||
-        movedArmy.faction !== currentPlayerFaction ||
-        !(PROVINCE_ADJACENCY[movedArmy.provinceId] || []).includes(targetProvinceId)
-      ) {
-        break;
-      }
-
-      // Prevent Nationalist and Republican armies from entering Portugal
-      if (currentPlayerFaction === MapFaction.REPUBLICAN && isPortugalProvince(targetProvinceId)) {
-        break;
-      }
-
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[currentPlayerFaction];
-
-      // Every player movement costs exactly one command point.
-      if (!playerRes || playerRes.commandPoints < 1) {
-        break;
-      }
-
-      mapResources[currentPlayerFaction] = {
-        ...playerRes,
-        commandPoints: Math.max(0, playerRes.commandPoints - 1),
-      };
-
-      // Resolve movement/combat
-      const isZh = state.language === 'zh';
-      const nextProvinces = { ...(state.provinces || INITIAL_PROVINCES) };
-      const res = resolveBattle(armies, nextProvinces, movedArmy, targetProvinceId, isZh);
-
-      let nextHistory = [...(state.mapHistory || [])];
-      if (res.messages && res.messages.length > 0) {
-        nextHistory = [...res.messages, ...nextHistory];
-      }
-
-      let updatedState: GameState = {
-        ...state,
-        mapResources,
-        armies: res.updatedArmies,
-        provinces: res.updatedProvinces,
-        mapHistory: nextHistory,
-      };
-
-      // Check if player has run out of CP
-      const updatedPlayerRes = mapResources[currentPlayerFaction];
-      if (updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
-        const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
-        updatedState.mapCurrentPlayer = aiFaction;
-        updatedState = executeAiTurn(updatedState, aiFaction, isZh);
-        updatedState = checkWarStatus(updatedState, isZh);
-      } else {
-        updatedState = checkWarStatus(updatedState, isZh);
-      }
-
-      newState = updatedState;
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'END_MAP_PLAYER_TURN': {
-      if (state.phase !== 'war') return state;
-      const isZh = state.language === 'zh';
-      const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
-      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
-      let updatedState: GameState = {
-        ...state,
-        mapCurrentPlayer: aiFaction,
-      };
-      updatedState = executeAiTurn(updatedState, aiFaction, isZh);
-      updatedState = checkWarStatus(updatedState, isZh);
-      
-      newState = updatedState;
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'RECRUIT_MAP_ARMY': {
-      if (state.phase !== 'war') return state;
-      const { provinceId, composition } = action.payload;
-      const { infantry, artillery, tanks } = composition;
-
-      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[playerFaction];
-
-      if (!playerRes) break;
-
-      const reqManpower = infantry + artillery + tanks;
-      const reqSupplies = Math.floor(infantry * 0.03 + artillery * 0.06 + tanks * 1.2);
-      const reqIndustry = Math.floor(artillery * 0.04 + tanks * 0.08);
-      const reqTankReserve = tanks;
-
-      if (
-        playerRes.manpower < reqManpower ||
-        playerRes.supplies < reqSupplies ||
-        playerRes.industrialCapacity < reqIndustry ||
-        playerRes.tankReserve < reqTankReserve
-      ) {
-        break;
-      }
-
-      mapResources[playerFaction] = {
-        ...playerRes,
-        manpower: Math.max(0, playerRes.manpower - reqManpower),
-        supplies: Math.max(0, playerRes.supplies - reqSupplies),
-        industrialCapacity: Math.max(0, playerRes.industrialCapacity - reqIndustry),
-        tankReserve: Math.max(0, playerRes.tankReserve - reqTankReserve),
-      };
-
-      const newArmyId = `army_rec_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-      const newArmy: Army = {
-        id: newArmyId,
-        faction: playerFaction,
-        provinceId,
-        movesLeft: 0,
-        manpower: reqManpower,
-        maxManpower: reqManpower,
-        composition: { infantry, artillery, tanks },
-        designedComposition: { infantry, artillery, tanks },
-        morale: 60,
-        militarization: 10,
-      };
-
-      newState = {
-        ...state,
-        mapResources,
-        armies: [...(state.armies || []), newArmy],
-        mapSelectedArmyId: newArmyId,
-        mapSelectedArmyIds: [newArmyId],
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'REINFORCE_MAP_ARMY': {
-      if (state.phase !== 'war') return state;
-      const { armyId } = action.payload;
-      const armies = state.armies || [];
-      const army = armies.find(a => a.id === armyId);
-      if (!army) break;
-
-      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[playerFaction];
-      if (!playerRes) break;
-
-      const designedComp = army.designedComposition || army.composition;
-      const maxInfRestored = Math.max(0, Math.floor((designedComp.infantry - army.composition.infantry) * 0.5));
-      const maxArtRestored = Math.max(0, Math.floor((designedComp.artillery - army.composition.artillery) * 0.5));
-      const maxTnkRestored = Math.max(0, Math.floor((designedComp.tanks - army.composition.tanks) * 0.5));
-
-      const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
-      
-      let scale = 1.0;
-      const targetManpower = totalMaxRestored;
-      const targetSupplies = Math.floor(maxInfRestored * 0.03 + maxArtRestored * 0.06 + maxTnkRestored * 1.2);
-      const targetIndustrial = Math.floor(maxArtRestored * 0.04 + maxTnkRestored * 0.08);
-      const targetTankReserve = maxTnkRestored;
-
-      if (targetManpower > 0) {
-        if (playerRes.manpower < targetManpower) scale = Math.min(scale, playerRes.manpower / targetManpower);
-        if (playerRes.supplies < targetSupplies) scale = Math.min(scale, playerRes.supplies / targetSupplies);
-        if (playerRes.industrialCapacity < targetIndustrial) scale = Math.min(scale, playerRes.industrialCapacity / targetIndustrial);
-        if (playerRes.tankReserve < targetTankReserve) scale = Math.min(scale, playerRes.tankReserve / targetTankReserve);
-      }
-
-      const actualInf = Math.floor(maxInfRestored * scale);
-      const actualArt = Math.floor(maxArtRestored * scale);
-      const actualTnk = Math.floor(maxTnkRestored * scale);
-      const actualTotal = actualInf + actualArt + actualTnk;
-
-      if (actualTotal <= 0) break;
-
-      const costManpower = actualTotal;
-      const costSupplies = Math.floor(actualInf * 0.03 + actualArt * 0.06 + actualTnk * 1.2);
-      const costIndustrial = Math.floor(actualArt * 0.04 + actualTnk * 0.08);
-      const costTankReserve = actualTnk;
-
-      mapResources[playerFaction] = {
-        ...playerRes,
-        manpower: Math.max(0, playerRes.manpower - costManpower),
-        supplies: Math.max(0, playerRes.supplies - costSupplies),
-        industrialCapacity: Math.max(0, playerRes.industrialCapacity - costIndustrial),
-        tankReserve: Math.max(0, playerRes.tankReserve - costTankReserve),
-      };
-
-      const updatedArmies = armies.map(a => {
-        if (a.id === armyId) {
-          const nextComposition = {
-            infantry: a.composition.infantry + actualInf,
-            artillery: a.composition.artillery + actualArt,
-            tanks: a.composition.tanks + actualTnk,
-          };
-          const nextManpower = nextComposition.infantry + nextComposition.artillery + nextComposition.tanks;
-          return {
-            ...a,
-            composition: nextComposition,
-            manpower: nextManpower,
-            morale: Math.min(100, a.morale + 20),
-          };
-        }
-        return a;
-      });
-
-      newState = {
-        ...state,
-        mapResources,
-        armies: updatedArmies,
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'MERGE_MAP_ARMIES': {
-      if (state.phase !== 'war') return state;
-      const selectedIds = state.mapSelectedArmyIds || [];
-      const armies = state.armies || [];
-      const mergeCandidates = armies.filter(a => selectedIds.includes(a.id));
-
-      if (mergeCandidates.length <= 1) break;
-
-      const primary = mergeCandidates[0];
-      const others = mergeCandidates.slice(1);
-      const otherIds = others.map(o => o.id);
-
-      let totalInf = primary.composition.infantry;
-      let totalArt = primary.composition.artillery;
-      let totalTnk = primary.composition.tanks;
-      let totalMaxInf = (primary.designedComposition || primary.composition).infantry;
-      let totalMaxArt = (primary.designedComposition || primary.composition).artillery;
-      let totalMaxTnk = (primary.designedComposition || primary.composition).tanks;
-
-      let weightedMoraleSum = primary.morale * primary.manpower;
-      let weightedMilSum = primary.militarization * primary.manpower;
-      let totalManpower = primary.manpower;
-
-      others.forEach(a => {
-        totalInf += a.composition.infantry;
-        totalArt += a.composition.artillery;
-        totalTnk += a.composition.tanks;
-
-        const designed = a.designedComposition || a.composition;
-        totalMaxInf += designed.infantry;
-        totalMaxArt += designed.artillery;
-        totalMaxTnk += designed.tanks;
-
-        weightedMoraleSum += a.morale * a.manpower;
-        weightedMilSum += a.militarization * a.manpower;
-        totalManpower += a.manpower;
-      });
-
-      const avgMorale = totalManpower > 0 ? Math.round(weightedMoraleSum / totalManpower) : primary.morale;
-      const avgMilitarization = totalManpower > 0 ? Math.round(weightedMilSum / totalManpower) : primary.militarization;
-
-      const mergedArmy: Army = {
-        ...primary,
-        manpower: totalManpower,
-        maxManpower: totalMaxInf + totalMaxArt + totalMaxTnk,
-        composition: { infantry: totalInf, artillery: totalArt, tanks: totalTnk },
-        designedComposition: { infantry: totalMaxInf, artillery: totalMaxArt, tanks: totalMaxTnk },
-        morale: Math.min(100, Math.max(0, avgMorale)),
-        militarization: Math.min(100, Math.max(0, avgMilitarization)),
-      };
-
-      const updatedArmies = armies
-        .filter(a => !otherIds.includes(a.id))
-        .map(a => (a.id === primary.id ? mergedArmy : a));
-
-      newState = {
-        ...state,
-        armies: updatedArmies,
-        mapSelectedArmyId: primary.id,
-        mapSelectedArmyIds: [primary.id],
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'DISBAND_MAP_ARMIES': {
-      if (state.phase !== 'war') return state;
-      const selectedIds = state.mapSelectedArmyIds || [];
-      const armies = state.armies || [];
-      const disbandArmiesList = armies.filter(a => selectedIds.includes(a.id));
-
-      if (disbandArmiesList.length === 0) break;
-
-      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[playerFaction];
-
-      if (!playerRes) break;
-
-      let recoveredManpower = 0;
-      let recoveredTanks = 0;
-      let recoveredSupplies = 0;
-
-      disbandArmiesList.forEach(a => {
-        recoveredManpower += a.manpower;
-        recoveredTanks += a.composition.tanks;
-        recoveredSupplies += Math.floor(
-          a.composition.infantry * 0.01 + a.composition.artillery * 0.02 + a.composition.tanks * 0.4
-        );
-      });
-
-      mapResources[playerFaction] = {
-        ...playerRes,
-        manpower: playerRes.manpower + recoveredManpower,
-        tankReserve: playerRes.tankReserve + recoveredTanks,
-        supplies: playerRes.supplies + recoveredSupplies,
-      };
-
-      const remainingArmies = armies.filter(a => !selectedIds.includes(a.id));
-
-      newState = {
-        ...state,
-        mapResources,
-        armies: remainingArmies,
-        mapSelectedArmyId: null,
-        mapSelectedArmyIds: [],
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'SPLIT_MAP_ARMY': {
-      if (state.phase !== 'war') return state;
-      const { armyId, composition } = action.payload;
-      const { infantry: splitInf, artillery: splitArt, tanks: splitTnk } = composition;
-
-      const armies = state.armies || [];
-      const parent = armies.find(a => a.id === armyId);
-      if (!parent) break;
-
-      if (
-        parent.composition.infantry < splitInf ||
-        parent.composition.artillery < splitArt ||
-        parent.composition.tanks < splitTnk
-      ) {
-        break;
-      }
-
-      const parentInf = parent.composition.infantry - splitInf;
-      const parentArt = parent.composition.artillery - splitArt;
-      const parentTnk = parent.composition.tanks - splitTnk;
-      const parentNewManpower = parentInf + parentArt + parentTnk;
-
-      if (parentNewManpower <= 0) {
-        break;
-      }
-
-      const updatedArmies = armies.map(a => {
-        if (a.id === armyId) {
-          return {
-            ...a,
-            manpower: parentNewManpower,
-            composition: { infantry: parentInf, artillery: parentArt, tanks: parentTnk },
-            designedComposition: { infantry: parentInf, artillery: parentArt, tanks: parentTnk },
-          };
-        }
-        return a;
-      });
-
-      const newArmyId = `army_rec_${Date.now()}_split`;
-      const splitArmyTotal = splitInf + splitArt + splitTnk;
-      const splitArmy: Army = {
-        id: newArmyId,
-        faction: parent.faction,
-        provinceId: parent.provinceId,
-        movesLeft: parent.movesLeft,
-        manpower: splitArmyTotal,
-        maxManpower: splitArmyTotal,
-        composition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
-        designedComposition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
-        morale: parent.morale,
-        militarization: parent.militarization,
-      };
-
-      newState = {
-        ...state,
-        armies: [...updatedArmies, splitArmy],
-        mapSelectedArmyId: armyId,
-        mapSelectedArmyIds: [armyId],
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'BUILD_MAP_BUILDING': {
-      if (state.phase !== 'war') return state;
-      const { provinceId, buildingType } = action.payload;
-      const provinces = { ...(state.provinces || INITIAL_PROVINCES) };
-      const province = provinces[provinceId];
-      if (!province) break;
-
-      const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
-      const mapResources = { ...state.mapResources };
-      const playerRes = mapResources[playerFaction];
-      if (!playerRes) break;
-
-      const currentBuildings = province.buildings || { barracks: 0, fortress: 0, recruitingOffice: 0, ammoFactory: 0 };
-      const currentLevel = currentBuildings[buildingType as keyof typeof currentBuildings] || 0;
-      const nextLevel = currentLevel + 1;
-
-      let cost = { supplies: 0, ic: 0, manpower: 0 };
-      if (buildingType === 'barracks') {
-        cost = { supplies: 120, ic: 80, manpower: 0 };
-      } else if (buildingType === 'fortress') {
-        if (nextLevel === 1) cost = { supplies: 150, ic: 100, manpower: 0 };
-        else if (nextLevel === 2) cost = { supplies: 250, ic: 180, manpower: 0 };
-        else cost = { supplies: 400, ic: 280, manpower: 0 };
-      } else if (buildingType === 'recruitingOffice') {
-        cost = { supplies: 100, ic: 60, manpower: 30 };
-      } else if (buildingType === 'ammoFactory') {
-        if (nextLevel === 1) cost = { supplies: 200, ic: 150, manpower: 0 };
-        else cost = { supplies: 300, ic: 220, manpower: 0 };
-      }
-
-      if (
-        playerRes.supplies < cost.supplies ||
-        playerRes.industrialCapacity < cost.ic ||
-        playerRes.manpower < cost.manpower
-      ) {
-        break;
-      }
-
-      mapResources[playerFaction] = {
-        ...playerRes,
-        supplies: Math.max(0, playerRes.supplies - cost.supplies),
-        industrialCapacity: Math.max(0, playerRes.industrialCapacity - cost.ic),
-        manpower: Math.max(0, playerRes.manpower - cost.manpower),
-      };
-
-      const nextBuildings = {
-        ...currentBuildings,
-        [buildingType]: nextLevel,
-      };
-
-      provinces[provinceId] = {
-        ...province,
-        buildings: nextBuildings,
-        ...(buildingType === 'fortress' ? { fortification: Math.min(3, nextLevel) } : {}),
-      };
-
-      newState = {
-        ...state,
-        mapResources,
-        provinces,
-      };
+      newState = reduceMapWar(state, action) || state;
       break;
     }
     case 'NEXT_PHASE': {
@@ -1835,13 +1237,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Discard remaining hand at end of turn
         const newDiscard = [...state.discard, ...state.hand];
         
-        // Calculate periodic income
-        // Base income + bonus from worker control (collectivization)
-        const resourceIncome = 1 + Math.floor(state.stats.workerControl / 20);
-        // CNT clandestine armaments are independent from Spain's national
-        // military budget: +1 every two months in peace, +1 monthly at war.
-        const isAtWar = state.civilWarStatus === 'ongoing' || Boolean(state.activeWar);
-        const armamentIncome = getMonthlyArmamentIncome(isAtWar, nextMonth);
+        // Calculate periodic income through the shared, pure rules source.
+        // CNT clandestine armaments remain independent from national military spending.
+        const monthlyIncome = calculateMonthlyIncome(state, nextMonth);
         
         // International Brigades Logic
         let newIntBrigades = state.internationalBrigades;
@@ -1878,237 +1276,29 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           }
         }
 
-        // Map updates: resource income and move reset
-        const nextMapResources = { ...state.mapResources } as Record<MapFaction, ResourceSet>;
-        const updatedNextArmies = (state.armies || []).map(army => ({
-          ...army,
-          movesLeft: 2, // Reset movement limits
-        }));
-
-        Object.keys(nextMapResources).forEach(factionKey => {
-          const fac = factionKey as MapFaction;
-          const currentRes = nextMapResources[fac];
-          if (!currentRes) return;
-
-          const ownedProvinces = Object.values(state.provinces || INITIAL_PROVINCES).filter(
-            p => p.owner === fac
-          );
-
-          let monthlyManpower = 500;
-          let monthlySupplies = 250;
-          let monthlyIC = 50;
-
-          ownedProvinces.forEach(p => {
-            monthlyManpower += p.manpower * 8;
-            monthlySupplies += p.industry * 2.0;
-            monthlyIC += p.industry * 1.0;
-
-            const b = p.buildings || {};
-            if (b.recruitingOffice) {
-              monthlyManpower += 1500;
-            }
-            if (b.ammoFactory) {
-              monthlySupplies += b.ammoFactory === 1 ? 500 : 1200;
-            }
-          });
-
-          nextMapResources[fac] = {
-            manpower: currentRes.manpower + Math.floor(monthlyManpower),
-            supplies: currentRes.supplies + Math.floor(monthlySupplies),
-            industrialCapacity: Math.min(250, currentRes.industrialCapacity + Math.floor(monthlyIC * 0.2)), 
-            commandPoints: 2,
-            tankReserve: currentRes.tankReserve + (fac === MapFaction.REPUBLICAN ? 1 : 0),
-          };
-        });
+        const monthlyMapStage = calculateMonthlyMapStage(state);
 
         let tempState: GameState = {
           ...state,
           month: nextMonth,
           year: nextYear,
           civilWarStatus: newCivilWarStatus,
-          resources: state.resources + resourceIncome,
-          armaments: state.armaments + armamentIncome,
+          resources: state.resources + monthlyIncome.resources,
+          armaments: state.armaments + monthlyIncome.armaments,
           internationalBrigades: newIntBrigades,
           internationalBrigadesFormed: newIntBrigadesFormed,
-          prrevs_formed_months: state.isPRRevSFormed ? state.prrevs_formed_months + 1 : 0,
-          mapResources: nextMapResources,
-          armies: updatedNextArmies,
-          mapCurrentPlayer: state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN,
-          asturiasWarTurns: state.activeWar === 'asturias_war' ? (state.asturiasWarTurns || 0) + 1 : (state.asturiasWarTurns || 0),
+          prrevs_formed_months: isOrganizationEstablished(state, 'PRRevS') ? state.prrevs_formed_months + 1 : 0,
+          mapResources: monthlyMapStage.mapResources,
+          armies: monthlyMapStage.armies,
+          mapCurrentPlayer: monthlyMapStage.mapCurrentPlayer,
+          asturiasWarTurns: monthlyMapStage.asturiasWarTurns,
         };
 
-        // --- Core Economic Monthly Simulation ---
-        const taxLowerRate = (tempState.tax_lower_class !== undefined ? tempState.tax_lower_class : 5) / 100;
-        const taxMiddleRate = (tempState.tax_middle_class !== undefined ? tempState.tax_middle_class : 15) / 100;
-        const taxUpperRate = (tempState.tax_upper_class !== undefined ? tempState.tax_upper_class : 25) / 100;
-        const taxTarRate = (tempState.tax_tariff !== undefined ? tempState.tax_tariff : 10) / 100;
-        const taxConsRate = (tempState.tax_consumption !== undefined ? tempState.tax_consumption : 8) / 100;
-
-        const isCivilWar = tempState.civilWarStatus === 'ongoing';
-        const milSpendVal = tempState.military_spending !== undefined ? tempState.military_spending : 15;
-
-        // 1. Budget Balance (Revenue - Expenditures)
-        // Weighted contributions by class to total income tax revenue
-        const incomeTaxRev = (taxLowerRate * 4.0) + (taxMiddleRate * 3.5) + (taxUpperRate * 4.5);
-        const tariffRev = taxTarRate * (isCivilWar ? 2.0 : 5.0);
-        const consumptionTaxRev = taxConsRate * 8.0;
-        const totalTaxRev = incomeTaxRev + tariffRev + consumptionTaxRev;
-
-        // Monthly Expenditures: Basic administration, plus social and military parameters
-        let monthlyExpenditures = 1.0; // Basic civil administration
-        switch (tempState.domesticPolicy.max_hours_law) {
-          case 2: monthlyExpenditures += 0.15; break;
-          case 3: monthlyExpenditures += 0.25; break;
-          case 4: monthlyExpenditures += 0.4; break;
-          default: break;
-        }
-
-        switch (tempState.domesticPolicy.workplace_safety) {
-          case 1: monthlyExpenditures += 0.05; break;
-          case 2: monthlyExpenditures += 0.1; break;
-          case 3: monthlyExpenditures += 0.2; break;
-          case 4: monthlyExpenditures += 0.35; break;
-          default: break;
-        }
-        
-        let minWageExpenditure = 0;
-        switch (tempState.domesticPolicy.min_wage) {
-          case 1: minWageExpenditure = 0.05; break;
-          case 2: minWageExpenditure = 0.15; break;
-          case 3: minWageExpenditure = 0.3; break;
-          case 4: minWageExpenditure = 0.5; break;
-          default: minWageExpenditure = 0; break;
-        }
-        monthlyExpenditures += minWageExpenditure;
-
-        let educationExpenditure = 0;
-        if (tempState.domesticPolicy.education_institutions === 2) {
-          educationExpenditure = 0.05;
-        } else if (tempState.domesticPolicy.education_institutions === 3) {
-          educationExpenditure = 0.1;
-        }
-        monthlyExpenditures += educationExpenditure;
-
-        const womensRightsExpenditure = [0, 0.05, 0.1, 0.15, 0.3][tempState.domesticPolicy.womens_rights] || 0;
-        monthlyExpenditures += womensRightsExpenditure;
-
-        if (isCivilWar) {
-          monthlyExpenditures += 3.5; // War efforts drain
-        }
-
-        // Active military expenditures (ranges from 0.15 to 3.0 during peacetime, up to 8.0 wartime)
-        const milExpenditures = (milSpendVal / 100) * (isCivilWar ? 8.0 : 3.0);
-        monthlyExpenditures += milExpenditures;
-
-        // Public Debt sovereign interest (2% peacetime, 5% wartime annually)
-        const currentDebt = tempState.public_debt !== undefined ? tempState.public_debt : 500.0;
-        const interestRate = (isCivilWar ? 0.05 : 0.02) / 12;
-        const debtInterestCost = currentDebt * interestRate;
-        monthlyExpenditures += debtInterestCost;
-
-        // Legislative expenditures for Land Reform Compensation
-        const landLawLevel = tempState.domesticPolicy.land_law ?? (tempState.domesticPolicy.land_reform_law_enabled ? 1 : 0);
-        const isLandReformPaused = (landLawLevel === 1) && (tempState.budget <= 0);
-        const landCompCost = (landLawLevel === 1 && !isLandReformPaused) ? 0.4 : 0.0;
-        monthlyExpenditures += landCompCost;
-
-        const budgetDelta = totalTaxRev - monthlyExpenditures;
-        const newBudgetVal = parseFloat(((tempState.budget !== undefined ? tempState.budget : 12.0) + budgetDelta).toFixed(2));
-        tempState.budget = Math.max(-100, Math.min(100, newBudgetVal));
-
-        // 2. Sovereign Public Debt Accrual & Paydown
-        let nextDebt = currentDebt;
-        if (budgetDelta < 0) {
-          nextDebt += Math.abs(budgetDelta);
-        } else {
-          const autoPay = Math.min(budgetDelta * 0.4, currentDebt);
-          nextDebt -= autoPay;
-        }
-        tempState.public_debt = parseFloat(Math.max(0, Math.min(5000, nextDebt)).toFixed(2));
-
-        // 3. Trade FX generation (export income minus imports and inflation impacts)
-        const tradeFxYield = (tempState.economy_growth - 2.5) * 1.5 - (tempState.inflation_rate - 3.5) * 0.5 + (taxTarRate * 4.0) - (isCivilWar ? 2.5 : 0.0);
-        const nextFx = (tempState.foreign_exchange !== undefined ? tempState.foreign_exchange : 180.0) + tradeFxYield;
-        tempState.foreign_exchange = parseFloat(Math.max(0, Math.min(2500, nextFx)).toFixed(2));
-
-        // 4. Army Loyalty based on Spain's national military spending.
-        const milLoyaltyFactor = (milSpendVal - 15) * 0.12;
-        const newArmyLoyalty = Math.max(0, Math.min(100, (tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50) + milLoyaltyFactor));
-
-        // Adjust landowner class tension / reaction from expropriation (low compensation)
-
-        // 5. Economic Growth Rate (clamped to 1% to 100%)
-        const debtGrowthDrag = Math.max(0, (nextDebt - 1200) * 0.001); // high public debt curbs growth
-        let nextGrowth = 3.5 - (taxLowerRate * 1.5) - (taxMiddleRate * 2.0) - (taxUpperRate * 2.5) - (taxTarRate * 3.0) - (taxConsRate * 3.5) - debtGrowthDrag;
-        if (isCivilWar) {
-          nextGrowth -= 6.0;
-        }
-        tempState.economy_growth = parseFloat(Math.max(1, Math.min(100, nextGrowth)).toFixed(2));
-
-        // 6. Inflation Rate with Gold reserves backing impact (if gold is low, currency loses backing)
-        const goldLossConfidence = Math.max(0, (700 - (tempState.gold_reserves !== undefined ? tempState.gold_reserves : 2200)) * 0.006);
-        let deficitInflation = 0;
-        if (budgetDelta < 0) {
-          deficitInflation = Math.abs(budgetDelta) * 0.5;
-        }
-        let nextInflation = 2.5 - (taxLowerRate * 1.0) - (taxMiddleRate * 1.5) - (taxUpperRate * 2.0) + (taxTarRate * 8.0) + (taxConsRate * 6.0) + deficitInflation + goldLossConfidence;
-        if (isCivilWar) {
-          nextInflation += 8.0;
-        }
-        tempState.inflation_rate = parseFloat(Math.max(1, Math.min(100, nextInflation)).toFixed(2));
-
-        // 7. Unemployment Rate (clamped to 0% to 100%)
-        let laborReformReduction = 0;
-        if (tempState.domesticPolicy.max_hours_law === 3) {
-          laborReformReduction = 1.0;
-        } else if (tempState.domesticPolicy.max_hours_law === 4) {
-          laborReformReduction = 1.5;
-        }
-        const highDebtUnemploymentFactor = nextDebt > 1500 ? 1.0 : 0.0;
-        let nextUnemployment = 12.0 - ((tempState.economy_growth - 2.5) * 0.4) + (taxLowerRate * 1.0) + (taxMiddleRate * 1.5) + (taxUpperRate * 3.0) - (taxTarRate * 1.5) - laborReformReduction + highDebtUnemploymentFactor;
-        if (isCivilWar) {
-          nextUnemployment += 4.0;
-        }
-        tempState.unemployment_rate = parseFloat(Math.max(0, Math.min(100, nextUnemployment)).toFixed(2));
-
-        tempState.stats = {
-          ...tempState.stats,
-          armyLoyalty: parseFloat(newArmyLoyalty.toFixed(1)),
-        };
-
-        // Monthly action of maximum-hours and workplace-safety laws.
-        let laborFervorDelta = 0;
-        let laborAuthorityDelta = 0;
-        switch (tempState.domesticPolicy.max_hours_law) {
-          case 0: laborFervorDelta += 1; break;
-          case 1: laborFervorDelta += 0.5; break;
-          case 3: laborFervorDelta -= 0.5; laborAuthorityDelta += 0.5; break;
-          case 4: laborFervorDelta -= 1; break;
-          default: break;
-        }
-        switch (tempState.domesticPolicy.workplace_safety) {
-          case 0: laborFervorDelta += 1; break;
-          case 3: laborFervorDelta -= 0.5; laborAuthorityDelta += 0.5; break;
-          case 4: laborFervorDelta -= 1; break;
-          default: break;
-        }
-        if (laborFervorDelta !== 0 || laborAuthorityDelta !== 0) {
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: parseFloat(Math.min(100, Math.max(0, (tempState.stats.revolutionaryFervor || 0) + laborFervorDelta)).toFixed(2)),
-            republicanAuthority: parseFloat(Math.min(100, Math.max(0, (tempState.stats.republicanAuthority || 0) + laborAuthorityDelta)).toFixed(2)),
-          };
-        }
-
-        if (!tempState.coupSystemActive) {
-          tempState.coupProgress = 0;
-        } else {
-          const tension = tempState.stats.tension !== undefined ? tempState.stats.tension : 34;
-          const armyLoyalty = tempState.stats.armyLoyalty !== undefined ? tempState.stats.armyLoyalty : 50;
-          const monthlyCoupDelta = 0.15 + (tension * 0.012) + ((100 - armyLoyalty) * 0.025);
-          tempState.coupProgress = parseFloat(Math.max(0, Math.min(100, tempState.coupProgress + monthlyCoupDelta)).toFixed(2));
-        }
-
+        // National accounting is a pure, shared pipeline. Journal effects and
+        // phase/timer orchestration remain in this reducer.
+        const monthlyPipeline = calculateMonthlyPipeline(tempState);
+        const economy = monthlyPipeline.economy;
+        tempState = monthlyPipeline.state;
         const updatedHistory = [
           ...(state.economyHistory || []),
           {
@@ -2123,155 +1313,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           ...tempState,
           economyHistory: updatedHistory
         };
-
-        // Monthly action of Land Law (土地法)
-        if (landLawLevel === 0) {
-          // Level 0: 无土地改革 -> Monthly Revolutionary Fervor +1
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1)
-          };
-        } else {
-          // Level 1: 土地改革法 -> Monthly Land Reform journal progress +1
-          // Level 2: 强制土地没收 -> Monthly Land Reform journal progress +1.5
-          // Level 3: 革命集体化 -> Monthly Land Reform journal progress +2
-          let landProgressStep = 0;
-          if (landLawLevel === 1) {
-            if (!isLandReformPaused) {
-              landProgressStep = 1.0;
-            }
-          } else if (landLawLevel === 2) {
-            landProgressStep = 1.5;
-          } else if (landLawLevel === 3) {
-            landProgressStep = 2.0;
-          }
-
-          if (landProgressStep > 0) {
-            tempState.domesticPolicy = {
-              ...tempState.domesticPolicy,
-              land_reform_progress: parseFloat(Math.min(100, tempState.domesticPolicy.land_reform_progress + landProgressStep).toFixed(2))
-            };
-          }
-        }
-
-        // Monthly action of Mixed Jury Law (integrated into Union Status level 2)
-        if (tempState.domesticPolicy.union_status === 2) {
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: Math.max(0, tempState.stats.revolutionaryFervor - 1)
-          };
-
-          if (tempState.domesticPolicy.mixed_jury_cnt_opposed) {
-            tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PSOE', 5 / 12);
-          }
-        }
-
-        // Monthly action of Education System (教育制度)
-        if (tempState.domesticPolicy.education_institutions === 2) {
-          if (tempState.ateneos_established > 0) {
-            const level = tempState.ateneos_established;
-            tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'CNT_FAI', 0.05 * level);
-            tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01 * level);
-            tempState.classes = adjustClassSupport(tempState.classes, 'Braceros', 'CNT_FAI', 0.06 * level);
-          }
-        }
-
-        // Monthly action of Language Policy (语言政策)
-        if (tempState.domesticPolicy.language_policy === 2 || tempState.domesticPolicy.language_policy === 3) {
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: parseFloat(Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1).toFixed(2))
-          };
-        } else if (tempState.domesticPolicy.language_policy === 4) {
-          tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01);
-          tempState.relations = {
-            ...tempState.relations,
-            internationalSocialists: Math.min(100, (tempState.relations?.internationalSocialists ?? 0) + 1.5)
-          };
-        }
-
-        // Monthly action of Political Rights (政治权利)
-        if (tempState.domesticPolicy.political_rights === 1) {
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: parseFloat(Math.min(100, Math.max(0, tempState.stats.revolutionaryFervor + 0.5)).toFixed(2))
-          };
-        } else if (tempState.domesticPolicy.political_rights === 2) {
-          tempState.classes = adjustClassSupport(tempState.classes, 'PequenaBurguesia', 'PRR', 0.05);
-          tempState.classes = adjustClassSupport(tempState.classes, 'Clero', 'AP', 0.05);
-        } else if (tempState.domesticPolicy.political_rights === 3) {
-          tempState.classes = adjustClassSupport(tempState.classes, 'Labradores', 'PSOE', 0.05);
-          tempState.classes = adjustClassSupport(tempState.classes, 'PequenaBurguesia', 'PSOE', 0.05);
-          tempState.classes = adjustClassSupport(tempState.classes, 'Obreros', 'PCE', 0.05);
-        }
-
-        // Monthly action of Women's Rights (女性权利)
-        const womensRightsLevel = tempState.domesticPolicy.womens_rights;
-        let womensRightsAuthorityDelta = 0;
-        if (womensRightsLevel === 1) {
-          womensRightsAuthorityDelta = 0.2;
-        } else if (womensRightsLevel === 2) {
-          womensRightsAuthorityDelta = 0.3;
-        } else if (womensRightsLevel === 3) {
-          womensRightsAuthorityDelta = -0.2;
-        } else if (womensRightsLevel === 4) {
-          womensRightsAuthorityDelta = 0.4;
-          tempState.stats = {
-            ...tempState.stats,
-            revolutionaryFervor: parseFloat(Math.max(0, tempState.stats.revolutionaryFervor - 0.2).toFixed(2))
-          };
-          tempState.classes = adjustClassSupport(tempState.classes, 'Intelectuales', 'CNT_FAI', 0.01);
-        }
-        if (womensRightsAuthorityDelta !== 0) {
-          tempState.stats = {
-            ...tempState.stats,
-            republicanAuthority: parseFloat(Math.min(100, Math.max(0, tempState.stats.republicanAuthority + womensRightsAuthorityDelta)).toFixed(2))
-          };
-        }
-
-        // Monthly action of Religion Policy (宗教权利)
-        if (tempState.domesticPolicy.religion_policy === 2) {
-          tempState.stats = {
-            ...tempState.stats,
-            republicanAuthority: parseFloat(Math.min(100, Math.max(0, tempState.stats.republicanAuthority + 0.05)).toFixed(2))
-          };
-          if (tempState.coupSystemActive) {
-            tempState.coupProgress = parseFloat(Math.min(100, Math.max(0, tempState.coupProgress + 0.1)).toFixed(2));
-          }
-        }
-
-        // Public Order Law (公共秩序法)
-        if (tempState.domesticPolicy.public_order_law === 0) {
-          tempState.stats.revolutionaryFervor = Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 1);
-          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
-        } else if (tempState.domesticPolicy.public_order_law === 1) {
-          tempState.stats.revolutionaryFervor = Math.min(100, (tempState.stats.revolutionaryFervor || 0) + 0.5);
-          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
-        } else if (tempState.domesticPolicy.public_order_law === 2) {
-          tempState.stats.revolutionaryFervor = Math.max(0, (tempState.stats.revolutionaryFervor || 0) - 0.1);
-          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.5);
-        } else if (tempState.domesticPolicy.public_order_law === 3) {
-          tempState.stats.revolutionaryFervor = Math.max(0, (tempState.stats.revolutionaryFervor || 0) - 0.5);
-          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.1);
-        }
-
-        // Security Corps Law (治安机关法)
-        if (tempState.domesticPolicy.security_corps_law === 0) {
-          tempState.classes = adjustClassSupport(tempState.classes, 'Braceros', 'CNT_FAI', 0.01);
-          tempState.stats.armyLoyalty = Math.min(100, (tempState.stats.armyLoyalty || 0) + 0.05);
-        }
-
-        // Army Reform Law (军队改革法)
-        if (tempState.domesticPolicy.army_reform_law === 0) {
-          tempState.stats.republicanAuthority = Math.max(0, (tempState.stats.republicanAuthority || 0) - 0.5);
-          tempState.stats.armyLoyalty = Math.max(0, (tempState.stats.armyLoyalty || 0) - 0.05);
-        } else if (tempState.domesticPolicy.army_reform_law === 1) {
-          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 0.5);
-          tempState.stats.armyLoyalty = Math.max(0, (tempState.stats.armyLoyalty || 0) - 0.1);
-        } else if (tempState.domesticPolicy.army_reform_law === 2) {
-          tempState.stats.republicanAuthority = Math.min(100, (tempState.stats.republicanAuthority || 0) + 1.0);
-          tempState.stats.armyLoyalty = Math.min(100, (tempState.stats.armyLoyalty || 0) + 0.1);
-        }
 
         let newJournal = JSON.parse(JSON.stringify(state.journal || {}));
 
@@ -2313,56 +1354,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         });
 
         // --- Core Political Party Alliance System Monthly Processing ---
-        if (tempState.cntStance === 'oppose') {
-          tempState.cntVotingRate = Math.max(0, tempState.cntVotingRate - 1);
-        }
-        tempState.partySupport = updatePartySupport(tempState);
-        if (tempState.activeCoalitions) {
-          tempState.activeCoalitions = updateCoalitions(tempState);
-        }
-        tempState = checkCoalitionDissolve(tempState);
+        tempState = applyMonthlyPoliticalMaintenance(tempState);
 
         // Event conditions observe the fully updated next-month state, including
         // coalition maintenance and any newly created government crisis.
-        newPendingEvents = [...tempState.pendingEvents];
-        let monthlyEvents = INITIAL_EVENTS.filter(e => shouldQueueEvent(e, tempState, {
-          mode: getEventTriggerMode(state.difficulty),
-          date: { year: nextYear, month: nextMonth },
-          pendingEvents: newPendingEvents,
-          currentEvent: state.currentEvent,
-        }));
-
-        if (state.forceAsturiasRevolutionNextMonth) {
-          const asturiasEventObj = INITIAL_EVENTS.find(e => e.id === 'asturias_revolution');
-          if (asturiasEventObj && !monthlyEvents.some(e => e.id === 'asturias_revolution') && !newPendingEvents.some(pe => pe.id === 'asturias_revolution') && state.currentEvent?.id !== 'asturias_revolution') {
-            monthlyEvents.push(asturiasEventObj);
-          }
-        }
-
-        newPendingEvents = [...newPendingEvents, ...monthlyEvents];
-
-        const electionChainIds = new Set([
-          'elections_1933',
-          'elections_1933_results',
-          'elections_1936',
-          'elections_1936_results',
-          'presidential_dissolution_of_cortes',
-          'early_general_election_results',
-        ]);
-        const electionAlreadyScheduled = newPendingEvents.some(event => electionChainIds.has(event.id))
-          || Boolean(state.currentEvent && electionChainIds.has(state.currentEvent.id));
-
-        if (
-          tempState.governmentCrisis
-          && !tempState.earlyElectionInProgress
-          && tempState.civilWarStatus !== 'ongoing'
-          && !electionAlreadyScheduled
-        ) {
-          const dissolutionEvent = INITIAL_EVENTS.find(event => event.id === 'presidential_dissolution_of_cortes');
-          if (dissolutionEvent) {
-            newPendingEvents = [dissolutionEvent, ...newPendingEvents];
-          }
-        }
+        newPendingEvents = calculateMonthlyEventQueue(state, tempState, nextYear, nextMonth);
 
         let finalProvinces = tempState.provinces || state.provinces || INITIAL_PROVINCES;
         let finalArmies = tempState.armies || state.armies || INITIAL_ARMIES;
@@ -2407,266 +1403,34 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = checkWarStatus(newState, isZh);
       break;
     }
-    case 'PLAY_CARD': {
-      if (state.actionsLeft <= 0) return state;
-      const cardPayload = action.payload;
-      // Find the original card definition to ensure functions (effect, condition) exist
-      const card = INITIAL_CARDS.find(c => c.id === cardPayload.id) || cardPayload;
-      
-      if (typeof card.effect !== 'function') {
-        console.error(`Card ${card.id} has no effect function`, card);
-        return state;
-      }
-
-      // Check resource costs
-      if (card.resourceCost !== undefined && state.resources < card.resourceCost) return state;
-      if (card.armamentCost !== undefined && state.armaments < card.armamentCost) return state;
-      if (card.condition !== undefined && !card.condition(state)) return state;
-      
-      const stateBeforeCard = JSON.parse(JSON.stringify(state));
-      let newStateAfterCard = card.effect(state);
-      
-      if (state.difficulty === 'easy') {
-        if (!newStateAfterCard.currentEvent) {
-          newStateAfterCard = {
-            currentEvent: {
-              id: `${card.id}_easy_event`,
-              title: card.title,
-              titleZh: card.titleZh,
-              description: card.description,
-              descriptionZh: card.descriptionZh,
-              options: [
-                {
-                  text: 'Apply Effect',
-                  textZh: '应用效果',
-                  effect: () => {
-                    const originalCard = INITIAL_CARDS.find(c => c.id === cardPayload.id) || cardPayload;
-                    return originalCard.effect(state);
-                  }
-                }
-              ]
-            }
-          };
-        }
-        
-        // Deep copy the event to avoid mutating the original card definition
-        newStateAfterCard.currentEvent = {
-          ...newStateAfterCard.currentEvent,
-          options: [
-            ...newStateAfterCard.currentEvent.options,
-            {
-              text: 'Return card to hand (Refund costs)',
-              textZh: '将卡牌放回手牌 (返还消耗)',
-              effect: () => {
-                return stateBeforeCard;
-              }
-            }
-          ]
-        };
-      }
-      
-      newState = {
-        ...state,
-        ...newStateAfterCard,
-        actionsLeft: state.actionsLeft - card.cost,
-        resources: state.resources - (card.resourceCost || 0),
-        armaments: state.armaments - (card.armamentCost || 0),
-        hand: state.hand.filter((c) => c.id !== cardPayload.id),
-        discard: [...state.discard, cardPayload],
-      };
+    case 'PLAY_CARD':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
-    case 'DISMISS_SUPER_EVENT': {
-      let extra = {};
-      let eventHistory = state.eventHistory || createEmptyEventHistory();
-      if (state.superEvent === 'spanish_civil_war') {
-        eventHistory = appendEventHistoryId(eventHistory, 'triggered', civilWarSetup.id);
-        extra = {
-          currentEvent: civilWarSetup,
-          phase: 'event'
-        };
-      }
-      newState = { ...state, superEvent: null, eventHistory, ...extra };
+    case 'DISMISS_SUPER_EVENT':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
-    case 'SELECT_EVENT': {
-      const selectedEvent = state.pendingEvents.find(e => e.id === action.payload.eventId);
-      if (selectedEvent) {
-        newState = {
-          ...state,
-          currentEvent: selectedEvent,
-          pendingEvents: state.pendingEvents.filter(e => e.id !== action.payload.eventId),
-          eventHistory: appendEventHistoryId(state.eventHistory, 'triggered', selectedEvent.id)
-        };
-      }
+    case 'SELECT_EVENT':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
-    case 'RESOLVE_EVENT': {
-      const newStateAfterEvent = action.payload(state);
-      
-      let nextCurrentEvent = null;
-      if (newStateAfterEvent.currentEvent) {
-        nextCurrentEvent = newStateAfterEvent.currentEvent;
-      }
-      
-      // Remove currentEvent from pendingEvents if it is present, avoiding double popups
-      const currentEventId = state.currentEvent?.id;
-      const nextPendingEvents = currentEventId
-        ? (newStateAfterEvent.pendingEvents || state.pendingEvents || []).filter(e => e.id !== currentEventId)
-        : (newStateAfterEvent.pendingEvents || state.pendingEvents || []);
-      let nextEventHistory = appendEventHistoryId(
-        newStateAfterEvent.eventHistory || state.eventHistory,
-        'resolved',
-        currentEventId
-      );
-      if (nextCurrentEvent) {
-        nextEventHistory = appendEventHistoryId(nextEventHistory, 'triggered', nextCurrentEvent.id);
-      }
-
-      newState = {
-        ...state,
-        ...newStateAfterEvent,
-        pendingEvents: nextPendingEvents,
-        currentEvent: nextCurrentEvent,
-        eventHistory: nextEventHistory,
-      };
-      
-      // If no current event and no pending events, move to action phase automatically if we were in event phase
-      if (!newState.currentEvent && newState.pendingEvents.length === 0 && newState.phase === 'event') {
-        newState.phase = 'action';
-        newState.actionsLeft = 2;
-      }
+    case 'RESOLVE_EVENT':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
-    case 'ADD_ADVISOR': {
-      const { advisor, slotIndex } = action.payload;
-      const newActive = [...state.activeAdvisors];
-      const oldAdvisor = newActive[slotIndex];
-      newActive[slotIndex] = advisor;
-      
-      let newPool = state.advisorPool.filter((a) => a.id !== advisor.id);
-      if (oldAdvisor) {
-        newPool.push(oldAdvisor);
-      }
-      newState = { ...state, activeAdvisors: newActive, advisorPool: newPool };
+    case 'ADD_ADVISOR':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
-    case 'REMOVE_ADVISOR': {
-      const { slotIndex } = action.payload;
-      const newActive = [...state.activeAdvisors];
-      const oldAdvisor = newActive[slotIndex];
-      if (!oldAdvisor) return state;
-      
-      newActive[slotIndex] = null;
-      newState = {
-        ...state,
-        activeAdvisors: newActive,
-        advisorPool: [...state.advisorPool, oldAdvisor],
-      };
+    case 'REMOVE_ADVISOR':
+      newState = reduceEvent(state, action) || state;
       break;
-    }
     case 'DRAW_CARD': {
-      const handLimit = state.difficulty === 'hard' ? 3 : 4;
-      if (state.hand.length >= handLimit) return state;
-      const cardType = action.payload;
-      
-      let sourceDeck: Card[] = [];
-      if (cardType === 'Action') sourceDeck = state.actionDeck;
-      else if (cardType === 'Governmental') sourceDeck = state.governmentDeck;
-      else if (cardType === 'Military') sourceDeck = state.militaryDeck;
-
-      let availableCards = sourceDeck.filter(c => c.condition ? c.condition(state) : true);
-      
-      let newActionDeck = [...state.actionDeck];
-      let newGovDeck = [...state.governmentDeck];
-      let newMilDeck = [...state.militaryDeck];
-      let newDiscard = [...state.discard];
-      
-      if (availableCards.length === 0) {
-        // Shuffle ALL discarded cards of this type back into the deck
-        const allDiscardedOfType = state.discard.filter(c => {
-          if (cardType === 'Governmental') return c.type === 'Government';
-          return c.type === cardType;
-        });
-        if (allDiscardedOfType.length === 0) return state; 
-        
-        if (cardType === 'Action') {
-          newActionDeck = [...newActionDeck, ...allDiscardedOfType];
-          sourceDeck = newActionDeck;
-        } else if (cardType === 'Governmental') {
-          newGovDeck = [...newGovDeck, ...allDiscardedOfType];
-          sourceDeck = newGovDeck;
-        } else if (cardType === 'Military') {
-          newMilDeck = [...newMilDeck, ...allDiscardedOfType];
-          sourceDeck = newMilDeck;
-        }
-        newDiscard = newDiscard.filter(c => {
-          if (cardType === 'Governmental') return c.type !== 'Government';
-          return c.type !== cardType;
-        });
-        
-        // Now check available cards again
-        availableCards = sourceDeck.filter(c => c.condition ? c.condition(state) : true);
-        if (availableCards.length === 0) return state; 
-      }
-      
-      const randomIndex = Math.floor(Math.random() * availableCards.length);
-      const drawnCard = availableCards[randomIndex];
-      
-      if (cardType === 'Action') newActionDeck = newActionDeck.filter(c => c.id !== drawnCard.id);
-      else if (cardType === 'Governmental') newGovDeck = newGovDeck.filter(c => c.id !== drawnCard.id);
-      else if (cardType === 'Military') newMilDeck = newMilDeck.filter(c => c.id !== drawnCard.id);
-      
-      newState = {
-        ...state,
-        hand: [...state.hand, drawnCard],
-        actionDeck: newActionDeck,
-        governmentDeck: newGovDeck,
-        militaryDeck: newMilDeck,
-        discard: newDiscard
-      };
+      newState = reduceEvent(state, action) || state;
       break;
     }
     case 'DRAW_SPECIFIC_CARD': {
-      const handLimit = state.difficulty === 'hard' ? 3 : 4;
-      if (state.hand.length >= handLimit) return state;
-      const { cardId, deckType } = action.payload;
-      
-      let card: Card | undefined;
-      let newActionDeck = [...state.actionDeck];
-      let newGovDeck = [...state.governmentDeck];
-      let newMilDeck = [...state.militaryDeck];
-      
-      if (deckType === 'Action') {
-        card = state.actionDeck.find(c => c.id === cardId);
-        if (card) newActionDeck = newActionDeck.filter(c => c.id !== cardId);
-      } else if (deckType === 'Governmental') {
-        card = state.governmentDeck.find(c => c.id === cardId);
-        if (card) newGovDeck = newGovDeck.filter(c => c.id !== cardId);
-      } else if (deckType === 'Military') {
-        card = state.militaryDeck.find(c => c.id === cardId);
-        if (card) newMilDeck = newMilDeck.filter(c => c.id !== cardId);
-      }
-      
-      if (!card) return state;
-      
-      newState = {
-        ...state,
-        hand: [...state.hand, card],
-        actionDeck: newActionDeck,
-        governmentDeck: newGovDeck,
-        militaryDeck: newMilDeck
-      };
+      newState = reduceEvent(state, action) || state;
       break;
     }
     case 'CHECK_EVENT': {
-      if (state.pendingEvents.length > 0) {
-        // We have pending events, so we stay in event phase. The UI will show the Event Board.
-        newState = { ...state };
-      } else {
-        // If no events, skip to action phase
-        newState = { ...state, phase: 'action', actionsLeft: 2 };
-      }
+      newState = reduceEvent(state, action) || state;
       break;
     }
     default:
@@ -2841,31 +1605,191 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
   return checkAchievements(stateWithEndings);
 };
 
-export const GameProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<GameState>(INITIAL_STATE);
+const createGameStore = (): GameStore => {
+  let currentState = INITIAL_STATE;
+  const listeners = new Set<() => void>();
 
   const dispatch = (action: GameAction) => {
-    setState((prevState) => gameReducer(prevState, action));
+    const nextState = gameReducer(currentState, action);
+    if (nextState === currentState) return;
+    currentState = nextState;
+    listeners.forEach(listener => listener());
   };
 
-  // Game loop effects
-  useEffect(() => {
-    if (state.phase === 'event' && !state.currentEvent) {
-      dispatch({ type: 'CHECK_EVENT' });
+  const loadSave: GameStore['loadSave'] = (snapshot) => {
+    try {
+      const restoredState = deserializeGameState(snapshot, {
+        cards: INITIAL_CARDS,
+        advisors: INITIAL_ADVISORS,
+        events: RESTORABLE_EVENTS,
+      });
+      dispatch({ type: 'LOAD_STATE', payload: restoredState });
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown save-game error.';
+      console.error('Failed to load save game:', error);
+      return { ok: false, error: message };
     }
-  }, [state.phase, state.month, state.year, state.currentEvent]);
+  };
 
-  return (
-    <GameContext.Provider value={{ state, dispatch }}>
-      {children}
-    </GameContext.Provider>
-  );
+  return {
+    getSnapshot: () => currentState,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    dispatch,
+    loadSave,
+  };
 };
 
-export const useGame = () => {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame must be used within a GameProvider');
-  }
-  return context;
+export const GameProvider = ({ children }: { children: ReactNode }) => {
+  const storeRef = useRef<GameStore | null>(null);
+  if (!storeRef.current) storeRef.current = createGameStore();
+  const store = storeRef.current;
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+
+  // Event progression and autosave observe only the snapshots they need. The
+  // store itself stays stable, so provider consumers no longer re-render when
+  // the provider value object changes identity on every action.
+  useEffect(() => {
+    if (state.phase === 'event' && !state.currentEvent) {
+      store.dispatch({ type: 'CHECK_EVENT' });
+    }
+  }, [store, state.phase, state.month, state.year, state.currentEvent]);
+
+  useEffect(() => {
+    if (state.screen !== 'game') return;
+    const autosaveTimer = window.setTimeout(() => {
+      try {
+        writeAutosave(state);
+      } catch (error) {
+        console.error('Failed to write autosave:', error);
+      }
+    }, 500);
+    return () => window.clearTimeout(autosaveTimer);
+  }, [state]);
+
+  return <GameContext.Provider value={store}>{children}</GameContext.Provider>;
+};
+
+const useGameStore = () => {
+  const store = useContext(GameContext);
+  if (!store) throw new Error('useGame hooks must be used within a GameProvider');
+  return store;
+};
+
+export const shallowEqual = <T extends Record<string, unknown>>(left: T, right: T) => {
+  if (Object.is(left, right)) return true;
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every(key => Object.is(left[key], right[key]));
+};
+
+export const useGameSelector = <Selected,>(selector: (state: GameState) => Selected, equality: (left: Selected, right: Selected) => boolean = Object.is) => {
+  const store = useGameStore();
+  const selectorRef = useRef(selector);
+  const equalityRef = useRef(equality);
+  selectorRef.current = selector;
+  equalityRef.current = equality;
+  const selectedRef = useRef<{ snapshot: GameState; value: Selected } | null>(null);
+  const getSelectedSnapshot = useCallback(() => {
+    const snapshot = store.getSnapshot();
+    const previous = selectedRef.current;
+    if (previous?.snapshot === snapshot) return previous.value;
+    const nextValue = selectorRef.current(snapshot);
+    if (previous && equalityRef.current(previous.value, nextValue)) {
+      selectedRef.current = { snapshot, value: previous.value };
+      return previous.value;
+    }
+    selectedRef.current = { snapshot, value: nextValue };
+    return nextValue;
+  }, [store]);
+  return useSyncExternalStore(store.subscribe, getSelectedSnapshot, getSelectedSnapshot);
+};
+
+export const useGameActions = (): Pick<GameContextType, 'dispatch' | 'loadSave'> => {
+  const store = useGameStore();
+  return useMemo(() => ({ dispatch: store.dispatch, loadSave: store.loadSave }), [store]);
+};
+
+export const selectEconomyState = (state: GameState) => ({
+  budget: state.budget,
+  resources: state.resources,
+  armaments: state.armaments,
+  gold_reserves: state.gold_reserves,
+  foreign_exchange: state.foreign_exchange,
+  public_debt: state.public_debt,
+  military_spending: state.military_spending,
+  economy_growth: state.economy_growth,
+  inflation_rate: state.inflation_rate,
+  unemployment_rate: state.unemployment_rate,
+});
+
+export const selectPoliticalState = (state: GameState) => {
+  const rulingCoalition = state.rulingCoalition;
+  return {
+    language: state.language,
+    government: state.government,
+    domesticPolicy: state.domesticPolicy,
+    factions: state.factions,
+    partySupport: state.partySupport,
+    activeCoalitions: state.activeCoalitions,
+    rulingCoalition,
+    governmentCrisis: state.governmentCrisis,
+    organizations: state.organizations,
+  };
+};
+
+export const selectEventState = (state: GameState) => ({
+  language: state.language,
+  phase: state.phase,
+  currentEvent: state.currentEvent,
+  pendingEvents: state.pendingEvents,
+  superEvent: state.superEvent,
+  hand: state.hand,
+  discard: state.discard,
+  activeAdvisors: state.activeAdvisors,
+  advisorPool: state.advisorPool,
+});
+
+export const selectMapState = (state: GameState) => ({
+  language: state.language,
+  phase: state.phase,
+  year: state.year,
+  month: state.month,
+  currentView: state.currentView,
+  provinces: state.provinces,
+  armies: state.armies,
+  mapHistory: state.mapHistory,
+  mapAiConfig: state.mapAiConfig,
+  mapResources: state.mapResources,
+  mapCurrentPlayer: state.mapCurrentPlayer,
+  mapSelectedProvinceId: state.mapSelectedProvinceId,
+  mapSelectedArmyId: state.mapSelectedArmyId,
+  mapSelectedArmyIds: state.mapSelectedArmyIds,
+  activeWar: state.activeWar,
+});
+
+export const selectSaveState = (state: GameState) => ({
+  screen: state.screen,
+  year: state.year,
+  month: state.month,
+  scenario: state.scenario,
+  difficulty: state.difficulty,
+  eventHistory: state.eventHistory,
+});
+
+export const useEconomyState = () => useGameSelector(selectEconomyState, shallowEqual);
+export const usePoliticalState = () => useGameSelector(selectPoliticalState, shallowEqual);
+export const useEventState = () => useGameSelector(selectEventState, shallowEqual);
+export const useMapState = () => useGameSelector(selectMapState, shallowEqual);
+export const useSaveState = () => useGameSelector(selectSaveState, shallowEqual);
+
+/** Compatibility API for existing screens. New code should select a domain slice. */
+export const useGame = (): GameContextType => {
+  const state = useGameSelector(snapshot => snapshot);
+  const { dispatch, loadSave } = useGameActions();
+  return useMemo(() => ({ state, dispatch, loadSave }), [state, dispatch, loadSave]);
 };

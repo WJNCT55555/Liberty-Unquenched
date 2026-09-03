@@ -1,6 +1,7 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
 import { elections1931Results } from './elections_1931_results';
+import { setOrganizationEstablished } from '../organizations';
 
 const cntThirdCongressMeta = {
   category: 'cnt' as const,
@@ -236,6 +237,7 @@ export const cnt_third_congress_3: GameEvent = {
       effect: (state) => {
         return {
           resources: state.resources - 1,
+          ...setOrganizationEstablished(state, 'FNA'),
           stats: {
             ...state.stats,
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5)

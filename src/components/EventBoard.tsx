@@ -1,9 +1,14 @@
 import React from 'react';
-import { useGame } from '../game/GameContext';
+import { useEventState, useGameActions, useGameSelector } from '../game/GameContext';
 import { motion } from 'motion/react';
 
 export const EventBoard: React.FC = () => {
-  const { state, dispatch } = useGame();
+  const state = useEventState();
+  // Event titles may be state-dependent (e.g. election seat totals or round
+  // numbers), so resolve them against the complete snapshot rather than the
+  // presentation slice used to decide whether the board is visible.
+  const fullState = useGameSelector(snapshot => snapshot);
+  const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
 
   if (state.pendingEvents.length === 0 || state.currentEvent) return null;
@@ -34,7 +39,7 @@ export const EventBoard: React.FC = () => {
             <span className="font-display text-xl uppercase tracking-widest">
               {(() => {
                 const resolvedTitle = isZh && event.titleZh ? event.titleZh : event.title;
-                return typeof resolvedTitle === 'function' ? resolvedTitle(state) : resolvedTitle;
+                return typeof resolvedTitle === 'function' ? resolvedTitle(fullState) : resolvedTitle;
               })()}
             </span>
             <span className="font-typewriter text-sm tracking-widest">

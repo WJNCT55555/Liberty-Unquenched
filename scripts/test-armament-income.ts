@@ -1,5 +1,5 @@
 import { equal } from 'node:assert/strict';
-import { getMonthlyArmamentIncome } from '../src/game/GameContext';
+import { getMonthlyArmamentIncome } from '../src/game/rules/income';
 
 for (let month = 1; month <= 12; month += 1) {
   equal(

@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
+import { isOrganizationEstablished } from '../organizations';
 
 const casasViejasMeta = {
   category: 'politics' as const,
@@ -373,7 +374,7 @@ export const casasViejas1: GameEvent = {
       textZh: '通过联合内阁中的席位，紧急抗议并强硬要求突击卫队撤退，启动妥协谈判。',
       subtitle: 'Only available if PRRevS is formed and we participate in government. Achieves a peaceful truce, but radically increases faistas rage.',
       subtitleZh: '仅在PRRevS成立且我们进入政府联合执政时可选。达成了和平休战，但大幅激化极左翼内部怒火。',
-      condition: (state) => state.isPRRevSFormed && state.cntStance === 'govern',
+      condition: (state) => isOrganizationEstablished(state, 'PRRevS') && state.cntStance === 'govern',
       unavailableSubtitle: () => 'Requires the PRRevS to be formed and the CNT in government.',
       unavailableSubtitleZh: () => '需要PRRevS成立且CNT参与执政。',
       effect: (state) => {

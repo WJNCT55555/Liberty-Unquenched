@@ -17,6 +17,8 @@ import {
   statPreview,
   textPreview
 } from '../effectPreview';
+import { media } from './media';
+import { strike } from './strike';
 
 const PROPAGANDA_BY_DEED_COOLDOWN = 8;
 const ASSASSINATION_SUCCESS_BASE = 65;
@@ -1015,6 +1017,34 @@ export const propagandaByDeed: Card = {
           effect: (): Partial<GameState> => {
             return {
               currentEvent: buildTrainingMenu()
+            };
+          }
+        },
+        {
+          text: 'Use a strike as our propaganda.',
+          textZh: '用一场罢工作为我们的宣传',
+          subtitle: 'Move directly to the Strike card and its decision.',
+          subtitleZh: '直接转入罢工卡牌及其决策。',
+          effect: (s: GameState): Partial<GameState> => {
+            const strikeResult = strike.effect(s);
+
+            return {
+              currentEvent: strikeResult.currentEvent || null
+            };
+          }
+        },
+        {
+          text: 'Let the weapon of criticism lead social change.',
+          textZh: '用批判的武器主导社会变革',
+          subtitle: 'Move directly to Media options, bypassing the media cooldown.',
+          subtitleZh: '直接转入媒体选项，无视媒体冷却。',
+          effect: (s: GameState): Partial<GameState> => {
+            const mediaResult = media.effect(s);
+
+            return {
+              // This branch intentionally bypasses Media’s ordinary cooldown.
+              propaganda_timer: 0,
+              currentEvent: mediaResult.currentEvent || null
             };
           }
         },

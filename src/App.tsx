@@ -14,14 +14,17 @@ import { EndingScreen } from './components/EndingScreen';
 import { StartScreen } from './components/StartScreen';
 import { SuperEvent } from './components/SuperEvent';
 import { SandboxMenu } from './components/SandboxMenu';
-import { useGame } from './game/GameContext';
+import { useGameSelector } from './game/GameContext';
 import { Toaster } from 'sonner';
 import { MapView } from './map/MapView';
 
 const GameContent = () => {
-  const { state } = useGame();
+  const { screen, currentView } = useGameSelector(state => ({
+    screen: state.screen,
+    currentView: state.currentView,
+  }), (left, right) => left.screen === right.screen && left.currentView === right.currentView);
 
-  if (state.screen === 'start') {
+  if (screen === 'start') {
     return <StartScreen />;
   }
 
@@ -33,7 +36,7 @@ const GameContent = () => {
       <div className="flex flex-1 overflow-hidden">
         <SidePanel />
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {state.currentView === 'map' ? (
+          {currentView === 'map' ? (
             <MapView />
           ) : (
             <>

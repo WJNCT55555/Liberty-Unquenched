@@ -9,6 +9,8 @@ import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport, updateCoalitions } from '../game/utils';
 import { MapFaction } from '../map/types_map';
 import { FACTION_NAMES } from '../game/labels';
+import { getOverallFactionDissent } from '../game/utils/factionEffects';
+import { getOrganizationsForOwner, isOrganizationEstablished } from '../game/organizations';
 
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
   let totalSupport = 0;
@@ -59,12 +61,7 @@ export const SidePanel = () => {
     });
   }
 
-  const overallDissent = 
-    (state.factions.Treintistas.influence * state.factions.Treintistas.dissent +
-     state.factions.Cenetistas.influence * state.factions.Cenetistas.dissent +
-     state.factions.Faistas.influence * state.factions.Faistas.dissent +
-     state.factions.Puristas.influence * state.factions.Puristas.dissent +
-     ((state.factions.Jabalistas?.influence || 0) * (state.factions.Jabalistas?.dissent || 0))) / 100;
+  const overallDissent = getOverallFactionDissent(state.factions);
 
   const getDissentLevel = (dissent: number, isZh: boolean) => {
     if (dissent < 20) return isZh ? '极低' : 'Very Low';
@@ -850,7 +847,7 @@ export const SidePanel = () => {
             {(() => {
               if ((state.cntVotingRate || 0) === 0) return null;
 
-              if (state.isPRRevSFormed) {
+              if (isOrganizationEstablished(state, 'PRRevS')) {
                 return (
                   <div 
                     className="h-full transition-all duration-500" 
@@ -886,6 +883,60 @@ export const SidePanel = () => {
                 );
               }
             })()}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-ink/20">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-typewriter text-xs uppercase font-bold">
+              {isZh ? 'CNT-FAI 组织' : 'CNT-FAI Organizations'}
+            </span>
+            <span className="font-mono text-[9px] text-ink-light">
+              {isZh ? '悬停查看月度效果' : 'Hover for monthly effects'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {getOrganizationsForOwner('CNT_FAI')
+              .filter((definition) => isOrganizationEstablished(state, definition.id))
+              .map((definition) => {
+                const typeLabel = isZh
+                  ? ({ union: '工会', political: '政治组织', youth: '青年组织', women: '女性组织', agricultural: '农业组织', militia: '民兵组织' } as const)[definition.type]
+                  : ({ union: 'Union', political: 'Political', youth: 'Youth', women: 'Women', agricultural: 'Agricultural', militia: 'Militia' } as const)[definition.type];
+                const fullName = isZh ? definition.nameZh : definition.name;
+                const monthlyEffect = isZh ? definition.monthlyEffectTextZh : definition.monthlyEffectText;
+                const capability = isZh ? definition.capabilityTextZh : definition.capabilityText;
+                return (
+                  <div key={definition.id} className="relative group">
+                    <div
+                      className="h-11 w-11 border border-ink/30 bg-paper-light rounded-sm overflow-hidden flex items-center justify-center shadow-sm transition-all group-hover:border-cnt-red group-hover:shadow-md"
+                      title={`${fullName}\n${typeLabel}\n${monthlyEffect}${capability ? `\n${capability}` : ''}`}
+                    >
+                      {definition.icon ? (
+                        <img src={definition.icon} alt={definition.abbreviation} className="h-full w-full object-contain" />
+                      ) : (
+                        <span className="font-display text-[11px] font-bold text-cnt-red leading-none text-center">
+                          {definition.abbreviation}
+                        </span>
+                      )}
+                    </div>
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-ink text-paper px-1 text-[8px] font-mono leading-tight whitespace-nowrap">
+                      {definition.abbreviation}
+                    </span>
+                    <div className="pointer-events-none absolute z-30 bottom-full left-1/2 mb-2 w-56 -translate-x-1/2 rounded-sm border border-ink bg-paper p-2 text-[10px] font-mono leading-snug text-ink opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      <div className="font-bold text-[11px]">{fullName}</div>
+                      <div className="text-ink-light">{typeLabel}</div>
+                      <div className="mt-1 border-t border-ink/10 pt-1">
+                        <span className="font-bold">{isZh ? '月度效果：' : 'Monthly: '}</span>{monthlyEffect}
+                      </div>
+                      {capability && (
+                        <div className="mt-1 text-ink-light">
+                          <span className="font-bold">{isZh ? '能力：' : 'Capability: '}</span>{capability}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </AccordionSection>

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { GameState, Party, PoliticalActor } from '../game/types';
 import { calculateElectionResults } from '../game/utils';
 import { getPartyColor, getPartyName } from '../game/partyNames';
+import { isOrganizationEstablished } from '../game/organizations';
 import { ParliamentChart } from './ParliamentChart';
 import {
   getEffectiveLawStance,
@@ -92,7 +93,7 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
 
   function getActorLabel(politicalActor: PoliticalActor, short = false) {
     const name = getPartyName(state, politicalActor, isZh, short);
-    if (politicalActor === 'CNT_FAI' && state.isPRRevSFormed) {
+    if (politicalActor === 'CNT_FAI' && isOrganizationEstablished(state, 'PRRevS')) {
       return short ? 'CNT/PRRevS' : `${name} / PRRevS`;
     }
     return name;
