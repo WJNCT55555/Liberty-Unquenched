@@ -28,7 +28,6 @@ export const laSanjurjada: GameEvent = {
           ...state.domesticPolicy,
           land_law: 1,
           land_reform_progress: Math.min(100, state.domesticPolicy.land_reform_progress + 10),
-          land_reform_law_enabled: true
         },
         stats: {
           ...state.stats,

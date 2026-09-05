@@ -43,13 +43,12 @@ export const PARTY_NAMES_SHORT_MAPPING: Record<Party | 'CNT_FAI', { en: string; 
   PRRevS: { en: 'PRRevS', zh: 'PRRevS' }
 };
 
-type PartyNameState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'isPRRevSFormed' | 'falange_jons' | 'organizations'>;
+type PartyNameState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'falange_jons' | 'organizations'>;
 
 export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
   // Acción Popular reorganizes as CEDA in March 1933 while retaining one AP
-  // identity. The date fallback keeps older saves without the new flag usable.
-  const cedaFormed = state.ceda_formed ?? (state.year > 1933 || (state.year === 1933 && state.month >= 3));
-  if (party === 'AP' && !cedaFormed) {
+  // identity in the underlying party key.
+  if (party === 'AP' && !state.ceda_formed) {
     return isZh
       ? (short ? 'AP' : '人民行动党 (AP)')
       : (short ? 'AP' : 'AP (Popular Action)');
@@ -58,8 +57,7 @@ export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', is
   // Acción Republicana became Izquierda Republicana in April 1934. Keep the
   // underlying IR party key so support, relations, seats, and coalitions do
   // not split across two technical parties.
-  const irFormed = state.ir_formed ?? (state.year > 1934 || (state.year === 1934 && state.month >= 4));
-  if (party === 'IR' && !irFormed) {
+  if (party === 'IR' && !state.ir_formed) {
     return isZh
       ? (short ? 'AR' : '共和行动 (AR)')
       : (short ? 'AR' : 'AR (Republican Action)');
@@ -67,8 +65,7 @@ export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', is
 
   // The Radical Socialist Republican phase became Unión Republicana in
   // September 1934. It likewise remains one underlying UR party identity.
-  const urFormed = state.ur_formed ?? (state.year > 1934 || (state.year === 1934 && state.month >= 9));
-  if (party === 'UR' && !urFormed) {
+  if (party === 'UR' && !state.ur_formed) {
     return isZh
       ? (short ? 'PRRS' : '激进社会共和党 (PRRS)')
       : (short ? 'PRRS' : 'PRRS (Radical Socialist Republican Party)');

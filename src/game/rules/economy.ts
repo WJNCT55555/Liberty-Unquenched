@@ -55,11 +55,26 @@ export const ECONOMIC_RULES = {
     foreignExchange: 180,
     growth: 2.5,
     inflation: 3.5,
+    unemployment: 11.2,
     goldReserves: 2200,
     militarySpending: 15,
     armyLoyalty: 50,
   },
   incomeWeights: { lower: 4, middle: 3.5, upper: 4.5, consumption: 8, peaceTariffBase: 5, warTariffBase: 2 },
+  /**
+   * Macro-indicator dynamics: monthly partial adjustment (inertia).
+   * Each month the model computes a "target" from current parameters
+   * (taxes/debt/gold/deficit/war/policies), then moves the actual value
+   * only partway toward it:
+   *     next = current + alpha * (target - current)
+   * Targets are never applied instantly, so one-off shocks (e.g. selling
+   * gold, war-bond issuance) decay smoothly instead of being overwritten
+   * the following month. Labor markets (unemployment) intentionally
+   * adjust slower than growth or prices.
+   */
+  indicatorInertia: { growth: 0.35, inflation: 0.3, unemployment: 0.2 },
+  /** Allowed band for the growth indicator (min < 1 allows recessions). */
+  growthBounds: { min: -6, max: 15 },
 } as const;
 
 const roundTo = (value: number, decimals: number): number => Number(value.toFixed(decimals));
@@ -98,8 +113,7 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
   const consumptionTax = taxRates.consumption * ECONOMIC_RULES.incomeWeights.consumption;
   const totalRevenue = incomeTax + tariff + consumptionTax;
 
-  const landLawLevel = state.domesticPolicy.land_law
-    ?? (state.domesticPolicy.land_reform_law_enabled ? 1 : 0);
+  const landLawLevel = state.domesticPolicy.land_law;
   const landReformPaused = landLawLevel === 1 && (state.budget ?? ECONOMIC_RULES.defaults.budget) <= 0;
   const expenditure = {
     civilAdministration: 1,
@@ -137,40 +151,77 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
   const armyLoyaltyFactor = ((state.military_spending ?? ECONOMIC_RULES.defaults.militarySpending) - ECONOMIC_RULES.defaults.militarySpending) * 0.12;
   const nextArmyLoyalty = clamp((state.stats.armyLoyalty ?? ECONOMIC_RULES.defaults.armyLoyalty) + armyLoyaltyFactor, 0, 100);
 
-  const debtGrowthDrag = Math.max(0, (nextDebt - 1200) * 0.001);
-  let nextGrowthRaw = 3.5
-    - (taxRates.lower * 1.5)
-    - (taxRates.middle * 2)
-    - (taxRates.upper * 2.5)
-    - (taxRates.tariff * 3)
-    - (taxRates.consumption * 3.5)
-    - debtGrowthDrag;
-  if (isCivilWar) nextGrowthRaw -= 6;
-  const nextGrowth = roundTo(clamp(nextGrowthRaw, 1, 100), 2);
+  // ------------------------------------------------------------------
+  // 宏观指标：目标值 + 带惯性的部分调整 (partial adjustment)
+  // ------------------------------------------------------------------
+  // 每月先用当期参数(税率/国债/黄金/赤字/战争/法案)算出"目标值"，
+  // 实际指标只按 ECONOMIC_RULES.indicatorInertia 的比例向目标收敛：
+  //     next = current + alpha * (target - current)
+  // 效果：① 一次性冲击(抛售黄金 +1.5、战争公债 +1.2 通胀)不再被次月
+  //        直接覆盖，而是呈驼峰状自然衰减；② 三指标存在惯性滞后，
+  //        失业市场(alpha 最小)收敛最慢；③ 增长区间放宽，内战期间
+  //        可出现负增长(衰退)。
+  const currentGrowth = state.economy_growth ?? ECONOMIC_RULES.defaults.growth;
+  const currentInflation = state.inflation_rate ?? ECONOMIC_RULES.defaults.inflation;
+  const currentUnemployment = state.unemployment_rate ?? ECONOMIC_RULES.defaults.unemployment;
+  const {
+    growth: growthInertia,
+    inflation: inflationInertia,
+    unemployment: unemploymentInertia,
+  } = ECONOMIC_RULES.indicatorInertia;
+  const { min: minGrowth, max: maxGrowth } = ECONOMIC_RULES.growthBounds;
 
+  // --- 增长目标：税率拖累 + 高债拖累 (+ 内战休克) ---
+  const debtGrowthDrag = Math.max(0, (nextDebt - 1200) * 0.001);
+  const targetGrowth = clamp(
+    3.5
+      - (taxRates.lower * 1.5)
+      - (taxRates.middle * 2)
+      - (taxRates.upper * 2.5)
+      - (taxRates.tariff * 3)
+      - (taxRates.consumption * 3.5)
+      - debtGrowthDrag
+      - (isCivilWar ? 6 : 0),
+    minGrowth,
+    maxGrowth,
+  );
+  const nextGrowth = roundTo(clamp(currentGrowth + growthInertia * (targetGrowth - currentGrowth), minGrowth, maxGrowth), 2);
+
+  // --- 通胀目标：累进税压制需求 − 间接税推升价格 + 赤字印刷 + 黄金信心流失 (+ 内战) ---
   const goldLossConfidence = Math.max(0, (700 - (state.gold_reserves ?? ECONOMIC_RULES.defaults.goldReserves)) * 0.006);
   const deficitInflation = budgetDelta < 0 ? Math.abs(budgetDelta) * 0.5 : 0;
-  let nextInflation = 2.5
-    - (taxRates.lower * 1)
-    - (taxRates.middle * 1.5)
-    - (taxRates.upper * 2)
-    + (taxRates.tariff * 8)
-    + (taxRates.consumption * 6)
-    + deficitInflation
-    + goldLossConfidence;
-  if (isCivilWar) nextInflation += 8;
+  const targetInflation = clamp(
+    2.5
+      - (taxRates.lower * 1)
+      - (taxRates.middle * 1.5)
+      - (taxRates.upper * 2)
+      + (taxRates.tariff * 8)
+      + (taxRates.consumption * 6)
+      + deficitInflation
+      + goldLossConfidence
+      + (isCivilWar ? 8 : 0),
+    1,
+    100,
+  );
+  const nextInflation = roundTo(clamp(currentInflation + inflationInertia * (targetInflation - currentInflation), 1, 100), 2);
 
+  // --- 失业目标：随(带惯性的)当月增长与税负/高债移动，收敛最慢 ---
   const laborReformReduction = monthlyPolicyModifier('max_hours_law', state.domesticPolicy.max_hours_law, 'unemployment');
   const highDebtUnemploymentFactor = nextDebt > 1500 ? 1 : 0;
-  let nextUnemployment = 12
-    - ((nextGrowth - 2.5) * 0.4)
-    + (taxRates.lower * 1)
-    + (taxRates.middle * 1.5)
-    + (taxRates.upper * 3)
-    - (taxRates.tariff * 1.5)
-    + laborReformReduction
-    + highDebtUnemploymentFactor;
-  if (isCivilWar) nextUnemployment += 4;
+  const targetUnemployment = clamp(
+    12
+      - ((nextGrowth - 2.5) * 0.4)
+      + (taxRates.lower * 1)
+      + (taxRates.middle * 1.5)
+      + (taxRates.upper * 3)
+      - (taxRates.tariff * 1.5)
+      + laborReformReduction
+      + highDebtUnemploymentFactor
+      + (isCivilWar ? 4 : 0),
+    0,
+    100,
+  );
+  const nextUnemployment = roundTo(clamp(currentUnemployment + unemploymentInertia * (targetUnemployment - currentUnemployment), 0, 100), 2);
 
   return {
     isCivilWar,
@@ -185,8 +236,8 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
     armyLoyaltyFactor,
     nextArmyLoyalty,
     nextGrowth,
-    nextInflation: roundTo(clamp(nextInflation, 1, 100), 2),
-    nextUnemployment: roundTo(clamp(nextUnemployment, 0, 100), 2),
+    nextInflation,
+    nextUnemployment,
     landLawLevel,
     landReformPaused,
   };

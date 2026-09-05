@@ -12,6 +12,20 @@ import { FACTION_NAMES } from '../game/labels';
 import { getOverallFactionDissent } from '../game/utils/factionEffects';
 import { getOrganizationsForOwner, isOrganizationEstablished } from '../game/organizations';
 
+// Resolve public emblems through Vite's deployment base path; a root-relative
+// `/img/...` URL would break when the game is hosted under `/Liberty-Unquenched/`.
+const ASSET_BASE_URL = (import.meta as any).env?.BASE_URL || '/';
+const resolveOrganizationIcon = (iconPath: string) => (
+  `${ASSET_BASE_URL}${iconPath.replace(/^\/+/, '')}`
+);
+const ORGANIZATION_GLOW_CLASS = 'transition-[filter] duration-200 group-hover:brightness-110 group-hover:drop-shadow-[0_1px_2px_rgba(43,43,43,0.45)]';
+
+const formatRelationValue = (value: number): string => {
+  if (!Number.isFinite(value)) return '0';
+  const rounded = Math.abs(value) < 0.005 ? 0 : Number(value.toFixed(2));
+  return String(rounded);
+};
+
 const calculatePartySupport = (state: GameState, party: 'CNT_FAI' | Party) => {
   let totalSupport = 0;
   for (const classId in state.classes) {
@@ -228,7 +242,7 @@ export const SidePanel = () => {
   };
 
   return (
-    <div className="w-72 border-r-2 border-ink bg-paper p-6 flex flex-col gap-2 overflow-y-auto">
+    <div className="w-72 shrink-0 min-w-0 box-border border-r-2 border-ink bg-paper p-6 flex flex-col gap-2 overflow-x-hidden overflow-y-auto">
       
       {state.civilWarStatus !== 'not_started' ? (
         <AccordionSection title={isZh ? '西班牙内战' : 'Spanish Civil War'} defaultOpen={true}>
@@ -590,8 +604,8 @@ export const SidePanel = () => {
                     <div className="w-12 h-1.5 bg-ink/10 border border-ink/30 overflow-hidden">
                       <div className="h-full bg-ink/50" style={{ width: `${value}%` }} />
                     </div>
-                    <span className={`w-16 text-right ${getPartyRelationColor(value)}`}>
-                      {getPartyRelationLevel(value, isZh)}
+                    <span className={`min-w-[5.5rem] text-right whitespace-nowrap ${getPartyRelationColor(value)}`}>
+                      {getPartyRelationLevel(value, isZh)} <span className="text-ink-light font-normal">({formatRelationValue(value)}/100)</span>
                     </span>
                   </div>
                 </div>
@@ -895,10 +909,10 @@ export const SidePanel = () => {
               {isZh ? '悬停查看月度效果' : 'Hover for monthly effects'}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full min-w-0 grid-cols-4 gap-x-2 gap-y-3">
             {getOrganizationsForOwner('CNT_FAI')
               .filter((definition) => isOrganizationEstablished(state, definition.id))
-              .map((definition) => {
+              .map((definition, index) => {
                 const typeLabel = isZh
                   ? ({ union: '工会', political: '政治组织', youth: '青年组织', women: '女性组织', agricultural: '农业组织', militia: '民兵组织' } as const)[definition.type]
                   : ({ union: 'Union', political: 'Political', youth: 'Youth', women: 'Women', agricultural: 'Agricultural', militia: 'Militia' } as const)[definition.type];
@@ -906,23 +920,40 @@ export const SidePanel = () => {
                 const monthlyEffect = isZh ? definition.monthlyEffectTextZh : definition.monthlyEffectText;
                 const capability = isZh ? definition.capabilityTextZh : definition.capabilityText;
                 return (
-                  <div key={definition.id} className="relative group">
+                  <div key={definition.id} className="relative group min-w-0 flex justify-center">
                     <div
-                      className="h-11 w-11 border border-ink/30 bg-paper-light rounded-sm overflow-hidden flex items-center justify-center shadow-sm transition-all group-hover:border-cnt-red group-hover:shadow-md"
+                      className="h-11 w-11 shrink-0 flex items-center justify-center"
                       title={`${fullName}\n${typeLabel}\n${monthlyEffect}${capability ? `\n${capability}` : ''}`}
                     >
                       {definition.icon ? (
-                        <img src={definition.icon} alt={definition.abbreviation} className="h-full w-full object-contain" />
+                        <img
+                          src={resolveOrganizationIcon(definition.icon)}
+                          alt={definition.abbreviation}
+                          className={`h-full w-full object-contain ${ORGANIZATION_GLOW_CLASS} ${definition.id === 'FIJL' ? 'rounded-full' : ''}`}
+                          onError={(event) => {
+                            // Keep an intentional abbreviation badge when an
+                            // optional art asset is unavailable in a build.
+                            event.currentTarget.style.display = 'none';
+                            event.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
                       ) : (
-                        <span className="font-display text-[11px] font-bold text-cnt-red leading-none text-center">
+                        <span className={`font-display text-[11px] font-bold text-cnt-red leading-none text-center ${ORGANIZATION_GLOW_CLASS}`} data-organization-fallback>
+                          {definition.abbreviation}
+                        </span>
+                      )}
+                      {definition.icon && (
+                        <span className={`hidden font-display text-[11px] font-bold text-cnt-red leading-none text-center ${ORGANIZATION_GLOW_CLASS}`} data-organization-fallback>
                           {definition.abbreviation}
                         </span>
                       )}
                     </div>
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-ink text-paper px-1 text-[8px] font-mono leading-tight whitespace-nowrap">
+                    <span className="absolute -bottom-1 left-1/2 max-w-full -translate-x-1/2 overflow-hidden text-ellipsis bg-ink text-paper px-1 text-[8px] font-mono leading-tight whitespace-nowrap">
                       {definition.abbreviation}
                     </span>
-                    <div className="pointer-events-none absolute z-30 bottom-full left-1/2 mb-2 w-56 -translate-x-1/2 rounded-sm border border-ink bg-paper p-2 text-[10px] font-mono leading-snug text-ink opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                    <div className={`pointer-events-none absolute z-30 bottom-full mb-2 w-40 rounded-sm border border-ink bg-paper p-2 text-[10px] font-mono leading-snug text-ink opacity-0 shadow-lg transition-opacity group-hover:opacity-100 ${
+                      index % 4 === 0 ? 'left-0' : index % 4 === 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'
+                    }`}>
                       <div className="font-bold text-[11px]">{fullName}</div>
                       <div className="text-ink-light">{typeLabel}</div>
                       <div className="mt-1 border-t border-ink/10 pt-1">
@@ -1061,7 +1092,10 @@ export const SidePanel = () => {
 const RelationItem: React.FC<{ name: string; value: number; text: string; colorClass: string }> = ({ name, value, text, colorClass }) => (
   <div className="flex justify-between items-center font-typewriter text-xs uppercase tracking-wider">
     <span>{name}</span>
-    <span className={colorClass} title={`${value}/100`}>{text}</span>
+    <span className="flex items-center gap-1.5 whitespace-nowrap" title={`${formatRelationValue(value)}/100`}>
+      <span className={colorClass}>{text}</span>
+      <span className="text-ink-light font-normal">({formatRelationValue(value)}/100)</span>
+    </span>
   </div>
 );
 

@@ -3,10 +3,9 @@ import { addEasyUndoOption, createEasyConfirmationEvent } from './easyMode';
 import { normalizeOrganizationState } from './organizations';
 
 export const SAVE_FORMAT = 'cnt-fai-save' as const;
-export const SAVE_FORMAT_VERSION = 1 as const;
-export const SAVE_LIBRARY_VERSION = 1 as const;
+export const SAVE_FORMAT_VERSION = 2 as const;
+export const SAVE_LIBRARY_VERSION = 2 as const;
 export const SAVE_LIBRARY_KEY = 'cnt_fai_saves_v2';
-export const LEGACY_SAVE_KEY = 'cnt_fai_save';
 export const MANUAL_SAVE_SLOT_COUNT = 6;
 
 type JsonPrimitive = string | number | boolean | null;
@@ -18,7 +17,7 @@ export interface SerializedGameEvent {
   data: JsonObject;
 }
 
-export interface SaveGameSnapshotV1 {
+export interface SaveGameSnapshotV2 {
   format: typeof SAVE_FORMAT;
   version: typeof SAVE_FORMAT_VERSION;
   state: JsonObject;
@@ -32,11 +31,11 @@ export interface SaveGameSnapshotV1 {
     advisorPool: string[];
     pendingEvents: SerializedGameEvent[];
     currentEvent: SerializedGameEvent | null;
-    easyUndoState: SaveGameSnapshotV1 | null;
+    easyUndoState: SaveGameSnapshotV2 | null;
   };
 }
 
-export type SaveGameSnapshot = SaveGameSnapshotV1;
+export type SaveGameSnapshot = SaveGameSnapshotV2;
 
 export interface SaveSummary {
   scenario: GameState['scenario'];
@@ -411,26 +410,11 @@ const writeLibrary = (library: SaveLibrary): SaveLibrary => {
   return library;
 };
 
-const migrateLegacySave = (library: SaveLibrary): SaveLibrary => {
-  const legacyRaw = localStorage.getItem(LEGACY_SAVE_KEY);
-  if (!legacyRaw || library.manualSlots.some((slot) => slot.record)) return library;
-
-  try {
-    const legacyState = JSON.parse(legacyRaw) as GameState;
-    const migratedSlot = library.manualSlots[0];
-    migratedSlot.name = 'Legacy Save';
-    migratedSlot.record = createRecord(legacyState);
-    return writeLibrary(library);
-  } catch {
-    return library;
-  }
-};
-
 export const readSaveLibrary = (): SaveLibrary => {
   const raw = localStorage.getItem(SAVE_LIBRARY_KEY);
-  if (!raw) return migrateLegacySave(createEmptyLibrary());
+  if (!raw) return createEmptyLibrary();
   try {
-    return migrateLegacySave(normalizeLibrary(JSON.parse(raw)));
+    return normalizeLibrary(JSON.parse(raw));
   } catch {
     return createEmptyLibrary();
   }

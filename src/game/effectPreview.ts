@@ -43,6 +43,8 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   mitin_popular_timer: { label: 'Popular Assembly cooldown', labelZh: '群众集会冷却', reverseTone: true },
   prrevs_campaign_timer: { label: 'PRRevS campaign cooldown', labelZh: 'PRRevS竞选冷却', reverseTone: true },
   organizations_timer: { label: 'Organizations cooldown', labelZh: '组织事务冷却', reverseTone: true },
+  fijl_timer: { label: 'FIJL cooldown', labelZh: 'FIJL冷却', reverseTone: true },
+  mujeres_libres_timer: { label: 'Mujeres Libres cooldown', labelZh: '自由女性冷却', reverseTone: true },
   international_relations_timer: { label: 'International contacts cooldown', labelZh: '国际联系冷却', reverseTone: true },
   choose_enemies_timer: { label: 'Choosing enemies cooldown', labelZh: '选择敌人冷却', reverseTone: true },
   inter_party_relationships_timer: { label: 'Inter-party relations cooldown', labelZh: '党际关系冷却', reverseTone: true },
@@ -73,12 +75,9 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
 };
 
 const BOOLEAN_FIELDS: Record<string, Labels> = {
-  isPRRevSFormed: { label: 'PRRevS formed', labelZh: 'PRRevS成立' },
   ceda_formed: { label: 'CEDA formed', labelZh: 'CEDA成立' },
   ir_formed: { label: 'Izquierda Republicana formed', labelZh: '共和左翼成立' },
   ur_formed: { label: 'Unión Republicana formed', labelZh: '共和联盟成立' },
-  fijl_established: { label: 'FIJL established', labelZh: 'FIJL成立' },
-  mujeres_libres_established: { label: 'Mujeres Libres established', labelZh: '自由妇女组织成立' },
   internationalBrigadesFormed: { label: 'International Brigades formed', labelZh: '国际纵队成立' },
   tankResearchCompleted: { label: 'Tank research completed', labelZh: '坦克研发完成' },
   aragonCouncilExists: { label: 'Aragon Council exists', labelZh: '阿拉贡委员会存在' },
@@ -93,8 +92,7 @@ const BOOLEAN_FIELDS: Record<string, Labels> = {
   womensRightsReformed: { label: 'Women rights reformed', labelZh: '妇女权利改革' },
   moscowGoldTransferred: { label: 'Moscow gold transferred', labelZh: '莫斯科黄金已转移' },
   pceInPower: { label: 'PCE in power', labelZh: 'PCE掌权' },
-  pceAcceptsComintern: { label: 'PCE accepts Comintern', labelZh: 'PCE接受共产国际' },
-  militaryDeckEnabled: { label: 'Military deck enabled', labelZh: '武装事务牌库启用' }
+  pceAcceptsComintern: { label: 'PCE accepts Comintern', labelZh: 'PCE接受共产国际' }
 };
 
 const STAT_LABELS: Record<keyof GameState['stats'], Labels & { reverseTone?: boolean }> = {
@@ -124,7 +122,6 @@ const DOMESTIC_POLICY_LABELS: Record<keyof GameState['domesticPolicy'], Labels &
   education_institutions: { label: 'Education institutions', labelZh: '教育机构' },
   language_policy: { label: 'Language policy', labelZh: '语言政策' },
   union_status: { label: 'Union status', labelZh: '工会地位' },
-  land_reform_law_enabled: { label: 'Land reform law enabled', labelZh: '土地改革法启用' },
   mixed_jury_cnt_opposed: { label: 'CNT opposes mixed juries', labelZh: 'CNT反对混合陪审团' }
 };
 

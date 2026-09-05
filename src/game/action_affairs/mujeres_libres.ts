@@ -123,9 +123,9 @@ export const mujeresLibresCard: Card = {
   description: MUJERES_LIBRES_DESCRIPTION,
   descriptionZh: MUJERES_LIBRES_DESCRIPTION_ZH,
   cost: 1,
-  condition: (state: GameState) => isOrganizationEstablished(state, 'ML') && state.organizations_timer <= 0,
+  condition: (state: GameState) => isOrganizationEstablished(state, 'ML') && (state.mujeres_libres_timer || 0) <= 0,
   effect: (state: GameState): Partial<GameState> => ({
-    organizations_timer: 6,
+    mujeres_libres_timer: 6,
     currentEvent: mujeresLibresEvent(state)
   })
 };

@@ -879,12 +879,14 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       ? '【军费决定忠诚】该指标衡量西班牙国家整体军事开支，只影响财政支出、军官忠诚与政变风险，不会增加 CNT 私藏军备。和平时期军备每两个月增加 1，战争时期每月增加 1。'
                       : "This measures Spain's national military spending. It affects the budget, officer loyalty, and coup risk, but does not generate the CNT's clandestine armaments. Armaments increase by 1 every two months in peace and by 1 each month at war."}
                   </p>
-                  <div className="flex justify-end gap-1">
-                    <button onClick={() => handleAdjustValue('military_spending', -10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-10%</button>
-                    <button onClick={() => handleAdjustValue('military_spending', -1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
-                    <button onClick={() => handleAdjustValue('military_spending', 1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
-                    <button onClick={() => handleAdjustValue('military_spending', 10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+10%</button>
-                  </div>
+                  {manualTaxAdjustmentEnabled && (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleAdjustValue('military_spending', -10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-10%</button>
+                      <button onClick={() => handleAdjustValue('military_spending', -1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">-1%</button>
+                      <button onClick={() => handleAdjustValue('military_spending', 1, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+1%</button>
+                      <button onClick={() => handleAdjustValue('military_spending', 10, 5, 100)} className="px-2 py-0.5 border border-ink text-[10px] font-bold hover:bg-ink hover:text-paper rounded-xs cursor-pointer">+10%</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

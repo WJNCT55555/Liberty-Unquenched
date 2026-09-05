@@ -43,8 +43,7 @@ export const calculateMonthlyPolicyEffects = (
   let coupProgress = state.coupProgress;
   const aggregatedStatDeltas: Partial<Record<StatKey, number>> = {};
 
-  const landLawLevel = options.landLawLevel
-    ?? (domesticPolicy.land_law ?? (domesticPolicy.land_reform_law_enabled ? 1 : 0));
+  const landLawLevel = options.landLawLevel ?? domesticPolicy.land_law;
   const landReformPaused = options.landReformPaused
     ?? (landLawLevel === 1 && (state.budget ?? 12) <= 0);
 

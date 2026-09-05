@@ -58,8 +58,7 @@ const PARTY_ICON_FILES: Partial<Record<Party | 'CNT_FAI', string>> = {
 
 const getPartyIconFile = (state: GameState, party: Party | 'CNT_FAI'): string | undefined => {
   if (party === 'AP') {
-    const cedaFormed = state.ceda_formed ?? (state.year > 1933 || (state.year === 1933 && state.month >= 3));
-    return cedaFormed ? 'CEDA.png' : 'AP.png';
+    return state.ceda_formed ? 'CEDA.png' : 'AP.png';
   }
 
   if (party === 'IR') {
@@ -69,8 +68,7 @@ const getPartyIconFile = (state: GameState, party: Party | 'CNT_FAI'): string | 
   }
 
   if (party === 'UR') {
-    const urFormed = state.ur_formed ?? (state.year > 1934 || (state.year === 1934 && state.month >= 9));
-    return urFormed ? 'UR.png' : 'PRRS.png';
+    return state.ur_formed ? 'UR.png' : 'PRRS.png';
   }
 
   if (party === 'FE' && state.falange_jons) {

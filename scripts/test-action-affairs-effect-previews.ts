@@ -1,8 +1,9 @@
 import { deepStrictEqual, equal, ok } from 'node:assert/strict';
 import { media } from '../src/game/action_affairs/media';
 import { syndicateExpansion } from '../src/game/action_affairs/syndicate_expansion';
-import { organizationsCard, fijlCard } from '../src/game/action_affairs/organizations';
+import { organizationsCard } from '../src/game/action_affairs/organizations';
 import { mujeresLibresCard } from '../src/game/action_affairs/mujeres_libres';
+import { fijlCard } from '../src/game/action_affairs/fijl';
 import { propagandaByDeed } from '../src/game/action_affairs/propaganda_by_deed';
 import { getOptionEffectPreview } from '../src/game/effectPreview';
 import { INITIAL_STATE } from '../src/game/GameContext';
@@ -201,8 +202,10 @@ ok(
   !establishedOrganizations.event.options.some((option) => optionText(option, establishedOrganizations.state) === 'Establish Mujeres Libres (-2 Resources)'),
   'Mujeres Libres establishment option must be hidden after the organization is established'
 );
-const youthSpotlight = findOption(establishedOrganizations.event, establishedOrganizations.state, 'Turn our attention to our youth organization.');
-equal(youthSpotlight.effect(establishedOrganizations.state).currentEvent?.id, 'fijl_event', 'FIJL spotlight must open the FIJL card');
+ok(
+  !establishedOrganizations.event.options.some((option) => optionText(option, establishedOrganizations.state) === 'Turn our attention to our youth organization.'),
+  'FIJL must not be nested in the Organizations card'
+);
 ok(
   !establishedOrganizations.event.options.some((option) => optionText(option, establishedOrganizations.state) === 'Turn to the strength of Iberian women.'),
   'Mujeres Libres must not be nested in the Organizations card'
@@ -259,6 +262,82 @@ assertClose(
   -1,
   'Mujeres Libres education option unemployment preview'
 );
+
+const womenReadyWhileOrganizationsCool = {
+  ...establishedOrganizations.state,
+  organizations_timer: 4,
+  mujeres_libres_timer: 0
+};
+ok(
+  mujeresLibresCard.condition?.(womenReadyWhileOrganizationsCool),
+  'Mujeres Libres must remain playable while the Organizations card is cooling down'
+);
+const womenCoolingWhileOrganizationsReady = {
+  ...establishedOrganizations.state,
+  organizations_timer: 0,
+  mujeres_libres_timer: 4
+};
+equal(
+  mujeresLibresCard.condition?.(womenCoolingWhileOrganizationsReady),
+  false,
+  'Mujeres Libres must observe its own cooldown'
+);
+const womenCardResult = mujeresLibresCard.effect(womenReadyWhileOrganizationsCool);
+equal(womenCardResult.mujeres_libres_timer, 6, 'Mujeres Libres must set its own cooldown');
+equal(womenCardResult.organizations_timer, undefined, 'Mujeres Libres must not set the Organizations cooldown');
+
+const fijlOpened = openCardEvent(
+  fijlCard,
+  buildState({
+    organizations: {
+      ...cloneData(INITIAL_STATE.organizations),
+      FIJL: { established: true }
+    }
+  })
+);
+equal(fijlOpened.event.options.length, 5, 'FIJL must expose five decision options');
+ok(
+  fijlCard.descriptionZh?.startsWith('伊比利亚自由青年联合会是伊比利亚大地上最年轻的火种'),
+  'FIJL card must use the requested Chinese description'
+);
+fijlOpened.event.options.forEach((option) => {
+  assertExplicitPreviewMatchesEffect(
+    fijlOpened.state,
+    option,
+    `FIJL / ${optionText(option, fijlOpened.state)}`
+  );
+  ok(option.textZh, `FIJL option ${optionText(option, fijlOpened.state)} must have Chinese text`);
+  ok(option.subtitle && option.subtitleZh, `FIJL option ${optionText(option, fijlOpened.state)} must have bilingual subtitles`);
+});
+const frontOption = findOption(fijlOpened.event, fijlOpened.state, 'Set out, young people, for the battlefield.');
+equal(frontOption.condition?.(fijlOpened.state), false, 'FIJL battlefield option must wait for the civil war');
+equal(
+  frontOption.condition?.({ ...fijlOpened.state, civilWarStatus: 'ongoing' }),
+  true,
+  'FIJL battlefield option must unlock during the civil war'
+);
+const fijlReadyWhileOrganizationsCool = {
+  ...establishedOrganizations.state,
+  organizations_timer: 4,
+  fijl_timer: 0
+};
+ok(
+  fijlCard.condition?.(fijlReadyWhileOrganizationsCool),
+  'FIJL must remain playable while the Organizations card is cooling down'
+);
+const fijlCoolingWhileOrganizationsReady = {
+  ...establishedOrganizations.state,
+  organizations_timer: 0,
+  fijl_timer: 4
+};
+equal(
+  fijlCard.condition?.(fijlCoolingWhileOrganizationsReady),
+  false,
+  'FIJL must observe its own cooldown'
+);
+const fijlCardResult = fijlCard.effect(fijlReadyWhileOrganizationsCool);
+equal(fijlCardResult.fijl_timer, 6, 'FIJL must set its own cooldown');
+equal(fijlCardResult.organizations_timer, undefined, 'FIJL must not set the Organizations cooldown');
 
 const propagandaOpened = openCardEvent(
   propagandaByDeed,

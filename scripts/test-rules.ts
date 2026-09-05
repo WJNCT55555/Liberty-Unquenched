@@ -53,7 +53,7 @@ const policyState = stateWith({
   budget: 12,
   public_debt: 500,
   military_spending: 15,
-  domesticPolicy: { womens_rights: 4, land_law: 1, land_reform_law_enabled: true },
+  domesticPolicy: { womens_rights: 4, land_law: 1 },
 });
 const before = {
   budget: policyState.budget,
@@ -74,7 +74,7 @@ assert(laborReformed.nextUnemployment < laborBaseline.nextUnemployment, 'Max-hou
 
 const policyResult = calculateMonthlyPolicyEffects(stateWith({
   coupSystemActive: false,
-  domesticPolicy: { land_law: 2, land_reform_law_enabled: true, max_hours_law: 0, workplace_safety: 0 },
+  domesticPolicy: { land_law: 2, max_hours_law: 0, workplace_safety: 0 },
 }));
 assert(policyResult.coupProgress === 0, 'Inactive coup system should reset progress');
 assert(policyResult.domesticPolicy.land_reform_progress === 1.5, 'Land law level 2 should add 1.5 monthly progress');
@@ -115,10 +115,6 @@ const organizations1936 = getDefaultOrganizationState('1936');
 assert(organizations1931.CNT?.established && organizations1931.FAI?.established, 'CNT and FAI should exist in the 1931 start');
 assert(organizations1933.FIJL?.established && !organizations1933.ML?.established, '1933 should start with FIJL but not Mujeres Libres');
 assert(organizations1936.FIJL?.established && organizations1936.ML?.established && organizations1936.DC?.established, '1936 should start with FIJL, Mujeres Libres, and Defense Committees');
-const legacyOrganizationState = stateWith({ organizations: undefined, isPRRevSFormed: true });
-assert(isOrganizationEstablished(legacyOrganizationState, 'PRRevS'), 'Legacy PRRevS saves should hydrate through the organization selector');
-const mixedLegacyOrganizationState = stateWith({ fijl_established: true });
-assert(isOrganizationEstablished(mixedLegacyOrganizationState, 'FIJL'), 'Legacy organization aliases should win when an older save carries a false registry entry');
 const organizationEffects = applyMonthlyOrganizationEffects(stateWith({
   organizations: { ...organizations1931, PRRevS: { established: true } },
   stats: { revolutionaryFervor: 10, bureaucratization: 20 },
@@ -140,7 +136,7 @@ assert(fijlFormation.date?.year === 1932 && fijlFormation.date.month === 1, 'FIJ
 assert(fijlFormation.condition?.(fijlHistoricalState) === true, 'FIJL formation should trigger for a historical 1931 start in 1932');
 assert(fijlFormation.condition?.({ ...fijlHistoricalState, difficulty: 'normal' }) === false, 'FIJL formation should remain historical-mode only');
 const fijlEstablished = fijlFormation.options[0].effect(fijlHistoricalState);
-assert(fijlEstablished.organizations?.FIJL?.established === true && fijlEstablished.fijl_established === true, 'FIJL formation should update the registry and legacy alias');
+assert(fijlEstablished.organizations?.FIJL?.established === true, 'FIJL formation should update the organization registry');
 const mujeresLibresHistoricalState = stateWith({
   scenario: '1933',
   difficulty: 'historical',
@@ -152,7 +148,7 @@ assert(mujeresLibresFormation.date?.year === 1936 && mujeresLibresFormation.date
 assert(mujeresLibresFormation.condition?.(mujeresLibresHistoricalState) === true, 'Mujeres Libres formation should trigger for a historical pre-1936 start');
 assert(mujeresLibresFormation.condition?.({ ...mujeresLibresHistoricalState, scenario: '1936' }) === false, 'Mujeres Libres formation should not repeat in the 1936 start');
 const mujeresLibresEstablished = mujeresLibresFormation.options[0].effect(mujeresLibresHistoricalState);
-assert(mujeresLibresEstablished.organizations?.ML?.established === true && mujeresLibresEstablished.mujeres_libres_established === true, 'Mujeres Libres formation should update the registry and legacy alias');
+assert(mujeresLibresEstablished.organizations?.ML?.established === true, 'Mujeres Libres formation should update the organization registry');
 const mapStage = calculateMonthlyMapStage(INITIAL_STATE);
 assert(mapStage.armies?.every(army => army.movesLeft === 2), 'Monthly map stage should reset army movement points');
 

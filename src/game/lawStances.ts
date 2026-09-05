@@ -111,7 +111,7 @@ const isModifierActive = (state: GameState, modifier: LawStanceModifier) => {
 
 export const getEffectiveLawStanceScore = (state: GameState, actor: PoliticalActor, lawId: LawId, targetLevel: number) => {
   let score = getBaselineLawStanceScore(actor, lawId, targetLevel);
-  const modifiers = (state.lawStanceModifiers || []).filter(modifier =>
+  const modifiers = state.lawStanceModifiers.filter(modifier =>
     modifier.actor === actor &&
     modifier.lawId === lawId &&
     isModifierActive(state, modifier) &&
@@ -130,7 +130,7 @@ export const getEffectiveLawStance = (state: GameState, actor: PoliticalActor, l
 
 /** Return a partial state suitable for a card/event option effect. */
 export const applyLawStanceModifier = (state: GameState, modifier: LawStanceModifier): Partial<GameState> => ({
-  lawStanceModifiers: [...(state.lawStanceModifiers || []), modifier],
+  lawStanceModifiers: [...state.lawStanceModifiers, modifier],
 });
 
 // Alias used by future card/event effects.  Keeping one implementation avoids

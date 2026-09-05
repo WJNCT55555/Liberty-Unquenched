@@ -8,8 +8,19 @@ import { COALITION_DEFS } from '../game/coalitions';
 import { formCoalition, formRulingCoalitionFromSandbox } from '../game/utils';
 import { FACTION_NAMES } from '../game/labels';
 import { getPartyName } from '../game/partyNames';
+import { ORGANIZATION_DEFINITIONS, isOrganizationEstablished, setOrganizationEstablished } from '../game/organizations';
+import type { OrganizationId } from '../game/types';
 
 type CoalitionRole = 'ruling' | 'opposition';
+
+const ORGANIZATION_TYPE_LABELS = {
+  union: { en: 'Union', zh: '工会' },
+  political: { en: 'Political', zh: '政治组织' },
+  youth: { en: 'Youth', zh: '青年组织' },
+  women: { en: 'Women', zh: '女性组织' },
+  agricultural: { en: 'Agricultural', zh: '农业组织' },
+  militia: { en: 'Militia', zh: '民兵组织' },
+} as const;
 
 export const SandboxMenu = () => {
   const { state, dispatch } = useGame();
@@ -28,6 +39,13 @@ export const SandboxMenu = () => {
 
   const handleEdit = (key: string, value: any) => {
     dispatch({ type: 'SANDBOX_EDIT', payload: { [key]: value } });
+  };
+
+  const handleOrganizationEdit = (id: OrganizationId, established: boolean) => {
+    dispatch({
+      type: 'SANDBOX_EDIT',
+      payload: setOrganizationEstablished(state, id, established),
+    });
   };
 
   const handleFactionEdit = (faction: Faction, key: 'influence' | 'dissent', value: number) => {
@@ -224,15 +242,54 @@ export const SandboxMenu = () => {
                   />
                   <div className="flex flex-col">
                     <span className="font-display text-lg">
-                      {isZh ? '开启手动调整税收' : 'Enable Manual Tax Adjustment'}
+                      {isZh ? '开启手动调整税收与军费' : 'Enable Manual Tax & Military-Spending Adjustment'}
                     </span>
                     <span className="font-mono text-xs text-ink/75">
                       {isZh
-                        ? '开启后，财政模态框中会显示 -5、-1、+1、+5 税率按钮。'
-                        : 'When enabled, the Finance modal shows -5, -1, +1, and +5 tax-rate buttons.'}
+                        ? '开启后，财政模态框中会显示 -5、-1、+1、+5 税率按钮与军费调节按钮。'
+                        : 'When enabled, the Finance modal shows -5, -1, +1, and +5 tax-rate buttons plus military-spending adjusters.'}
                     </span>
                   </div>
                 </label>
+              </div>
+
+              {/* Sandbox Organization Controls */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '沙盒组织控制' : 'Sandbox Organization Controls'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-ink/5 p-4">
+                  {ORGANIZATION_DEFINITIONS.map((definition) => {
+                    const established = isOrganizationEstablished(state, definition.id);
+                    const typeLabel = ORGANIZATION_TYPE_LABELS[definition.type][isZh ? 'zh' : 'en'];
+                    return (
+                      <label
+                        key={definition.id}
+                        className="flex items-start gap-3 border border-ink/10 p-3 cursor-pointer hover:bg-ink/10 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={established}
+                          onChange={(e) => handleOrganizationEdit(definition.id, e.target.checked)}
+                          className="mt-0.5 w-5 h-5 shrink-0 accent-cnt-red cursor-pointer"
+                        />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="font-display text-sm font-bold leading-tight">
+                            {isZh ? definition.nameZh : definition.name}
+                          </span>
+                          <span className="font-mono text-[10px] text-ink/65">
+                            {definition.abbreviation} · {typeLabel}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="font-mono text-xs text-ink/65 leading-relaxed">
+                  {isZh
+                    ? '勾选即可立即启用组织，取消勾选即可关闭组织；组织的历史别名与能力状态会同步更新。'
+                    : 'Toggle each organization on or off immediately. Legacy aliases and organization capabilities stay synchronized.'}
+                </p>
               </div>
 
               {/* Cabinet Ministers Adjustment */}

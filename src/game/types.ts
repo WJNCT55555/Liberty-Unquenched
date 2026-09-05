@@ -314,6 +314,8 @@ export interface GameState {
   mitin_popular_timer: number;
   prrevs_campaign_timer: number;
   organizations_timer: number;
+  fijl_timer: number;
+  mujeres_libres_timer: number;
   international_relations_timer: number;
   choose_enemies_timer: number;
   inter_party_relationships_timer: number;
@@ -343,26 +345,20 @@ export interface GameState {
 
   workersAllianceProgress: number;
   cntVotingRate: number;
-  /** @deprecated Use organizations.PRRevS.established. Kept for save compatibility. */
-  isPRRevSFormed: boolean;
   prrevs_formed_months: number;
   prrevsConstructionLevel: number;
   // PRRevS formation can be deferred for three months or abandoned permanently
-  // (see formation_of_prrevs event); both fields are optional for save compatibility.
+  // (see formation_of_prrevs event); both fields remain optional until decided.
   prrevsDeferralDate?: { year: number; month: number };
   prrevsAbandoned?: boolean;
   cntStance: 'oppose' | 'cooperate' | 'govern';
   sandboxCardChoiceEnabled?: boolean;
   sandboxManualTaxAdjustmentEnabled?: boolean;
 
-  /** Registry-backed organization state. Optional for loading pre-registry saves. */
-  organizations?: OrganizationStateMap;
+  /** Registry-backed organization state. */
+  organizations: OrganizationStateMap;
 
   ateneos_established: number;
-  /** @deprecated Use organizations.FIJL.established. Kept for save compatibility. */
-  fijl_established: boolean;
-  /** @deprecated Use organizations.ML.established. Kept for save compatibility. */
-  mujeres_libres_established: boolean;
   
   advisorActionTimer: number;
   
@@ -378,9 +374,7 @@ export interface GameState {
   
   cortes?: Record<Party, number>;
   partySupport: Record<Party, number>;
-  // Optional for save compatibility.  Missing modifiers resolve to the
-  // historical baseline matrix.
-  lawStanceModifiers?: LawStanceModifier[];
+  lawStanceModifiers: LawStanceModifier[];
   activeCoalitions: CoalitionState[];
   rulingCoalition: CoalitionId | null;
   coalitionHistory: { id: CoalitionId; from: { year: number; month: number }; to: { year: number; month: number } }[];
@@ -462,7 +456,6 @@ export interface GameState {
     education_institutions: number;
     language_policy: number;
     union_status: number;
-    land_reform_law_enabled: boolean;
     mixed_jury_cnt_opposed: boolean;
   };
 
@@ -540,8 +533,6 @@ export interface GameState {
   moscowGoldTransferred: boolean;
   pceInPower: boolean;
   pceAcceptsComintern: boolean;
-  /** @deprecated Use organizations.DC.established. Kept for save compatibility. */
-  militaryDeckEnabled: boolean;
   
   ps_founded: boolean;
   fe_founded: boolean;

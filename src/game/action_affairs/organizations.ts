@@ -1,41 +1,7 @@
-import { Card, GameEvent, GameState } from '../types';
+import { Card, GameState } from '../types';
 import { adjustClassSupport, adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { media } from './media';
 import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
-
-const fijlOrganizationEvent = (state: GameState): GameEvent => ({
-  id: 'fijl_event',
-  date: { year: state.year, month: state.month },
-  title: 'Federación Ibérica de Juventudes Libertarias',
-  titleZh: '伊比利亚自由青年联合会',
-  description: 'The FIJL coordinates libertarian youth circles across Iberia. Its branches focus on education, solidarity, and preparing a new generation to take responsibility for the movement.',
-  descriptionZh: 'FIJL在伊比利亚各地协调自由青年团体。各地分支专注于教育、互助，并培养能够为运动承担责任的新一代。',
-  options: [
-    {
-      text: 'Give the youth federation room to organize.',
-      textZh: '让青年联合会放手组织。',
-      subtitle: 'The FIJL continues its long-term work; it has no additional recurring numerical effect.',
-      subtitleZh: 'FIJL继续开展长期工作；暂无额外的持续数值效果。',
-      effect: (): Partial<GameState> => ({ currentEvent: null }),
-    },
-  ],
-});
-
-/** Spotlight card for the FIJL. It is only available after the organization is established. */
-export const fijlCard: Card = {
-  id: 'fijl',
-  title: 'Federación Ibérica de Juventudes Libertarias',
-  titleZh: '伊比利亚自由青年联合会',
-  type: 'Action',
-  description: 'Coordinate the FIJL’s youth branches and give libertarian activists a shared space for education and solidarity.',
-  descriptionZh: '协调 FIJL 的青年分支，为自由主义活动家提供共同的教育与互助空间。',
-  cost: 1,
-  condition: (state: GameState) => isOrganizationEstablished(state, 'FIJL') && state.organizations_timer <= 0,
-  effect: (state: GameState): Partial<GameState> => ({
-    organizations_timer: 6,
-    currentEvent: fijlOrganizationEvent(state),
-  }),
-};
 
 export const organizationsCard: Card = {
   id: 'organizations',
@@ -139,25 +105,11 @@ export const organizationsCard: Card = {
             };
           }
         },
-        ...(isOrganizationEstablished(state, 'FIJL')
-          ? [{
-              text: 'Turn our attention to our youth organization.',
-              textZh: '将目光转向我们的青年组织',
-              subtitle: 'Move directly to the Federación Ibérica de Juventudes Libertarias card.',
-              subtitleZh: '直接转入伊比利亚自由青年联合会卡牌。',
-              effect: (s: GameState): Partial<GameState> => {
-                const result = fijlCard.effect(s);
-                return {
-                  ...result,
-                  currentEvent: result.currentEvent || null,
-                };
-              },
-            }]
-          : [{
+        ...(!isOrganizationEstablished(state, 'FIJL') ? [{
               text: 'Establish FIJL Youth (-2 Resources)',
               textZh: '推动自由青年联合会(FIJL)成立 (-2 资源)',
-              subtitle: 'Mobilize the next generation of anarchists.',
-              subtitleZh: '动员下一代无政府主义者，为组织注入新鲜血液。',
+              subtitle: 'Mobilize the next generation of anarchists. Once established, the independent FIJL action card becomes available.',
+              subtitleZh: '动员下一代无政府主义者，为组织注入新鲜血液。成立后，独立的 FIJL 行动卡牌将可用。',
               condition: (s: GameState) => s.resources >= 2,
               unavailableSubtitle: () => 'Need at least 2 resources.',
               unavailableSubtitleZh: () => '需要至少 2 资源。',
@@ -178,7 +130,7 @@ export const organizationsCard: Card = {
                   },
                 };
               }
-            }]),
+            }] : []),
         ...(!isOrganizationEstablished(state, 'ML') ? [{
               text: 'Establish Mujeres Libres (-2 Resources)',
               textZh: '推动自由妇女组织(Mujeres Libres)成立 (-2 资源)',

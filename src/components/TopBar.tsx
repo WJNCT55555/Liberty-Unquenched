@@ -41,7 +41,6 @@ export const TopBar = () => {
     ceda_formed: snapshot.ceda_formed,
     ir_formed: snapshot.ir_formed,
     ur_formed: snapshot.ur_formed,
-    isPRRevSFormed: snapshot.isPRRevSFormed,
     organizations: snapshot.organizations,
     falange_jons: snapshot.falange_jons,
   }), shallowEqual);

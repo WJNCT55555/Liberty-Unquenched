@@ -24,11 +24,7 @@ export interface OrganizationDefinition {
 }
 
 export type OrganizationStateReader = {
-  organizations?: OrganizationStateMap;
-  fijl_established?: boolean;
-  mujeres_libres_established?: boolean;
-  militaryDeckEnabled?: boolean;
-  isPRRevSFormed?: boolean;
+  organizations: OrganizationStateMap;
 };
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
@@ -126,6 +122,7 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     nameZh: '革命共和工团党',
     type: 'political',
     owner: 'CNT_FAI',
+    icon: '/img/Organization/PRRevS_Emblem.png',
     monthlyEffectText: '+1 Bureaucratization and +1 CNT voting willingness each month.',
     monthlyEffectTextZh: '每月官僚度 +1、CNT 投票意愿 +1。',
     monthlyEffect: (state) => ({
@@ -144,13 +141,6 @@ export const ORGANIZATION_DEFINITION_BY_ID: Record<OrganizationId, OrganizationD
     return result;
   }, {} as Record<OrganizationId, OrganizationDefinition>);
 
-const LEGACY_ESTABLISHED_FIELDS: Partial<Record<OrganizationId, keyof GameState>> = {
-  FIJL: 'fijl_established',
-  ML: 'mujeres_libres_established',
-  DC: 'militaryDeckEnabled',
-  PRRevS: 'isPRRevSFormed',
-};
-
 /** Build a complete registry state for a new scenario. */
 export const getDefaultOrganizationState = (scenario: GameState['scenario']): OrganizationStateMap => (
   ORGANIZATION_DEFINITIONS.reduce((result, definition) => {
@@ -161,13 +151,9 @@ export const getDefaultOrganizationState = (scenario: GameState['scenario']): Or
   }, {} as OrganizationStateMap)
 );
 
-/** Read organization state while remaining compatible with pre-registry saves. */
+/** Read organization state from the canonical registry. */
 export const isOrganizationEstablished = (state: OrganizationStateReader, id: OrganizationId): boolean => {
-  const registryState = state.organizations?.[id];
-  if (registryState?.established === true) return true;
-
-  const legacyField = LEGACY_ESTABLISHED_FIELDS[id];
-  return legacyField ? state[legacyField] === true : false;
+  return state.organizations?.[id]?.established === true;
 };
 
 export const getOrganizationDefinition = (id: OrganizationId) => ORGANIZATION_DEFINITION_BY_ID[id];
@@ -175,34 +161,30 @@ export const getOrganizationDefinition = (id: OrganizationId) => ORGANIZATION_DE
 export const getOrganizationsForOwner = (owner: OrganizationOwner) =>
   ORGANIZATION_DEFINITIONS.filter((definition) => definition.owner === owner);
 
-/**
- * Hydrate the registry and legacy aliases together.  Keeping aliases in sync
- * lets older event/card code and old saves continue to work while the registry
- * becomes the canonical source for new code.
- */
+/** Ensure every registered organization has a normalized state entry. */
 export const normalizeOrganizationState = (state: GameState): GameState => {
   const organizations = { ...(state.organizations || {}) } as OrganizationStateMap;
   ORGANIZATION_DEFINITIONS.forEach((definition) => {
-    const legacyField = LEGACY_ESTABLISHED_FIELDS[definition.id];
-    const legacyEstablished = legacyField ? state[legacyField] === true : false;
     const current = organizations[definition.id];
     organizations[definition.id] = {
       ...(current || {}),
-      established: Boolean(current?.established || legacyEstablished),
+      established: current?.established === true,
     };
   });
 
   return {
     ...state,
     organizations,
-    fijl_established: organizations.FIJL?.established === true,
-    mujeres_libres_established: organizations.ML?.established === true,
-    militaryDeckEnabled: organizations.DC?.established === true,
-    isPRRevSFormed: organizations.PRRevS?.established === true,
+    fijl_timer: Number.isFinite(state.fijl_timer)
+      ? Math.max(0, state.fijl_timer)
+      : 0,
+    mujeres_libres_timer: Number.isFinite(state.mujeres_libres_timer)
+      ? Math.max(0, state.mujeres_libres_timer)
+      : 0,
   };
 };
 
-/** Set one organization and update its legacy compatibility alias. */
+/** Set one organization in the canonical registry. */
 export const setOrganizationEstablished = (
   state: GameState,
   id: OrganizationId,
@@ -221,12 +203,8 @@ export const setOrganizationEstablished = (
     ...(normalized.organizations || {}),
     [id]: organizationState,
   } as OrganizationStateMap;
-  const legacyField = LEGACY_ESTABLISHED_FIELDS[id];
 
-  return {
-    organizations,
-    ...(legacyField ? { [legacyField]: established } : {}),
-  } as Partial<GameState>;
+  return { organizations };
 };
 
 /** Apply all recurring organization effects without mutating the input. */
