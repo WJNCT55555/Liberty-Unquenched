@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 
 export const juanLopezSanchez: Advisor = {
   id: 'Juan López Sánchez',
@@ -61,9 +62,11 @@ export const juanLopezSanchez: Advisor = {
         return {
           advisorActionTimer: 6,
           factions: newFactions,
+          // 拆分为：组织成果（CNT 占比）＋制度成果（生产资料控制）。
+          ...applyUnionShareDelta(state, { CNT: 6, unorganized: -6 }),
           stats: {
             ...state.stats,
-            workerControl: Math.min(100, state.stats.workerControl + 12)
+            workerControl: Math.min(100, state.stats.workerControl + 4)
           }
         };
       },

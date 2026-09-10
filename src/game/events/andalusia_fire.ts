@@ -47,6 +47,7 @@ export const andalusiaFireEvent: GameEvent = {
         nextArmies.push({
           id: 'andalusia_workers_cadiz',
           faction: MapFaction.WORKERS_ALLIANCE,
+          identity: 'gov',
           provinceId: 'cadiz',
           movesLeft: 2,
           manpower: 2000,
@@ -61,6 +62,7 @@ export const andalusiaFireEvent: GameEvent = {
         nextArmies.push({
           id: 'andalusia_workers_malaga',
           faction: MapFaction.WORKERS_ALLIANCE,
+          identity: 'gov',
           provinceId: 'malaga',
           movesLeft: 2,
           manpower: 2000,

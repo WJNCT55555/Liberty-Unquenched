@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { adjustFactionDissents, adjustClassSupport } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 
 export const laborAffairs: Card = {
   id: 'labor_affairs',
@@ -45,9 +46,10 @@ export const laborAffairs: Card = {
                 labor_affairs_timer: 10,
                 classes: newClasses,
                 factions: newFactions,
+                // 解耦：支持罢工联合会属工会竞争（从 UGT 与未组织者争取），不计入生产资料控制。
+                ...applyUnionShareDelta(s, { CNT: 8, UGT: -4, unorganized: -4 }),
                 stats: {
                   ...s.stats,
-                  workerControl: Math.min(100, s.stats.workerControl + 8),
                   revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5)
                 }
               };

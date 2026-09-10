@@ -21,6 +21,7 @@ import {
   textPreview
 } from '../effectPreview';
 import { clampLawLevel } from '../lawStances';
+import { applyUnionShareDelta, getCntDominance, getUnionShare } from '../unions';
 
 const MITIN_POPULAR_COOLDOWN = 6;
 
@@ -398,9 +399,10 @@ export const mitinPopular: Card = {
         return {
           classes,
           factions,
+          // 解耦：工会是未来社会的胚胎 → 工会组织成果（CNT 占比）。
+          ...applyUnionShareDelta(s, { CNT: 6 * dissentFactor, unorganized: -6 * dissentFactor }),
           stats: {
             ...s.stats,
-            workerControl: clampPercent(s.stats.workerControl + 6 * dissentFactor),
             bureaucratization: clampPercent(s.stats.bureaucratization + 1),
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 3 * dissentFactor)
           },
@@ -559,7 +561,7 @@ export const mitinPopular: Card = {
           },
           stats: {
             ...s.stats,
-            workerControl: clampPercent(s.stats.workerControl + 5 * dissentFactor * laborMomentum),
+            // 经济诉求（工资/工时/安全）：既非组织成果也非制度成果，不再写入。
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor)
           },
           currentEvent: null
@@ -573,7 +575,7 @@ export const mitinPopular: Card = {
       subtitle: 'Promote worker cooperatives, mutual aid societies, and syndicalist enterprises as the foundation of a new economy.',
       subtitleZh: '推广工人合作社、互助会和工团企业，将其作为新经济的基础。',
       effect: (s: GameState): Partial<GameState> => {
-        const coopBonus = s.stats.workerControl >= 50 ? 1.4 : 1;
+        const coopBonus = getCntDominance(getUnionShare(s)) >= 70 ? 1.4 : 1;
         const classes = adjustClassSupports(s.classes, [
           ['Obreros', 'CNT_FAI', 4 * dissentFactor],
           ['Braceros', 'CNT_FAI', 3 * dissentFactor],
@@ -634,10 +636,11 @@ export const mitinPopular: Card = {
             ...s.domesticPolicy,
             land_reform_progress: clampPercent(s.domesticPolicy.land_reform_progress + 3)
           },
+          // 解耦：在共和框架内为无地者争取 → 与 CNCA 争夺乡村主导权（U-对抗）。
+          ...applyUnionShareDelta(s, { CNT: 2 * dissentFactor, CNCA: -2 * dissentFactor }),
           stats: {
             ...s.stats,
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor),
-            workerControl: clampPercent(s.stats.workerControl + 2 * dissentFactor),
             republicanAuthority: clampPercent(s.stats.republicanAuthority + 1)
           },
           pro_republic: s.pro_republic + 4,
@@ -694,10 +697,10 @@ export const mitinPopular: Card = {
       subtitle: 'Use the crowd\'s momentum to move directly into a strike decision.',
       subtitleZh: '利用群众动员的势头，直接转入罢工决策。',
       condition: (s: GameState) => {
-        return s.stats.workerControl >= 50;
+        return getUnionShare(s).CNT >= 30;
       },
-      unavailableSubtitle: () => 'Requires Worker Control at least 50.',
-      unavailableSubtitleZh: () => '需要工人控制大于等于50。',
+      unavailableSubtitle: () => 'Requires CNT union share at least 30.',
+      unavailableSubtitleZh: () => '需要 CNT 工会占比大于等于 30。',
       effect: (s: GameState): Partial<GameState> => {
         const strikeResult = strike.effect(s);
 

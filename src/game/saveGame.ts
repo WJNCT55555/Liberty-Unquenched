@@ -1,6 +1,8 @@
 import type { Advisor, Card, GameEvent, GameState } from './types';
+import type { ArmyIdentity } from '../map/types_map';
 import { addEasyUndoOption, createEasyConfirmationEvent } from './easyMode';
-import { normalizeOrganizationState } from './organizations';
+import { activateCivilWarOrganizations, normalizeOrganizationState } from './organizations';
+import { normalizeUnionShare } from './unions';
 
 export const SAVE_FORMAT = 'cnt-fai-save' as const;
 export const SAVE_FORMAT_VERSION = 2 as const;
@@ -100,6 +102,23 @@ const serializeEvent = (event: GameEvent): SerializedGameEvent => ({
 });
 
 const cardIds = (cards: Card[] | undefined): string[] => (cards || []).map((card) => card.id);
+
+const ARMY_IDENTITIES = new Set<ArmyIdentity>(['gov', 'cnt', 'ugt', 'poum', 'pce', 'intl', 'requetes', 'falange', 'regional']);
+
+/** Backfill the optional military identity for saves created before S0. */
+const normalizeMilitaryState = (state: GameState): GameState => {
+  if (!state.armies) return state;
+
+  return {
+    ...state,
+    armies: state.armies.map((army) => ({
+      ...army,
+      identity: ARMY_IDENTITIES.has(army.identity as ArmyIdentity)
+        ? army.identity
+        : 'gov',
+    })),
+  };
+};
 
 export const serializeGameState = (state: GameState): SaveGameSnapshot => {
   const plainState = Object.fromEntries(
@@ -344,7 +363,11 @@ export const deserializeGameState = (
 
   state.pendingEvents = (snapshot.runtime.pendingEvents || []).map(hydrateEvent);
   state.currentEvent = snapshot.runtime.currentEvent ? hydrateEvent(snapshot.runtime.currentEvent) : null;
-  return normalizeOrganizationState(state);
+  // 工会占比：旧档缺失时按剧本默认值初始化，并保证未成立组织为零、和恒为 100。
+  const normalized = normalizeUnionShare(normalizeMilitaryState(normalizeOrganizationState(state)));
+  return normalized.civilWarStatus !== 'not_started'
+    ? { ...normalized, ...activateCivilWarOrganizations(normalized) }
+    : normalized;
 };
 
 const createManualSlots = (): ManualSaveSlot[] => Array.from(

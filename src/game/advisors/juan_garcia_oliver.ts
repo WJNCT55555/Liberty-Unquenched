@@ -67,7 +67,8 @@ export const juanGarciaOliver: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 10)
+          // 解耦：国防委员会属武装组织，不是生产资料控制。
+          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 10)
         }
       }),
       description: 'Power must remain in the hands of the people, organized block by block.',

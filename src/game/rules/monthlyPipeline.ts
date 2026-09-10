@@ -1,6 +1,8 @@
 import type { GameEvent, GameState } from '../types';
 import { calculateMonthlyEconomy, type EconomyBreakdown } from './economy';
 import { calculateMonthlyPolicyEffects, type MonthlyPolicyEffects } from './policy';
+import { calculateEconomicPoliticalFeedback } from './economicFeedback';
+import { applyControlObreroDrift } from './controlObrero';
 import { INITIAL_PROVINCES } from '../../map/map_constants';
 import { MapFaction, type ResourceSet } from '../../map/types_map';
 import { checkCoalitionDissolve, updateCoalitions, updatePartySupport, shouldQueueEvent } from '../utils';
@@ -153,10 +155,19 @@ export const calculateMonthlyPipeline = (state: GameState): MonthlyPipelineResul
     ...afterEconomy,
     ...policy,
   };
-  const afterOrganizations = applyMonthlyOrganizationEffects(afterPolicy);
+  // Economic hardship realigns the social classes (unemployment/inflation
+  // thresholds → CNT-FAI / FE / AP / PSOE support). Runs after policy effects
+  // so both write into the same monthly class-support settlement.
+  const afterEconomicFeedback: GameState = {
+    ...afterPolicy,
+    classes: calculateEconomicPoliticalFeedback(afterPolicy),
+  };
+  const afterOrganizations = applyMonthlyOrganizationEffects(afterEconomicFeedback);
+  // 工人控制程度不是只增不减的进度条：无制度支撑则衰减，1936.7 前封顶 40。
+  const afterControlDrift = applyControlObreroDrift(afterOrganizations);
   return {
     economy,
     policy,
-    state: afterOrganizations,
+    state: afterControlDrift,
   };
 };

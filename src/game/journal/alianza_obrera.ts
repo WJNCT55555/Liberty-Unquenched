@@ -1,6 +1,7 @@
 import { JournalEntryDef } from '../types';
 import { formCoalition } from '../utils';
 import { workersAllianceFormation } from '../events/workers_alliance_formation';
+import { getRightShare, getUnionShare } from '../unions';
 
 export const alianzaObreraJournal: JournalEntryDef = {
   id: 'journal_alianza_obrera',
@@ -8,8 +9,8 @@ export const alianzaObreraJournal: JournalEntryDef = {
   titleZh: '工人联盟 (Alianza Obrera)',
   description: 'The Workers\' Alliance is the ultimate goal for the revolutionary factions. By combining PSOE and CNT forces, the working class can build a formidable revolutionary power capable of challenging the old order.',
   descriptionZh: '工人联盟是革命派的终极目标。通过将 PSOE 和 CNT 的力量结合起来，工人阶级可以建立起一股强大的革命力量，足以挑战旧秩序。',
-  successCondition: 'Relations with PSOE reaches 80, Valeriano Orobón promotes the alliance 3 times, and Worker Control is at least 55',
-  successConditionZh: '与 PSOE 的关系达到 80，瓦莱里亚诺·奥罗本推动工人联盟达到 3 次，且工人控制度至少达到 55',
+  successCondition: 'Relations with PSOE reaches 80, Valeriano Orobón promotes the alliance 3 times, CNT share is at least 18, CNT+UGT at least 35, and right-wing unions no more than 12',
+  successConditionZh: '与 PSOE 的关系达到 80，瓦莱里亚诺·奥罗本推动工人联盟达到 3 次，CNT 工会占比至少 18、CNT+UGT 至少 35，且右翼工会不超过 12',
   successEffectDesc: 'Activates the Workers\' Alliance and triggers its formation event',
   successEffectDescZh: '激活工人联盟，并触发其组建事件',
   failureCondition: 'PSOE enters a political coalition',
@@ -33,9 +34,16 @@ export const alianzaObreraJournal: JournalEntryDef = {
 
     const psoeRel = state.partyRelations?.PSOE ?? 0;
     const actionCount = state.workersAllianceProgress || 0;
-    const workerCtrl = state.stats?.workerControl ?? 0;
+    const share = getUnionShare(state);
 
-    if (psoeRel >= 80 && actionCount >= 3 && workerCtrl >= 55) {
+    // 工人联盟要求：左翼要够强（CNT 主导 + CNT/UGT 合计够大），右翼掣肘要够弱。
+    if (
+      psoeRel >= 80
+      && actionCount >= 3
+      && share.CNT >= 18
+      && share.CNT + share.UGT >= 35
+      && getRightShare(share) <= 12
+    ) {
       return 'completed';
     }
 

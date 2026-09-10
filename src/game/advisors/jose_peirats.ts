@@ -25,7 +25,8 @@ export const josePeirats: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 10)
+          // 解耦：思想清洗属政治路线，不是生产资料控制。
+          revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
         },
         factions: adjustFactionInfluence(state.factions, 'Puristas', 10)
       })

@@ -20,7 +20,9 @@ import {
 import { ECONOMIC_RULES } from './rules/economy';
 import { calculateMonthlyIncome } from './rules/income';
 import { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance, calculateMonthlyEventQueue } from './rules/monthlyPipeline';
-import { getDefaultOrganizationState, isOrganizationEstablished } from './organizations';
+import { applySecurityForcesDerivedState } from './rules/securityForces';
+import { activateCivilWarOrganizations, getDefaultArmedEntityPools, getDefaultOrganizationState, isOrganizationEstablished } from './organizations';
+import { getDefaultUnionShare, normalizeUnionShare } from './unions';
 import type { GameAction } from './reducers/types';
 export type { GameAction } from './reducers/types';
 import { reduceEconomy } from './reducers/economyReducer';
@@ -555,6 +557,7 @@ function executeAiTurn(state: GameState, aiFaction: MapFaction, isZh: boolean): 
         const newArmy: Army = {
           id: newArmyId,
           faction: aiFaction,
+          identity: 'gov',
           provinceId,
           movesLeft: 0,
           manpower: reqManpower,
@@ -617,6 +620,7 @@ export const INITIAL_STATE: GameState = {
   mapResources: {
     [MapFaction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
     [MapFaction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
+    [MapFaction.IBERIAN_DEFENSE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
     [MapFaction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
     [MapFaction.WORKERS_ALLIANCE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
     [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
@@ -682,6 +686,7 @@ export const INITIAL_STATE: GameState = {
   sandboxCardChoiceEnabled: false,
   sandboxManualTaxAdjustmentEnabled: false,
   organizations: getDefaultOrganizationState('1931'),
+  unionShare: getDefaultUnionShare('1931'),
   ateneos_established: 0,
   advisorActionTimer: 0,
   stats: {
@@ -704,16 +709,19 @@ export const INITIAL_STATE: GameState = {
   armedForces: {
     regularArmy: { manpower: 100000, loyalty: 50 },
     guardiaNacional: { manpower: 30000, loyalty: 40 },
-    guardiaAsalto: { manpower: 30000, loyalty: 70 },
+    // The Assault Guard is raised by the Security Corps Law; the corps'
+    // establishment is derived from that law in rules/securityForces.ts.
+    guardiaAsalto: { manpower: 0, loyalty: 70 },
     militias: {
-      cntFai: 50000,
-      maoc: 10000,
-      poum: 5000,
-      ugt: 20000,
-      requete: 30000,
-      falange: 10000,
+      cntFai: 0,
+      maoc: 0,
+      poum: 0,
+      ugt: 0,
+      requete: 0,
+      falange: 0,
       africaArmy: 40000,
     },
+    entityPools: getDefaultArmedEntityPools(),
   },
   government: {
     type: 'Provisional Government',
@@ -1061,8 +1069,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             union_status: 1,
             political_rights: 1,
             militia_legality_law: 0,
+            // The 1931 start predates the Assault Guard; the Azaña reform raises this law.
+            security_corps_law: 0,
           }
-        : INITIAL_STATE.domesticPolicy;
+        : {
+            ...INITIAL_STATE.domesticPolicy,
+            // By the 1933 and 1936 starts the Republic had already raised the Assault Guard.
+            security_corps_law: 1,
+          };
       const startEventState = {
         ...INITIAL_STATE,
         domesticPolicy: startingDomesticPolicy,
@@ -1147,17 +1161,37 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         foreign_exchange: start_fx,
         public_debt: start_debt,
         has_issued_war_bonds: start_has_bonds,
-        military_spending: start_mil_spend,
-        organizations: getDefaultOrganizationState(action.payload.scenario),
-        regionalStatuses: {
+         military_spending: start_mil_spend,
+         organizations: getDefaultOrganizationState(action.payload.scenario),
+         unionShare: getDefaultUnionShare(action.payload.scenario),
+         armedForces: {
+           ...INITIAL_STATE.armedForces,
+           militias: {
+             ...INITIAL_STATE.armedForces.militias,
+             cntFai: action.payload.scenario === '1936' ? 50000 : 0,
+             maoc: action.payload.scenario === '1936' ? 10000 : 0,
+             poum: action.payload.scenario === '1936' ? 5000 : 0,
+             ugt: action.payload.scenario === '1936' ? 20000 : 0,
+             requete: action.payload.scenario === '1936' ? 30000 : 0,
+             falange: action.payload.scenario === '1936' ? 10000 : 0,
+           },
+           entityPools: getDefaultArmedEntityPools(),
+         },
+         regionalStatuses: {
           andalusia: 'direct',
           catalonia: (action.payload.scenario === '1933' || action.payload.scenario === '1936') ? 'autonomy' : 'direct',
           basque: 'direct',
           galicia: 'direct',
           asturias: 'direct',
         },
-      };
-      newState = initializeStartingCoalition(newState);
+       };
+       if (action.payload.scenario === '1936') {
+         newState = {
+           ...newState,
+           ...activateCivilWarOrganizations(newState),
+         };
+       }
+       newState = initializeStartingCoalition(newState);
       break;
     }
     case 'RETURN_TO_START':
@@ -1239,7 +1273,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         let newIntBrigades = state.internationalBrigades;
         let newIntBrigadesFormed = state.internationalBrigadesFormed;
 
-        if (state.civilWarStatus !== 'not_started' && state.relations.internationalSocialists > 60) {
+        const internationalBrigadesWindow = nextYear > 1936 || (nextYear === 1936 && nextMonth >= 9);
+        if (state.civilWarStatus !== 'not_started' && internationalBrigadesWindow && state.relations.internationalSocialists > 60) {
           newIntBrigadesFormed = true;
         }
 
@@ -1286,6 +1321,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           armies: monthlyMapStage.armies,
           mapCurrentPlayer: monthlyMapStage.mapCurrentPlayer,
           asturiasWarTurns: monthlyMapStage.asturiasWarTurns,
+        };
+        tempState = {
+          ...tempState,
+          ...activateCivilWarOrganizations(tempState),
         };
 
         // National accounting is a pure, shared pipeline. Journal effects and
@@ -1440,6 +1479,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // including land_reform_progress, remain independent 0-100 values.
       newState.domesticPolicy = normalizeDomesticPolicyLawLevels(newState.domesticPolicy);
     }
+    // The Security Corps Law owns the Assault Guard establishment, so derived
+    // security-force state is recomputed after law levels are normalized.
+    newState = applySecurityForcesDerivedState(newState);
     if (!newState.wars) {
       newState.wars = {
         spanish_civil_war: 'not_started',
@@ -1478,6 +1520,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         newState.stats[stat] = Math.max(0, Math.min(100, newState.stats[stat]));
       });
     }
+    // 工会占比：未成立组织置零、未组织者钳制下限、八项和恒为 100
+    newState = normalizeUnionShare(newState);
     if (newState.factions) {
       Object.keys(newState.factions).forEach(f => {
         const faction = f as keyof typeof newState.factions;

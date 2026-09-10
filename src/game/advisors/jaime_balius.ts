@@ -72,7 +72,7 @@ export const jaimeBalius: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 15),
+          // 解耦：呼吁推翻共和国属政治路线，不是生产资料控制。
           revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15)
         }
       }),

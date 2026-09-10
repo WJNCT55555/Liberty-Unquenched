@@ -1,5 +1,6 @@
 import { Card } from '../types';
 import { adjustFactionDissent } from '../utils';
+import { adjustCntMilitiaManpower, isOrganizationActive } from '../organizations';
 
 export const militiaReorg: Card = {
   id: 'militia_reorg',
@@ -9,7 +10,7 @@ export const militiaReorg: Card = {
   description: 'Adjust the organization of the militias.',
   descriptionZh: '调整民兵组织模式。',
   cost: 1,
-  condition: (state) => state.civilWarStatus !== 'not_started' && state.militiaReorgTimer <= 0,
+  condition: (state) => state.civilWarStatus !== 'not_started' && state.militiaReorgTimer <= 0 && isOrganizationActive(state, 'DC'),
   effect: (state) => ({
     militiaReorgTimer: 1, // 4 weeks = 1 month
     currentEvent: {
@@ -32,13 +33,7 @@ export const militiaReorg: Card = {
             return {
               armaments: s.armaments - 1,
               militiaCombatPower: s.militiaCombatPower + 5,
-              armedForces: {
-                ...s.armedForces,
-                militias: {
-                  ...s.armedForces.militias,
-                  cntFai: Math.max(0, s.armedForces.militias.cntFai - 250)
-                }
-              },
+              ...adjustCntMilitiaManpower(s, -250),
               factions: adjustFactionDissent(s.factions, 'Puristas', 5)
             };
           }
@@ -54,13 +49,7 @@ export const militiaReorg: Card = {
           effect: (s) => {
             return {
               armaments: s.armaments - 1,
-              armedForces: {
-                ...s.armedForces,
-                militias: {
-                  ...s.armedForces.militias,
-                  cntFai: s.armedForces.militias.cntFai + 1000
-                }
-              },
+              ...adjustCntMilitiaManpower(s, 1000),
               factions: adjustFactionDissent(s.factions, 'Puristas', -5)
             };
           }

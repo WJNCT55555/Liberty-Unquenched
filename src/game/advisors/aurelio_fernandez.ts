@@ -66,11 +66,9 @@ export const aurelioFernandez: Advisor = {
       effect: (state) => ({
         advisorActionTimer: 6,
         armaments: state.armaments + 15,
-        resources: state.resources + 3,
-        stats: {
-          ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 5)
-        }
+        // 解耦：该行动是后勤征调，属资源动员而非生产资料控制或工会组织成果。
+        resources: state.resources + 6,
+        stats: { ...state.stats }
       }),
       description: 'Our radical requisition actions on metalwork sectors turned private warehouses into dynamic armaments hubs, providing immediate ammunition to the front.',
       descriptionZh: '我们强力组织各金属和五金街区行会转产，将私营金属库直接化为前线急需的防御设施与弹药保障基地，大大充实了武器库。',

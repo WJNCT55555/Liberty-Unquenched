@@ -2,7 +2,7 @@ import { getPartyName } from "../game/partyNames";
 import React, { useState } from 'react';
 import { useGameActions, useGameSelector, shallowEqual } from '../game/GameContext';
 import { cn } from '../lib/utils';
-import { Calendar, Coins, ShieldAlert, Zap, Factory, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
+import { Calendar, Coins, ShieldAlert, Zap, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AchievementsModal } from './AchievementsModal';
 import { useMusic, MusicPlayerUI } from './MusicPlayer';
@@ -34,7 +34,6 @@ export const TopBar = () => {
     year: snapshot.year,
     month: snapshot.month,
     difficulty: snapshot.difficulty,
-    workerControl: snapshot.stats.workerControl,
     resources: snapshot.resources,
     armaments: snapshot.armaments,
     currentView: snapshot.currentView,
@@ -69,8 +68,8 @@ export const TopBar = () => {
 
   return (
     <>
-      <div className="flex flex-col w-full z-20">
-        <div className="w-full bg-ink text-paper p-3 flex flex-col lg:flex-row justify-between items-center gap-4 relative">
+      <div className="pointer-events-none relative isolate flex shrink-0 flex-col w-full overflow-hidden">
+        <div className="pointer-events-auto relative flex w-full flex-col items-center justify-between gap-4 bg-ink p-3 text-paper lg:flex-row">
           <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <h1 className="font-display text-2xl uppercase tracking-widest text-cnt-red leading-none mb-1">
@@ -90,12 +89,6 @@ export const TopBar = () => {
         </div>
 
         <div className="flex items-center gap-4 md:gap-8 font-typewriter text-sm overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto justify-start lg:justify-end hide-scrollbar">
-          <div className="flex gap-4 md:gap-6">
-            <StatItem icon={<Factory className="w-4 h-4 opacity-70" />} label={isZh ? '工人控制' : 'Worker Control'} value={state.workerControl} />
-          </div>
-          
-          <div className="h-8 w-px bg-paper opacity-20 hidden md:block"></div>
-          
           <div className="flex gap-4 md:gap-6">
             <ResourceItem icon={<Coins className="w-4 h-4 text-yellow-500" />} label={isZh ? '资源' : 'Resources'} value={state.resources} />
             <ResourceItem icon={<ShieldAlert className="w-4 h-4 text-gray-400" />} label={isZh ? '军备' : 'Armaments'} value={state.armaments} />
@@ -127,16 +120,22 @@ export const TopBar = () => {
       {/* Bottom Tabs Section */}
       <div className="w-full flex h-6 relative z-10">
         {/* Halftone background for the right section */}
-        <div className="absolute left-72 right-0 top-0 bottom-0 bg-paper bg-halftone z-0" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-72 right-0 z-0 bg-paper bg-halftone"
+        />
 
         {/* Black fill behind the first slanted tab to merge with sidebar */}
-        <div className="absolute left-72 top-0 bottom-0 w-8 bg-ink z-10" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-72 z-10 w-8 bg-ink"
+        />
 
         {/* Left black section to match sidebar */}
         <div className="w-72 bg-ink shrink-0 h-full relative z-20" />
         
         {/* Right tabs section */}
-        <div className="flex-1 flex items-end relative z-20">
+        <div className="pointer-events-none relative z-20 flex flex-1 items-end">
           <TabButton 
             onClick={() => setIsEconomyModalOpen(true)}
             isActive={isEconomyModalOpen}
@@ -370,7 +369,7 @@ const TabButton = ({ onClick, isActive, label }: { onClick: () => void, isActive
   <button 
     onClick={onClick}
     className={cn(
-      "h-full px-8 flex items-center justify-center -skew-x-[30deg] border-x-2 border-t-2 border-ink transition-colors relative -ml-[2px] origin-bottom-left group",
+      "pointer-events-auto h-full px-8 flex items-center justify-center -skew-x-[30deg] border-x-2 border-t-2 border-ink transition-colors relative -ml-[2px] origin-bottom-left group",
       isActive ? "bg-paper text-ink font-bold border-b-0 z-30" : "bg-paper-dark text-ink hover:bg-paper font-medium border-b-2 border-ink z-20"
     )}
   >

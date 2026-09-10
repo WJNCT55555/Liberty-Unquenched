@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { adjustFactionDissent, adjustFactionDissents } from '../utils';
+import { adjustCntMilitiaManpower, isOrganizationActive } from '../organizations';
 import {
   armamentPreview,
   effectLine,
@@ -17,7 +18,7 @@ export const anarchyTanks: Card = {
   description: 'Research anarchist tanks to defend our frontlines.',
   descriptionZh: '研发无政府主义坦克。',
   cost: 1,
-  condition: (state) => state.civilWarStatus !== 'not_started' && state.tankTimer <= 0 && !state.tankResearchCompleted,
+  condition: (state) => state.civilWarStatus !== 'not_started' && state.tankTimer <= 0 && !state.tankResearchCompleted && isOrganizationActive(state, 'DC'),
   effect: (state) => ({
     tankTimer: 6,
     currentEvent: {
@@ -167,29 +168,20 @@ export const anarchyTanks: Card = {
             if (s.difficulty === 'easy' || s.difficulty === 'sandbox') {
               if (roll < 75) success = true;
               else {
-                newState.armedForces = {
-                  ...s.armedForces,
-                  militias: { ...s.armedForces.militias, cntFai: Math.max(0, s.armedForces.militias.cntFai - 1000) }
-                };
+                Object.assign(newState, adjustCntMilitiaManpower(s, -1000));
               }
             } else if (s.difficulty === 'hard') {
               if (roll < 30) success = true;
               else {
                 newState.tankResearchProgress = 0;
-                newState.armedForces = {
-                  ...s.armedForces,
-                  militias: { ...s.armedForces.militias, cntFai: Math.max(0, s.armedForces.militias.cntFai - 1000) }
-                };
+                Object.assign(newState, adjustCntMilitiaManpower(s, -1000));
                 newState.factions = adjustFactionDissents(s.factions, { Faistas: 5, Puristas: 10 });
               }
             } else { // normal / historical
               if (roll < 50) success = true;
               else {
                 newState.tankResearchProgress = Math.max(0, s.tankResearchProgress - 25);
-                newState.armedForces = {
-                  ...s.armedForces,
-                  militias: { ...s.armedForces.militias, cntFai: Math.max(0, s.armedForces.militias.cntFai - 1000) }
-                };
+                Object.assign(newState, adjustCntMilitiaManpower(s, -1000));
               }
             }
 

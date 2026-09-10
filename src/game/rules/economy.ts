@@ -75,6 +75,20 @@ export const ECONOMIC_RULES = {
   indicatorInertia: { growth: 0.35, inflation: 0.3, unemployment: 0.2 },
   /** Allowed band for the growth indicator (min < 1 allows recessions). */
   growthBounds: { min: -6, max: 15 },
+  /** Allowed band for the inflation indicator (negative = deflation). */
+  inflationBounds: { min: -5, max: 100 },
+  /**
+   * Deflation feeds unemployment, mirroring the 1931–33 Spanish experience
+   * (falling prices plus agrarian unemployment). Deltas are added to the
+   * unemployment *target*, so the inertia model spreads the shock over the
+   * following months instead of applying it instantly.
+   */
+  deflationUnemployment: {
+    mildBelow: -0.5,
+    mildDelta: 0.4,
+    severeBelow: -5,
+    severeDelta: 0.8,
+  },
 } as const;
 
 const roundTo = (value: number, decimals: number): number => Number(value.toFixed(decimals));
@@ -200,12 +214,30 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
       + deficitInflation
       + goldLossConfidence
       + (isCivilWar ? 8 : 0),
-    1,
-    100,
+    ECONOMIC_RULES.inflationBounds.min,
+    ECONOMIC_RULES.inflationBounds.max,
   );
-  const nextInflation = roundTo(clamp(currentInflation + inflationInertia * (targetInflation - currentInflation), 1, 100), 2);
+  const nextInflation = roundTo(clamp(
+    currentInflation + inflationInertia * (targetInflation - currentInflation),
+    ECONOMIC_RULES.inflationBounds.min,
+    ECONOMIC_RULES.inflationBounds.max,
+  ), 2);
 
   // --- 失业目标：随(带惯性的)当月增长与税负/高债移动，收敛最慢 ---
+  // 通缩本身也推高失业（1931-33 西班牙：物价下跌 + 农业失业）。
+  // 判定使用"本月实际通胀"（玩家当月看到的值），而非惯性收敛后的新值，
+  // 否则轻度通缩会被瞬间拉回目标、惩罚永远无法触发。
+  const {
+    mildBelow: deflationMildBelow,
+    mildDelta: deflationMildDelta,
+    severeBelow: deflationSevereBelow,
+    severeDelta: deflationSevereDelta,
+  } = ECONOMIC_RULES.deflationUnemployment;
+  const deflationUnemployment = currentInflation <= deflationSevereBelow
+    ? deflationSevereDelta
+    : currentInflation < deflationMildBelow
+      ? deflationMildDelta
+      : 0;
   const laborReformReduction = monthlyPolicyModifier('max_hours_law', state.domesticPolicy.max_hours_law, 'unemployment');
   const highDebtUnemploymentFactor = nextDebt > 1500 ? 1 : 0;
   const targetUnemployment = clamp(
@@ -217,6 +249,7 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
       - (taxRates.tariff * 1.5)
       + laborReformReduction
       + highDebtUnemploymentFactor
+      + deflationUnemployment
       + (isCivilWar ? 4 : 0),
     0,
     100,

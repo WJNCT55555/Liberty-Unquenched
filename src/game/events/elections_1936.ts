@@ -4,6 +4,7 @@ import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElect
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
+import { applyUnionShareDelta } from '../unions';
 import { clampLawLevel } from '../lawStances';
 
 const election1936Meta = {
@@ -267,10 +268,11 @@ export const elections1936Results: GameEvent = {
             max_hours_law: clampLawLevel('max_hours_law', state.domesticPolicy.max_hours_law - 1),
             min_wage: clampLawLevel('min_wage', state.domesticPolicy.min_wage - 1)
           },
+          // 解耦：右翼执政、改革回滚 → 工会组织受挫（CNT 占比回落至未组织者）。
+          ...applyUnionShareDelta(state, { CNT: -15, unorganized: 15 }),
           stats: {
             ...state.stats,
-            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 30),
-            workerControl: Math.max(0, state.stats.workerControl - 15)
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 30)
           }
         };
 

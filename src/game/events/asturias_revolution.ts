@@ -1,5 +1,5 @@
 import type { GameEvent } from '../types';
-import { MapFaction } from '../../map/types_map';
+import { MapFaction, Army } from '../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES, isPortugalProvince } from '../../map/map_constants';
 
 const asturiasRootMeta = {
@@ -101,10 +101,11 @@ export const asturiasRevolution: GameEvent = {
           faction: MapFaction.REPUBLICAN
         }));
 
-        const nextArmies = [
+        const nextArmies: Army[] = [
           {
             id: 'asturias_alliance_infantry',
             faction: MapFaction.WORKERS_ALLIANCE,
+            identity: 'gov',
             provinceId: 'asturias',
             movesLeft: 2,
             manpower: 3000,
@@ -117,6 +118,7 @@ export const asturiasRevolution: GameEvent = {
           {
             id: 'asturias_miners_1',
             faction: MapFaction.WORKERS_ALLIANCE,
+            identity: 'gov',
             provinceId: 'asturias',
             movesLeft: 2,
             manpower: 6000,
@@ -129,6 +131,7 @@ export const asturiasRevolution: GameEvent = {
           {
             id: 'asturias_miners_2',
             faction: MapFaction.WORKERS_ALLIANCE,
+            identity: 'gov',
             provinceId: 'oviedo',
             movesLeft: 2,
             manpower: 3000,
@@ -141,6 +144,7 @@ export const asturiasRevolution: GameEvent = {
           {
             id: 'gov_army_1',
             faction: MapFaction.REPUBLICAN,
+            identity: 'gov',
             provinceId: 'leon',
             movesLeft: 2,
             manpower: 5000,
@@ -153,6 +157,7 @@ export const asturiasRevolution: GameEvent = {
           {
             id: 'gov_army_2',
             faction: MapFaction.REPUBLICAN,
+            identity: 'gov',
             provinceId: 'santander',
             movesLeft: 2,
             manpower: 3000,
@@ -165,6 +170,7 @@ export const asturiasRevolution: GameEvent = {
           {
             id: 'gov_army_3',
             faction: MapFaction.REPUBLICAN,
+            identity: 'gov',
             provinceId: 'lugo',
             movesLeft: 2,
             manpower: 3000,
@@ -191,6 +197,7 @@ export const asturiasRevolution: GameEvent = {
           mapResources: {
             [MapFaction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
             [MapFaction.NATIONALIST]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+            [MapFaction.IBERIAN_DEFENSE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
             [MapFaction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
             [MapFaction.WORKERS_ALLIANCE]: { manpower: 12000, industrialCapacity: 60, commandPoints: 2, supplies: 6000, tankReserve: 0 },
             [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },

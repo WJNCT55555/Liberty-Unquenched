@@ -1,6 +1,7 @@
 import type { GameEvent, GameState } from '../../types';
 import { MapFaction, Army } from '../../../map/types_map';
 import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../../../map/map_constants';
+import { activateCivilWarOrganizations } from '../../organizations';
 
 const civilWarSetupRootMeta = {
   category: 'war' as const,
@@ -23,7 +24,10 @@ const civilWarSetupLeafMeta = {
 
 // Helper to project armies based on choice log
 export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, choices: Record<string, string>) {
-  let baseArmies = state.armies ? [...state.armies] : [...INITIAL_ARMIES];
+  const baseArmies: Army[] = (state.armies ? [...state.armies] : [...INITIAL_ARMIES]).map(army => ({
+    ...army,
+    identity: army.identity ?? 'gov',
+  }));
   
   const africaStatus = isOptionA ? 'nationalist' : (choices['step14'] ?? 'nationalist'); // 'nationalist' | 'delayed' | 'chaos'
   const navy = isOptionA ? 'republic' : choices['step15']; // 'republic' | 'republic_retreat' | 'anarchist'
@@ -136,6 +140,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     nextArmies.push({
       id: 'rep_21_santander',
       faction: MapFaction.REPUBLICAN,
+      identity: 'ugt',
       provinceId: 'santander',
       movesLeft: 2,
       manpower: 3000,
@@ -154,6 +159,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     nextArmies.push({
       id: 'rep_asturias_miners',
       faction: MapFaction.REPUBLICAN,
+      identity: 'cnt',
       provinceId: asturiasLost ? 'madrid' : 'asturias',
       movesLeft: 2,
       manpower: 3500,
@@ -171,6 +177,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     nextArmies.push({
       id: 'rep_madrid_militia',
       faction: MapFaction.REPUBLICAN,
+      identity: 'cnt',
       provinceId: 'madrid',
       movesLeft: 2,
       manpower: 4000,
@@ -188,6 +195,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     nextArmies.push({
       id: 'nat_8_galicia',
       faction: MapFaction.NATIONALIST,
+      identity: 'gov',
       provinceId: choices['step10_galicia'] === 'B' ? 'lugo' : 'coruna',
       movesLeft: 2,
       manpower: 4000,
@@ -239,6 +247,7 @@ export const civilWarSetup: GameEvent = {
         // Apply state updates
         return {
           ...state,
+          ...activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' }),
           civilWarStatus: 'ongoing',
           provinces: nextProvinces,
           armies: nextArmies,
@@ -1721,6 +1730,7 @@ export const civilWarStep31: GameEvent = {
 
         return {
           ...state,
+          ...activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' }),
           civilWarStatus: 'ongoing',
           provinces: finalProvinces,
           armies: finalArmies,

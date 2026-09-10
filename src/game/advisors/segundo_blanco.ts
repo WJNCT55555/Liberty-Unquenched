@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 
 export const segundoBlanco: Advisor = {
   id: 'Segundo Blanco',
@@ -46,9 +47,10 @@ export const segundoBlanco: Advisor = {
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => ({
         advisorActionTimer: 6,
+        // 解耦：民众通识教育属工会组织建设，计入 CNT 占比。
+        ...applyUnionShareDelta(state, { CNT: 4, unorganized: -4 }),
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 8),
           revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 6)
         }
       }),

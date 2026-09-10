@@ -6,6 +6,7 @@
 export enum MapFaction {
   REPUBLICAN = 'REPUBLICAN',
   NATIONALIST = 'NATIONALIST',
+  IBERIAN_DEFENSE = 'IBERIAN_DEFENSE',
   PORTUGAL = 'PORTUGAL',
   NEUTRAL = 'NEUTRAL',
   WORKERS_ALLIANCE = 'WORKERS_ALLIANCE',
@@ -39,6 +40,7 @@ export interface GameState {
     [MapFaction.REPUBLICAN]: ResourceSet;
     [MapFaction.NATIONALIST]: ResourceSet;
     [MapFaction.PORTUGAL]: ResourceSet;
+    [MapFaction.IBERIAN_DEFENSE]?: ResourceSet;
   };
   provinces: { [key: string]: Province };
   armies: Army[];
@@ -60,9 +62,13 @@ export interface ArmyComposition {
   tanks: number;      // Number of tank forces
 }
 
+/** Political identity of a map unit. Missing identities are normalized to gov. */
+export type ArmyIdentity = 'gov' | 'cnt' | 'ugt' | 'poum' | 'pce' | 'intl' | 'requetes' | 'falange' | 'regional';
+
 export interface Army {
   id: string;
   faction: MapFaction;
+  identity?: ArmyIdentity;
   provinceId: string;
   movesLeft: number; // Max 2 per turn
   manpower: number;  // Total troop count (infantry + artillery + tanks)

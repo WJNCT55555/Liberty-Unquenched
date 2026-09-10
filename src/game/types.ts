@@ -1,9 +1,25 @@
 import React from 'react';
-import { Province, Army, MapFaction, ResourceSet } from '../map/types_map';
+import { Province, Army, ArmyIdentity, MapFaction, ResourceSet } from '../map/types_map';
 import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
 export type { Party };
+
+/** Reserved state-machine phases for the wartime integration pass. */
+export type WarRuntimePhase = 'none' | 'friction' | 'triggered' | 'converged' | 'split';
+export type WarRuntimeTrigger = 'passive' | 'active';
+
+/** Optional wartime manpower/equipment pools, populated by later integration steps. */
+export interface WarPoolState {
+  reserves?: Partial<Record<ArmyIdentity, number>>;
+  equipment?: Partial<Record<ArmyIdentity, number>>;
+}
+
+/** Placeholder for wartime rupture and tri-faction runtime data. */
+export interface WarRuntime {
+  phase?: WarRuntimePhase;
+  trigger?: WarRuntimeTrigger;
+}
 
 /**
  * Organizations are deliberately separate from parties and internal factions:
@@ -11,16 +27,66 @@ export type { Party };
  * before (or without) a parliamentary party.  Keep this list extensible as
  * future party organizations are added to the registry.
  */
-export type OrganizationId = 'CNT' | 'FAI' | 'FIJL' | 'ML' | 'FNA' | 'DC' | 'PRRevS';
+export type OrganizationId =
+  | 'CNT' | 'FAI' | 'FIJL' | 'ML' | 'FNA' | 'DC' | 'PRRevS'
+  | 'PSOE' | 'UGT' | 'PSOE_MILITIA'
+  | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT'
+  | 'POUM' | 'POUM_MILITIA'
+  | 'CT' | 'REQUETE' | 'REQUETE_MILITIA'
+  | 'FE' | 'FALANGE_MILITIA'
+  | 'PNV' | 'EUZKO_GUDAROSTEA'
+  | 'UR' | 'ELA' | 'CNCA' | 'CONS'
+  | 'INTERNATIONAL_BRIGADES' | 'ITALIAN_CTV';
 export type OrganizationType = 'union' | 'political' | 'youth' | 'women' | 'agricultural' | 'militia';
 export type OrganizationOwner = Party | 'CNT_FAI';
+export type OrganizationUiVisibility = 'visible' | 'internal';
+
+/** A source-owned wartime stockpile. It intentionally has only three assets. */
+export type ArmedEntityId =
+  | 'republican_state'
+  | 'cnt_defense_committees'
+  | 'ugt_socialist_militias'
+  | 'maoc'
+  | 'fifth_regiment'
+  | 'poum_militias'
+  | 'requetes'
+  | 'falange_first_line'
+  | 'euzko_gudarostea'
+  | 'international_brigades'
+  | 'italian_ctv';
+
+export interface ArmedEntityPool {
+  entityId: ArmedEntityId;
+  organizationId?: OrganizationId;
+  owner: OrganizationOwner | 'STATE' | 'FOREIGN';
+  status: 'inactive' | 'active' | 'integrated' | 'defeated';
+  activeFrom?: { year: number; month: number };
+  manpower: number;
+  artillery: number;
+  tanks: number;
+}
 
 export interface OrganizationState {
   established: boolean;
   establishedAt?: { year: number; month: number };
+  status?: 'unformed' | 'active' | 'integrated' | 'dissolved';
+  /** Manpower held by a militia organization; absent for non-militia organizations. */
+  militiaManpower?: number;
 }
 
 export type OrganizationStateMap = Partial<Record<OrganizationId, OrganizationState>>;
+
+/**
+ * 工会占比向量的键。前六个与组织注册表（OrganizationId）对齐，
+ * 后两个是伪桶：other（其他小型工会）与 unorganized（未组织劳动者）。
+ */
+export type UnionShareKey = 'CNT' | 'UGT' | 'UR' | 'ELA' | 'CNCA' | 'CONS' | 'other' | 'unorganized';
+
+/**
+ * 工会占比：八项零和向量，和恒等于 100（分母 = 1，全体；不区分阶级）。
+ * unorganized 受下限钳制（见 unions.ts UNION_SHARE_MIN_UNORGANIZED）。
+ */
+export type UnionShare = Record<UnionShareKey, number>;
 // Ministers belong to a concrete party, CNT, or the unaligned `Other` party.
 // `Right` is not a party identity and must not be stored as a minister value.
 // PRRevS is the CNT's electoral phase, not a separate ministerial identity.
@@ -358,6 +424,9 @@ export interface GameState {
   /** Registry-backed organization state. */
   organizations: OrganizationStateMap;
 
+  /** 工会占比；optional 以便旧存档读取归一化。 */
+  unionShare?: UnionShare;
+
   ateneos_established: number;
   
   advisorActionTimer: number;
@@ -365,6 +434,7 @@ export interface GameState {
   stats: {
     armyLoyalty: number;
     tension: number;
+    /** 工人对生产资料的实际控制程度（0–100）。 */
     workerControl: number;
     anarchistMilitia: number;
     republicanAuthority: number;
@@ -425,6 +495,9 @@ export interface GameState {
       falange: number;
       africaArmy: number;
     };
+    /** Canonical source-owned pools; `militias` remains a legacy compatibility view. */
+    entityPools?: Record<ArmedEntityId, ArmedEntityPool>;
+    warPools?: WarPoolState;
   };
   
   // Domestic Politics
@@ -487,6 +560,7 @@ export interface GameState {
   tankTimer: number;
 
   civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
+  warRuntime?: WarRuntime;
   
   activeWar?: 'spanish_civil_war' | 'asturias_war' | null;
   wars?: {

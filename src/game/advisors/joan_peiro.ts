@@ -1,4 +1,5 @@
 import { Advisor } from '../types';
+import { applyUnionShareDelta } from '../unions';
 
 export const joanPeiro: Advisor = {
   id: 'Joan Peiró',
@@ -22,7 +23,7 @@ export const joanPeiro: Advisor = {
         advisorActionTimer: 6,
         stats: {
           ...state.stats,
-          workerControl: state.stats.workerControl + 15,
+          workerControl: Math.min(100, state.stats.workerControl + 5),
         }
       }),
       description: 'We have reorganized factories under direct worker management. Production is stabilizing, and the workers feel empowered.',
@@ -60,10 +61,9 @@ export const joanPeiro: Advisor = {
         return {
           advisorActionTimer: 6,
           factions: newFactions,
-          stats: {
-            ...state.stats,
-            workerControl: Math.min(100, state.stats.workerControl + 5),
-          }
+          // 解耦：教育属工会组织建设，计入 CNT 占比而非生产资料控制。
+          ...applyUnionShareDelta(state, { CNT: 5, unorganized: -5 }),
+          stats: { ...state.stats }
         };
       },
       description: 'A revolution requires educated workers capable of managing their own affairs.',

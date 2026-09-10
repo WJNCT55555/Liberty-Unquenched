@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MapFaction as Faction, Province } from './types_map';
+import { MapFaction as Faction, Army, Province } from './types_map';
 
 // Comprehensive listing of Spanish provinces with historical ownership in April 1931
 export const INITIAL_PROVINCES: { [key: string]: Province } = {
@@ -446,18 +446,18 @@ export const PROVINCE_ADJACENCY: { [key: string]: string[] } = {
 // April 1931: The Army is still unified under the Republic.
 // The Army of Africa (in Morocco) is Republican; conservative strongholds
 // have only small militias (Requetés / traditionalist volunteers).
-export const INITIAL_ARMIES = [
+export const INITIAL_ARMIES: Army[] = [
   // --- Republican Armies (loyal to the Second Republic) ---
-  { id: 'rep_1', faction: Faction.REPUBLICAN, provinceId: 'madrid', movesLeft: 2, manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80, militarization: 40 },
-  { id: 'rep_2', faction: Faction.REPUBLICAN, provinceId: 'barcelona', movesLeft: 2, manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85, militarization: 35 },
-  { id: 'rep_3', faction: Faction.REPUBLICAN, provinceId: 'valencia', movesLeft: 2, manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75, militarization: 30 },
-  { id: 'rep_4', faction: Faction.REPUBLICAN, provinceId: 'sevilla', movesLeft: 2, manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70, militarization: 35 },
-  { id: 'rep_5', faction: Faction.REPUBLICAN, provinceId: 'zaragoza', movesLeft: 2, manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70, militarization: 30 },
+  { id: 'rep_1', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'madrid', movesLeft: 2, manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80, militarization: 40 },
+  { id: 'rep_2', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'barcelona', movesLeft: 2, manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85, militarization: 35 },
+  { id: 'rep_3', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'valencia', movesLeft: 2, manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75, militarization: 30 },
+  { id: 'rep_4', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'sevilla', movesLeft: 2, manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70, militarization: 35 },
+  { id: 'rep_5', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'zaragoza', movesLeft: 2, manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70, militarization: 30 },
   // Army of Africa: elite colonial force, still under Republican command in 1931
-  { id: 'rep_africa', faction: Faction.REPUBLICAN, provinceId: 'tetouan', movesLeft: 2, manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85, militarization: 65 },
+  { id: 'rep_africa', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'tetouan', movesLeft: 2, manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85, militarization: 65 },
   // --- Local Garrison Forces (formerly conservative militias, now under Republic in 1931) ---
-  { id: 'rep_navarra_garrison', faction: Faction.REPUBLICAN, provinceId: 'navarra', movesLeft: 2, manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60, militarization: 25 },
-  { id: 'rep_burgos_garrison', faction: Faction.REPUBLICAN, provinceId: 'burgos', movesLeft: 2, manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55, militarization: 20 },
+  { id: 'rep_navarra_garrison', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'navarra', movesLeft: 2, manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60, militarization: 25 },
+  { id: 'rep_burgos_garrison', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'burgos', movesLeft: 2, manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55, militarization: 20 },
 ];
 
 // --- Cultural & Regional Classification (for map display layers) ---
@@ -707,6 +707,7 @@ export const PROVINCE_REGIONS: Record<string, { group: string; nameCn: string; n
 export const FACTION_COLORS = {
   [Faction.REPUBLICAN]: '#6F4C8E', // Desaturated Purple (Historical look)
   [Faction.NATIONALIST]: '#E2B04E', // Earthy Yellow (Historical look)
+  [Faction.IBERIAN_DEFENSE]: '#B33A5E', // Iberian Defense Committee (reserved)
   [Faction.PORTUGAL]: '#738C6C', // Sage Green
   [Faction.NEUTRAL]: '#D4C9B3', // Beige/Parchment
   [Faction.WORKERS_ALLIANCE]: '#C62828', // Revolutionary Crimson

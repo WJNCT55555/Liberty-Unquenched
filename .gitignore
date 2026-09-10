@@ -8,6 +8,7 @@ coverage/
 /editor/
 /.agents/
 /start_game.bat
+/docs/
 
 .DS_Store
 *.log

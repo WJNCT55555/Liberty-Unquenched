@@ -8,7 +8,7 @@ import { COALITION_DEFS } from '../game/coalitions';
 import { formCoalition, formRulingCoalitionFromSandbox } from '../game/utils';
 import { FACTION_NAMES } from '../game/labels';
 import { getPartyName } from '../game/partyNames';
-import { ORGANIZATION_DEFINITIONS, isOrganizationEstablished, setOrganizationEstablished } from '../game/organizations';
+import { getOrganizationsForOwner, isOrganizationEstablished, isOrganizationVisible, setOrganizationEstablished } from '../game/organizations';
 import type { OrganizationId } from '../game/types';
 
 type CoalitionRole = 'ruling' | 'opposition';
@@ -259,7 +259,9 @@ export const SandboxMenu = () => {
                   {isZh ? '沙盒组织控制' : 'Sandbox Organization Controls'}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-ink/5 p-4">
-                  {ORGANIZATION_DEFINITIONS.map((definition) => {
+                  {getOrganizationsForOwner('CNT_FAI')
+                    .filter((definition) => isOrganizationVisible(definition.id))
+                    .map((definition) => {
                     const established = isOrganizationEstablished(state, definition.id);
                     const typeLabel = ORGANIZATION_TYPE_LABELS[definition.type][isZh ? 'zh' : 'en'];
                     return (
@@ -411,7 +413,7 @@ export const SandboxMenu = () => {
 
                   <div className="flex flex-col gap-1 border-t border-ink/10 pt-3">
                     <div className="flex justify-between text-sm font-typewriter">
-                      <span>{isZh ? '工人控制度 (0-100)' : 'Worker Control (0-100)'}</span>
+                      <span>{isZh ? '工人控制程度 (0-100)' : 'Control Obrero (0-100)'}</span>
                       <span className="font-bold text-cnt-red">{state.stats.workerControl}%</span>
                     </div>
                     <input 

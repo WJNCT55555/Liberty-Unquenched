@@ -12,6 +12,7 @@
     "test:effect-previews": "tsx scripts/test-action-affairs-effect-previews.ts",
     "test:armament-income": "tsx scripts/test-armament-income.ts",
     "test:rules": "tsx scripts/test-rules.ts",
+    "test:union-share": "tsx scripts/test-union-share.ts",
     "test:save-system": "tsx scripts/test-save-system.ts"
   },
   "dependencies": {

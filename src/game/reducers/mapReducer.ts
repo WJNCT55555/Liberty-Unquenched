@@ -171,6 +171,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const newArmy: Army = {
         id: newArmyId,
         faction: playerFaction,
+        identity: 'gov',
         provinceId,
         movesLeft: 0,
         manpower: reqManpower,
@@ -312,6 +313,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
 
       const mergedArmy: Army = {
         ...primary,
+        identity: primary.identity ?? 'gov',
         manpower: totalManpower,
         maxManpower: totalMaxInf + totalMaxArt + totalMaxTnk,
         composition: { infantry: totalInf, artillery: totalArt, tanks: totalTnk },
@@ -419,6 +421,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const splitArmy: Army = {
         id: newArmyId,
         faction: parent.faction,
+        identity: parent.identity ?? 'gov',
         provinceId: parent.provinceId,
         movesLeft: parent.movesLeft,
         manpower: splitArmyTotal,

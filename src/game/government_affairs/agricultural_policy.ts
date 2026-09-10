@@ -45,7 +45,7 @@ export const agriculturalPolicy: Card = {
                 stats: {
                   ...s.stats,
                   revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10),
-                  workerControl: Math.min(100, s.stats.workerControl + 12),
+                  workerControl: Math.min(100, s.stats.workerControl + 6),
                 }
               };
             }

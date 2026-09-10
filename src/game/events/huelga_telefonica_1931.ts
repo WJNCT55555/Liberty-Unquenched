@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 
 const cntLaborMeta = {
   category: 'cnt' as const,
@@ -25,10 +26,11 @@ export const huelgaTelefonica1931: GameEvent = {
       subtitleZh: '大幅提高工人控制和革命热情，但会严重损害与共和派及社会党的关系。',
       effect: (state) => {
         return {
+          // 解耦：全国总罢工属工会竞争成果（从 UGT 与未组织者争取）。
+          ...applyUnionShareDelta(state, { CNT: 10, UGT: -5, unorganized: -5 }),
           stats: {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15),
-            workerControl: Math.min(100, state.stats.workerControl + 10),
             republicanAuthority: Math.max(0, state.stats.republicanAuthority - 10)
           },
           partyRelations: {

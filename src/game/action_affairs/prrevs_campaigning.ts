@@ -92,7 +92,8 @@ export const prrevsCampaigning: Card = {
           factions,
           stats: {
             ...s.stats,
-            workerControl: clampPercent(s.stats.workerControl + 2 * dissentFactor),
+            // 解耦：竞选宣传属政治动员，不是生产资料控制或工会组织成果。
+            revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor),
             bureaucratization: clampPercent(s.stats.bureaucratization + 2)
           },
           currentEvent: null
@@ -235,8 +236,8 @@ export const prrevsCampaigning: Card = {
           factions,
           stats: {
             ...s.stats,
-            workerControl: clampPercent(s.stats.workerControl + 2 * dissentFactor * mujeresBonus),
-            revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + dissentFactor)
+            // 解耦：竞选宣传属政治动员。
+            revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + (2 * dissentFactor * mujeresBonus) + dissentFactor)
           },
           currentEvent: null
         };

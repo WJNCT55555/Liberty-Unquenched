@@ -5,6 +5,8 @@ import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
 import { cn } from '../../lib/utils';
 import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
+import { applyUnionShareDelta } from '../unions';
+import type { UnionShareKey } from '../types';
 
 const election1931Meta = {
   category: 'politics' as const,
@@ -293,9 +295,10 @@ export const cabinetFormation1931: GameEvent = {
       subtitleZh: '维持我们的无政府主义原则，但限制了我们的直接权力。',
       effect: (state) => {
         return {
+          // 解耦：拒绝入阁属政治立场（削弱政府权威），不是生产资料控制。
           stats: {
             ...state.stats,
-            workerControl: state.stats.workerControl + 5
+            republicanAuthority: Math.max(0, state.stats.republicanAuthority - 5)
           }
         };
       }
@@ -417,6 +420,11 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       type: 'RESOLVE_EVENT',
       payload: (currentState) => {
         const newMinisters = { ...currentState.ministers };
+        // 入阁分配：组织成果计入 unionShare，制度成果计入 workerControl。
+        const unionDeltas: Partial<Record<UnionShareKey, number>> = {};
+        const addUnion = (key: UnionShareKey, value: number) => {
+          unionDeltas[key] = (unionDeltas[key] || 0) + value;
+        };
         let workerControlDelta = 0;
         let revFervorDelta = 0;
         let armyLoyaltyDelta = 0;
@@ -424,19 +432,22 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
         // Apply selected ministries
         if (selected.labor) {
           newMinisters.labor = 'CNT';
-          workerControlDelta += 15;
+          addUnion('CNT', 8);
+          addUnion('unorganized', -8);
         }
         if (selected.industry) {
           newMinisters.industry = 'CNT';
-          workerControlDelta += 20;
+          workerControlDelta += 5;
         }
         if (selected.agriculture) {
           newMinisters.agriculture = 'CNT';
-          workerControlDelta += 5;
+          addUnion('CNT', 4);
+          addUnion('CNCA', -4);
         }
         if (selected.finance) {
           newMinisters.finance = 'CNT';
-          workerControlDelta += 5;
+          addUnion('CNT', 2);
+          addUnion('unorganized', -2);
         }
         if (selected.health) {
           newMinisters.health = 'CNT';
@@ -457,6 +468,7 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
         return {
           leverage: currentState.leverage - totalCost,
           ministers: newMinisters,
+          ...applyUnionShareDelta(currentState, unionDeltas),
           stats: {
             ...currentState.stats,
             workerControl: Math.min(100, currentState.stats.workerControl + workerControlDelta),

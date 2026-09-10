@@ -1,5 +1,6 @@
 import { Card } from '../types';
 import { adjustAllActiveFactionDissent, adjustFactionInfluence, adjustClassSupport, getDissentMultiplier } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 
 export const strike: Card = {
   id: 'strike',
@@ -27,9 +28,10 @@ export const strike: Card = {
           effect: (s) => {
             const multiplier = getDissentMultiplier(s.factions);
             return {
+              // 解耦：罢工是工会组织成果（从 UGT 与未组织者争取），不是生产资料控制。
+              ...applyUnionShareDelta(s, { CNT: 5, UGT: -3, unorganized: -2 }),
               stats: {
                 ...s.stats,
-                workerControl: Math.min(100, s.stats.workerControl + 5),
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5 * multiplier),
               }
             };
@@ -43,9 +45,9 @@ export const strike: Card = {
           effect: (s) => {
             const multiplier = getDissentMultiplier(s.factions);
             return {
+              ...applyUnionShareDelta(s, { CNT: 5, UGT: -3, unorganized: -2 }),
               stats: {
                 ...s.stats,
-                workerControl: Math.min(100, s.stats.workerControl + 5),
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 10 * multiplier),
               },
               factions: adjustFactionInfluence(s.factions, 'Faistas', 5)
@@ -81,10 +83,8 @@ export const strike: Card = {
 
             return {
               classes: newClasses,
-              stats: {
-                ...s.stats,
-                workerControl: Math.min(100, s.stats.workerControl + 10),
-              }
+              // 经济诉求（工资/安全/工时）既非组织成果也非制度成果：不再写 workerControl 或 unionShare。
+              stats: { ...s.stats }
             };
           }
         }

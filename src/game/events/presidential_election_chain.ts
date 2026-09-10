@@ -2,6 +2,7 @@ import React from 'react';
 import type { GameEvent, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, calculatePresidentialVotes } from '../utils';
 import { clampLawLevel } from '../lawStances';
+import { applyUnionShareDelta } from '../unions';
 
 const presidentialElectionMeta = {
   category: 'politics' as const,
@@ -193,12 +194,13 @@ export const presidentialElectionCandidateSelection: GameEvent = {
         relations.PCE = Math.max(-100, (relations.PCE || 0) - 35);
         
         const stats = { ...state.stats };
-        stats.workerControl = Math.max(0, (stats.workerControl || 0) - 10);
         
         return {
           presidentElectionActiveCandidate: 'gil_robles',
           factions: f,
           partyRelations: relations,
+          // 解耦：与 PSOE/PCE 决裂属工会组织受挫，不计入生产资料控制。
+          ...applyUnionShareDelta(state, { CNT: -10, unorganized: 10 }),
           stats,
           currentEvent: presidentialElectionCampaignMenu
         };
@@ -298,8 +300,7 @@ export const presidentialElectionCampaignMenu: GameEvent = {
       effect: (state) => {
         const visited = { ...state.campaignLobbyVisited, lobby_street: true };
         const stats = { ...state.stats };
-        stats.revolutionaryFervor = Math.min(100, (stats.revolutionaryFervor || 0) + 5);
-        stats.workerControl = Math.min(100, (stats.workerControl || 0) + 3);
+        stats.revolutionaryFervor = Math.min(100, (stats.revolutionaryFervor || 0) + 8);
         
         return {
           resources: state.resources - 1,

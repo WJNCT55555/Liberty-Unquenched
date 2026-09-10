@@ -1,7 +1,8 @@
 import { Card, GameEvent, GameState } from '../types';
 import { effectPreviewFromEffect } from '../effectPreview';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
-import { isOrganizationEstablished } from '../organizations';
+import { adjustCntMilitiaManpower, isOrganizationEstablished } from '../organizations';
+import { applyUnionShareDelta } from '../unions';
 
 type FijlEffect = GameEvent['options'][number]['effect'];
 
@@ -24,10 +25,9 @@ const joinFaistaOrganization: FijlEffect = (state: GameState): Partial<GameState
 const joinCntYouthOrganization: FijlEffect = (state: GameState): Partial<GameState> => ({
   classes: adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 4),
   factions: adjustFactionInfluence(state.factions, 'Cenetistas', 5),
-  stats: {
-    ...state.stats,
-    workerControl: Math.min(100, state.stats.workerControl + 2)
-  },
+  // 解耦：青年入会属工会组织成果，计入 CNT 占比。
+  ...applyUnionShareDelta(state, { CNT: 2, unorganized: -2 }),
+  stats: { ...state.stats },
   currentEvent: null
 });
 
@@ -57,13 +57,7 @@ const defendAntiStateValues: FijlEffect = (state: GameState): Partial<GameState>
 });
 
 const marchToTheFront: FijlEffect = (state: GameState): Partial<GameState> => ({
-  armedForces: {
-    ...state.armedForces,
-    militias: {
-      ...state.armedForces.militias,
-      cntFai: (state.armedForces.militias.cntFai || 0) + 1000
-    }
-  },
+  ...adjustCntMilitiaManpower(state, 1000),
   stats: {
     ...state.stats,
     anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 5),

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Advisor, Card, GameEvent, GameState } from '../src/game/types';
+import { MapFaction } from '../src/map/types_map';
 import {
   MANUAL_SAVE_SLOT_COUNT,
   clearManualSaveSlot,
@@ -81,6 +82,19 @@ const advisor: Advisor = {
   }],
 };
 
+const legacyArmy = {
+  id: 'legacy_army',
+  faction: MapFaction.REPUBLICAN,
+  provinceId: 'madrid',
+  movesLeft: 2,
+  manpower: 1000,
+  maxManpower: 1000,
+  composition: { infantry: 1000, artillery: 0, tanks: 0 },
+  designedComposition: { infantry: 1000, artillery: 0, tanks: 0 },
+  morale: 50,
+  militarization: 10,
+};
+
 const state = {
   screen: 'game',
   scenario: '1931',
@@ -99,6 +113,7 @@ const state = {
   advisorPool: [],
   pendingEvents: [rootEvent],
   currentEvent: nestedEvent,
+  armies: [legacyArmy],
 } as unknown as GameState;
 
 const snapshot = serializeGameState(state);
@@ -116,6 +131,7 @@ const restored = deserializeGameState(JSON.parse(serializedText), {
 });
 assert.equal(restored.hand[0], card);
 assert.equal(restored.activeAdvisors[0], advisor);
+assert.equal(restored.armies?.[0]?.identity, 'gov', 'Legacy armies must receive the default gov identity.');
 assert.equal(typeof restored.currentEvent?.options[0].effect, 'function');
 assert.equal(restored.currentEvent?.options[0].effect(restored).resources, 10);
 

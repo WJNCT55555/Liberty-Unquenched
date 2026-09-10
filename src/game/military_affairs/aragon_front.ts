@@ -1,5 +1,6 @@
 import { Card } from '../types';
 import { adjustClassSupport, adjustFactionDissents } from '../utils';
+import { adjustCntMilitiaManpower, isOrganizationActive } from '../organizations';
 
 export const aragonFront: Card = {
   id: 'aragon_front',
@@ -9,7 +10,7 @@ export const aragonFront: Card = {
   description: 'The Aragon Regional Defense Council is the most radical libertarian socialist experiment on Spanish soil.',
   descriptionZh: '由全国劳工联合会-伊比利亚无政府主义者联合会主导的阿拉贡地区防务委员会，是西班牙土地上最激进的自由社会主义实验。',
   cost: 1,
-  condition: (state) => state.aragonCouncilExists && state.aragonTimer <= 0,
+  condition: (state) => state.aragonCouncilExists && state.aragonTimer <= 0 && isOrganizationActive(state, 'DC'),
   effect: (state) => ({
     aragonTimer: state.aragonTimer + 3,
     currentEvent: {
@@ -27,13 +28,7 @@ export const aragonFront: Card = {
           subtitle: 'Draw volunteers from collectivized villages to reinforce the CNT-FAI columns.',
           subtitleZh: '从集体化村庄中吸纳志愿者，补强CNT-FAI纵队。',
           effect: (s) => ({
-            armedForces: {
-              ...s.armedForces,
-              militias: {
-                ...s.armedForces.militias,
-                cntFai: s.armedForces.militias.cntFai + 500
-              }
-            },
+            ...adjustCntMilitiaManpower(s, 500),
             currentEvent: {
               id: 'aragon_recruitment_result',
               date: { year: s.year, month: s.month },

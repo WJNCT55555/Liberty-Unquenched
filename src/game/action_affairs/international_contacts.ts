@@ -1,5 +1,6 @@
 import { Card } from '../types';
 import { adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence, getDissentMultiplier } from '../utils';
+import { adjustCntMilitiaManpower } from '../organizations';
 
 export const internationalContacts: Card = {
   id: 'international_contacts',
@@ -84,13 +85,7 @@ export const internationalContacts: Card = {
                 'Cenetistas',
                 Math.round(3 * dissentMultiplier)
               ),
-              armedForces: {
-                ...s.armedForces,
-                militias: {
-                  ...s.armedForces.militias,
-                  cntFai: s.armedForces.militias.cntFai + 150
-                }
-              }
+              ...adjustCntMilitiaManpower(s, 150)
             })
           },
           {

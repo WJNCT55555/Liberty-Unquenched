@@ -1,7 +1,7 @@
 import { Card, GameState } from '../types';
 import { adjustClassSupport, adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { media } from './media';
-import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
+import { adjustCntMilitiaManpower, isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
 
 export const organizationsCard: Card = {
   id: 'organizations',
@@ -85,23 +85,20 @@ export const organizationsCard: Card = {
           textZh: '武装防卫委员会 (-1 资源)',
           subtitle: 'Prepare our defense committees for the inevitable conflict with the state.',
           subtitleZh: '让我们的防卫委员会为与国家机器之间不可避免的冲突做好准备。',
-          condition: (s: GameState) => s.resources >= 1,
-          unavailableSubtitle: () => 'Need at least 1 resource.',
-          unavailableSubtitleZh: () => '资源不足。',
+          condition: (s: GameState) => s.resources >= 1 && isOrganizationEstablished(s, 'DC'),
+          unavailableSubtitle: (s: GameState) => !isOrganizationEstablished(s, 'DC')
+            ? 'Requires Comités de Defensa to be established.'
+            : 'Need at least 1 resource.',
+          unavailableSubtitleZh: (s: GameState) => !isOrganizationEstablished(s, 'DC')
+            ? '需要先成立防御委员会组织。'
+            : '资源不足。',
           effect: (s: GameState) => {
             const newFactions = adjustFactionDissent(s.factions, 'Treintistas', 6);
 
             return {
               resources: s.resources - 1,
               factions: newFactions,
-              ...setOrganizationEstablished(s, 'DC'),
-              armedForces: {
-                ...s.armedForces,
-                militias: {
-                  ...s.armedForces.militias,
-                  cntFai: (s.armedForces.militias.cntFai || 0) + 1000
-                }
-              }
+              ...adjustCntMilitiaManpower(s, 1000),
             };
           }
         },
@@ -121,13 +118,7 @@ export const organizationsCard: Card = {
                   resources: s.resources - 2,
                   factions: newFactions,
                   ...setOrganizationEstablished(s, 'FIJL'),
-                  armedForces: {
-                    ...s.armedForces,
-                    militias: {
-                      ...s.armedForces.militias,
-                      cntFai: (s.armedForces.militias.cntFai || 0) + 500
-                    }
-                  },
+                  ...adjustCntMilitiaManpower(s, 500),
                 };
               }
             }] : []),

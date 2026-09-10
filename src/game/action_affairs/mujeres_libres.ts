@@ -2,6 +2,7 @@ import { Card, GameEvent, GameState } from '../types';
 import { effectPreviewFromEffect } from '../effectPreview';
 import { adjustClassSupport } from '../utils';
 import { isOrganizationEstablished } from '../organizations';
+import { applyUnionShareDelta } from '../unions';
 
 type MujeresLibresEffect = GameEvent['options'][number]['effect'];
 
@@ -32,10 +33,9 @@ const awakenWomenToFreedom: MujeresLibresEffect = (state: GameState): Partial<Ga
 const organizeWomenAtWork: MujeresLibresEffect = (state: GameState): Partial<GameState> => ({
   classes: adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 4),
   unemployment_rate: Math.max(0, (state.unemployment_rate || 0) - 0.5),
-  stats: {
-    ...state.stats,
-    workerControl: Math.min(100, state.stats.workerControl + 2)
-  },
+  // 解耦：组织女工入会属工会组织成果。
+  ...applyUnionShareDelta(state, { CNT: 2, unorganized: -2 }),
+  stats: { ...state.stats },
   currentEvent: null
 });
 
@@ -48,10 +48,8 @@ const provideLaborEducation: MujeresLibresEffect = (state: GameState): Partial<G
   return {
     classes,
     unemployment_rate: Math.max(0, (state.unemployment_rate || 0) - 1),
-    stats: {
-      ...state.stats,
-      workerControl: Math.min(100, state.stats.workerControl + 1)
-    },
+    ...applyUnionShareDelta(state, { CNT: 1, unorganized: -1 }),
+    stats: { ...state.stats },
     currentEvent: null
   };
 };
@@ -63,10 +61,9 @@ const buildRuralWomenCollectives: MujeresLibresEffect = (state: GameState): Part
 
   return {
     classes,
-    stats: {
-      ...state.stats,
-      workerControl: Math.min(100, state.stats.workerControl + 1)
-    },
+    // 解耦：农村集体属与 CNCA 争夺乡村社会主导权（U-对抗）。
+    ...applyUnionShareDelta(state, { CNT: 1, CNCA: -1 }),
+    stats: { ...state.stats },
     currentEvent: null
   };
 };

@@ -6,6 +6,7 @@ import {
   adjustFactionInfluence,
   getDissentMultiplier
 } from '../utils';
+import { applyUnionShareDelta } from '../unions';
 import type { ClassPoliticalForce } from '../utils';
 import {
   armamentPreview,
@@ -150,10 +151,11 @@ const TARGETS: Record<TargetId, TargetDef> = {
     },
     failure: (s: GameState): Partial<GameState> => {
       return {
+        // 解耦：刺杀失败属工会组织受挫（CNT 占比回落至未组织者）。
+        ...applyUnionShareDelta(s, { CNT: -3, unorganized: 3 }),
         stats: {
           ...s.stats,
-          armyLoyalty: Math.min(100, s.stats.armyLoyalty + 2),
-          workerControl: Math.max(0, s.stats.workerControl - 3)
+          armyLoyalty: Math.min(100, s.stats.armyLoyalty + 2)
         },
         resources: Math.max(0, s.resources - 1)
       };
@@ -190,10 +192,10 @@ const TARGETS: Record<TargetId, TargetDef> = {
     },
     failure: (s: GameState): Partial<GameState> => {
       return {
+        ...applyUnionShareDelta(s, { CNT: -2, unorganized: 2 }),
         stats: {
           ...s.stats,
-          armyLoyalty: Math.min(100, s.stats.armyLoyalty + 2),
-          workerControl: Math.max(0, s.stats.workerControl - 2)
+          armyLoyalty: Math.min(100, s.stats.armyLoyalty + 2)
         },
         resources: Math.max(0, s.resources - 1)
       };
@@ -271,9 +273,9 @@ const TARGETS: Record<TargetId, TargetDef> = {
           ...s.partySupport,
           FE: clampPercent((s.partySupport.FE || 0) + 3)
         },
+        ...applyUnionShareDelta(s, { CNT: -2, unorganized: 2 }),
         stats: {
-          ...s.stats,
-          workerControl: Math.max(0, s.stats.workerControl - 2)
+          ...s.stats
         },
         resources: Math.max(0, s.resources - 1)
       };
@@ -306,9 +308,9 @@ const TARGETS: Record<TargetId, TargetDef> = {
     },
     failure: (s: GameState): Partial<GameState> => {
       return {
+        ...applyUnionShareDelta(s, { CNT: -2, unorganized: 2 }),
         stats: {
-          ...s.stats,
-          workerControl: Math.max(0, s.stats.workerControl - 2)
+          ...s.stats
         },
         resources: Math.max(0, s.resources - 1)
       };
@@ -346,9 +348,9 @@ const TARGETS: Record<TargetId, TargetDef> = {
           PSOE: clampRelation((s.partyRelations.PSOE || 0) - 5),
           IR: clampRelation((s.partyRelations.IR || 0) - 5)
         },
+        ...applyUnionShareDelta(s, { CNT: -5, unorganized: 5 }),
         stats: {
-          ...s.stats,
-          workerControl: Math.max(0, s.stats.workerControl - 5)
+          ...s.stats
         },
         pro_republic: Math.max(0, s.pro_republic - 8),
         resources: Math.max(0, s.resources - 2)
@@ -356,9 +358,9 @@ const TARGETS: Record<TargetId, TargetDef> = {
     },
     failure: (s: GameState): Partial<GameState> => {
       return {
+        ...applyUnionShareDelta(s, { CNT: -4, unorganized: 4 }),
         stats: {
-          ...s.stats,
-          workerControl: Math.max(0, s.stats.workerControl - 4)
+          ...s.stats
         },
         pro_republic: Math.max(0, s.pro_republic - 2),
         resources: Math.max(0, s.resources - 1)
@@ -557,10 +559,10 @@ export const propagandaByDeed: Card = {
                   PSOE: clampRelation((s.partyRelations.PSOE || 0) - 5),
                   IR: clampRelation((s.partyRelations.IR || 0) - 5)
                 },
+                ...applyUnionShareDelta(s, { CNT: -3, unorganized: 3 }),
                 stats: {
                   ...s.stats,
-                  revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 8 * df),
-                  workerControl: Math.max(0, s.stats.workerControl - 3)
+                  revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 8 * df)
                 },
                 ideological_propaganda: (s.ideological_propaganda || 0) + 2,
                 pro_republic: Math.max(0, s.pro_republic - 5),

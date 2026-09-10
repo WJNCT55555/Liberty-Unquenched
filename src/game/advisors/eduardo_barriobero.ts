@@ -48,7 +48,8 @@ export const eduardoBarriobero: Advisor = {
           factions: newFactions,
           stats: {
             ...state.stats,
-            workerControl: Math.min(100, state.stats.workerControl + 10)
+            // 解耦：绕开中央部委属法外司法/秩序问题，不改变生产资料控制。
+            republicanAuthority: Math.max(0, state.stats.republicanAuthority - 10)
           }
         };
       },

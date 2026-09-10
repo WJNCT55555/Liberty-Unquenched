@@ -4,6 +4,7 @@ import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter, calculateElect
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
+import { applyUnionShareDelta } from '../unions';
 import { clampLawLevel } from '../lawStances';
 
 const election1933Meta = {
@@ -216,9 +217,10 @@ export const elections1933Results: GameEvent = {
             max_hours_law: clampLawLevel('max_hours_law', state.domesticPolicy.max_hours_law - 1),
             min_wage: clampLawLevel('min_wage', state.domesticPolicy.min_wage - 1)
           },
+          // 解耦：右翼上台 → 工会组织受挫（CNT 占比回落至未组织者）。
+          ...applyUnionShareDelta(state, { CNT: -10, unorganized: 10 }),
           stats: {
-            ...state.stats,
-            workerControl: Math.max(0, state.stats.workerControl - 10)
+            ...state.stats
           }
         };
 

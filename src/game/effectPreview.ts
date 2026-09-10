@@ -5,10 +5,12 @@ import {
   GameEvent,
   GameState,
   Party,
-  SocialClass
+  SocialClass,
+  UnionShareKey
 } from './types';
 import { collectClassSupportAdjustments, collectFactionInfluenceAdjustments, getDissentMultiplier } from './utils';
 import type { ClassPoliticalForce, ClassSupportAdjustment, FactionInfluenceAdjustment } from './utils';
+import { UNION_SHARE_LABELS } from './unions';
 
 type Labels = { label: string; labelZh: string };
 type FieldConfig = Labels & { reverseTone?: boolean; suffix?: string; suffixZh?: string };
@@ -98,7 +100,7 @@ const BOOLEAN_FIELDS: Record<string, Labels> = {
 const STAT_LABELS: Record<keyof GameState['stats'], Labels & { reverseTone?: boolean }> = {
   armyLoyalty: { label: 'Army loyalty', labelZh: '军队忠诚' },
   tension: { label: 'Tension', labelZh: '紧张局势', reverseTone: true },
-  workerControl: { label: 'Worker control', labelZh: '工人控制' },
+  workerControl: { label: 'Control obrero', labelZh: '工人控制程度' },
   anarchistMilitia: { label: 'Anarchist militia', labelZh: '无政府主义民兵' },
   republicanAuthority: { label: 'Republican authority', labelZh: '共和国权威' },
   revolutionaryFervor: { label: 'Revolutionary fervor', labelZh: '革命热情' },
@@ -610,6 +612,25 @@ const addClassSupportDiffs = (
   });
 };
 
+const addUnionShareDiffs = (
+  lines: EffectPreviewLine[],
+  before?: GameState['unionShare'],
+  after?: Partial<GameState['unionShare']>
+) => {
+  if (!after) return;
+  (Object.keys(after) as UnionShareKey[]).forEach((key) => {
+    const labels = UNION_SHARE_LABELS[key];
+    const afterValue = after[key];
+    if (!labels || typeof afterValue !== 'number') return;
+    addNumericDelta(
+      lines,
+      { label: `${labels.en} share`, labelZh: `${labels.zh}占比` },
+      before?.[key] ?? 0,
+      afterValue
+    );
+  });
+};
+
 const addArmedForcesDiffs = (
   lines: EffectPreviewLine[],
   before: GameState['armedForces'],
@@ -698,6 +719,7 @@ const buildFallbackPreview = (
 
   addTopLevelDiffs(lines, state, partial);
   addStatsDiffs(lines, state.stats, partial.stats);
+  addUnionShareDiffs(lines, state.unionShare, partial.unionShare);
   addDomesticPolicyDiffs(lines, state.domesticPolicy, partial.domesticPolicy);
   addFactionsDiffs(lines, state.factions, partial.factions, factionInfluenceAdjustments);
   if (classSupportAdjustments.length > 0) {

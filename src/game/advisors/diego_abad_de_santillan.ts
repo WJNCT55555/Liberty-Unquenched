@@ -24,7 +24,7 @@ export const diegoAbadDeSantillan: Advisor = {
         resources: state.resources + 5,
         stats: {
           ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 10)
+          workerControl: Math.min(100, state.stats.workerControl + 8)
         }
       }),
       description: 'By defining concrete economic structures instead of pure abstractions, we have systematized factory collectivism and secured vital provisions.',

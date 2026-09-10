@@ -10,7 +10,16 @@ import { getPartySupport, updateCoalitions } from '../game/utils';
 import { MapFaction } from '../map/types_map';
 import { FACTION_NAMES } from '../game/labels';
 import { getOverallFactionDissent } from '../game/utils/factionEffects';
-import { getOrganizationsForOwner, isOrganizationEstablished } from '../game/organizations';
+import { getOrganizationsForOwner, isOrganizationActive, isOrganizationEstablished } from '../game/organizations';
+import {
+  UNION_SHARE_COLORS,
+  UNION_SHARE_KEYS,
+  UNION_SHARE_LABELS,
+  getCntDominance,
+  getOrganizedShare,
+  getRightShare,
+  getUnionShare,
+} from '../game/unions';
 
 // Resolve public emblems through Vite's deployment base path; a root-relative
 // `/img/...` URL would break when the game is hosted under `/Liberty-Unquenched/`.
@@ -56,6 +65,20 @@ const getPartySupportBreakdown = (state: GameState, party: 'CNT_FAI' | Party) =>
 export const SidePanel = () => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
+
+  const unionShare = getUnionShare(state);
+  const organizedShare = getOrganizedShare(unionShare);
+  const cntDominance = getCntDominance(unionShare);
+  const rightShare = getRightShare(unionShare);
+
+  // 工会占比环形饼图数据（与「内部派系」环形图同款样式）
+  const unionShareData = UNION_SHARE_KEYS.map((key) => ({
+    key,
+    label: UNION_SHARE_LABELS[key][isZh ? 'zh' : 'en'],
+    color: UNION_SHARE_COLORS[key],
+    value: unionShare[key],
+  }));
+  const unionShareSlices = unionShareData.filter((entry) => entry.value > 0);
 
   const factionNames = FACTION_NAMES;
 
@@ -391,7 +414,86 @@ export const SidePanel = () => {
           <StatBar name={isZh ? '共和国权威' : 'Rep. Authority'} value={state.stats.republicanAuthority} color="bg-blue-600" tooltip={isZh ? '政府的控制力' : 'Government Control'} />
           <StatBar name={isZh ? '军官忠诚' : 'Army Loyalty'} value={state.stats.armyLoyalty} color="bg-green-600" tooltip={isZh ? '军队对共和国的忠诚度' : 'Army Loyalty to Republic'} />
           <StatBar name={isZh ? '革命热情' : 'Revolutionary Fervor'} value={state.stats.revolutionaryFervor} color="bg-cnt-red" tooltip={isZh ? '社会革命的进展' : 'Progress of Social Revolution'} />
-          <StatBar name={isZh ? '工人控制度' : 'Worker Control'} value={state.stats.workerControl} color="bg-orange-600" tooltip={isZh ? '工人对工厂和土地的控制' : 'Worker Control of Factories and Land'} />
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title={isZh ? '工人控制程度' : 'Worker Control'} defaultOpen={true}>
+        <div className="flex flex-col gap-4">
+          {/* 工会占比：八项零和向量 */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between font-typewriter text-[10px] uppercase tracking-wider">
+              <span
+                className="cursor-help border-b border-dotted border-ink"
+                title={isZh
+                  ? '各组织在工会格局中的相对权重：八项之和恒为 100，未组织者不低于 15%。'
+                  : 'Relative weight of each organization in the union landscape: the eight shares sum to 100, and the unorganized share never drops below 15%.'}
+              >
+                {isZh ? '工会占比' : 'Union Share'}
+              </span>
+              <span>{isZh ? `组织化率 ${organizedShare.toFixed(1)}%` : `Organized ${organizedShare.toFixed(1)}%`}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* 环形饼图 */}
+              <div className="h-24 w-24 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={unionShareSlices}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={20}
+                      outerRadius={40}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="label"
+                      stroke="none"
+                    >
+                      {unionShareSlices.map((entry) => (
+                        <Cell key={`union-share-${entry.key}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#f4f1ea', border: '1px solid #141414', borderRadius: 0, fontFamily: 'monospace' }}
+                      itemStyle={{ color: '#141414' }}
+                      formatter={(value: number) => `${Number(value).toFixed(1)}%`}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* 图例 */}
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 font-typewriter text-[10px]">
+                {unionShareData.map((entry) => (
+                  <div key={`union-share-legend-${entry.key}`} className="flex items-center justify-between gap-1">
+                    <span className="flex min-w-0 items-center gap-1">
+                      <span className="inline-block h-2 w-2 shrink-0" style={{ backgroundColor: entry.color }} />
+                      <span className="truncate" title={entry.label}>{entry.label}</span>
+                    </span>
+                    <span className="shrink-0">{entry.value.toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-between font-typewriter text-[10px] text-ink-light">
+              <span title={isZh ? 'CNT 在左翼工运内部的主导度' : 'CNT dominance within the left-wing labour movement'}>
+                {isZh ? `CNT 主导度 ${cntDominance.toFixed(1)}%` : `CNT dominance ${cntDominance.toFixed(1)}%`}
+              </span>
+              {rightShare > 0 && (
+                <span className="text-cnt-red" title={isZh ? '右翼工会（CNCA + CONS）合计：压制罢工成功率与招募效率' : 'Right-wing unions (CNCA + CONS): suppress strike success and recruitment'}>
+                  {isZh ? `右翼掣肘 ${rightShare.toFixed(1)}%` : `Right-wing ${rightShare.toFixed(1)}%`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 工人控制程度：生产资料控制 */}
+          <StatBar
+            name={isZh ? '生产资料控制' : 'Control Obrero'}
+            value={state.stats.workerControl}
+            color="bg-orange-600"
+            tooltip={isZh
+              ? '工人对生产资料的实际控制程度（1936 年 7 月之前上限 40）'
+              : 'Worker control over the means of production (capped at 40 before July 1936)'}
+          />
         </div>
       </AccordionSection>
 
@@ -990,44 +1092,34 @@ export const SidePanel = () => {
             manpower={state.armedForces.guardiaNacional.manpower} 
             loyalty={state.armedForces.guardiaNacional.loyalty} 
           />
-          <LoyaltyBar 
-            name={isZh ? '突击卫队' : 'Guardia de Asalto'} 
-            manpower={state.armedForces.guardiaAsalto.manpower} 
-            loyalty={state.armedForces.guardiaAsalto.loyalty} 
-          />
+          {state.armedForces.guardiaAsalto.manpower > 0 && (
+            <LoyaltyBar
+              name={isZh ? '突击卫队' : 'Guardia de Asalto'}
+              manpower={state.armedForces.guardiaAsalto.manpower}
+              loyalty={state.armedForces.guardiaAsalto.loyalty}
+            />
+          )}
         </div>
 
         <div>
           <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '准军事组织' : 'Paramilitary'}</h3>
           <div className="flex flex-col gap-1">
-            <MilitiaItem name="Milicias Confederales" manpower={state.armedForces.militias.cntFai} color="bg-cnt-red" isHighlighted={true} />
-            <MilitiaItem name="MAOC" manpower={state.armedForces.militias.maoc} color="bg-red-700" />
-            <MilitiaItem name="Milicias del POUM" manpower={state.armedForces.militias.poum} color="bg-red-500" />
-            <MilitiaItem name="Milicias de la UGT" manpower={state.armedForces.militias.ugt} color="bg-red-400" />
-            <MilitiaItem name="Requeté" manpower={state.armedForces.militias.requete} color="bg-yellow-800" />
-            <MilitiaItem name="Milicias Falangistas" manpower={state.armedForces.militias.falange} color="bg-blue-800" />
+            {getOrganizationsForOwner('CNT_FAI')
+              .filter((definition) => definition.type === 'militia' && isOrganizationActive(state, definition.id))
+              .map((definition) => (
+                <MilitiaItem
+                  key={definition.id}
+                  name={isZh
+                    ? (definition.militiaDisplayNameZh || definition.nameZh)
+                    : (definition.militiaDisplayName || definition.name)}
+                  manpower={state.organizations[definition.id]?.militiaManpower || 0}
+                  color="bg-cnt-red"
+                  isHighlighted={definition.id === 'DC'}
+                />
+              ))}
           </div>
         </div>
 
-        {state.civilWarStatus !== 'not_started' && (
-          <div className="mt-4">
-            <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '国际纵队' : 'International Brigades'}</h3>
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between font-typewriter text-xs uppercase tracking-wider">
-                <span>{isZh ? '状态' : 'Status'}</span>
-                <span className={state.internationalBrigadesFormed ? 'text-green-700 font-bold' : 'text-ink-light'}>
-                  {state.internationalBrigadesFormed ? (isZh ? '已组建' : 'Formed') : (isZh ? '未组建' : 'Not Formed')}
-                </span>
-              </div>
-              {state.internationalBrigadesFormed && (
-                <div className="flex justify-between font-typewriter text-xs uppercase tracking-wider">
-                  <span>{isZh ? '兵力' : 'Strength'}</span>
-                  <span>{state.internationalBrigades.toLocaleString()}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </AccordionSection>
 
       <AccordionSection title={isZh ? '阶层民意' : 'Social Classes'}>

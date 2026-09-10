@@ -1,5 +1,6 @@
 import { Card, GameState, GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
+import { adjustCntMilitiaManpower, isOrganizationActive } from '../organizations';
 
 const concludeForeignPolicy = (changes: Partial<GameState>): Partial<GameState> => ({
   ...changes,
@@ -228,7 +229,7 @@ export const negotiateFranceEvent: GameEvent = {
       textZh: '确保安道尔——比利牛斯山间的共和生命线',
       subtitle: '-1 Budget -- Coordinate with co-princes and Bishop of Urgell to plug Nationalist smuggling gaps and open refugee passage.',
       subtitleZh: '-1 预算 -- 与法国共管当局及乌赫尔主教协商，阻止安道尔沦为国民军走私枢纽，开辟难民安全走廊',
-      condition: (state) => state.budget >= 1 && state.civilWarStatus === 'ongoing' && !state.andorra_secured,
+      condition: (state) => state.budget >= 1 && state.civilWarStatus === 'ongoing' && isOrganizationActive(state, 'DC') && !state.andorra_secured,
       unavailableSubtitle: () => 'Requires 1 Budget, active Civil War, and Andorra not yet secured.',
       unavailableSubtitleZh: () => '预算不足（需要1）、内战未爆发、或安道尔通道已确保',
       effect: (state) => concludeForeignPolicy({
@@ -239,13 +240,7 @@ export const negotiateFranceEvent: GameEvent = {
         },
         andorra_secured: true,
         coalition_dissent: (state.coalition_dissent || 0) + 1,
-        armedForces: {
-          ...state.armedForces,
-          militias: {
-            ...state.armedForces.militias,
-            cntFai: (state.armedForces.militias.cntFai || 0) + 2000
-          }
-        }
+        ...adjustCntMilitiaManpower(state, 2000)
       })
     },
     {
@@ -654,7 +649,7 @@ export const focusLatinAmericaEvent: GameEvent = {
       textZh: '动员国际无产阶级组建"国际纵队"拉美营',
       subtitle: 'Call upon anti-fascist volunteers from Argentina, Cuba, and Mexico; brings substantial manpower and monetary flows.',
       subtitleZh: '呼吁美洲的反法西斯志愿者与流亡者前来参战——阿根廷、古巴、墨西哥的侨民捐款与人力的洪流',
-      condition: (state) => state.civilWarStatus === 'ongoing' && !state.latin_american_diaspora_mobilized,
+      condition: (state) => state.civilWarStatus === 'ongoing' && isOrganizationActive(state, 'DC') && !state.latin_american_diaspora_mobilized,
       unavailableSubtitle: () => 'Requires an active Civil War and the diaspora not already mobilized.',
       unavailableSubtitleZh: () => '需要内战已经爆发，且拉美侨民尚未被动员。',
       effect: (state) => concludeForeignPolicy({
@@ -665,13 +660,7 @@ export const focusLatinAmericaEvent: GameEvent = {
           ...state.relations,
           usa: Math.max(0, state.relations.usa - 3)
         },
-        armedForces: {
-          ...state.armedForces,
-          militias: {
-            ...state.armedForces.militias,
-            cntFai: (state.armedForces.militias.cntFai || 0) + 5000
-          }
-        }
+        ...adjustCntMilitiaManpower(state, 5000)
       })
     },
     {

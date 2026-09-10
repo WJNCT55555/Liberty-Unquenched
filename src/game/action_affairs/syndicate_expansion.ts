@@ -1,6 +1,7 @@
 import { Card, GameEvent, GameState } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport, adjustFactionInfluence } from '../utils';
 import { effectPreviewFromEffect } from '../effectPreview';
+import { applyUnionShareDelta } from '../unions';
 
 type SyndicateExpansionEffect = GameEvent['options'][number]['effect'];
 
@@ -10,10 +11,9 @@ const organizeUrbanFactories: SyndicateExpansionEffect = (state: GameState): Par
   return {
     classes,
     factions: adjustFactionInfluence(state.factions, 'Cenetistas', 5),
-    stats: {
-      ...state.stats,
-      workerControl: Math.min(100, state.stats.workerControl + 2)
-    }
+    // 解耦：组织工业中心属工会招募（从未组织者争取）。
+    ...applyUnionShareDelta(state, { CNT: 2, unorganized: -2 }),
+    stats: { ...state.stats }
   };
 };
 
@@ -23,10 +23,9 @@ const organizeRuralCollectives: SyndicateExpansionEffect = (state: GameState): P
   return {
     classes,
     factions: adjustFactionInfluence(state.factions, 'Faistas', 5),
-    stats: {
-      ...state.stats,
-      workerControl: Math.min(100, state.stats.workerControl + 1)
-    }
+    // 解耦：农村集体属与 CNCA 争夺乡村社会主导权（U-对抗）。
+    ...applyUnionShareDelta(state, { CNT: 1, CNCA: -1 }),
+    stats: { ...state.stats }
   };
 };
 

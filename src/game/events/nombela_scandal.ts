@@ -32,7 +32,6 @@ export const nombelaScandal: GameEvent = {
           stats: {
             ...state.stats,
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15),
-            workerControl: Math.min(100, state.stats.workerControl + 8),
             republicanAuthority: Math.max(0, state.stats.republicanAuthority - 12)
           },
           partyRelations: {
