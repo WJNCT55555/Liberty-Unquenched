@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
+import { setOrganizationStatus } from '../organizations';
 
 const newsMeta = {
   category: 'news' as const,
@@ -30,6 +31,8 @@ export const birthOfFeDeLasJons: GameEvent = {
         return {
           classes: newClasses,
           falange_jons: true,
+          // The JONS are absorbed by the merger rather than continuing alongside.
+          ...setOrganizationStatus(state, 'JONS', 'integrated'),
         };
       },
     },

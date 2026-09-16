@@ -8,6 +8,9 @@ import { azanaMilitaryReform } from './azana_military_reform';
 import { manifestoOfThirty } from './manifesto_thirty';
 import { foundingSyndicalistParty } from './founding_syndicalist_party';
 import { cedaFormation } from './ceda_formation';
+import { accionNacionalFormation } from './accion_nacional_formation';
+import { jonsFormation, seuFormation, seccionFemeninaFormation } from './falange_organizations';
+import { jsuFormation, mujeresAntifascistasFormation, egiFormation, jciFormation } from './party_auxiliary_organizations';
 import { cataloniaDefense } from './civil_war/catalonia_defense';
 import { aragonCouncil } from './civil_war/aragon_council';
 import { nationalistSurrender } from './civil_war/nationalist_surrender';
@@ -15,9 +18,12 @@ import { republicanSurrender } from './civil_war/republican_surrender';
 import { foundingOfFalange } from './founding_of_falange';
 import { birthOfFeDeLasJons } from './birth_of_fe_de_las_jons';
 import { foundingOfPOUM } from './founding_of_poum';
+import { maocFormation } from './maoc_formation';
+import { consFormation } from './cons_formation';
 import { formationOfPRRevS } from './formation_of_prrevs';
 import { fijlFormation } from './fijl_formation';
 import { mujeresLibresFormation } from './mujeres_libres_formation';
+import { olimpiadaPopular, olimpiadaPopularStranded } from './olimpiada_popular';
 import { laSanjurjada } from './la_sanjurjada';
 import { jabaliEvent } from './jabali';
 import { juradosMixtos } from './jurados_mixtos';
@@ -27,6 +33,8 @@ import { cataloniaAutonomy1932 } from './catalonia_autonomy_1932';
 import { nombelaScandal } from './nombela_scandal';
 import { naziPower1933 } from './nazi_power_1933';
 import { civilWarSetup } from './civil_war/civil_war_setup';
+import { wartimePowerArrangement, wartimePowerArrangementResult, wartimeCabinetCoordination } from './civil_war/wartime_power_arrangement';
+import * as mayDaysDefinitions from './civil_war/may_days';
 import { defenseCommitteeFormation } from './defense_committee_formation';
 import { workersAllianceAttempt } from './workers_alliance_attempt';
 import { workersAllianceFormation } from './workers_alliance_formation';
@@ -73,6 +81,10 @@ export {
 };
 
 export const INITIAL_EVENTS = [
+  wartimePowerArrangement,
+  mayDaysDefinitions.mayDays,
+  mayDaysDefinitions.mayDaysPOUMCase,
+  wartimeCabinetCoordination,
   proclamationSecondRepublic,
   burningConvents,
   azanaMilitaryReform,
@@ -87,6 +99,14 @@ export const INITIAL_EVENTS = [
   constitution1931,
   foundingSyndicalistParty,
   cedaFormation,
+  accionNacionalFormation,
+  jonsFormation,
+  seuFormation,
+  seccionFemeninaFormation,
+  jsuFormation,
+  mujeresAntifascistasFormation,
+  egiFormation,
+  jciFormation,
   cataloniaDefense,
   aragonCouncil,
   nationalistSurrender,
@@ -94,9 +114,13 @@ export const INITIAL_EVENTS = [
   foundingOfFalange,
   birthOfFeDeLasJons,
   foundingOfPOUM,
+  maocFormation,
+  consFormation,
   formationOfPRRevS,
   fijlFormation,
   mujeresLibresFormation,
+  olimpiadaPopular,
+  olimpiadaPopularStranded,
   formationOfIzquierdaRepublicana,
   formationOfUnionRepublicana,
   laSanjurjada,
@@ -153,6 +177,8 @@ export const RESTORABLE_EVENTS: GameEvent[] = [
   ...new Map(
     [
       ...INITIAL_EVENTS,
+      wartimePowerArrangementResult,
+      ...Object.values(mayDaysDefinitions).filter(isGameEvent),
       ...Object.values(civilWarSetupDefinitions).filter(isGameEvent),
       ...Object.values(cntThirdCongressDefinitions).filter(isGameEvent),
       ...Object.values(cntFourthCongressDefinitions).filter(isGameEvent),

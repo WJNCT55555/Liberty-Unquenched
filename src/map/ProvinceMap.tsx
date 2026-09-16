@@ -9,6 +9,7 @@ import { Province, MapFaction as Faction, Army } from './types_map';
 import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, CultureGroup, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, isPortugalProvince } from './map_constants';
 import { ZoomIn, ZoomOut, RotateCcw, Swords, Map, Mountain, Users, Shield } from 'lucide-react';
 import * as d3 from 'd3';
+import { getMapFactionName, canEnterMapProvince } from './rules/factions';
 
 export const STRATEGIC_COLORS = [
   '#FAF5E6', // 0 (Beige)
@@ -484,8 +485,8 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
       setLoading(true);
 
       // Local files
-      const iberiaPromise = fetchWithFallback('/date/iberia-complete.geojson', './date/iberia-complete.geojson');
-      const moroccoPromise = fetchWithFallback('/date/morocco-spanish-protectorate.geojson', './date/morocco-spanish-protectorate.geojson');
+      const iberiaPromise = fetchWithFallback(`${BASE_URL}date/iberia-complete.geojson`);
+      const moroccoPromise = fetchWithFallback(`${BASE_URL}date/morocco-spanish-protectorate.geojson`);
 
       // Optional external file (rivers)
       const riversPromise = fetchWithFallback('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_rivers_lake_centerlines.geojson')
@@ -494,7 +495,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
       // now come from a local Natural Earth 10m extract so their shared borders
       // match the 10m admin-1 precision of iberia-complete.geojson (no more
       // 50m-vs-10m sliver gaps), and the map works offline.
-      const countriesPromise = fetchWithFallback('/date/world-neighbors.geojson', './date/world-neighbors.geojson')
+      const countriesPromise = fetchWithFallback(`${BASE_URL}date/world-neighbors.geojson`)
         .catch(() => null);
 
       const [iberia, morocco, globalRivers, worldCountries] = await Promise.all([
@@ -839,10 +840,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
             const selectedArmy = armies.find(a => a.id === selectedArmyId);
             const isPossibleMove = canMoveSelectedArmy && selectedArmy && p.provinceId &&
               PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(p.provinceId) &&
-              !(
-                (selectedArmy.faction === Faction.REPUBLICAN || selectedArmy.faction === Faction.NATIONALIST) &&
-                isPortugalProvince(p.provinceId)
-              );
+              provinces[p.provinceId] && canEnterMapProvince(selectedArmy.faction, provinces[p.provinceId].owner);
 
             // Customize border stroke and width
             let strokeColor = 'rgba(0,0,0,0.2)';
@@ -939,10 +937,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                         selectedArmy &&
                         selectedArmy.id !== army.id &&
                         PROVINCE_ADJACENCY[selectedArmy.provinceId]?.includes(army.provinceId) &&
-                        !(
-                          (selectedArmy.faction === Faction.REPUBLICAN || selectedArmy.faction === Faction.NATIONALIST) &&
-                          isPortugalProvince(army.provinceId)
-                        )
+                        provinces[army.provinceId] && canEnterMapProvince(selectedArmy.faction, provinces[army.provinceId].owner)
                       );
                       if (canMoveHere && selectedArmy) {
                         onMoveArmy(selectedArmy.id, army.provinceId);
@@ -1160,6 +1155,10 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
         <div className="space-y-1.5 text-[10px] font-mono font-bold leading-tight text-[#2A2621]">
           {mapMode === 'political' && (
             <>
+              {(Object.values(provinces) as Province[]).some(province => province.owner === Faction.IBERIAN_DEFENSE) && <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.IBERIAN_DEFENSE] }} />
+                <span>{getMapFactionName(Faction.IBERIAN_DEFENSE, lang === 'zh')}</span>
+              </div>}
               <div className="flex items-center gap-1.5">
                 <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.WORKERS_ALLIANCE] }} />
                 <span>{lang === 'zh' ? '工人联盟自治政府' : "Workers' Alliance"}</span>
@@ -1493,7 +1492,7 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 const culture = PROVINCE_CULTURES[hoveredProvinceId];
                 const region = PROVINCE_REGIONS[hoveredProvinceId];
                 const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : prov.owner === Faction.WORKERS_ALLIANCE ? '工人联盟自治政府' : prov.owner === Faction.UNITED_KINGDOM ? '英国' : prov.owner === Faction.ANDORRA ? '安道尔' : '中立';
-                const factionName = lang === 'zh' ? factionNameCn : (prov.owner === Faction.REPUBLICAN ? 'Republicans' : prov.owner === Faction.NATIONALIST ? 'Nationalists' : prov.owner === Faction.PORTUGAL ? 'Portugal' : prov.owner === Faction.WORKERS_ALLIANCE ? "Workers' Alliance" : prov.owner === Faction.UNITED_KINGDOM ? 'United Kingdom' : prov.owner === Faction.ANDORRA ? 'Andorra' : 'Neutral');
+                const factionName = getMapFactionName(prov.owner, lang === 'zh');
                 const terrainLabels: Record<string, string> = lang === 'zh' 
                   ? { urban: '城市', plains: '平原', mountains: '山地', forest: '森林' }
                   : { urban: 'Urban', plains: 'Plains', mountains: 'Mountains', forest: 'Forest' };

@@ -3,6 +3,11 @@ import type { ArmyIdentity } from '../map/types_map';
 import { addEasyUndoOption, createEasyConfirmationEvent } from './easyMode';
 import { activateCivilWarOrganizations, normalizeOrganizationState } from './organizations';
 import { normalizeUnionShare } from './unions';
+import { SPANISH_ARMY_FORMATIONS } from '../map/map_constants';
+import { applySecurityForcesDerivedState } from './rules/securityForces';
+import { ECONOMIC_RULES } from './rules/economy';
+import { migrateWartimePolitics } from './rules/wartimeCoalition';
+import { updateCoalitions } from './utils/coalition';
 
 export const SAVE_FORMAT = 'cnt-fai-save' as const;
 export const SAVE_FORMAT_VERSION = 2 as const;
@@ -107,17 +112,35 @@ const ARMY_IDENTITIES = new Set<ArmyIdentity>(['gov', 'cnt', 'ugt', 'poum', 'pce
 
 /** Backfill the optional military identity for saves created before S0. */
 const normalizeMilitaryState = (state: GameState): GameState => {
-  if (!state.armies) return state;
+  const armies = (state.armies || []).map((army) => ({
+    ...army,
+    identity: ARMY_IDENTITIES.has(army.identity as ArmyIdentity)
+      ? army.identity
+      : 'gov',
+  }));
 
-  return {
-    ...state,
-    armies: state.armies.map((army) => ({
-      ...army,
-      identity: ARMY_IDENTITIES.has(army.identity as ArmyIdentity)
-        ? army.identity
-        : 'gov',
-    })),
-  };
+  if (!state.armyFormations) {
+    // Saves from before the peace/war split kept the standing army on the map.
+    // Move it into the peacetime roster and clear the map while no war is running.
+    const atPeace = state.civilWarStatus === 'not_started' && !state.activeWar;
+    const formations = atPeace && armies.length > 0
+      ? armies.map((army) => ({
+          id: army.id,
+          name: army.name || army.id,
+          nameZh: army.nameZh || army.name || army.id,
+          provinceId: army.provinceId,
+          manpower: army.manpower,
+          maxManpower: army.maxManpower,
+          composition: army.composition,
+          designedComposition: army.designedComposition,
+          morale: army.morale,
+          militarization: army.militarization,
+        }))
+      : SPANISH_ARMY_FORMATIONS;
+    return applySecurityForcesDerivedState({ ...state, armies: atPeace ? [] : armies, armyFormations: formations });
+  }
+
+  return applySecurityForcesDerivedState({ ...state, armies });
 };
 
 export const serializeGameState = (state: GameState): SaveGameSnapshot => {
@@ -363,11 +386,26 @@ export const deserializeGameState = (
 
   state.pendingEvents = (snapshot.runtime.pendingEvents || []).map(hydrateEvent);
   state.currentEvent = snapshot.runtime.currentEvent ? hydrateEvent(snapshot.runtime.currentEvent) : null;
+  // Economy v2 migration: legacy negative "budget" values already increased
+  // public debt when they were produced, so convert them to zero cash without
+  // borrowing a second time. New stock fields receive neutral defaults.
+  state.budget = Math.max(0, Number.isFinite(state.budget) ? state.budget : ECONOMIC_RULES.defaults.budget);
+  state.fiscal_arrears = Number.isFinite(state.fiscal_arrears)
+    ? Math.max(0, state.fiscal_arrears)
+    : ECONOMIC_RULES.defaults.fiscalArrears;
+  state.economic_output_index = Number.isFinite(state.economic_output_index)
+    ? state.economic_output_index
+    : ECONOMIC_RULES.defaults.outputIndex;
+  state.sandboxSovereignInterventionsEnabled = state.sandboxSovereignInterventionsEnabled === true;
   // 工会占比：旧档缺失时按剧本默认值初始化，并保证未成立组织为零、和恒为 100。
   const normalized = normalizeUnionShare(normalizeMilitaryState(normalizeOrganizationState(state)));
-  return normalized.civilWarStatus !== 'not_started'
+  const activated = normalized.civilWarStatus !== 'not_started'
     ? { ...normalized, ...activateCivilWarOrganizations(normalized) }
     : normalized;
+  const migrated = migrateWartimePolitics(activated);
+  return migrated.wartimePowerArrangement
+    ? { ...migrated, activeCoalitions: updateCoalitions(migrated) }
+    : migrated;
 };
 
 const createManualSlots = (): ManualSaveSlot[] => Array.from(

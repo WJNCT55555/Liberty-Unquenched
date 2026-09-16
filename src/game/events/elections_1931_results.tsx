@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import type { GameEvent, Party, GameState, GameEventDispatch, MinisterParty } from '../types';
+import type { GameEvent, GameState, GameEventDispatch, MinisterParty } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
 import { getPartyName } from '../partyNames';
+import { getParliamentSeatEntries } from '../parliamentOrder';
 import { cn } from '../../lib/utils';
 import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
 import { applyUnionShareDelta } from '../unions';
@@ -36,24 +37,12 @@ export const elections1931Results: GameEvent = {
     const isZh = state.language === 'zh';
     
     const cortes = calculateElectionResults(state);
-    
-    
-    const partyOrder: Party[] = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other', 'PRRevS'];
-
-    const data = Object.entries(cortes).map(([party, seats]) => ({
+    const data = getParliamentSeatEntries(cortes).map(([party, seats]) => ({
       id: party,
-      name: getPartyName(state, party as Party, isZh),
+      name: getPartyName(state, party, isZh),
       seats,
       color: PARTY_COLORS[party] || '#9ca3af'
-    }))
-    .filter(d => d.seats > 0)
-    .sort((a, b) => {
-      const indexA = partyOrder.indexOf(a.id as Party);
-      const indexB = partyOrder.indexOf(b.id as Party);
-      const finalIndexA = indexA === -1 ? 999 : indexA;
-      const finalIndexB = indexB === -1 ? 999 : indexB;
-      return finalIndexA - finalIndexB;
-    });
+    }));
     
     const totalSeats = data.reduce((sum, d) => sum + d.seats, 0);
     const formatPct = (seats: number) => `${Math.round((seats / totalSeats) * 100)}%`;

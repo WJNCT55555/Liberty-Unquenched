@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, isAtOrAfter } from '../utils';
+import { setOrganizationEstablished } from '../organizations';
 
 const cntInternalSplitMeta = {
   category: 'cnt' as const,
@@ -33,6 +34,7 @@ export const foundingSyndicalistParty: GameEvent = {
         return {
           classes: newClasses,
           ps_founded: true,
+          ...setOrganizationEstablished(state, 'PS'),
           relations: {
             ...state.relations,
             syndicalistParty: (state.relations.syndicalistParty || 0) + 10
@@ -47,7 +49,8 @@ export const foundingSyndicalistParty: GameEvent = {
         let newFactions = adjustFactionInfluence(state.factions, 'Faistas', 5);
         return { 
           factions: newFactions,
-          ps_founded: true
+          ps_founded: true,
+          ...setOrganizationEstablished(state, 'PS')
         };
       },
     },

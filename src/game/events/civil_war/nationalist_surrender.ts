@@ -12,7 +12,7 @@ export const nationalistSurrender: GameEvent = {
   id: 'nationalist_surrender',
   meta: civilWarTerminalMeta,
   condition: (state) => {
-    if (state.civilWarStatus !== 'ongoing') return false;
+    if (state.iberianDefense || state.civilWarStatus !== 'ongoing') return false;
 
     const burgos = state.provinces?.['burgos'];
     const burgosNotNationalist = burgos ? burgos.owner !== MapFaction.NATIONALIST : true;
@@ -31,7 +31,7 @@ export const nationalistSurrender: GameEvent = {
     {
       text: 'Long Live the Republic!',
       textZh: '共和国万岁！',
-      effect: (state) => ({
+      effect: (state) => state.iberianDefense ? state : ({
         civilWarStatus: 'won',
         superEvent: 'spanish_civil_war_ends'
       })

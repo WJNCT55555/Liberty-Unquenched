@@ -1,6 +1,6 @@
 import type { GameEvent } from '../types';
 import { MapFaction, Army } from '../../map/types_map';
-import { INITIAL_PROVINCES, INITIAL_ARMIES, isPortugalProvince } from '../../map/map_constants';
+import { INITIAL_PROVINCES, SPANISH_ARMY_FORMATIONS, createArmiesFromFormations, isPortugalProvince } from '../../map/map_constants';
 
 const asturiasRootMeta = {
   category: 'war' as const,
@@ -95,11 +95,10 @@ export const asturiasRevolution: GameEvent = {
           }
         });
 
-        // Keep standard INITIAL_ARMIES for the Republic (excluding Asturias/Oviedo) and append special ones
-        const republicanArmies = INITIAL_ARMIES.filter(army => army.provinceId !== 'asturias' && army.provinceId !== 'oviedo').map(army => ({
-          ...army,
-          faction: MapFaction.REPUBLICAN
-        }));
+        // Place the peacetime roster on the map for the Republic (excluding
+        // Asturias/Oviedo, which the workers' alliance holds) and append specials.
+        const republicanArmies = createArmiesFromFormations(state.armyFormations || SPANISH_ARMY_FORMATIONS)
+          .filter(army => army.provinceId !== 'asturias' && army.provinceId !== 'oviedo');
 
         const nextArmies: Army[] = [
           {

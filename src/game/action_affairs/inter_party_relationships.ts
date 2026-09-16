@@ -1,5 +1,6 @@
 import { Card, GameState, GameEvent } from '../types';
 import { adjustFactionDissents, getDissentMultiplier } from '../utils';
+import { isRepublicanPartyEligible } from '../politicalEligibility';
 
 export const cntInterPartyRelationships: Card = {
   id: 'inter_party_relationships',
@@ -20,12 +21,12 @@ export const cntInterPartyRelationships: Card = {
     const multiplier = getDissentMultiplier(state.factions);
 
     // Option 1: Strengthen ties with moderate radicals and the liberal republican right
-    options.push({
+    if (isRepublicanPartyEligible(state, 'PRR') && isRepublicanPartyEligible(state, 'DLR')) options.push({
       text: 'Strengthen our bonds with the moderate Republican Radical Party and the Liberal-Republican Right.',
       textZh: '加强与温和的共和激进党及自由共和右翼的联系',
       subtitle: 'The moderate centrists of the Partido Republicano Radical and Derecha Liberal Republicano',
       subtitleZh: '温和中间派的共和激进党与自由共和右翼',
-      condition: (s: GameState) => s.resources >= 1,
+      condition: (s: GameState) => s.resources >= 1 && isRepublicanPartyEligible(s, 'PRR') && isRepublicanPartyEligible(s, 'DLR'),
       unavailableSubtitle: () => 'Need at least 1 resource.',
       unavailableSubtitleZh: () => '需要至少 1 资源。',
       effect: (s: GameState) => {

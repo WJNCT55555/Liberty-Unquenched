@@ -70,7 +70,7 @@ const MinimalPieChart: React.FC<{
   });
 
   return (
-    <div className="relative group flex-shrink-0" style={{ width: size, height: size }}>
+    <div className="economy-pie-chart relative group flex-shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 64 64" className="w-full h-full transform -rotate-90 select-none">
         <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.05)" />
         {paths}
@@ -166,7 +166,7 @@ const SingleIndicatorLineChart: React.FC<{
                 x2={width - padRight}
                 y2={y}
                 stroke="currentColor"
-                strokeWidth="0.35"
+                strokeWidth="0.65"
                 strokeDasharray="1.5 2"
                 className="text-ink opacity-25"
               />
@@ -187,7 +187,7 @@ const SingleIndicatorLineChart: React.FC<{
               x2={getX(point.month)}
               y2={height - padBottom}
               stroke="currentColor"
-              strokeWidth="0.3"
+              strokeWidth="0.55"
               strokeDasharray="1 2"
               className="text-ink opacity-20"
             />
@@ -201,17 +201,17 @@ const SingleIndicatorLineChart: React.FC<{
             x2={getQuarterBoundaryX(lastMonthInQuarter)}
             y2={height - padBottom}
             stroke="currentColor"
-            strokeWidth="0.8"
+            strokeWidth="1.15"
             className="text-ink opacity-45"
           />
         ))}
 
         {/* Explicit axes. */}
-        <line x1={padLeft} y1={padTop} x2={padLeft} y2={height - padBottom} stroke="currentColor" strokeWidth="0.8" className="text-ink opacity-70" />
-        <line x1={padLeft} y1={height - padBottom} x2={width - padRight} y2={height - padBottom} stroke="currentColor" strokeWidth="0.8" className="text-ink opacity-70" />
+        <line x1={padLeft} y1={padTop} x2={padLeft} y2={height - padBottom} stroke="currentColor" strokeWidth="1.35" className="text-ink opacity-80" />
+        <line x1={padLeft} y1={height - padBottom} x2={width - padRight} y2={height - padBottom} stroke="currentColor" strokeWidth="1.35" className="text-ink opacity-80" />
 
         {pathD && (
-          <path d={pathD} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="opacity-90" />
+          <path d={pathD} fill="none" stroke={color} strokeWidth="3.2" strokeLinecap="square" strokeLinejoin="miter" className="opacity-95" />
         )}
 
         {/* Month hover targets and labels. */}
@@ -254,10 +254,10 @@ const SingleIndicatorLineChart: React.FC<{
               key={`point-${point.month}`}
               cx={getX(point.month)}
               cy={getY(point.value)}
-              r={isCurrent ? 2.6 : isHovered ? 2.3 : 1.5}
+              r={isCurrent ? 3 : isHovered ? 2.8 : 1.8}
               fill={color}
               stroke={isCurrent || isHovered ? '#fff' : 'none'}
-              strokeWidth="0.8"
+              strokeWidth="1"
             />
           );
         })}
@@ -311,6 +311,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   const isCivilWar = economy.isCivilWar;
   const manualTaxAdjustmentEnabled = state.difficulty === 'sandbox'
     && state.sandboxManualTaxAdjustmentEnabled === true;
+  const sovereignInterventionsEnabled = state.difficulty === 'sandbox'
+    && state.sandboxSovereignInterventionsEnabled === true;
   const milSpendVal = state.military_spending !== undefined ? state.military_spending : ECONOMIC_RULES.defaults.militarySpending;
   const taxDefaults = ECONOMIC_RULES.defaults;
   const { incomeTax: incomeTaxRev, tariff: tariffRev, consumptionTax: consumptionTaxRev, total: estimatedRevenue } = economy.revenue;
@@ -327,11 +329,20 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
     landCompensation: landCompCost,
     total: estimatedExpenditures,
   } = economy.expenditure;
-  const { budgetDelta: estimatedDelta, landLawLevel, landReformPaused: isLandReformPaused } = economy;
+  const {
+    budgetDelta: estimatedDelta,
+    landLawLevel,
+    landReformPaused: isLandReformPaused,
+    taxBaseFactors,
+    financing,
+    nextBudget,
+    nextDebt,
+    nextFiscalArrears,
+  } = economy;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
+    <div className="economy-modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="economy-modal__panel bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
         
         {/* Header */}
         <div className="border-b-2 border-ink border-opacity-30 p-4 flex justify-between items-center bg-ink/5">
@@ -434,12 +445,13 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                 {/* Regular Budget */}
                 <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-ink-light leading-none">
-                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国库预算' : 'Treasury Budget'}</span>
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国库现金余额' : 'Treasury Cash'}</span>
                     <Landmark className="w-3 h-3 text-ink-light" />
                   </div>
                   <span className={`text-base font-bold mt-1 ${state.budget >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
                     {(state.budget !== undefined ? state.budget : 12.0).toFixed(2)}M ₧
                   </span>
+                  <span className="text-[8px] text-ink-light mt-0.5">{isZh ? '可动用现金存量' : 'Liquid cash stock'}</span>
                 </div>
 
                 {/* Gold Reserves */}
@@ -467,9 +479,9 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
 
               <div className="grid grid-cols-2 gap-2 mb-2">
                 {/* Public Debt */}
-                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs col-span-2">
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
                   <div className="flex items-center justify-between text-ink-light leading-none">
-                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国家公共债务累计' : 'Soevereign Public Debt'}</span>
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '国家公共债务累计' : 'Sovereign Public Debt'}</span>
                     <Activity className="w-3 h-3 text-red-500" />
                   </div>
                   <div className="flex items-baseline justify-between mt-1">
@@ -479,6 +491,20 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                     <span className="text-[8px] text-ink-light">
                       {isZh ? `年息: ${isCivilWar ? '5%' : '2%'}` : `Int Rate: ${isCivilWar ? '5%' : '2%'}`}
                     </span>
+                  </div>
+                </div>
+
+                {/* Fiscal Arrears */}
+                <div className="bg-paper border border-ink/10 p-2 rounded-xs flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between text-ink-light leading-none">
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{isZh ? '财政欠款' : 'Fiscal Arrears'}</span>
+                    <AlertTriangle className="w-3 h-3 text-orange-600" />
+                  </div>
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className={`text-base font-bold ${(state.fiscal_arrears ?? 0) > 0 ? 'text-cnt-red' : 'text-slate-700'}`}>
+                      {(state.fiscal_arrears ?? 0).toFixed(2)}M ₧
+                    </span>
+                    <span className="text-[8px] text-ink-light">{isZh ? '未付义务' : 'Unpaid bills'}</span>
                   </div>
                 </div>
 
@@ -508,6 +534,11 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                     <span>{isZh ? '・所得税总额:' : '• Income Tax Revenue:'}</span>
                     <span className="font-bold text-ink">{incomeTaxRev.toFixed(2)}M ₧</span>
+                  </div>
+                  <div className="text-[8px] text-ink-light bg-ink/5 px-1.5 py-1 mb-0.5">
+                    {isZh
+                      ? `税基系数：产出 ${taxBaseFactors.output.toFixed(2)} · 就业 ${taxBaseFactors.employment.toFixed(2)} · 购买力 ${taxBaseFactors.purchasingPower.toFixed(2)} · 资本信心 ${taxBaseFactors.capitalConfidence.toFixed(2)} · 贸易 ${taxBaseFactors.tradeVolume.toFixed(2)}`
+                      : `Tax-base factors: output ${taxBaseFactors.output.toFixed(2)} · employment ${taxBaseFactors.employment.toFixed(2)} · purchasing power ${taxBaseFactors.purchasingPower.toFixed(2)} · capital confidence ${taxBaseFactors.capitalConfidence.toFixed(2)} · trade ${taxBaseFactors.tradeVolume.toFixed(2)}`}
                   </div>
                   <div className="flex justify-between text-ink-light border-b border-dotted border-ink/10 pb-0.5">
                     <span>{isZh ? '・关税壁垒总额:' : '• Tariffs Revenue:'}</span>
@@ -580,7 +611,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                       <span className="font-bold text-ink">
                         {isLandReformPaused ? (
                           <span className="text-cnt-red text-[10px] font-mono uppercase tracking-tight">
-                            {isZh ? '⌛ 预算赤字・已暂停' : '⌛ Deficit • Paused'}
+                            {isZh ? '⌛ 国库现金不足・已暂停' : '⌛ Insufficient Cash • Paused'}
                           </span>
                         ) : (
                           `${landCompCost.toFixed(2)}M ₧`
@@ -597,10 +628,22 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   <div className="h-px bg-ink/30 my-1"/>
 
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="font-bold text-ink">{isZh ? '每月净增收 (赤字将转为国债):' : 'Net Monthly Surplus (Deficit goes to Debt):'}</span>
+                    <span className="font-bold text-ink">{isZh ? '月度经营结余（收入－支出）:' : 'Monthly Operating Balance:'}</span>
                     <span className={`font-bold px-1.5 py-0.5 rounded-sm ${estimatedDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-cnt-red'}`}>
                       {estimatedDelta >= 0 ? '+' : ''}{estimatedDelta.toFixed(2)}M ₧
                     </span>
+                  </div>
+                  <div className="bg-ink/5 p-2 mt-1 space-y-0.5 text-[9px] text-ink-light">
+                    <div className="font-bold text-ink">{isZh ? '月结融资瀑布' : 'Settlement Waterfall'}</div>
+                    {estimatedDelta < 0 ? (
+                      <>
+                        <div>{isZh ? `先使用国库现金 ${financing.cashUsedForDeficit.toFixed(2)}M ₧` : `Treasury cash used first: ${financing.cashUsedForDeficit.toFixed(2)}M ₧`}</div>
+                        <div>{isZh ? `新增借款 ${financing.newBorrowing.toFixed(2)}M ₧；新增欠款 ${financing.newArrears.toFixed(2)}M ₧` : `New borrowing: ${financing.newBorrowing.toFixed(2)}M ₧; new arrears: ${financing.newArrears.toFixed(2)}M ₧`}</div>
+                      </>
+                    ) : (
+                      <div>{isZh ? `先清偿欠款 ${financing.arrearsPaid.toFixed(2)}M ₧，再偿还本金 ${financing.principalRepayment.toFixed(2)}M ₧，余款入库` : `Pay arrears ${financing.arrearsPaid.toFixed(2)}M ₧, repay principal ${financing.principalRepayment.toFixed(2)}M ₧, retain the rest as cash`}</div>
+                    )}
+                    <div className="font-bold text-ink">{isZh ? `月结后：现金 ${nextBudget.toFixed(2)} · 债务 ${nextDebt.toFixed(2)} · 欠款 ${nextFiscalArrears.toFixed(2)}M ₧` : `After settlement: cash ${nextBudget.toFixed(2)} · debt ${nextDebt.toFixed(2)} · arrears ${nextFiscalArrears.toFixed(2)}M ₧`}</div>
                   </div>
                 </div>
 
@@ -641,6 +684,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
             </div>
 
             {/* National Intervention Actions (Wartime & Peacetime Emergency) */}
+            {sovereignInterventionsEnabled && (
             <div className="bg-paper border-2 border-dashed border-ink/30 p-3 rounded-xs flex flex-col gap-2">
               <h4 className="font-bold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1">
                 <Landmark className="w-3 h-3 text-orange-600" />
@@ -683,8 +727,8 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   </div>
                   <p className="text-[8px] text-ink-light leading-snug">
                     {isZh 
-                      ? '【一次性融资】国库预算立即增加 50M ₧，并吸收 10M ₧ 国际外汇声援，但公共债务会增加 60M ₧（溢价偿还本息），且增加通货膨胀 +1.2%。'
-                      : 'One-time fund raising: gains +50M budget & +10M foreign exchange, but adds +60M to Sovereign Debt and spikes inflation by +1.2%.'}
+                      ? '【一次性融资】国库现金立即增加 50M ₧，并吸收 10M ₧ 国际外汇声援，但公共债务会增加 60M ₧（溢价偿还本息），且增加通货膨胀 +1.2%。'
+                      : 'One-time fund raising: gains +50M treasury cash and +10M foreign exchange, but adds +60M to Sovereign Debt and spikes inflation by +1.2%.'}
                   </p>
                 </div>
 
@@ -711,6 +755,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                 </div>
               </div>
             </div>
+            )}
 
           </div>
 

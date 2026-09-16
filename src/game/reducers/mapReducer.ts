@@ -1,9 +1,32 @@
 import type { DomainReducer, GameAction } from './types';
 import type { Army } from '../../map/types_map';
-import { MapFaction } from '../../map/types_map';
+import { MapFaction, MAX_BUILT_FORTRESS } from '../../map/types_map';
 import { INITIAL_PROVINCES, PROVINCE_ADJACENCY, isPortugalProvince } from '../../map/map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
+import { getMilitiaRecruitmentPool, spendMilitiaPoolManpower } from '../rules/warSetup';
 import type { GameState } from '../types';
+import { getArmyPoliticalMember } from '../rules/wartimeCoalition';
+import { monthIndex } from '../rules/wartimeCoalition';
+import { canEnterMapProvince, getPlayerMapFaction, getMapFactionName } from '../../map/rules/factions';
+
+/** Each monthly war segment has one player turn, followed by each surviving AI once. */
+export const finishPlayerMapTurn = (state: GameState, helpers: MapReducerHelpers): GameState => {
+  const now = monthIndex(state);
+  if (state.iberianDefense?.winner || state.iberianDefense?.completedAiMonth === now) return state;
+  let next = helpers.checkWarStatus(state, state.language === 'zh');
+  if (next.iberianDefense?.winner) return next;
+  if (next.iberianDefense) next = { ...next, iberianDefense: { ...next.iberianDefense, completedAiMonth: now } };
+  const aiFactions = state.iberianDefense ? [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]
+    : [state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST];
+  for (const faction of aiFactions) {
+    if (next.iberianDefense?.winner || next.iberianDefense?.eliminated.includes(faction)) continue;
+    next = helpers.executeAiTurn({ ...next, mapCurrentPlayer: faction, mapHistory: [
+      `${state.year}-${state.month} · ${getMapFactionName(faction, state.language === 'zh')} · ${state.language === 'zh' ? 'AI 回合（2 CP）' : 'AI turn (2 CP)'}`, ...(next.mapHistory ?? []),
+    ] }, faction, state.language === 'zh');
+    next = helpers.checkWarStatus(next, state.language === 'zh');
+  }
+  return next;
+};
 
 /** Fast, local map interactions are reduced independently from political state. */
 export const reduceMap: DomainReducer = (state, action) => {
@@ -47,6 +70,19 @@ export interface MapReducerHelpers {
 
 /** Handles map movement, combat, recruitment, construction, and turn actions. */
 export const reduceMapWarAction = (state: GameState, action: GameAction, helpers: MapReducerHelpers): GameState | null => {
+  const commander = getPlayerMapFaction(state);
+  if (state.phase !== 'war' || state.mapCurrentPlayer !== commander || state.iberianDefense?.playerDefeated || state.iberianDefense?.winner) return state;
+  if ('payload' in action && action.payload && typeof action.payload === 'object' && 'armyId' in action.payload) {
+    const armyId = action.payload.armyId;
+    const army = state.armies?.find(item => item.id === armyId);
+    if (army && army.faction !== commander) return state;
+  }
+  if (action.type === 'MERGE_MAP_ARMIES' || action.type === 'DISBAND_MAP_ARMIES') {
+    if (state.armies?.some(army => state.mapSelectedArmyIds?.includes(army.id) && army.faction !== commander)) return state;
+  }
+  if (action.type === 'RECRUIT_MAP_ARMY' || action.type === 'BUILD_MAP_BUILDING') {
+    if (state.provinces?.[action.payload.provinceId]?.owner !== commander) return state;
+  }
   let newState = state;
   switch (action.type) {
     case 'MOVE_MAP_ARMY': {
@@ -56,7 +92,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const movedArmy = armies.find(a => a.id === armyId);
       if (!movedArmy) break;
 
-      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
+      const currentPlayerFaction = commander;
 
       // Player movement is only valid during the player's map turn, with one of
       // the player's armies, and into an adjacent province.
@@ -69,7 +105,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       }
 
       // Prevent Nationalist and Republican armies from entering Portugal
-      if (currentPlayerFaction === MapFaction.REPUBLICAN && isPortugalProvince(targetProvinceId)) {
+      if (!state.provinces?.[targetProvinceId] || !canEnterMapProvince(currentPlayerFaction, state.provinces[targetProvinceId].owner) || movedArmy.movesLeft <= 0) {
         break;
       }
 
@@ -104,15 +140,11 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         mapHistory: nextHistory,
       };
 
-      // Check if player has run out of CP
+      updatedState = helpers.checkWarStatus(updatedState, isZh);
+      // Check capitulation before granting the next camp its turn.
       const updatedPlayerRes = mapResources[currentPlayerFaction];
       if (updatedPlayerRes && updatedPlayerRes.commandPoints === 0) {
-        const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
-        updatedState.mapCurrentPlayer = aiFaction;
-        updatedState = helpers.executeAiTurn(updatedState, aiFaction, isZh);
-        updatedState = helpers.checkWarStatus(updatedState, isZh);
-      } else {
-        updatedState = helpers.checkWarStatus(updatedState, isZh);
+        updatedState = finishPlayerMapTurn(updatedState, helpers);
       }
 
       newState = updatedState;
@@ -120,29 +152,20 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
     }
     case 'END_MAP_PLAYER_TURN': {
       if (state.phase !== 'war') return state;
-      const isZh = state.language === 'zh';
-      const aiFaction = state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST;
-      const currentPlayerFaction = state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
-      let updatedState: GameState = {
-        ...state,
-        mapCurrentPlayer: aiFaction,
-      };
-      updatedState = helpers.executeAiTurn(updatedState, aiFaction, isZh);
-      updatedState = helpers.checkWarStatus(updatedState, isZh);
-      
-      newState = updatedState;
+      newState = finishPlayerMapTurn(state, helpers);
       break;
     }
     case 'RECRUIT_MAP_ARMY': {
       if (state.phase !== 'war') return state;
-      const { provinceId, composition } = action.payload;
+      const { provinceId, composition, sourceEntityId } = action.payload;
       const { infantry, artillery, tanks } = composition;
 
       const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
       const mapResources = { ...state.mapResources };
       const playerRes = mapResources[playerFaction];
+      const province = (state.provinces || INITIAL_PROVINCES)[provinceId];
 
-      if (!playerRes) break;
+      if (!playerRes || !province) break;
 
       const recruitCost = armyRecruitCost({ infantry, artillery, tanks });
       const reqManpower = recruitCost.manpower;
@@ -150,8 +173,9 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const reqIndustry = recruitCost.ic;
       const reqTankReserve = recruitCost.tankReserve;
 
+      // Supplies, industry and armour always come from the camp; only manpower can
+      // come from a party militia pool.
       if (
-        playerRes.manpower < reqManpower ||
         playerRes.supplies < reqSupplies ||
         playerRes.industrialCapacity < reqIndustry ||
         playerRes.tankReserve < reqTankReserve
@@ -159,9 +183,30 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         break;
       }
 
+      let identity: Army['identity'] = 'gov';
+      let recruitmentUpdate: Partial<GameState> = {};
+      let nextManpower = playerRes.manpower;
+
+      if (sourceEntityId) {
+        // Party militia: the province needs a recruiting office, the organization
+        // must be active, and the pool must actually hold the men.
+        const pool = getMilitiaRecruitmentPool(state, playerFaction, sourceEntityId);
+        if (!pool || !pool.active) break;
+        if ((province.buildings?.recruitingOffice || 0) <= 0) break;
+        if (pool.manpower < reqManpower) break;
+
+        identity = pool.identity;
+        recruitmentUpdate = spendMilitiaPoolManpower(state, sourceEntityId, reqManpower, playerFaction);
+      } else {
+        // National conscripts: the province needs barracks, and the camp pays the men.
+        if ((province.buildings?.barracks || 0) <= 0) break;
+        if (nextManpower < reqManpower) break;
+        nextManpower -= reqManpower;
+      }
+
       mapResources[playerFaction] = {
         ...playerRes,
-        manpower: Math.max(0, playerRes.manpower - reqManpower),
+        manpower: Math.max(0, nextManpower),
         supplies: Math.max(0, playerRes.supplies - reqSupplies),
         industrialCapacity: Math.max(0, playerRes.industrialCapacity - reqIndustry),
         tankReserve: Math.max(0, playerRes.tankReserve - reqTankReserve),
@@ -171,7 +216,8 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const newArmy: Army = {
         id: newArmyId,
         faction: playerFaction,
-        identity: 'gov',
+        identity,
+        sourceEntityId: sourceEntityId || 'republican_state',
         provinceId,
         movesLeft: 0,
         manpower: reqManpower,
@@ -185,6 +231,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       newState = {
         ...state,
         mapResources,
+        ...recruitmentUpdate,
         armies: [...(state.armies || []), newArmy],
         mapSelectedArmyId: newArmyId,
         mapSelectedArmyIds: [newArmyId],
@@ -278,6 +325,16 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
 
       if (mergeCandidates.length <= 1) break;
 
+      // Merging is a field reorganization, not teleportation: the units must be
+      // standing together, belong to the same camp, and share one political
+      // identity. Cross-identity absorption would silently swallow one party's
+      // militia into another's, so it needs an explicit integration instead.
+      const distinctProvinces = new Set(mergeCandidates.map(a => a.provinceId));
+      const distinctFactions = new Set(mergeCandidates.map(a => a.faction));
+      const distinctIdentities = new Set(mergeCandidates.map(a => a.identity ?? 'gov'));
+      const distinctPoliticalOwners = new Set(mergeCandidates.map(getArmyPoliticalMember));
+      if (distinctProvinces.size > 1 || distinctFactions.size > 1 || distinctIdentities.size > 1 || distinctPoliticalOwners.size > 1) break;
+
       const primary = mergeCandidates[0];
       const others = mergeCandidates.slice(1);
       const otherIds = others.map(o => o.id);
@@ -308,8 +365,9 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         totalManpower += a.manpower;
       });
 
-      const avgMorale = totalManpower > 0 ? Math.round(weightedMoraleSum / totalManpower) : primary.morale;
-      const avgMilitarization = totalManpower > 0 ? Math.round(weightedMilSum / totalManpower) : primary.militarization;
+      // Preserve the weighted values so repeated splitting/merging cannot manufacture political power.
+      const avgMorale = totalManpower > 0 ? weightedMoraleSum / totalManpower : primary.morale;
+      const avgMilitarization = totalManpower > 0 ? weightedMilSum / totalManpower : primary.militarization;
 
       const mergedArmy: Army = {
         ...primary,
@@ -422,6 +480,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         id: newArmyId,
         faction: parent.faction,
         identity: parent.identity ?? 'gov',
+        sourceEntityId: parent.sourceEntityId,
         provinceId: parent.provinceId,
         movesLeft: parent.movesLeft,
         manpower: splitArmyTotal,
@@ -456,6 +515,10 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const currentLevel = currentBuildings[buildingType as keyof typeof currentBuildings] || 0;
       const nextLevel = currentLevel + 1;
 
+      // Fortresses and ammunition factories are capped; the other two are not.
+      if (buildingType === 'fortress' && currentLevel >= MAX_BUILT_FORTRESS) break;
+      if (buildingType === 'ammoFactory' && currentLevel >= 2) break;
+
       const cost = getBuildingCost(buildingType, nextLevel);
 
       if (
@@ -481,7 +544,8 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       provinces[provinceId] = {
         ...province,
         buildings: nextBuildings,
-        ...(buildingType === 'fortress' ? { fortification: Math.min(3, nextLevel) } : {}),
+        // A fortress ADDS to the province's inherent defence; it must never
+        // overwrite `fortification`, which carries the terrain's own level.
       };
 
       newState = {

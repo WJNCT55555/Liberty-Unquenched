@@ -1,0 +1,277 @@
+.start-screen-home {
+  background: #000;
+}
+
+.start-screen-home__backdrop,
+.start-screen-home__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.start-screen-home__backdrop {
+  overflow: hidden;
+}
+
+/* Use one scale for both axes so the source map keeps its proportions. */
+.start-screen-home__map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: auto;
+  max-width: none;
+  transform: translateX(-10%);
+  user-select: none;
+}
+
+.start-screen-home__shade {
+  background: linear-gradient(90deg, transparent 32%, rgb(0 0 0 / 8%) 41%, rgb(0 0 0 / 60%) 56%, #000 72%);
+}
+
+.start-screen-home__content {
+  position: absolute;
+  z-index: 10;
+  top: 10.2%;
+  right: 4.2%;
+  bottom: 9%;
+  width: 26.2%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  color: #f4ecd8;
+}
+
+.start-screen-home__heading {
+  text-align: center;
+}
+
+.start-screen-home__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(48px, 5.3vw, 112px);
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-shadow: 4px 4px 0 #c1272d;
+}
+
+.start-screen-home__title span {
+  display: block;
+}
+
+.start-screen-home__title--zh {
+  margin-top: 4.5vh;
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: clamp(38px, 5.3vw, 100px);
+  font-weight: 900;
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.start-screen-home__subtitle {
+  margin: 18px -8px 0;
+  font-family: var(--font-typewriter);
+  font-size: clamp(11px, 1.18vw, 22px);
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  color: #d5cebc;
+  text-wrap: balance;
+}
+
+.start-screen-home__menu {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.6vh, 18px);
+}
+
+.start-screen-home__button {
+  width: 100%;
+  min-height: clamp(48px, 7.2vh, 78px);
+  padding: 10px 16px;
+  border: 2px solid #f4ecd8;
+  background: #232322;
+  color: #f4ecd8;
+  box-shadow: 4px 4px 0 #f4ecd8;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 1.45vw, 28px);
+  line-height: 1.25;
+  letter-spacing: 0.055em;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.start-screen-home__button--primary {
+  border-color: #c1272d;
+  background: #c1272d;
+}
+
+.start-screen-home__content:lang(zh-Hans) .start-screen-home__button {
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+@media (hover: hover) {
+  .start-screen-home__button:hover:not(:disabled) {
+    background: #f4ecd8;
+    color: #232322;
+    box-shadow: 2px 2px 0 #f4ecd8;
+    transform: translate(2px, 2px);
+  }
+
+  .start-screen-home__button--primary:hover:not(:disabled) {
+    background: #da3037;
+    color: #f4ecd8;
+  }
+}
+
+.start-screen-home__button:focus-visible {
+  outline: 2px solid #f4ecd8;
+  outline-offset: 7px;
+}
+
+.start-screen-home__button:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.start-screen-home__button:disabled {
+  color: #938e83;
+  border-color: #7c786e;
+  box-shadow: 4px 4px 0 #7c786e;
+  background: #191918;
+  cursor: not-allowed;
+}
+
+@media (min-aspect-ratio: 21/9) {
+  .start-screen-home__map {
+    top: 50%;
+    width: 82%;
+    height: auto;
+    transform: translate(-10%, -50%);
+  }
+}
+
+@media (max-aspect-ratio: 4/3) and (min-width: 768px) {
+  .start-screen-home__content {
+    width: 39%;
+    right: 5%;
+  }
+
+  .start-screen-home__shade {
+    background: linear-gradient(90deg, transparent 15%, rgb(0 0 0 / 55%) 42%, #000 65%);
+  }
+}
+
+@media (max-height: 650px) and (min-width: 768px) {
+  .start-screen-home__content {
+    top: 7%;
+    bottom: 7%;
+    gap: 16px;
+  }
+
+  .start-screen-home__title {
+    font-size: clamp(32px, 4.7vw, 58px);
+    line-height: 1.16;
+  }
+
+  .start-screen-home__subtitle {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+
+  .start-screen-home__menu {
+    gap: 9px;
+  }
+
+  .start-screen-home__button {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 767px) {
+  .start-screen-home__map {
+    height: 68%;
+    transform: translateX(-25%);
+  }
+
+  .start-screen-home__shade {
+    background: linear-gradient(180deg, rgb(0 0 0 / 28%) 0%, rgb(0 0 0 / 65%) 30%, #000 65%);
+  }
+
+  .start-screen-home__content {
+    top: max(7%, env(safe-area-inset-top));
+    right: max(28px, env(safe-area-inset-right));
+    bottom: max(6%, env(safe-area-inset-bottom));
+    left: max(24px, env(safe-area-inset-left));
+    width: auto;
+    gap: 24px;
+  }
+
+  .start-screen-home__title {
+    font-size: clamp(48px, 12vw, 80px);
+    line-height: 1.2;
+    text-shadow: 3px 3px 0 #c1272d;
+  }
+
+  .start-screen-home__title--zh {
+    margin-top: 5vh;
+    font-size: clamp(36px, 11vw, 70px);
+  }
+
+  .start-screen-home__subtitle {
+    margin: 18px 0 0;
+    font-size: 12px;
+  }
+
+  .start-screen-home__button {
+    min-height: 48px;
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 540px) and (orientation: landscape) {
+  .start-screen-home__content {
+    inset: 24px 28px 24px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .start-screen-home__title {
+    font-size: 32px;
+  }
+
+  .start-screen-home__title--zh {
+    margin-top: 0;
+  }
+
+  .start-screen-home__subtitle {
+    font-size: 10px;
+  }
+
+  .start-screen-home__menu {
+    gap: 10px;
+  }
+
+  .start-screen-home__button {
+    min-height: 44px;
+    padding: 8px;
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-screen-home__button {
+    transition: none;
+  }
+}

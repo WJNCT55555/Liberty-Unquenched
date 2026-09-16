@@ -1,7 +1,9 @@
 import type { GameEvent, GameState } from '../../types';
 import { MapFaction, Army } from '../../../map/types_map';
-import { INITIAL_PROVINCES, INITIAL_ARMIES } from '../../../map/map_constants';
+import { INITIAL_PROVINCES, SPANISH_ARMY_FORMATIONS, createArmiesFromFormations } from '../../../map/map_constants';
 import { activateCivilWarOrganizations } from '../../organizations';
+import { completeCivilWarSetup } from '../../rules/wartimeCoalition';
+import { applyPeacetimeMobilization, applyMobilizationToMapResources, applyCivilWarLoyaltySplit } from '../../rules/warSetup';
 
 const civilWarSetupRootMeta = {
   category: 'war' as const,
@@ -24,11 +26,9 @@ const civilWarSetupLeafMeta = {
 
 // Helper to project armies based on choice log
 export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, choices: Record<string, string>) {
-  const baseArmies: Army[] = (state.armies ? [...state.armies] : [...INITIAL_ARMIES]).map(army => ({
-    ...army,
-    identity: army.identity ?? 'gov',
-  }));
-  
+  // Peace keeps no troops on the map, so the war instantiates the standing army
+  // from the peacetime roster and then assigns each formation a side below.
+  const baseArmies: Army[] = createArmiesFromFormations(state.armyFormations || SPANISH_ARMY_FORMATIONS);
   const africaStatus = isOptionA ? 'nationalist' : (choices['step14'] ?? 'nationalist'); // 'nationalist' | 'delayed' | 'chaos'
   const navy = isOptionA ? 'republic' : choices['step15']; // 'republic' | 'republic_retreat' | 'anarchist'
   
@@ -140,7 +140,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     nextArmies.push({
       id: 'rep_21_santander',
       faction: MapFaction.REPUBLICAN,
-      identity: 'ugt',
+      identity: 'gov',
       provinceId: 'santander',
       movesLeft: 2,
       manpower: 3000,
@@ -160,6 +160,7 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
       id: 'rep_asturias_miners',
       faction: MapFaction.REPUBLICAN,
       identity: 'cnt',
+      sourceEntityId: 'cnt_defense_committees',
       provinceId: asturiasLost ? 'madrid' : 'asturias',
       movesLeft: 2,
       manpower: 3500,
@@ -171,13 +172,14 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     });
   }
 
-  // - Madrid militia
+  // - Madrid militia, raised by the MAOC (the PCE's militia organisation)
   const hasMadridMilitia = nextArmies.some(a => a.id === 'rep_madrid_militia');
   if (!hasMadridMilitia) {
     nextArmies.push({
       id: 'rep_madrid_militia',
       faction: MapFaction.REPUBLICAN,
-      identity: 'cnt',
+      identity: 'pce',
+      sourceEntityId: 'maoc',
       provinceId: 'madrid',
       movesLeft: 2,
       manpower: 4000,
@@ -207,7 +209,9 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     });
   }
 
-  return nextArmies;
+  // §6: the historical deployment above is the baseline; the peacetime years now
+  // decide how far those formations can grow and how much stays in reserve.
+  return applyPeacetimeMobilization(state, nextArmies);
 }
 
 // Global choices store in state, let's keep track using custom temporary fields
@@ -242,15 +246,21 @@ export const civilWarSetup: GameEvent = {
           }
         });
 
-        const nextArmies = setupArmiesForCivilWar(state, true, {});
+        const mobilization = setupArmiesForCivilWar(state, true, {});
+        const activated = activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' });
+        // The peacetime army pool and both police corps go over to the two camps
+        // according to loyalty; the militia reserves are Republican and are not split.
+        const loyaltySplit = applyCivilWarLoyaltySplit({ ...state, ...activated }, state.mapResources);
 
         // Apply state updates
         return {
           ...state,
-          ...activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' }),
-          civilWarStatus: 'ongoing',
+          ...activated,
+          ...completeCivilWarSetup(state),
           provinces: nextProvinces,
-          armies: nextArmies,
+          armies: mobilization.armies,
+          armedForces: loyaltySplit.armedForces,
+          mapResources: applyMobilizationToMapResources(loyaltySplit.mapResources, mobilization),
           sanjurjoStatus: 'dead',
           francoAfricaControl: true,
           // Stats updates
@@ -280,9 +290,11 @@ export const civilWarSetup: GameEvent = {
           ...state,
           currentEvent: civilWarStep1,
           phase: 'event',
-          // Reset all provinces and armies to base Republican to start the chain
+          // Reset all provinces to base Republican to start the chain. No armies
+          // are placed: the chain only paints provinces, and the terminal node
+          // instantiates the standing army from the peacetime roster.
           provinces: { ...INITIAL_PROVINCES },
-          armies: [...INITIAL_ARMIES],
+          armies: [],
           // Custom log object to track choices
           civilWarChoices: {}
         };
@@ -1726,14 +1738,18 @@ export const civilWarStep31: GameEvent = {
         });
 
         // Set the final armies list
-        const finalArmies = setupArmiesForCivilWar(state, false, choices);
+        const mobilization = setupArmiesForCivilWar(state, false, choices);
+        const activated = activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' });
+        const loyaltySplit = applyCivilWarLoyaltySplit({ ...state, ...activated }, state.mapResources);
 
         return {
           ...state,
-          ...activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' }),
-          civilWarStatus: 'ongoing',
+          ...activated,
+          ...completeCivilWarSetup(state),
           provinces: finalProvinces,
-          armies: finalArmies,
+          armies: mobilization.armies,
+          armedForces: loyaltySplit.armedForces,
+          mapResources: applyMobilizationToMapResources(loyaltySplit.mapResources, mobilization),
           currentEvent: null,
           phase: 'action',
           actionsLeft: 2

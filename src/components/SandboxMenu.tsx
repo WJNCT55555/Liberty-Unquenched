@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../game/GameContext';
 import { X, Plus, Minus } from 'lucide-react';
-import type { CoalitionId, Faction } from '../game/types';
+import type { CoalitionId, CoalitionMember, Faction } from '../game/types';
+import { isRepublicanPartyEligible } from '../game/politicalEligibility';
 import { MapFaction } from '../map/types_map';
 import { COALITION_DEFS } from '../game/coalitions';
 import { formCoalition, formRulingCoalitionFromSandbox } from '../game/utils';
@@ -251,6 +252,24 @@ export const SandboxMenu = () => {
                     </span>
                   </div>
                 </label>
+                <label className="flex items-center gap-3 bg-ink/5 p-4 cursor-pointer hover:bg-ink/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={state.sandboxSovereignInterventionsEnabled || false}
+                    onChange={(e) => handleEdit('sandboxSovereignInterventionsEnabled', e.target.checked)}
+                    className="w-5 h-5 accent-cnt-red cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-display text-lg">
+                      {isZh ? '显示国库紧急干预行动' : 'Show Emergency Sovereign Interventions'}
+                    </span>
+                    <span className="font-mono text-xs text-ink/75">
+                      {isZh
+                        ? '开启后，财政模态框才会显示抛售黄金、发行公债和紧急军购三个调试行动。'
+                        : 'Shows the three debug actions for selling gold, issuing bonds, and emergency arms imports in the Finance modal.'}
+                    </span>
+                  </div>
+                </label>
               </div>
 
               {/* Sandbox Organization Controls */}
@@ -334,7 +353,7 @@ export const SandboxMenu = () => {
                           onChange={(e) => handleMinisterChange(role, e.target.value)}
                           className="bg-paper text-ink border border-ink/30 px-2 py-1.5 font-sans text-sm shortcut-focus outline-none focus:border-cnt-red transition-all cursor-pointer"
                         >
-                          {options.map((opt) => (
+                          {options.filter(opt => isRepublicanPartyEligible(state, (opt === 'CNT' ? 'CNT_FAI' : opt) as CoalitionMember)).map((opt) => (
                             <option key={opt} value={opt}>
                               {opt === 'CNT'
                                 ? (isZh ? 'CNT（无政府工团）' : 'CNT')
@@ -573,7 +592,7 @@ export const SandboxMenu = () => {
                         : (isZh ? '保留当前执政联盟，仅新增一个非执政政治联盟。' : 'Keeps the current government and adds a non-governing political alliance.')}
                     </p>
                     <div className="flex flex-col gap-1.5">
-                      {COALITION_DEFS.map(def => {
+                      {COALITION_DEFS.filter(def => def.id !== 'popular_front_wartime' && def.members.every(member => isRepublicanPartyEligible(state, member))).map(def => {
                         const isActive = activeCoalitions.some(c => c.activeId === def.id);
                         const isRuling = state.rulingCoalition === def.id;
                         return (

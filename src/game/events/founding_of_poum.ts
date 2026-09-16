@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissent, adjustFactionInfluence, isAtOrAfter } from '../utils';
+import { setOrganizationEstablished } from '../organizations';
 
 const newsMeta = {
   category: 'news' as const,
@@ -34,6 +35,7 @@ export const foundingOfPOUM: GameEvent = {
         
         return {
           poum_founded: true,
+          ...setOrganizationEstablished(state, 'POUM'),
           partyRelations: newPartyRelations,
           factions: newFactions,
           stats: {
@@ -69,6 +71,7 @@ export const foundingOfPOUM: GameEvent = {
         
         return {
           poum_founded: true,
+          ...setOrganizationEstablished(state, 'POUM'),
           partyRelations: newPartyRelations,
           factions: newFactions,
           classes: newClasses,
@@ -88,6 +91,7 @@ export const foundingOfPOUM: GameEvent = {
         
         return {
           poum_founded: true,
+          ...setOrganizationEstablished(state, 'POUM'),
           factions: newFactions,
           classes: newClasses,
           stats: {
@@ -110,6 +114,7 @@ export const foundingOfPOUM: GameEvent = {
         
         return {
           poum_founded: true,
+          ...setOrganizationEstablished(state, 'POUM'),
           factions: newFactions,
           classes: newClasses,
         };
@@ -128,6 +133,7 @@ export const foundingOfPOUM: GameEvent = {
         
         return {
           poum_founded: true,
+          ...setOrganizationEstablished(state, 'POUM'),
           factions: newFactions,
           classes: newClasses,
           stats: {

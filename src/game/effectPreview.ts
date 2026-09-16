@@ -51,6 +51,7 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   choose_enemies_timer: { label: 'Choosing enemies cooldown', labelZh: '选择敌人冷却', reverseTone: true },
   inter_party_relationships_timer: { label: 'Inter-party relations cooldown', labelZh: '党际关系冷却', reverseTone: true },
   military_policy_timer: { label: 'Military policy cooldown', labelZh: '军事政策冷却', reverseTone: true },
+  police_affairs_timer: { label: 'Police affairs cooldown', labelZh: '警察事务冷却', reverseTone: true },
   agricultural_policy_timer: { label: 'Agricultural policy cooldown', labelZh: '农业政策冷却', reverseTone: true },
   labor_rights_timer: { label: 'Labor rights cooldown', labelZh: '劳工权利冷却', reverseTone: true },
   labor_affairs_timer: { label: 'Labor affairs cooldown', labelZh: '劳工事务冷却', reverseTone: true },
@@ -638,19 +639,20 @@ const addArmedForcesDiffs = (
 ) => {
   if (!after) return;
 
-  if (after.regularArmy) {
-    addNumericDelta(lines, { label: 'Regular army manpower', labelZh: '正规军人力' }, before.regularArmy.manpower, after.regularArmy.manpower);
-    addNumericDelta(lines, { label: 'Regular army loyalty', labelZh: '正规军忠诚' }, before.regularArmy.loyalty, after.regularArmy.loyalty);
-  }
-
   if (after.guardiaNacional) {
-    addNumericDelta(lines, { label: 'Guardia Nacional manpower', labelZh: '国民卫队人力' }, before.guardiaNacional.manpower, after.guardiaNacional.manpower);
-    addNumericDelta(lines, { label: 'Guardia Nacional loyalty', labelZh: '国民卫队忠诚' }, before.guardiaNacional.loyalty, after.guardiaNacional.loyalty);
+    addNumericDelta(lines, { label: 'Guardia Civil manpower', labelZh: '国民警卫队人力' }, before.guardiaNacional.manpower, after.guardiaNacional.manpower);
   }
 
   if (after.guardiaAsalto) {
     addNumericDelta(lines, { label: 'Guardia de Asalto manpower', labelZh: '突击卫队人力' }, before.guardiaAsalto.manpower, after.guardiaAsalto.manpower);
-    addNumericDelta(lines, { label: 'Guardia de Asalto loyalty', labelZh: '突击卫队忠诚' }, before.guardiaAsalto.loyalty, after.guardiaAsalto.loyalty);
+  }
+
+  if (after.guardiaRepublicana) {
+    addNumericDelta(lines, { label: 'Guardia Republicana manpower', labelZh: '共和国警卫队人力' }, before.guardiaRepublicana.manpower, after.guardiaRepublicana.manpower);
+  }
+
+  if (after.patrullasObreras) {
+    addNumericDelta(lines, { label: 'Workers\' patrol manpower', labelZh: '工人巡逻队人力' }, before.patrullasObreras.manpower, after.patrullasObreras.manpower);
   }
 
   if (after.militias) {

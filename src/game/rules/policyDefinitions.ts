@@ -186,11 +186,11 @@ const BASE_POLICY_DEFINITIONS: readonly PolicyDefinition[] = [
   },
   {
     id: 'security_corps_law', category: 'security', name: text('Security Corps Law', '治安机关法'), levels: [
-      level(0, 'Guardia Civil Dominance', '国民警卫队主导', 'Guardia Civil provides rural suppression.', '依赖国民警卫队进行农村镇压。', 'Braceros→CNT-FAI +0.01; army loyalty +0.05/month.', '雇农→CNT-FAI +0.01；军官忠诚度+0.05/月。', { monthlyModifiers: [{ kind: 'classSupport', targetClass: 'Braceros', targetForce: 'CNT_FAI', delta: 0.01 }, { kind: 'stat', target: 'armyLoyalty', delta: 0.05 }] }),
-      level(1, 'Assault Guards Formation', '组建突击卫队', 'Modern urban riot police loyal to the Republic.', '建立忠于共和国的城市防暴警察。', 'No monthly effects.', '无月度效果。'),
-      level(2, 'Security Forces Loyalty Purge', '治安部队忠诚审查', 'Right-wing officers are purged.', '清洗右翼警员。', 'No monthly effects.', '无月度效果。'),
-      level(3, 'Reorganize Republican Guard', '改组共和国国民警卫队', 'Security forces are integrated.', '整合治安力量。', 'No monthly effects.', '无月度效果。'),
-      level(4, 'Worker Patrols', '工人巡逻队', 'Catalan-style workers’ patrols are recognized.', '承认加泰罗尼亚式工人巡逻队。', 'No monthly effects.', '无月度效果。'),
+      level(0, 'Guardia Civil Dominance', '国民警卫队主导', 'The Civil Guard is the Republic\'s only police corps; it provides rural suppression and is loyal mostly to itself.', '国民警卫队是共和国唯一的警察力量，负责农村镇压，且忠诚对象主要是它自己。', 'Braceros→CNT-FAI +0.01; army loyalty +0.05/month.', '雇农→CNT-FAI +0.01；军官忠诚度+0.05/月。', { monthlyModifiers: [{ kind: 'classSupport', targetClass: 'Braceros', targetForce: 'CNT_FAI', delta: 0.01 }, { kind: 'stat', target: 'armyLoyalty', delta: 0.05 }] }),
+      level(1, 'Assault Guards Formation', '组建突击卫队', 'A new Republican urban corps is raised beside the Civil Guard, giving the state two police forces.', '在国民警卫队之外新建一支忠于共和国的城市警察部队，国家由此拥有两支警察力量。', 'No monthly effects.', '无月度效果。'),
+      level(2, 'Security Forces Loyalty Purge', '治安部队忠诚审查', 'Right-wing officers are purged. The same two corps remain — an intermediate step before any merger — but both are more reliable.', '清洗右翼警员。仍维持原有的两支警察部队（合并之前的中间状态），但两者的可靠性都提高了。', 'No monthly effects.', '无月度效果。'),
+      level(3, 'Reorganize Republican Guard', '改组共和国警卫队', 'The Civil Guard and the Assault Guard are merged into a single Republican Guard.', '国民警卫队与突击卫队合并为共和国警卫队。', 'No monthly effects.', '无月度效果。'),
+      level(4, 'Worker Patrols', '工人巡逻队', 'The Republican Guard is dissolved and public order passes to Catalan-style workers\' patrols.', '撤销共和国警卫队，公共秩序交由加泰罗尼亚式工人巡逻队维持。', 'No monthly effects.', '无月度效果。'),
     ],
   },
   {

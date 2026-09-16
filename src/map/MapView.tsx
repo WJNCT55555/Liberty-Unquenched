@@ -6,10 +6,12 @@
 import React, { useState, useEffect } from 'react';
 import { ProvinceMap } from './ProvinceMap';
 import { MapFaction as Faction, Province, Army } from './types_map';
-import { INITIAL_PROVINCES, INITIAL_ARMIES } from './map_constants';
+import { INITIAL_PROVINCES } from './map_constants';
+import { getMilitiaRecruitmentPools } from '../game/rules/warSetup';
 import { useGameActions, useMapState } from '../game/GameContext';
 import { Sidebar } from './Sidebar';
 import { WarSummary } from './WarSummary';
+import { getPlayerMapFaction, getMapFactionName } from './rules/factions';
 
 export const MapView: React.FC = () => {
   const gameState = useMapState();
@@ -18,10 +20,11 @@ export const MapView: React.FC = () => {
   const [showWarSummary, setShowWarSummary] = useState(false);
 
   const provinces = gameState.provinces || INITIAL_PROVINCES;
-  const armies = gameState.armies || INITIAL_ARMIES;
+  const armies = gameState.armies || [];
   const selectedProvinceId = gameState.mapSelectedProvinceId || null;
   const selectedArmyId = gameState.mapSelectedArmyId || null;
   const selectedArmyIds = gameState.mapSelectedArmyIds || [];
+  const playerFaction = getPlayerMapFaction(gameState);
 
   const selectProvince = (id: string | null) => {
     dispatch({ type: 'SELECT_MAP_PROVINCE', payload: id });
@@ -39,7 +42,7 @@ export const MapView: React.FC = () => {
   const sidebarState = {
     turn: gameState.month || 1, // mapping calendar month/turn to game turn
     date: `${gameState.year}-${gameState.month}`,
-    currentPlayer: gameState.mapCurrentPlayer || Faction.REPUBLICAN,
+    currentPlayer: playerFaction,
     resources: gameState.mapResources || {
       [Faction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
       [Faction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
@@ -59,11 +62,13 @@ export const MapView: React.FC = () => {
   };
 
   const currentPlayer = gameState.mapCurrentPlayer || Faction.REPUBLICAN;
-  const playerFaction = gameState.activeWar === 'asturias_war' ? Faction.WORKERS_ALLIANCE : Faction.REPUBLICAN;
   const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
-  const isPlayerTurn = currentPlayer === playerFaction;
-  const isAiTurn = currentPlayer === aiFaction;
+  const isPlayerTurn = currentPlayer === playerFaction && !gameState.iberianDefense?.playerDefeated && !gameState.iberianDefense?.winner;
+  const isAiTurn = gameState.iberianDefense ? !isPlayerTurn && !gameState.iberianDefense.winner : currentPlayer === aiFaction;
   const commandPoints = gameState.mapResources?.[playerFaction]?.commandPoints ?? 0;
+  // Party militia pools the current camp may raise units from; computed here because
+  // the sidebar only receives the map-local slice of the game state.
+  const recruitmentPools = getMilitiaRecruitmentPools(gameState, playerFaction);
   const selectedArmy = armies.find((army) => army.id === selectedArmyId);
   const canMoveSelectedArmy = Boolean(
     gameState.phase === 'war' &&
@@ -99,7 +104,7 @@ export const MapView: React.FC = () => {
       {/* Unframed map heading: retain the title and controls without the old header panel. */}
       <div className="shrink-0 min-h-[42px] mb-2 flex items-center justify-between gap-4 px-1">
         <h2 className="font-display text-2xl md:text-3xl uppercase text-ink opacity-95 tracking-widest leading-none">
-          {isZh ? '战略形势图' : 'Strategic Map View'}
+          {gameState.iberianDefense ? getMapFactionName(playerFaction, isZh) : isZh ? '战略形势图' : 'Strategic Map View'}
         </h2>
 
         <div className="flex flex-wrap justify-end gap-1.5">
@@ -111,8 +116,8 @@ export const MapView: React.FC = () => {
               className="px-3 py-1.5 bg-[#2D3748] text-[#F7FAFC] text-[10px] uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors cursor-pointer shadow-sm"
             >
               {isZh 
-                ? (gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合') 
-                : (gameState.activeWar === 'asturias_war' ? 'End Workers Turn' : 'End Republican Turn')}
+                ? (gameState.iberianDefense ? '结束委员会回合 → 两方 AI' : gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合')
+                : (gameState.iberianDefense ? 'End Committee Turn → AI Turns' : gameState.activeWar === 'asturias_war' ? 'End Workers Turn' : 'End Republican Turn')}
             </button>
           )}
           {gameState.phase === 'war' && isAiTurn && (
@@ -163,11 +168,12 @@ export const MapView: React.FC = () => {
         </div>
 
         {/* Sidebar Component */}
-        <Sidebar
+        <fieldset disabled={!isPlayerTurn || gameState.phase !== 'war'} className="contents"><Sidebar
           state={sidebarState}
+          recruitmentPools={recruitmentPools}
           onSelectProvince={selectProvince}
           onSelectArmy={selectArmy}
-          onRecruitArmy={(provinceId, composition) => dispatch({ type: 'RECRUIT_MAP_ARMY', payload: { provinceId, composition } })}
+          onRecruitArmy={(provinceId, composition, sourceEntityId) => dispatch({ type: 'RECRUIT_MAP_ARMY', payload: { provinceId, composition, sourceEntityId } })}
           onReinforceArmy={(armyId) => dispatch({ type: 'REINFORCE_MAP_ARMY', payload: { armyId } })}
           onMergeArmies={() => dispatch({ type: 'MERGE_MAP_ARMIES' })}
           onDisbandArmies={() => dispatch({ type: 'DISBAND_MAP_ARMIES' })}
@@ -175,7 +181,7 @@ export const MapView: React.FC = () => {
           onBuildBuilding={(provinceId, buildingType) => dispatch({ type: 'BUILD_MAP_BUILDING', payload: { provinceId, buildingType } })}
           onExecuteOffensive={(id) => console.log('execute offensive', id)}
           lang={isZh ? 'zh' : 'en'}
-        />
+        /></fieldset>
       </div>
 
       {showWarSummary && (
@@ -186,6 +192,7 @@ export const MapView: React.FC = () => {
           isZh={isZh}
           onClose={() => setShowWarSummary(false)}
           activeWar={gameState.activeWar || undefined}
+          iberianDefense={gameState.iberianDefense}
         />
       )}
     </div>

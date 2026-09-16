@@ -1,4 +1,4 @@
-import type { Advisor, Card, GameEvent, GameState } from '../types';
+import type { Advisor, ArmedEntityId, Card, GameEvent, GameState } from '../types';
 
 /** All user and engine commands accepted by the game store. */
 export type GameAction =
@@ -17,6 +17,7 @@ export type GameAction =
   | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' }
   | { type: 'LOAD_STATE'; payload: GameState }
   | { type: 'UPDATE_TAXES'; payload: { tax_lower_class?: number; tax_middle_class?: number; tax_upper_class?: number; tax_tariff?: number; tax_consumption?: number; military_spending?: number } }
+  | { type: 'UPDATE_TAX_DRAFT'; payload: { draft_tax_lower?: number; draft_tax_middle?: number; draft_tax_upper?: number; draft_tax_tariff?: number; draft_tax_consumption?: number } }
   | { type: 'SELL_GOLD_FOR_FX' }
   | { type: 'ISSUE_WAR_BONDS' }
   | { type: 'BUY_RESOURCES_URGENT' }
@@ -28,7 +29,7 @@ export type GameAction =
   | { type: 'SELECT_MAP_PROVINCE'; payload: string | null }
   | { type: 'SELECT_MAP_ARMY'; payload: { armyId: string | null; isShift: boolean } }
   | { type: 'MOVE_MAP_ARMY'; payload: { armyId: string; targetProvinceId: string } }
-  | { type: 'RECRUIT_MAP_ARMY'; payload: { provinceId: string; composition: { infantry: number; artillery: number; tanks: number } } }
+  | { type: 'RECRUIT_MAP_ARMY'; payload: { provinceId: string; composition: { infantry: number; artillery: number; tanks: number }; sourceEntityId?: ArmedEntityId } }
   | { type: 'REINFORCE_MAP_ARMY'; payload: { armyId: string } }
   | { type: 'MERGE_MAP_ARMIES' }
   | { type: 'DISBAND_MAP_ARMIES' }

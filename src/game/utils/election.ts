@@ -2,6 +2,7 @@ import { GameState, Party, SocialClass } from '../types';
 import { CLASS_INFO } from '../constants';
 import { getPartySupport } from './coalition';
 import { isOrganizationEstablished } from '../organizations';
+import { getEffectiveCortes } from '../politicalEligibility';
 
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
@@ -119,7 +120,7 @@ export function calculatePresidentialVotes(
   const candidateVotes: Record<string, number> = { left: 0, martinez_barrio: 0, gil_robles: 0 };
 
   // 1. deputyVotes uses state.cortes (Total 470 seats)
-  const cortesVotes = { ...state.cortes };
+  const cortesVotes = getEffectiveCortes(state);
 
   // 2. electorVotes uses calculateRawVotes(state) scaled to 470 seats
   const rawVotes = calculateRawVotes(state);

@@ -3,6 +3,14 @@ import type { CoalitionDef } from './types';
 // Check if a party exists or is active (some parties are founded via choices / events)
 export const COALITION_DEFS: CoalitionDef[] = [
   {
+    id: 'popular_front_wartime',
+    name: 'Wartime Popular Front',
+    nameZh: '战时人民阵线',
+    members: ['CNT_FAI', 'PSOE', 'PCE', 'IR', 'UR', 'ERC', 'PNV', 'POUM', 'PS'],
+    // Its crisis is settled by wartime cabinet coordination, never an election.
+    dissolveThreshold: 25,
+  },
+  {
     id: 'provisional_government',
     name: 'Provisional Government',
     nameZh: '临时看守政府',

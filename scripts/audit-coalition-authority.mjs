@@ -15,6 +15,8 @@ const electionAuthorityFiles = new Set([
 const sandboxAuthorityFiles = new Set([
   'src/components/SandboxMenu.tsx'
 ]);
+const wartimeAuthorityFiles = new Set(['src/game/events/civil_war/wartime_power_arrangement.tsx']);
+const wartimeReshuffleFiles = new Set(['src/game/rules/mayDays.ts']);
 const resetOnlyFiles = new Set([
   'src/game/GameContext.tsx',
   'src/components/SandboxMenu.tsx'
@@ -115,6 +117,19 @@ const auditAuthorityImplementation = (sourceFile) => {
   const establish = findFunction(sourceFile, 'establishCoalition');
   const ordinary = findFunction(sourceFile, 'formCoalition');
   const elected = findFunction(sourceFile, 'formRulingCoalitionFromElection');
+  const wartime = findFunction(sourceFile, 'formWartimeGovernment');
+  const reshuffle = findFunction(sourceFile, 'reshapeWartimeCabinet');
+  const secede = findFunction(sourceFile, 'secedeWartimeGovernment');
+  if (!secede || !findCall(secede, 'isSpanishCivilWarOngoing')) issues.push(`${coalitionAuthorityFile}: secession must be guarded by the Spanish Civil War state.`);
+  if (!reshuffle || !findCall(reshuffle, 'isSpanishCivilWarOngoing')) {
+    issues.push(`${coalitionAuthorityFile}: wartime reshuffles must remain guarded by the Spanish Civil War state.`);
+  }
+  if (!wartime || !findCall(wartime, 'isWartimeArrangementDue')) {
+    issues.push(`${coalitionAuthorityFile}: wartime appointments must be guarded by the once-per-game civil-war timing rule.`);
+  } else {
+    const call = findCall(wartime, 'establishCoalition');
+    if (!call || !isTrueLiteral(call.arguments[2])) addIssue(sourceFile, wartime, 'wartime appointments must use the private coalition authority.');
+  }
 
   if (!establish) {
     issues.push(`${coalitionAuthorityFile}: missing private establishCoalition implementation`);
@@ -174,6 +189,15 @@ const auditSourceFile = (absolutePath) => {
 
     if (ts.isCallExpression(node)) {
       const name = calledName(node.expression);
+      if (name === 'secedeWartimeGovernment' && (relativePath !== 'src/game/rules/iberianDefense.ts' || node.arguments.length !== 1)) {
+        addIssue(sourceFile, node, 'only the Iberian secession rules may withdraw the player from the wartime government.');
+      }
+      if (name === 'reshapeWartimeCabinet' && (!wartimeReshuffleFiles.has(relativePath) || node.arguments.length !== 2)) {
+        addIssue(sourceFile, node, 'only the May Days rules may redistribute the existing wartime cabinet, with state and reason.');
+      }
+      if (name === 'formWartimeGovernment' && (!wartimeAuthorityFiles.has(relativePath) || node.arguments.length !== 2)) {
+        addIssue(sourceFile, node, 'only the designated wartime arrangement event may appoint the wartime government, with state and route.');
+      }
       if (name === 'formCoalition' && node.arguments.length !== 2) {
         addIssue(sourceFile, node, 'formCoalition calls must pass exactly state and coalition id; a ruling flag is forbidden.');
       }
@@ -197,6 +221,15 @@ const auditSourceFile = (absolutePath) => {
 
     if (ts.isImportSpecifier(node)) {
       const importedName = node.propertyName?.text || node.name.text;
+      if (importedName === 'secedeWartimeGovernment' && relativePath !== 'src/game/rules/iberianDefense.ts') {
+        addIssue(sourceFile, node, 'secession authority may only be imported by the Iberian secession rules.');
+      }
+      if (importedName === 'reshapeWartimeCabinet' && !wartimeReshuffleFiles.has(relativePath)) {
+        addIssue(sourceFile, node, 'wartime reshuffle authority may only be imported by the May Days rules.');
+      }
+      if (importedName === 'formWartimeGovernment' && !wartimeAuthorityFiles.has(relativePath)) {
+        addIssue(sourceFile, node, 'wartime appointment authority may only be imported by the wartime arrangement event.');
+      }
       if (importedName === 'formRulingCoalitionFromElection' && !electionAuthorityFiles.has(relativePath)) {
         addIssue(sourceFile, node, 'ruling-coalition authority may only be imported by approved election-result modules.');
       }

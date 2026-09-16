@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
+import { setOrganizationEstablished } from '../organizations';
 
 const newsMeta = {
   category: 'news' as const,
@@ -30,6 +31,7 @@ export const foundingOfFalange: GameEvent = {
         return {
           classes: newClasses,
           fe_founded: true,
+          ...setOrganizationEstablished(state, 'FE'),
         };
       },
     },

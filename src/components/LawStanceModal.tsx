@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { GameState, Party, PoliticalActor } from '../game/types';
+import { GameState, PoliticalActor } from '../game/types';
 import { calculateElectionResults } from '../game/utils';
 import { getPartyColor, getPartyName } from '../game/partyNames';
+import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { isOrganizationEstablished } from '../game/organizations';
-import { ParliamentChart } from './ParliamentChart';
+import { ParliamentChart, type ParliamentData } from './ParliamentChart';
+import { getEffectiveCortes, getVacantCortesSeats } from '../game/politicalEligibility';
 import {
   getEffectiveLawStance,
   getEffectiveLawStanceScore,
@@ -54,20 +56,20 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
 
   if (!isOpen) return null;
 
-  const cortes = (state.cortes || calculateElectionResults(state)) as Record<Party, number>;
-  const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0);
+  const cortes = getEffectiveCortes(state, state.cortes || calculateElectionResults(state));
+  const vacantSeats = getVacantCortesSeats(state);
+  const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0) + vacantSeats;
   const actors = getLegalStanceActors(state, cortes);
   const actor = actors.includes(selectedActor) ? selectedActor : actors[0];
-  const parliamentChartData = Object.entries(cortes)
-    .filter(([, seats]) => seats > 0)
-    .sort(([, seatsA], [, seatsB]) => seatsB - seatsA)
+  const parliamentChartData: ParliamentData[] = getParliamentSeatEntries(cortes)
     .map(([party, seats]) => ({
       id: party,
-      name: getPartyName(state, party as Party, isZh, true),
+      name: getPartyName(state, party, isZh, true),
       seats,
-      color: getPartyColor(state, party as Party),
+      color: getPartyColor(state, party),
     }));
   const chartPartyIds = new Set(parliamentChartData.map(item => item.id));
+  if (vacantSeats > 0) parliamentChartData.push({ id: 'vacant', name: isZh ? '战时空缺' : 'Wartime vacancies', seats: vacantSeats, color: '#d1ccc2' });
   const selectableLegendEntries = [
     ...parliamentChartData.map(item => ({
       id: item.id,

@@ -6,6 +6,7 @@
 import { GameState, MapFaction as Faction, Province, Army } from '../types_map';
 import { PROVINCE_ADJACENCY, isPortugalProvince } from '../map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../rules/costs';
+import { canEnterMapProvince } from '../rules/factions';
 
 export interface AiAction {
   type: 'BUILD' | 'REINFORCE' | 'RECRUIT' | 'MOVE' | 'END_TURN';
@@ -51,7 +52,7 @@ export function calculateAiMoves(
     const neighbors = PROVINCE_ADJACENCY[pId] || [];
     return neighbors.some(nId => {
       const neighborProv = state.provinces[nId];
-      return neighborProv && neighborProv.owner !== aiFaction;
+      return neighborProv && neighborProv.owner !== aiFaction && canEnterMapProvince(aiFaction, neighborProv.owner);
     });
   };
 
@@ -179,10 +180,11 @@ export function calculateAiMoves(
   // ==========================================
   // PHASE 3: RECRUITMENT PLANNING (New Corps)
   // ==========================================
-  // Hire standard cohorts in frontlines with Recruiting Offices.
+  // The AI is the state, so it raises national conscripts, which need barracks.
+  // Party militia pools are left to the player.
   if (difficulty !== 'easy') {
     const activeRecruiters = myProvinces.filter(
-      p => p.buildings?.recruitingOffice && p.buildings.recruitingOffice > 0 && isFrontline(p.id)
+      p => p.buildings?.barracks && p.buildings.barracks > 0 && isFrontline(p.id)
     );
 
     for (const province of activeRecruiters) {
@@ -193,6 +195,10 @@ export function calculateAiMoves(
       } else if (difficulty === 'hard') {
         comp = { infantry: 2000, artillery: 450, tanks: 150 };
       }
+
+      // Never plan more armour than the camp actually holds, or the entire
+      // recruitment is vetoed by the tank check and the AI never mobilises.
+      comp = { ...comp, tanks: Math.min(comp.tanks, simTankReserve) };
 
       const cost = armyRecruitCost(comp);
       const costManpower = cost.manpower;
@@ -249,7 +255,7 @@ export function calculateAiMoves(
         }
 
         const toProvince = state.provinces[targetId];
-        if (!toProvince) continue;
+        if (!toProvince || !canEnterMapProvince(aiFaction, toProvince.owner)) continue;
 
         // Fetch enemies standing on target province
         const enemyArmies = state.armies.filter(

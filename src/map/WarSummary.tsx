@@ -1,6 +1,8 @@
 import React from 'react';
 import { MapFaction as Faction, Province, Army } from './types_map';
 import { Swords, Factory, Users, Package, Crosshair, X, Star } from 'lucide-react';
+import type { IberianDefenseState } from '../game/types';
+import { IberianWarDetails } from '../components/IberianWarDetails';
 
 interface WarSummaryProps {
   provinces: Record<string, Province>;
@@ -15,6 +17,7 @@ interface WarSummaryProps {
   isZh: boolean;
   onClose: () => void;
   activeWar?: string;
+  iberianDefense?: IberianDefenseState;
 }
 
 export const WarSummary: React.FC<WarSummaryProps> = ({
@@ -24,7 +27,14 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
   isZh,
   onClose,
   activeWar,
+  iberianDefense,
 }) => {
+  if (iberianDefense) return <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4">
+    <div className="w-full max-w-5xl max-h-[90vh] overflow-auto bg-paper text-ink p-6 border-4 border-ink space-y-5">
+      <div className="flex justify-between gap-3"><h2 className="text-xl font-bold">{isZh ? '三方战争形势' : 'The Three-Sided War'}</h2><button onClick={onClose} aria-label={isZh ? '关闭' : 'Close'}><X /></button></div>
+      <IberianWarDetails state={{ iberianDefense, provinces, armies, mapResources: resources, language: isZh ? 'zh' : 'en' }} />
+    </div>
+  </div>;
   const isAsturias = activeWar === 'asturias_war';
   const f1 = isAsturias ? Faction.WORKERS_ALLIANCE : Faction.REPUBLICAN;
   const f2 = isAsturias ? Faction.REPUBLICAN : Faction.NATIONALIST;

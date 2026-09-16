@@ -1,14 +1,11 @@
 # Liberty Unquenched
 
-**自由未烬**是一款以第二西班牙共和国为背景的政治与战争模拟游戏。玩家以 CNT-FAI 为主要视角，在 1931 年共和国建立后介入党派政治、工人运动、政府决策、军事动员和内战进程。
+**自由未烬**是一款以第二西班牙共和国为背景的政治与战争模拟游戏。玩家以 CNT-FAI 为主要视角，在 1931 年共和国建立后介入党派政治、工人运动、政府决策、军事动员和内战进程。目前游戏包含25张卡牌、19位可选择的顾问、105个事件、19个成就、14类法律、6个任务日志、9个结局。
 
 > This is an actively developed historical political simulation. The game is inspired by the Spanish Second Republic and the Spanish Civil War, but it is not intended to be a complete historical reconstruction or an academic source.
 
-## 项目状态
-
 项目目前处于持续开发阶段。当前版本已经包含政治模拟、事件与决策、顾问、议会席位图、经济与国内政策、行省地图、军队管理、战争总结、成就和结局等系统；部分历史内容、平衡性和系统之间的联动仍在完善。
 
-项目不需要 Gemini API、后端服务或其他运行时密钥。游戏逻辑在浏览器中执行，当前版本也不依赖外部 API。
 
 ## 在线版本与分支关系
 
@@ -80,6 +77,7 @@
 
 - 中文和英文双语界面。
 - 事件板、超级事件、日志、结局画面和成就系统。
+- 存档管理界面，支持手动存档、读档，以及进入游戏后的自动存档。
 - 议会席位可视化。
 - 音乐播放器。
 - 沙盒菜单，用于开发和测试部分游戏状态。
@@ -135,12 +133,6 @@ http://localhost:3000
 ### 环境变量
 
 当前版本不需要任何环境变量或 API Key：
-
-- 不需要 `GEMINI_API_KEY`。
-- 不需要 `APP_URL`。
-- 不需要数据库、服务器或 OAuth 配置。
-- `.env.example` 仅用于说明当前不需要额外配置。
-
 如果将来增加新的环境变量，应只提交变量名和说明，不要把真实密钥写入 `.env`、源码、构建产物或 Git 历史。
 
 ## 常用命令
@@ -149,10 +141,17 @@ http://localhost:3000
 | --- | --- |
 | `npm ci` | 按锁文件安装依赖 |
 | `npm run dev` | 启动 Vite 开发服务器 |
-| `npm run lint` | 执行 TypeScript 类型检查；当前脚本名称虽为 lint，实际执行 `tsc --noEmit` |
+| `npm run lint` | 执行 `tsc --noEmit`，随后运行 `scripts/audit-coalition-authority.mjs` 联盟权限审计 |
 | `npm run build` | 生成生产构建到 `dist/` |
 | `npm run preview` | 预览已经生成的生产构建 |
 | `npm run clean` | 跨平台删除 `dist/` |
+| `npm run test:rules` | 规则层测试 |
+| `npm run test:save-system` | 存档系统的写入、读取与恢复测试 |
+| `npm run test:armament-income` | 军备月度收入测试 |
+| `npm run test:union-share` | 工会占比计算测试 |
+| `npm run test:effect-previews` | 行动事务效果预览文本测试 |
+
+`test:*` 系列脚本通过 `tsx` 直接运行 `scripts/` 下的 TypeScript 测试文件，不需要额外构建步骤。
 
 建议在提交前至少运行：
 
@@ -226,6 +225,16 @@ Vite 默认使用 `/Liberty-Unquenched/` 作为页面基础路径。部署工作
 5. 检查对党派、派系、阶级、政府和地图状态的影响是否符合类型定义。
 6. 运行 `npm run lint` 和 `npm run build`。
 
+### 新增或修改成就
+
+成就系统集中在 `src/game/achievements.tsx`：`ACHIEVEMENTS` 是成就目录，`checkAchievements` 是唯一的判定入口（由 `gameReducer` 在 `checkEndings` 之后调用）。新增成就时注意：
+
+1. **先验证可达性再写条件。** 判定条件只能读取真实被写入过的状态字段；仓库中存在若干只被声明和初始化、从未被赋值的字段，直接引用会导致成就永远无法解锁。数值阈值还需要先确认游戏时间上限与行动点预算是否够用。
+2. **`id` 一旦发布就不可更改**，因为它是 `localStorage` 中的键；重命名会让已有玩家丢失该成就记录。
+3. **同时提供中英文名称和描述。**
+4. **图标命名使用蛇形命名**，并且只能放在 `public/img/Achievement Icon/` 下：去掉重音、全小写、非字母数字折叠为 `_`，例如 `Homenaje a Cataluña` → `homenaje_a_cataluna.png`。没有对应图片时使用单个 emoji 代替，不要指向其他图片目录。
+5. **需要记录历史状态的成就**（例如"整局从未改变立场"）应在 `GameState` 中增加单调标记位，并在 `gameReducer` 收口处统一维护，而不是在条件里做推断。
+
 ### 修改党派、选举或联盟
 
 政治系统涉及多个相互关联的模块，修改时应同时检查：
@@ -256,7 +265,7 @@ Vite 默认使用 `/Liberty-Unquenched/` 作为页面基础路径。部署工作
 
 - 游戏数据和规则主要以 TypeScript 源码形式维护，尚未完全由独立数据文件或编辑器驱动。
 - `editor/` 是独立的本地编辑器项目，目前不会随主游戏源码发布，也没有纳入主项目的构建流程。
-- 当前没有发现基于 `localStorage` 或服务器的持久化存档系统；刷新页面不应被视为自动保存。
+- 存档保存在浏览器 `localStorage`（键名 `cnt_fai_saves_v2`），只对当前浏览器与访问地址有效：无法跨设备同步，清除站点数据会一并删除存档。
 - 部分政治、选举、联盟、政府和内阁规则仍需继续统一数据模型和历史设定。
 - 部分中文和英文文本仍需要持续校对，尤其是历史组织名称、职务名称和事件描述。
 - 生产构建的主 JavaScript bundle 较大，后续可以通过代码分割和按需加载优化初始加载速度。

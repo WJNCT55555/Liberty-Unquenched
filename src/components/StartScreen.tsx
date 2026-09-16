@@ -5,6 +5,7 @@ import { AchievementsModal } from './AchievementsModal';
 import { Star } from 'lucide-react';
 import { SaveManagerModal } from './SaveManagerModal';
 import { readSaveLibrary } from '../game/saveGame';
+import './StartScreen.css';
 
 export const StartScreen = () => {
   const language = useGameSelector(state => state.language);
@@ -44,16 +45,28 @@ export const StartScreen = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-ink flex flex-col items-center justify-center overflow-hidden z-50">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stucco.png')] opacity-20 pointer-events-none mix-blend-screen" />
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%)',
-      }} />
-
-      {/* Diagonal red blocks */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-cnt-red rotate-45 opacity-20 mix-blend-multiply pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cnt-red rotate-45 opacity-20 mix-blend-multiply pointer-events-none" />
+    <div className={`fixed inset-0 bg-ink flex flex-col items-center justify-center overflow-hidden z-50 ${!showScenarioSelect ? 'start-screen-home' : ''}`}>
+      {showScenarioSelect ? (
+        <>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stucco.png')] opacity-20 pointer-events-none mix-blend-screen" />
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%)',
+          }} />
+          <div className="absolute -top-40 -left-40 w-96 h-96 bg-cnt-red rotate-45 opacity-20 mix-blend-multiply pointer-events-none" />
+          <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cnt-red rotate-45 opacity-20 mix-blend-multiply pointer-events-none" />
+        </>
+      ) : (
+        <div className="start-screen-home__backdrop" aria-hidden="true">
+          <img
+            className="start-screen-home__map"
+            src={`${(import.meta as any).env.BASE_URL || '/'}img/UI/bg_start.png`}
+            alt=""
+            fetchPriority="high"
+            draggable={false}
+          />
+          <div className="start-screen-home__shade" />
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {!showScenarioSelect ? (
@@ -63,30 +76,26 @@ export const StartScreen = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="relative z-10 flex flex-col items-center max-w-4xl w-full px-6"
+            className="start-screen-home__content"
+            lang={isZh ? 'zh-Hans' : 'en'}
           >
             {/* Title */}
-            <div className="text-center mb-8">
-              <h1 className="font-display text-5xl md:text-8xl text-paper uppercase tracking-tighter leading-none mb-4" style={{ textShadow: '4px 4px 0px #c1272d' }}>
-                {isZh ? '自由未烬' : 'Liberty Unquenched'}
+            <div className="start-screen-home__heading">
+              <h1 className={`start-screen-home__title ${isZh ? 'start-screen-home__title--zh' : ''}`}>
+                {isZh ? '自由未烬' : <><span>Liberty</span>{' '}<span>Unquenched</span></>}
               </h1>
-              <p className="font-typewriter text-paper/80 text-lg md:text-xl tracking-widest mt-4">
-                {isZh ? '西班牙大革命 · 1931-1939' : 'THE SPANISH REVOLUTION · 1931-1939'}
+              <p className="start-screen-home__subtitle">
+                {isZh ? '西班牙大革命 · 1931–1939' : 'THE SPANISH REVOLUTION · 1931–1939'}
               </p>
             </div>
 
-            {/* Image */}
-            <div className="mb-12 relative flex justify-center items-center">
-              <img src={`${(import.meta as any).env.BASE_URL || '/'}img/República Española.png`} alt="República Española" className="w-80 md:w-96 lg:w-[28rem] object-contain relative z-10 drop-shadow-[0_0_15px_rgba(193,39,45,0.5)]" />
-            </div>
-
             {/* Menu */}
-            <div className="flex flex-col gap-4 w-full max-w-md">
+            <nav className="start-screen-home__menu" aria-label={isZh ? '主菜单' : 'Main menu'}>
               <MenuButton onClick={handleNewGame} text={isZh ? '开始革命' : 'START REVOLUTION'} primary />
               <MenuButton onClick={handleLoadGame} text={isZh ? '读取档案' : 'LOAD REVOLUTION'} disabled={!hasSave} />
               <MenuButton onClick={() => setShowAchievements(true)} text={isZh ? '成就记录' : 'ACHIEVEMENTS'} />
               <MenuButton onClick={toggleLanguage} text={isZh ? '语言: 中文' : 'LANGUAGE: EN'} />
-            </div>
+            </nav>
           </motion.div>
         ) : (
           <motion.div
@@ -103,9 +112,9 @@ export const StartScreen = () => {
               </h2>
             </div>
 
-            <div className="flex flex-col gap-8 flex-1 min-h-0">
+            <div className="flex flex-col gap-8 flex-1 min-h-0 overflow-y-auto pb-2">
               {/* Top: Scenarios Grid */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 shrink-0">
                 <h3 className="font-typewriter text-cnt-red text-xl uppercase tracking-widest border-b border-cnt-red/30 pb-2 mb-2">
                   {isZh ? '历史节点' : 'SCENARIOS'}
                 </h3>
@@ -137,7 +146,7 @@ export const StartScreen = () => {
               </div>
 
               {/* Bottom: Difficulty and Actions */}
-              <div className="mt-auto flex flex-col md:flex-row items-end gap-8 border-t border-paper/20 pt-6">
+              <div className="mt-auto flex flex-col md:flex-row items-end gap-8 border-t border-paper/20 pt-6 shrink-0">
                 {/* Difficulty (Left) */}
                 <div className="flex-1 flex flex-col gap-4 w-full">
                   <h3 className="font-typewriter text-cnt-red text-xl uppercase tracking-widest border-b border-cnt-red/30 pb-2 mb-2">
@@ -204,23 +213,6 @@ export const StartScreen = () => {
         )}
       </AnimatePresence>
 
-      {/* Quote */}
-      {!showScenarioSelect && (
-        <div className="absolute bottom-8 left-8 max-w-sm hidden md:block">
-          <p className="font-serif italic text-paper/60 text-sm">
-            {isZh ? '"路障封锁了街道，但开启了道路。"' : '"Las barricadas cierran las calles pero abren el camino."'}
-          </p>
-          {!isZh && (
-            <p className="font-serif italic text-paper/40 text-xs mt-1">
-              "The barricades close the streets but open the way."
-            </p>
-          )}
-          <p className="font-typewriter text-paper/40 text-xs mt-2">
-            — Buenaventura Durruti
-          </p>
-        </div>
-      )}
-
       <AnimatePresence>
         {showAchievements && <AchievementsModal onClose={() => setShowAchievements(false)} />}
       </AnimatePresence>
@@ -241,17 +233,12 @@ export const StartScreen = () => {
 
 const MenuButton = ({ onClick, text, primary, disabled }: { onClick: () => void, text: string, primary?: boolean, disabled?: boolean }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={disabled}
-    className={`group relative w-full py-4 px-6 font-display text-2xl uppercase tracking-widest text-center transition-all duration-300 overflow-hidden
-      ${disabled ? 'opacity-30 cursor-not-allowed grayscale' : 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'}
-      ${primary ? 'bg-cnt-red text-paper border-2 border-cnt-red shadow-[4px_4px_0px_#f4ecd8]' : 'bg-transparent text-paper border-2 border-paper shadow-[4px_4px_0px_#f4ecd8]'}
-    `}
+    className={`start-screen-home__button ${primary ? 'start-screen-home__button--primary' : ''}`}
   >
-    <span className={`relative z-10 transition-colors duration-300 ${!disabled && !primary ? 'group-hover:text-ink' : ''}`}>{text}</span>
-    {!disabled && (
-      <div className={`absolute inset-0 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 z-0 ${primary ? 'bg-ink' : 'bg-paper'}`} />
-    )}
+    {text}
   </button>
 );
 
@@ -261,11 +248,11 @@ const ScenarioCard = ({ id, title, description, selected, onClick, disabled }: {
     className={`group relative flex flex-col border-2 transition-all duration-200 overflow-hidden ${disabled ? 'opacity-50 cursor-not-allowed grayscale border-paper/20 bg-ink/50' : 'cursor-pointer'} ${selected ? 'border-cnt-red bg-cnt-red/10' : (!disabled && 'border-paper/30 hover:border-paper/60 hover:bg-paper/5')}`}
   >
     {/* Scenario Cover Image */}
-    <div className="w-full h-28 md:h-36 overflow-hidden relative border-b border-paper/10 bg-ink/40 shrink-0">
+    <div className="w-full aspect-[4/3] overflow-hidden relative bg-ink/40 shrink-0">
       <img 
         src={`${(import.meta as any).env.BASE_URL || '/'}img/SCENARIOS/${id}.png`} 
         alt={title} 
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        className="absolute inset-0 w-full h-full object-contain"
         referrerPolicy="no-referrer"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none mix-blend-multiply" />

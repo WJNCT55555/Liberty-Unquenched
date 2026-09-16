@@ -1,8 +1,10 @@
 import type { DomainReducer, GameAction } from './types';
 import type { GameState } from '../types';
-import { ECONOMIC_RULES } from '../rules/economy';
+import { ECONOMIC_RULES, clampMilitarySpending } from '../rules/economy';
 
 const clampTax = (value: number) => Math.max(1, Math.min(100, value));
+const canUseSovereignInterventions = (state: GameState): boolean =>
+  state.difficulty === 'sandbox' && state.sandboxSovereignInterventionsEnabled === true;
 
 /** Handles actions that mutate the national fiscal/economic slice. */
 export const reduceEconomy: DomainReducer = (state, action) => {
@@ -16,10 +18,20 @@ export const reduceEconomy: DomainReducer = (state, action) => {
         tax_tariff: action.payload.tax_tariff !== undefined ? clampTax(action.payload.tax_tariff) : state.tax_tariff,
         tax_consumption: action.payload.tax_consumption !== undefined ? clampTax(action.payload.tax_consumption) : state.tax_consumption,
         military_spending: action.payload.military_spending !== undefined
-          ? Math.max(5, Math.min(100, action.payload.military_spending))
+          ? clampMilitarySpending(action.payload.military_spending)
           : (state.military_spending !== undefined ? state.military_spending : ECONOMIC_RULES.defaults.militarySpending),
       };
+    case 'UPDATE_TAX_DRAFT':
+      return {
+        ...state,
+        draft_tax_lower: action.payload.draft_tax_lower !== undefined ? clampTax(action.payload.draft_tax_lower) : state.draft_tax_lower,
+        draft_tax_middle: action.payload.draft_tax_middle !== undefined ? clampTax(action.payload.draft_tax_middle) : state.draft_tax_middle,
+        draft_tax_upper: action.payload.draft_tax_upper !== undefined ? clampTax(action.payload.draft_tax_upper) : state.draft_tax_upper,
+        draft_tax_tariff: action.payload.draft_tax_tariff !== undefined ? clampTax(action.payload.draft_tax_tariff) : state.draft_tax_tariff,
+        draft_tax_consumption: action.payload.draft_tax_consumption !== undefined ? clampTax(action.payload.draft_tax_consumption) : state.draft_tax_consumption,
+      };
     case 'SELL_GOLD_FOR_FX':
+      if (!canUseSovereignInterventions(state)) return state;
       if ((state.gold_reserves ?? ECONOMIC_RULES.defaults.goldReserves) < 100) return state;
       return {
         ...state,
@@ -28,15 +40,20 @@ export const reduceEconomy: DomainReducer = (state, action) => {
         inflation_rate: state.inflation_rate + 1.5,
       };
     case 'ISSUE_WAR_BONDS':
+      if (!canUseSovereignInterventions(state) || state.has_issued_war_bonds) return state;
       return {
         ...state,
-        budget: state.budget + 50,
+        budget: Math.min(ECONOMIC_RULES.fiscalBounds.cashMax, state.budget + 50),
         foreign_exchange: (state.foreign_exchange ?? ECONOMIC_RULES.defaults.foreignExchange) + 10,
-        public_debt: (state.public_debt ?? ECONOMIC_RULES.defaults.debt) + 60,
+        public_debt: Math.min(
+          ECONOMIC_RULES.fiscalBounds.debtMax,
+          (state.public_debt ?? ECONOMIC_RULES.defaults.debt) + 60,
+        ),
         has_issued_war_bonds: true,
         inflation_rate: state.inflation_rate + 1.2,
       };
     case 'BUY_RESOURCES_URGENT':
+      if (!canUseSovereignInterventions(state)) return state;
       if ((state.foreign_exchange ?? ECONOMIC_RULES.defaults.foreignExchange) < 25) return state;
       return {
         ...state,
@@ -50,7 +67,7 @@ export const reduceEconomy: DomainReducer = (state, action) => {
 };
 
 export type EconomyAction = Extract<GameAction, {
-  type: 'UPDATE_TAXES' | 'SELL_GOLD_FOR_FX' | 'ISSUE_WAR_BONDS' | 'BUY_RESOURCES_URGENT'
+  type: 'UPDATE_TAXES' | 'UPDATE_TAX_DRAFT' | 'SELL_GOLD_FOR_FX' | 'ISSUE_WAR_BONDS' | 'BUY_RESOURCES_URGENT'
 }>;
 
 export type EconomyState = Pick<GameState,

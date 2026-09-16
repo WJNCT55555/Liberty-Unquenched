@@ -7,6 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { Province, MapFaction as Faction, GameState, Army } from './types_map';
 import { FACTION_COLORS, UI_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from './rules/costs';
+import { getEffectiveFortressLevel } from './types_map';
+import type { ArmedEntityId } from '../game/types';
+import type { RecruitmentPoolView } from '../game/rules/warSetup';
+import { getMapFactionName } from './rules/factions';
 import { Shield, Target, ScrollText, MapPin, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -157,6 +161,8 @@ const ControlBox: React.FC<{ label: string; value: string; color?: string }> = (
 const FlagBox: React.FC<{ faction: Faction }> = ({ faction }) => {
   const renderFlag = () => {
     switch (faction) {
+      case Faction.IBERIAN_DEFENSE:
+        return <div className="w-12 h-8 border border-ink" style={{ background: 'linear-gradient(145deg, #A62626 50%, #202020 50%)' }} />;
       case Faction.REPUBLICAN:
         return (
           <div className="flex flex-col w-12 h-8 border border-[#1E1C1A] shadow-sm overflow-hidden relative rounded-none">
@@ -361,9 +367,11 @@ const CardCorners: React.FC = () => (
 
 interface SidebarProps {
   state: GameState;
+  /** Party militia pools the current camp may raise units from. */
+  recruitmentPools: RecruitmentPoolView[];
   onExecuteOffensive: (id: string) => void;
   onSelectProvince: (id: string | null) => void;
-  onRecruitArmy: (provinceId: string, composition: { infantry: number; artillery: number; tanks: number }) => void;
+  onRecruitArmy: (provinceId: string, composition: { infantry: number; artillery: number; tanks: number }, sourceEntityId?: ArmedEntityId) => void;
   onReinforceArmy: (armyId: string) => void;
   onSelectArmy: (id: string | null, isShift?: boolean) => void;
   onMergeArmies: () => void;
@@ -375,6 +383,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   state, 
+  recruitmentPools,
   onExecuteOffensive, 
   onSelectProvince, 
   onRecruitArmy, 
@@ -388,6 +397,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const getFactionName = (faction: Faction) => {
     if (lang === 'zh') {
+      if (faction === Faction.IBERIAN_DEFENSE) return getMapFactionName(faction, true);
       if (faction === Faction.REPUBLICAN) return '共和国';
       if (faction === Faction.NATIONALIST) return '国民军';
       if (faction === Faction.PORTUGAL) return '葡萄牙';
@@ -396,6 +406,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (faction === Faction.ANDORRA) return '安道尔';
       return '中立';
     }
+    if (faction === Faction.IBERIAN_DEFENSE) return getMapFactionName(faction, false);
     if (faction === Faction.REPUBLICAN) return 'Republicans';
     if (faction === Faction.NATIONALIST) return 'Nationalists';
     if (faction === Faction.PORTUGAL) return 'Portugal';
@@ -461,6 +472,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [recruitInf, setRecruitInf] = useState(2000); // 2000 soldiers step
   const [recruitArt, setRecruitArt] = useState(1000);
   const [recruitTnk, setRecruitTnk] = useState(1);
+  /** null = national conscripts (barracks); otherwise a party militia pool id. */
+  const [recruitSource, setRecruitSource] = useState<ArmedEntityId | null>(null);
   const [provinceTab, setProvinceTab] = useState<'info' | 'buildings' | 'mobilize'>('info');
   const [selectedSlotType, setSelectedSlotType] = useState<string | null>(null);
   const [activeEmptySlotIdx, setActiveEmptySlotIdx] = useState<number | null>(null);
@@ -499,12 +512,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const reqTankReserve = recruitCost.tankReserve;
 
   const playerRes = state.resources[state.currentPlayer];
-  const hasEnoughManpower = (playerRes?.manpower || 0) >= reqManpower;
+  // Manpower can come from the camp (national conscripts) or from a party militia
+  // pool. Supplies, industry and armour always come from the camp.
+  const selectedPool = recruitSource
+    ? recruitmentPools.find(pool => pool.entityId === recruitSource)
+    : undefined;
+  const hasEnoughManpower = selectedPool
+    ? selectedPool.active && selectedPool.manpower >= reqManpower
+    : (playerRes?.manpower || 0) >= reqManpower;
   const hasEnoughSupplies = (playerRes?.supplies || 0) >= reqSupplies;
   const hasEnoughIndustry = (playerRes?.industrialCapacity || 0) >= reqIndustry;
   const hasEnoughTankReserve = (playerRes?.tankReserve || 0) >= reqTankReserve;
   const hasRecruitingOffice = !!(selectedProvince?.buildings?.recruitingOffice && selectedProvince.buildings.recruitingOffice > 0);
-  const canMobilize = reqManpower > 0 && hasEnoughManpower && hasEnoughSupplies && hasEnoughIndustry && hasEnoughTankReserve && hasRecruitingOffice;
+  const hasBarracks = !!(selectedProvince?.buildings?.barracks && selectedProvince.buildings.barracks > 0);
+  // A militia pool needs a recruiting office; national conscripts need barracks.
+  const hasRequiredBuilding = selectedPool ? hasRecruitingOffice : hasBarracks;
+  const canMobilize = reqManpower > 0 && hasEnoughManpower && hasEnoughSupplies && hasEnoughIndustry && hasEnoughTankReserve && hasRequiredBuilding;
 
   const handleMobilize = () => {
     if (!selectedProvince) return;
@@ -512,7 +535,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       infantry: recruitInf,
       artillery: recruitArt,
       tanks: recruitTnk
-    });
+    }, selectedPool?.entityId);
     // Reset selection counters
     setRecruitInf(2000);
     setRecruitArt(1000);
@@ -1199,6 +1222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                         // Map owner faction label
                         let factionLabel = 'NEUTRAL';
+                        if (selectedProvince.owner === Faction.IBERIAN_DEFENSE) factionLabel = 'IBERIAN DEFENSE';
                         if (selectedProvince.owner === Faction.REPUBLICAN) factionLabel = 'REPUBLICAN';
                         if (selectedProvince.owner === Faction.NATIONALIST) factionLabel = 'NATIONALIST';
                         if (selectedProvince.owner === Faction.PORTUGAL) factionLabel = 'PORTUGAL';
@@ -1222,7 +1246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* Fortification below with spacer to keep horizontal width aligned */}
                             <div className="flex gap-3">
                               <div className="flex-1">
-                                <FortificationBox label={lang === 'zh' ? '防御工事' : 'Fortification'} value={lang === 'zh' ? `${selectedProvince.fortification} 级` : `LVL ${selectedProvince.fortification}`} />
+                                <FortificationBox label={lang === 'zh' ? '防御工事' : 'Fortification'} value={lang === 'zh' ? `${getEffectiveFortressLevel(selectedProvince)} 级（固有 ${selectedProvince.fortification || 0}）` : `LVL ${getEffectiveFortressLevel(selectedProvince)} (inherent ${selectedProvince.fortification || 0})`} />
                               </div>
                               <div className="w-[101px] shrink-0" />
                             </div>
@@ -1334,8 +1358,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </span>
                           </h3>
                           
-                          {hasRecruitingOffice ? (
+                          {hasRecruitingOffice || hasBarracks ? (
                             <>
+                              {/* Recruitment source: party militia pools versus national conscripts */}
+                              <div className="space-y-1.5">
+                                <div className="text-[8.5px] font-black uppercase tracking-widest text-[#1E1C1A]/60">
+                                  {lang === 'zh' ? '兵源' : 'Manpower source'}
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  <button
+                                    onClick={() => setRecruitSource(null)}
+                                    disabled={!hasBarracks}
+                                    className={`px-1.5 py-1 text-[9px] font-serif border border-[#1E1C1A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                      !selectedPool ? 'bg-[#1E1C1A] text-[#FAF6EC]' : 'bg-[#FAF6EC] hover:bg-[#1E1C1A]/10'
+                                    }`}
+                                  >
+                                    {lang === 'zh' ? '国家征兵' : 'National'} · {playerRes?.manpower || 0}
+                                  </button>
+                                  {recruitmentPools.map((pool) => (
+                                    <button
+                                      key={pool.entityId}
+                                      onClick={() => setRecruitSource(pool.entityId)}
+                                      disabled={!pool.active}
+                                      title={pool.active
+                                        ? (lang === 'zh' ? '需要本省有征兵所' : 'Requires a recruiting office here')
+                                        : (lang === 'zh' ? '该组织尚未成立' : 'Organization not active')}
+                                      className={`px-1.5 py-1 text-[9px] font-serif border border-[#1E1C1A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                        selectedPool?.entityId === pool.entityId ? 'bg-[#1E1C1A] text-[#FAF6EC]' : 'bg-[#FAF6EC] hover:bg-[#1E1C1A]/10'
+                                      }`}
+                                    >
+                                      {lang === 'zh' ? pool.label.zh : pool.label.en} · {pool.manpower}
+                                    </button>
+                                  ))}
+                                </div>
+                                <p className="text-[8.5px] font-serif text-[#1E1C1A]/55 leading-snug">
+                                  {selectedPool
+                                    ? (lang === 'zh'
+                                      ? '民兵单位：人员取自该党派人力池，需要本省有「征兵所」。'
+                                      : 'Militia unit: men come from that party pool and require a Recruiting Office here.')
+                                    : (lang === 'zh'
+                                      ? '国家征兵：人员取自阵营人力池，需要本省有「兵营」。'
+                                      : 'National conscripts: men come from the camp pool and require Barracks here.')}
+                                </p>
+                              </div>
                               {/* Selectors and adjusters */}
                               <div className="space-y-3">
                                 <MobilizeAdjuster 
@@ -1411,12 +1476,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           ) : (
                             <div className="p-3.5 bg-[#8C3A35]/5 border border-[#8C3A35]/30 text-[10px] font-serif text-[#8C3A35] leading-relaxed space-y-2.5">
                               <p className="font-black uppercase tracking-widest text-[#8C3A35] flex items-center gap-1.5 leading-none">
-                                <Info size={11} /> {lang === 'zh' ? '缺少后备征兵动员大厅' : 'RECRUITMENT OFFICE REQUIRED'}
+                                <Info size={11} /> {lang === 'zh' ? '缺少征兵设施' : 'RECRUITMENT BUILDING REQUIRED'}
                               </p>
                               <p className="text-[9.5px]">
                                 {lang === 'zh' 
-                                  ? '⚠️ 对不起，当前大区缺乏「后备征兵办公室」(Oficina de Reclutamiento)。您需要首先进入建筑控制中心，在这里规划并建成 Level 1 的征兵办设施，方能进行作战编制的动员与招募。'
-                                  : '⚠️ Tactical warning: This sector currently lacks a Recruitment Office. You must first construct a Level 1 Recruiting Office in the Province Architecture Center to enable the mobilization and recruitment of division forces.'}
+                                  ? '⚠️ 当前大区既没有「征兵所」(民兵兵源) 也没有「兵营」(国家征兵)。进入建筑控制中心建成其中之一，方能进行动员与招募。'
+                                  : '⚠️ This sector has neither a Recruiting Office (party militia manpower) nor Barracks (national conscripts). Build one of them in the Architecture Center to enable mobilization.'}
                               </p>
                               <button
                                 onClick={() => setProvinceTab('buildings')}

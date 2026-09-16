@@ -1,5 +1,5 @@
 import React from 'react';
-import { Province, Army, ArmyIdentity, MapFaction, ResourceSet } from '../map/types_map';
+import { Province, Army, ArmyFormation, ArmyIdentity, MapFaction, ResourceSet } from '../map/types_map';
 import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
@@ -8,12 +8,6 @@ export type { Party };
 /** Reserved state-machine phases for the wartime integration pass. */
 export type WarRuntimePhase = 'none' | 'friction' | 'triggered' | 'converged' | 'split';
 export type WarRuntimeTrigger = 'passive' | 'active';
-
-/** Optional wartime manpower/equipment pools, populated by later integration steps. */
-export interface WarPoolState {
-  reserves?: Partial<Record<ArmyIdentity, number>>;
-  equipment?: Partial<Record<ArmyIdentity, number>>;
-}
 
 /** Placeholder for wartime rupture and tri-faction runtime data. */
 export interface WarRuntime {
@@ -29,15 +23,16 @@ export interface WarRuntime {
  */
 export type OrganizationId =
   | 'CNT' | 'FAI' | 'FIJL' | 'ML' | 'FNA' | 'DC' | 'PRRevS'
-  | 'PSOE' | 'UGT' | 'PSOE_MILITIA'
-  | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT'
-  | 'POUM' | 'POUM_MILITIA'
-  | 'CT' | 'REQUETE' | 'REQUETE_MILITIA'
-  | 'FE' | 'FALANGE_MILITIA'
-  | 'PNV' | 'EUZKO_GUDAROSTEA'
-  | 'UR' | 'ELA' | 'CNCA' | 'CONS'
+  | 'PSOE' | 'UGT' | 'PSOE_MILITIA' | 'JJSS' | 'FNTT' | 'JSU'
+  | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT' | 'UJCE' | 'MUJERES_ANTIFASCISTAS'
+  | 'POUM' | 'POUM_MILITIA' | 'JCI'
+  | 'CT' | 'REQUETE' | 'REQUETE_MILITIA' | 'PELAYOS'
+  | 'FE' | 'FALANGE_MILITIA' | 'JONS' | 'SEU' | 'SECCION_FEMENINA'
+  | 'PNV' | 'EUZKO_GUDAROSTEA' | 'EGI'
+  | 'ERC' | 'PRR' | 'DLR' | 'IR' | 'UR' | 'AP' | 'PS'
+  | 'UNIO_RABASSAIRES' | 'ELA' | 'CNCA' | 'CONS'
   | 'INTERNATIONAL_BRIGADES' | 'ITALIAN_CTV';
-export type OrganizationType = 'union' | 'political' | 'youth' | 'women' | 'agricultural' | 'militia';
+export type OrganizationType = 'union' | 'political' | 'youth' | 'women' | 'agricultural' | 'militia' | 'command';
 export type OrganizationOwner = Party | 'CNT_FAI';
 export type OrganizationUiVisibility = 'visible' | 'internal';
 
@@ -250,13 +245,59 @@ export type CoalitionId =
   | 'republican_socialist'   // 共和-社会党联盟
   | 'republican_coalition'    // 共和派联盟
   | 'popular_front'           // 人民阵线
+  | 'popular_front_wartime'   // 战时人民阵线
   | 'ceda_radical'            // CEDA-激进联盟
   | 'workers_alliance'        // 工人联盟 (PSOE + CNT)
   | 'national_front';         // 国民阵线
 
+export type CoalitionMember = Party | 'CNT_FAI';
+export type WartimeGovernmentRoute = 'cabinet' | 'council' | 'external';
+
+export interface WartimePowerArrangement {
+  route: WartimeGovernmentRoute;
+  formedAt: { year: number; month: number };
+  lowCohesionMonths: number;
+  lastSettlementMonth: number;
+  crisisCooldownUntil: number;
+}
+
+export type MayDaysSettlement = 'withdrawal' | 'joint' | 'committee' | 'defeat';
+export type MayDaysPOUMOutcome = 'guaranteed' | 'inquiry' | 'banned' | 'protested_ban';
+export interface MayDaysState {
+  stage: 'idle' | 'negotiations' | 'government' | 'result' | 'settled' | 'poum_result' | 'split_alignment' | 'split_result' | 'complete';
+  leadershipAttitude?: 'unity' | 'guarantees' | 'committees' | 'insurrection';
+  pressureMonths: number;
+  lastPressureMonth: number;
+  startedAt?: { year: number; month: number };
+  resolvedAt?: { year: number; month: number };
+  intention?: 'withdraw' | 'negotiate' | 'committee';
+  escalation: 0 | 1 | 2 | 3;
+  settlement?: MayDaysSettlement;
+  governmentOutcome?: 'preserved' | 'centralized';
+  communicationsControl?: 'central' | 'joint' | 'committee';
+  publicOrderControl?: 'central' | 'joint' | 'committee';
+  defenceControl?: 'central' | 'joint' | 'committee';
+  productionFactor: number;
+  /** Inclusive target month index. Only Barcelona's subsequent monthly output is affected. */
+  productionThroughMonth: number;
+  poumFollowupDueAt?: number;
+  poumOutcome?: MayDaysPOUMOutcome;
+  poumUnitsAwaitingIntegration?: boolean;
+  before?: {
+    ministers: GameState['ministers'];
+    primeMinister: string;
+    primeMinisterZh: string;
+    cohesion: number;
+    commitments: Partial<Record<CoalitionMember, number>>;
+  };
+}
+
 export interface CoalitionState {
   activeId: CoalitionId;
-  memberContributions: Record<Party, number>;
+  memberContributions: Partial<Record<CoalitionMember, number>>;
+  /** Explicit membership distinguishes a wartime pact from its electoral predecessor. */
+  members?: CoalitionMember[];
+  participation?: Partial<Record<CoalitionMember, 'government' | 'external'>>;
   cohesion: number;
   cntAttitude: number;
   formedAt: { year: number; month: number };
@@ -346,15 +387,34 @@ export interface GameEvent {
   }[];
 }
 
+export interface IberianDefenseState {
+  formedAt: { year: number; month: number };
+  allies: { poum: boolean; psoeLeft: boolean };
+  leftSocialistReserve: number;
+  eliminated: MapFaction[];
+  eliminations: Array<{ faction: MapFaction; recipient: MapFaction; year: number; month: number }>;
+  surrenderThresholds: Partial<Record<MapFaction, number>>;
+  completedAiMonth?: number;
+  playerDefeated?: boolean;
+  winner?: MapFaction;
+  initialProvinces: string[];
+  contributions: { cnt: number; poum: number; psoeLeft: number };
+}
+
 export interface GameState {
   screen: 'start' | 'game';
   currentView?: 'standard' | 'map';
   provinces?: Record<string, Province>;
+  /** Map units. Empty during peace: the standing army lives in `armyFormations`. */
   armies?: Army[];
+  /** The peacetime standing army. The civil war instantiates it into `armies`. */
+  armyFormations?: ArmyFormation[];
   mapSelectedProvinceId?: string | null;
   mapSelectedArmyId?: string | null;
   mapSelectedArmyIds?: string[];
   mapCurrentPlayer?: MapFaction;
+  /** Present only after the May Days secession. Old saves retain Republican command. */
+  iberianDefense?: IberianDefenseState;
   mapResources?: Record<MapFaction, ResourceSet>;
   mapHistory?: string[];
   mapAiConfig?: {
@@ -386,6 +446,7 @@ export interface GameState {
   choose_enemies_timer: number;
   inter_party_relationships_timer: number;
   military_policy_timer: number;
+  police_affairs_timer: number;
   agricultural_policy_timer: number;
   labor_rights_timer: number;
   labor_affairs_timer: number;
@@ -396,8 +457,13 @@ export interface GameState {
   economy_growth: number;
   inflation_rate: number;
   unemployment_rate: number;
+  /** Real output index (100 = scenario starting level); drives every monthly tax base. */
+  economic_output_index: number;
   economyHistory?: { growth: number; inflation: number; unemployment: number; month: number; year: number }[];
+  /** Treasury cash on hand. It is a stock, not the monthly operating balance. */
   budget: number;
+  /** Obligations left unpaid after cash and borrowing capacity are exhausted. */
+  fiscal_arrears: number;
   tax_lower_class: number;
   tax_middle_class: number;
   tax_upper_class: number;
@@ -418,8 +484,15 @@ export interface GameState {
   prrevsDeferralDate?: { year: number; month: number };
   prrevsAbandoned?: boolean;
   cntStance: 'oppose' | 'cooperate' | 'govern';
+  /**
+   * Monotonic record of the CNT's anti-electoral stance: starts true and is only
+   * ever cleared once `cntStance` leaves 'oppose' (see the gameReducer funnel).
+   * Optional so saves written before this field existed still load.
+   */
+  cntStanceAlwaysOpposed?: boolean;
   sandboxCardChoiceEnabled?: boolean;
   sandboxManualTaxAdjustmentEnabled?: boolean;
+  sandboxSovereignInterventionsEnabled?: boolean;
 
   /** Registry-backed organization state. */
   organizations: OrganizationStateMap;
@@ -451,6 +524,11 @@ export interface GameState {
   governmentCrisis: GovernmentCrisis | null;
   governmentCrisisSequence: number;
   earlyElectionInProgress: boolean;
+  civilWarSetupCompletedAt?: { year: number; month: number; inferred?: boolean };
+  wartimePowerArrangement?: WartimePowerArrangement;
+  mayDays?: MayDaysState;
+  /** Republican political eligibility only; rebel organizations retain their assets. */
+  republicanPartyStatus?: Partial<Record<Party, 'excluded' | 'withdrawn'>>;
 
   coalition_dissent?: number;
   gibraltar_resolved?: boolean;
@@ -459,11 +537,20 @@ export interface GameState {
   latin_american_diaspora_mobilized?: boolean;
 
   leverage: number;
+  /** Immutable fiscal-review baseline; legacy `temp_` names are kept for save compatibility. */
   temp_tax_lower?: number;
   temp_tax_middle?: number;
   temp_tax_upper?: number;
   temp_tax_tariff?: number;
   temp_tax_consumption?: number;
+  /** Editable rates kept separate from the active tax schedule until review conclusion. */
+  draft_tax_lower?: number;
+  draft_tax_middle?: number;
+  draft_tax_upper?: number;
+  draft_tax_tariff?: number;
+  draft_tax_consumption?: number;
+  fiscal_income_tax_submitted?: boolean;
+  fiscal_trade_tax_submitted?: boolean;
 
   ministers: {
     labor: MinisterParty;
@@ -483,9 +570,18 @@ export interface GameState {
   }>;
   
   armedForces: {
-    regularArmy: { manpower: number; loyalty: number };
+    /**
+     * The state's police corps. Their existence, strength and loyalty are all
+     * derived from the Security Corps Law in `rules/securityForces.ts`: the Civil
+     * Guard and the Assault Guard merge into the Republican Guard at level 3, which
+     * workers' patrols then replace at level 4. Officer loyalty for the army as a
+     * whole lives in `stats.armyLoyalty`; the army itself has no entry here because
+     * its formations live in `armyFormations` and `armies`.
+     */
     guardiaNacional: { manpower: number; loyalty: number };
     guardiaAsalto: { manpower: number; loyalty: number };
+    guardiaRepublicana: { manpower: number; loyalty: number };
+    patrullasObreras: { manpower: number; loyalty: number };
     militias: {
       cntFai: number;
       maoc: number;
@@ -493,11 +589,9 @@ export interface GameState {
       ugt: number;
       requete: number;
       falange: number;
-      africaArmy: number;
     };
     /** Canonical source-owned pools; `militias` remains a legacy compatibility view. */
     entityPools?: Record<ArmedEntityId, ArmedEntityPool>;
-    warPools?: WarPoolState;
   };
   
   // Domestic Politics

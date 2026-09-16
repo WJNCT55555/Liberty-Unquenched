@@ -1,5 +1,6 @@
 import { GameState } from './types';
 import { getOverallFactionDissent } from './utils/factionEffects';
+import { MapFaction } from '../map/types_map';
 
 export const ENDINGS = {
   CHILDREN_OF_THE_PEOPLE: 'CHILDREN_OF_THE_PEOPLE',
@@ -13,6 +14,16 @@ export const ENDINGS = {
 };
 
 export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; description: string; descriptionZh: string }> = {
+  IBERIAN_COMMITTEE_VICTORY: {
+    title: 'Victory of the Defense Committee', titleZh: '防御委员会的胜利',
+    description: 'The Iberian Defense Committee is the last surviving camp. Both Madrid and the Nationalists have capitulated after losing their capitals and strategic bases. The Committee and its chosen allies now face the work of rebuilding the territory they hold.',
+    descriptionZh: '伊比利亚防御委员会成为最后存续的阵营。马德里政府与国民军先后在失去首都和战略基础后投降。委员会及其选择的盟友，现在必须承担重建所辖领土的工作。',
+  },
+  IBERIAN_MADRID_VICTORY: {
+    title: 'Madrid Prevails', titleZh: '马德里政府获胜',
+    description: 'Madrid is the last surviving camp. The Nationalists and the Iberian Defense Committee have both capitulated. The Committee’s attempt to establish an independent revolutionary command has ended in defeat.',
+    descriptionZh: '马德里政府成为最后存续的阵营。国民军和伊比利亚防御委员会均已投降。委员会建立独立革命指挥体系的尝试，以失败告终。',
+  },
   [ENDINGS.CHILDREN_OF_THE_PEOPLE]: {
     title: 'Children of the People',
     titleZh: '人民之子',
@@ -71,6 +82,13 @@ export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; de
 
 export const checkEndings = (state: GameState): GameState => {
   if (state.isGameOver) return state;
+  // The three-sided campaign has no calendar cutoff or premature two-camp ending.
+  if (state.iberianDefense) {
+    const winner = state.iberianDefense.winner;
+    if (!winner) return state;
+    return { ...state, isGameOver: true, ending: winner === MapFaction.IBERIAN_DEFENSE ? 'IBERIAN_COMMITTEE_VICTORY'
+      : winner === MapFaction.REPUBLICAN ? 'IBERIAN_MADRID_VICTORY' : ENDINGS.WE_HAVE_PASSED };
+  }
 
   let triggeredEnding: string | null = null;
 

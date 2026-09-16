@@ -1,4 +1,4 @@
-export { calculateMonthlyEconomy, ECONOMIC_RULES } from './economy';
+export { calculateMonthlyEconomy, ECONOMIC_RULES, clampMilitarySpending, adjustUnemploymentRate } from './economy';
 export type { EconomyBreakdown } from './economy';
 export { calculateMonthlyIncome, getMonthlyArmamentIncome, INCOME_RULES } from './income';
 export type { MonthlyIncome } from './income';
@@ -18,10 +18,36 @@ export type { PolicyCategory, PolicyCondition, PolicyDefinition, PolicyLevelDefi
 export { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from './fiscalPolicy';
 export type { IncomeTaxAdjustment, TariffConsumptionAdjustment } from './fiscalPolicy';
 export {
+  SECURITY_CORPS_IDS,
+  SECURITY_CORPS_INFO,
+  SECURITY_FORCES_BY_LAW_LEVEL,
+  GUARDIA_NACIONAL_ESTABLISHMENT,
   GUARDIA_ASALTO_ESTABLISHMENT,
-  getGuardiaAsaltoManpower,
+  WORKER_PATROL_ESTABLISHMENT,
+  getSecurityForces,
+  getSecurityCorps,
+  SECURITY_CORPS_BASE_LOYALTY,
+  raiseSecurityCorpsLoyalty,
   applySecurityForcesDerivedState,
 } from './securityForces';
+export type { SecurityCorpsId, SecurityCorpsState, SecurityForcesState } from './securityForces';
+export {
+  MILITIA_REFERENCE_MANPOWER,
+  PREPARATION_BANDS,
+  getPreparationBand,
+  getPeacetimeMilitiaManpower,
+  applyPeacetimeMobilization,
+  applyMobilizationToMapResources,
+  PEACETIME_ARMY_MANPOWER,
+  getDeployedGarrisonManpower,
+  getPeacetimeArmyPool,
+  applyCivilWarLoyaltySplit,
+  MILITIA_RECRUITMENT_POOLS,
+  getMilitiaRecruitmentPools,
+  getMilitiaRecruitmentPool,
+  spendMilitiaPoolManpower,
+} from './warSetup';
+export type { PreparationBand, PeacetimeMobilization, CivilWarLoyaltySplit, MilitiaRecruitmentPool, RecruitmentPoolView } from './warSetup';
 export {
   ORGANIZATION_DEFINITIONS,
   ORGANIZATION_DEFINITION_BY_ID,

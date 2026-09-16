@@ -4,6 +4,7 @@ import { INITIAL_CARDS, INITIAL_EVENTS } from '../data';
 import { INITIAL_ADVISORS } from '../advisors';
 import { civilWarSetup } from '../events/civil_war/civil_war_setup';
 import { addEasyUndoOption, createEasyConfirmationEvent } from '../easyMode';
+import { isMayDaysEvent } from '../rules/mayDays';
 
 const createEmptyEventHistory = (): EventHistory => ({ triggered: [], resolved: [] });
 
@@ -87,6 +88,11 @@ export const reduceEvent: DomainReducer = (state, action) => {
       return { ...state, superEvent: null, eventHistory, ...extra };
     }
     case 'SELECT_EVENT': {
+      if (isMayDaysEvent(state.currentEvent?.id)) return state;
+      if (state.currentEvent?.id === 'wartime_power_arrangement' || state.currentEvent?.id === 'wartime_power_arrangement_result') return state;
+      if (action.payload.eventId !== 'wartime_power_arrangement' && state.pendingEvents.some(event => event.id === 'wartime_power_arrangement')) return state;
+      const mandatoryMayDays = state.pendingEvents.find(event => isMayDaysEvent(event.id));
+      if (mandatoryMayDays && action.payload.eventId !== mandatoryMayDays.id) return state;
       const selectedEvent = state.pendingEvents.find(event => event.id === action.payload.eventId);
       return selectedEvent
         ? {
@@ -99,6 +105,7 @@ export const reduceEvent: DomainReducer = (state, action) => {
     }
     case 'RESOLVE_EVENT': {
       const newStateAfterEvent = action.payload(state);
+      if (isMayDaysEvent(state.currentEvent?.id) && newStateAfterEvent === state) return state;
       const nextCurrentEvent = newStateAfterEvent.currentEvent || null;
       const currentEventId = state.currentEvent?.id;
       const nextPendingEvents = currentEventId
@@ -183,7 +190,8 @@ export const reduceEvent: DomainReducer = (state, action) => {
       };
     }
     case 'CHECK_EVENT':
-      return state.pendingEvents.length > 0 ? { ...state } : { ...state, phase: 'action', actionsLeft: 2 };
+      // A provider effect queued before loading a save may run after its event is restored.
+      return state.currentEvent || state.pendingEvents.length > 0 ? state : { ...state, phase: 'action', actionsLeft: 2 };
     default:
       return null;
   }

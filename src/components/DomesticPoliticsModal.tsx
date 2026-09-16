@@ -5,8 +5,11 @@ import { GameState, Party, CoalitionId } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport } from '../game/parties';
 import { getPartyName, getPartyColor } from '../game/partyNames';
-import { calculateElectionResults } from '../game/utils';
-import { ParliamentChart } from './ParliamentChart';
+import { getParliamentSeatEntries } from '../game/parliamentOrder';
+import { calculateElectionResults, getCoalitionMembers } from '../game/utils';
+import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
+import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
+import { ParliamentChart, type ParliamentData } from './ParliamentChart';
 import { X, Users, Vote, Briefcase, Info, Layers, UserCheck } from 'lucide-react';
 
 interface Props {
@@ -371,23 +374,20 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
   if (!isOpen) return null;
 
   // 1. Parliament Details
-  const cortes = (state.cortes || calculateElectionResults(state)) as Record<Party, number>;
-  const totalCortesSeats = cortes ? (Object.values(cortes) as number[]).reduce((sum, s) => sum + s, 0) : 0;
+  const cortes = getEffectiveCortes(state, state.cortes || calculateElectionResults(state));
+  const vacantSeats = getVacantCortesSeats(state);
+  const totalCortesSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0) + vacantSeats;
   const hasCortes = totalCortesSeats > 0;
 
-  const partyOrder: (Party | 'CNT_FAI')[] = [
-    'POUM', 'PCE', 'PSOE', 'PS', 'PRRevS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'Other', 'AP', 'RE', 'CT', 'FE'
-  ];
-
   // Map to ParliamentChart data
-  const chartData = partyOrder
-    .filter(party => party !== 'CNT_FAI' && (cortes[party as Party] || 0) > 0)
-    .map(party => ({
+  const chartData: ParliamentData[] = getParliamentSeatEntries(cortes)
+    .map(([party, seats]) => ({
       id: party,
       name: getPartyName(state, party, isZh, true),
-      seats: cortes[party as Party] || 0,
+      seats,
       color: getPartyColor(state, party)
     }));
+  if (vacantSeats > 0) chartData.push({ id: 'vacant', name: isZh ? '战时空缺' : 'Wartime vacancies', seats: vacantSeats, color: '#d1ccc2' });
 
   // Calculate Next Election Date
   const getNextElectionText = () => {
@@ -418,15 +418,11 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
 
   const allParties = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT_FAI'] as const;
-  const presentParties = allParties.filter(p => {
-    if (p === 'POUM' && !state.poum_founded) return false;
-    if (p === 'FE' && !state.fe_founded) return false;
-    if (p === 'PS' && !state.ps_founded) return false;
-    return true;
-  });
+  const presentParties = allParties.filter(p => isRepublicanPartyPresent(state, p));
   const activeCoalitionId = state.rulingCoalition;
   const activeCoalitionDef = activeCoalitionId ? COALITION_DEFS.find(c => c.id === activeCoalitionId) : null;
-  const rulingMembers = activeCoalitionDef ? activeCoalitionDef.members.filter(m => presentParties.includes(m as any)) : [];
+  const activeRulingCoalition = state.activeCoalitions.find(coalition => coalition.activeId === activeCoalitionId);
+  const rulingMembers = activeRulingCoalition ? getCoalitionMembers(state, activeRulingCoalition).filter(m => presentParties.includes(m as any)) : [];
 
   const getPartyGroups = () => {
     const groups: {
@@ -446,7 +442,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
       const def = COALITION_DEFS.find(c => c.id === coalition.activeId);
       if (!def) return;
       
-      const membersPresent = def.members.filter(m => unassigned.includes(m as any));
+      const membersPresent = getCoalitionMembers(state, coalition).filter(m => unassigned.includes(m as any));
       if (membersPresent.length === 0) return;
 
       const isRuling = state.rulingCoalition === coalition.activeId;
@@ -489,6 +485,10 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
   // Coalition cohesion texts and explanations
   const getCohesionExplanation = (cohesion: number) => {
+    if (state.rulingCoalition === 'popular_front_wartime') return {
+      en: 'Coalition power combines political support, unions and deployed forces. Two consecutive months below 25 require cabinet coordination; the government remains in office.',
+      zh: '联盟权重综合政治支持、工会与已部署武装。连续两个月低于25将触发内阁协调，现政府继续履行职务。',
+    };
     if (cohesion >= 80) {
       return {
         en: 'Excellent stability. Major laws pass smoothly with minimal legislative friction.',
@@ -636,6 +636,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         {isZh ? '法定议席总数' : 'Total Seats'}
                       </span>
                       <span className="font-display text-lg font-bold text-ink mt-1.5 block">470</span>
+                      {vacantSeats > 0 && <span className="text-xs">{isZh ? `战时空缺 ${vacantSeats} 席` : `${vacantSeats} wartime vacancies`}</span>}
                     </div>
 
                     <div className="border border-ink/15 p-2 bg-paper">
@@ -813,12 +814,13 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         )}
 
                         {/* Member Parties */}
+                        {isRuling && activeRulingCoalition?.activeId === 'popular_front_wartime' && <div className="my-4"><WartimeCoalitionDetails state={state} coalition={activeRulingCoalition} isZh={isZh} /></div>}
                         <div className="divide-y divide-ink/10">
                           {group.members.map((party) => {
                             const seats = party === 'CNT_FAI' ? 0 : (cortes[party as Party] || 0);
                             const seatPct = totalCortesSeats > 0 ? ((seats / totalCortesSeats) * 100).toFixed(1) : '0.0';
                             const support = getPartySupport(state, party);
-                            const isRulingParty = rulingMembers.includes(party);
+                            const isRulingParty = rulingMembers.includes(party) && (activeRulingCoalition?.activeId !== 'popular_front_wartime' || activeRulingCoalition.participation?.[party] === 'government');
 
                             return (
                               <div key={party} className={`${isSingle ? 'py-1.5' : 'py-2.5'} flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-ink/[0.02] px-1 transition-colors rounded-xs`}>

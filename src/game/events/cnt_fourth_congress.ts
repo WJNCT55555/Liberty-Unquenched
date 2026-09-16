@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
+import { adjustUnemploymentRate } from '../rules/economy';
 
 const cntFourthCongressMeta = {
   category: 'cnt' as const,
@@ -344,7 +345,7 @@ export const cnt_fourth_congress_2: GameEvent = {
         return {
           classes: newClasses,
           factions: newFactions,
-          unemployment_rate: Math.max(0, (state.unemployment_rate || 0) - 1),
+          unemployment_rate: adjustUnemploymentRate(state, -1),
           currentEvent: cnt_fourth_congress_3
         };
       }

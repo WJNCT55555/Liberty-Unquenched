@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MapFaction as Faction, Army, Province } from './types_map';
+import { MapFaction as Faction, Army, ArmyFormation, Province } from './types_map';
 
 // Comprehensive listing of Spanish provinces with historical ownership in April 1931
 export const INITIAL_PROVINCES: { [key: string]: Province } = {
@@ -446,19 +446,62 @@ export const PROVINCE_ADJACENCY: { [key: string]: string[] } = {
 // April 1931: The Army is still unified under the Republic.
 // The Army of Africa (in Morocco) is Republican; conservative strongholds
 // have only small militias (Requetés / traditionalist volunteers).
-export const INITIAL_ARMIES: Army[] = [
-  // --- Republican Armies (loyal to the Second Republic) ---
-  { id: 'rep_1', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'madrid', movesLeft: 2, manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80, militarization: 40 },
-  { id: 'rep_2', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'barcelona', movesLeft: 2, manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85, militarization: 35 },
-  { id: 'rep_3', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'valencia', movesLeft: 2, manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75, militarization: 30 },
-  { id: 'rep_4', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'sevilla', movesLeft: 2, manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70, militarization: 35 },
-  { id: 'rep_5', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'zaragoza', movesLeft: 2, manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70, militarization: 30 },
+//
+// This is the PEACETIME roster, not map state: peace keeps no troops on the map.
+// Division numbers and seats follow the peninsular organisation the Republic
+// inherited: 1st Madrid, 2nd Seville, 3rd Valencia, 4th Barcelona, 5th Zaragoza
+// and 6th Burgos, plus the Army of Africa and the Navarra garrison. The civil war
+// instantiated these into map units through `createArmiesFromFormations`.
+export const SPANISH_ARMY_FORMATIONS: ArmyFormation[] = [
+  { id: 'rep_1', name: '1st Organic Division (Madrid)', nameZh: '第1师（马德里）', provinceId: 'madrid', manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80, militarization: 40 },
+  { id: 'rep_2', name: '4th Organic Division (Barcelona)', nameZh: '第4师（巴塞罗那）', provinceId: 'barcelona', manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85, militarization: 35 },
+  { id: 'rep_3', name: '3rd Organic Division (Valencia)', nameZh: '第3师（巴伦西亚）', provinceId: 'valencia', manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75, militarization: 30 },
+  { id: 'rep_4', name: '2nd Organic Division (Seville)', nameZh: '第2师（塞维利亚）', provinceId: 'sevilla', manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70, militarization: 35 },
+  { id: 'rep_5', name: '5th Organic Division (Zaragoza)', nameZh: '第5师（萨拉戈萨）', provinceId: 'zaragoza', manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70, militarization: 30 },
   // Army of Africa: elite colonial force, still under Republican command in 1931
-  { id: 'rep_africa', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'tetouan', movesLeft: 2, manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85, militarization: 65 },
-  // --- Local Garrison Forces (formerly conservative militias, now under Republic in 1931) ---
-  { id: 'rep_navarra_garrison', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'navarra', movesLeft: 2, manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60, militarization: 25 },
-  { id: 'rep_burgos_garrison', faction: Faction.REPUBLICAN, identity: 'gov', provinceId: 'burgos', movesLeft: 2, manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55, militarization: 20 },
+  { id: 'rep_africa', name: 'Army of Africa (Tetuán)', nameZh: '非洲军团（得土安）', provinceId: 'tetouan', manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85, militarization: 65 },
+  { id: 'rep_navarra_garrison', name: 'Navarra Garrison (Pamplona)', nameZh: '纳瓦拉守备队（潘普洛纳）', provinceId: 'navarra', manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60, militarization: 25 },
+  { id: 'rep_burgos_garrison', name: '6th Organic Division (Burgos)', nameZh: '第6师（布尔戈斯）', provinceId: 'burgos', manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55, militarization: 20 },
 ];
+
+/** Places one peacetime formation on the map as a real unit. */
+export function formationToArmy(formation: ArmyFormation, faction: Faction = Faction.REPUBLICAN): Army {
+  return {
+    id: formation.id,
+    faction,
+    identity: 'gov',
+    name: formation.name,
+    nameZh: formation.nameZh,
+    provinceId: formation.provinceId,
+    movesLeft: 2,
+    manpower: formation.manpower,
+    maxManpower: formation.maxManpower,
+    composition: { ...formation.composition },
+    designedComposition: { ...formation.designedComposition },
+    morale: formation.morale,
+    militarization: formation.militarization,
+  };
+}
+
+/** Places the whole peacetime roster on the map. */
+export function createArmiesFromFormations(
+  formations: ArmyFormation[],
+  faction: Faction = Faction.REPUBLICAN,
+): Army[] {
+  return formations.map((formation) => formationToArmy(formation, faction));
+}
+
+/**
+ * Fresh copies of the peacetime roster. A new game must never share the module
+ * constant, because army cards will edit formations in place.
+ */
+export function getDefaultArmyFormations(): ArmyFormation[] {
+  return SPANISH_ARMY_FORMATIONS.map((formation) => ({
+    ...formation,
+    composition: { ...formation.composition },
+    designedComposition: { ...formation.designedComposition },
+  }));
+}
 
 // --- Cultural & Regional Classification (for map display layers) ---
 export type CultureGroup = 
@@ -809,10 +852,10 @@ export const FLIPPED_PROVINCES = [
 
 export function initializeMapState(scenario: string, civilWarStatus: string) {
   const provinces = { ...INITIAL_PROVINCES };
-  let armies = [...INITIAL_ARMIES];
 
   if (scenario === '1936' || civilWarStatus === 'ongoing') {
-    // 1. Flip the 1936 provinces to Nationalist
+    // Flip the 1936 provinces to Nationalist. The army itself is not placed here:
+    // peace keeps the map empty and the civil war instantiates the formations.
     FLIPPED_PROVINCES.forEach(id => {
       if (provinces[id]) {
         provinces[id] = {
@@ -821,19 +864,8 @@ export function initializeMapState(scenario: string, civilWarStatus: string) {
         };
       }
     });
-
-    // 2. Flip Morocco army to Nationalist
-    armies = armies.map(army => {
-      if (army.id === 'rep_africa') {
-        return {
-          ...army,
-          faction: Faction.NATIONALIST
-        };
-      }
-      return army;
-    });
   }
 
-  return { provinces, armies };
+  return { provinces, armies: [] as Army[] };
 }
 

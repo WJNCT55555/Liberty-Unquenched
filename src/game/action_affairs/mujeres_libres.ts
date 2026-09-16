@@ -3,6 +3,7 @@ import { effectPreviewFromEffect } from '../effectPreview';
 import { adjustClassSupport } from '../utils';
 import { isOrganizationEstablished } from '../organizations';
 import { applyUnionShareDelta } from '../unions';
+import { adjustUnemploymentRate } from '../rules/economy';
 
 type MujeresLibresEffect = GameEvent['options'][number]['effect'];
 
@@ -32,7 +33,7 @@ const awakenWomenToFreedom: MujeresLibresEffect = (state: GameState): Partial<Ga
 
 const organizeWomenAtWork: MujeresLibresEffect = (state: GameState): Partial<GameState> => ({
   classes: adjustClassSupport(state.classes, 'Obreros', 'CNT_FAI', 4),
-  unemployment_rate: Math.max(0, (state.unemployment_rate || 0) - 0.5),
+  unemployment_rate: adjustUnemploymentRate(state, -0.5),
   // 解耦：组织女工入会属工会组织成果。
   ...applyUnionShareDelta(state, { CNT: 2, unorganized: -2 }),
   stats: { ...state.stats },
@@ -47,7 +48,7 @@ const provideLaborEducation: MujeresLibresEffect = (state: GameState): Partial<G
 
   return {
     classes,
-    unemployment_rate: Math.max(0, (state.unemployment_rate || 0) - 1),
+    unemployment_rate: adjustUnemploymentRate(state, -1),
     ...applyUnionShareDelta(state, { CNT: 1, unorganized: -1 }),
     stats: { ...state.stats },
     currentEvent: null

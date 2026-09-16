@@ -16,13 +16,31 @@ export const UNION_SHARE_KEYS: readonly UnionShareKey[] = [
 export const UNION_ORGANIZATION_KEYS: readonly UnionShareKey[] = ['CNT', 'UGT', 'UR', 'ELA', 'CNCA', 'CONS'];
 
 /**
+ * 占比键到组织 id 的映射。多数键与组织 id 同名，但 `UR` 键指的是拉巴塞尔联盟
+ * （Unió de Rabassaires），而 `UR` 这个组织 id 现在属于共和联盟（Unión
+ * Republicana）政党，因此拉巴塞尔联盟的组织 id 是 `UNIO_RABASSAIRES`。
+ */
+export const UNION_SHARE_ORGANIZATION: Record<UnionShareKey, OrganizationId | undefined> = {
+  CNT: 'CNT',
+  UGT: 'UGT',
+  UR: 'UNIO_RABASSAIRES',
+  ELA: 'ELA',
+  CNCA: 'CNCA',
+  CONS: 'CONS',
+  other: undefined,
+  unorganized: undefined,
+};
+
+/**
  * 未组织者占比下限。任何时刻至少 15% 的人不在任何组织手中：
  * 既是招募与流失的吸收池，也是"完全组织化"的天然上限。
  */
 export const UNION_SHARE_MIN_UNORGANIZED = 15;
 
 const DEFAULT_UNION_SHARE: Record<GameState['scenario'], UnionShare> = {
-  '1931': { CNT: 22, UGT: 6, UR: 1, ELA: 1, CNCA: 5, CONS: 0, other: 4, unorganized: 61 },
+  // 1931：共和-社会党执政，UGT 背靠政府，CNT 尚处弱势（与 Obreros 对 CNT_FAI/PSOE 的
+  // 初始支持度 35/50 方向一致）。
+  '1931': { CNT: 10, UGT: 18, UR: 1, ELA: 1, CNCA: 5, CONS: 0, other: 4, unorganized: 61 },
   '1933': { CNT: 26, UGT: 10, UR: 2, ELA: 1, CNCA: 6, CONS: 0, other: 3, unorganized: 52 },
   '1936': { CNT: 27, UGT: 14, UR: 2, ELA: 2, CNCA: 5, CONS: 1, other: 3, unorganized: 46 },
 };
@@ -82,9 +100,8 @@ export const normalizeUnionShare = (state: GameState): GameState => {
 
   UNION_SHARE_KEYS.forEach((key) => {
     if (key === 'unorganized') return;
-    const isOrganizationKey = UNION_ORGANIZATION_KEYS.includes(key);
-    const established = !isOrganizationKey
-      || isOrganizationEstablished(state, key as OrganizationId);
+    const organizationId = UNION_SHARE_ORGANIZATION[key];
+    const established = !organizationId || isOrganizationEstablished(state, organizationId);
     share[key] = established ? Math.max(0, Number(raw[key]) || 0) : 0;
   });
 

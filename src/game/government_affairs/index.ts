@@ -1,4 +1,5 @@
 import { militaryPolicy } from './military_policy';
+import { policeAffairs } from './police_affairs';
 import { agriculturalPolicy } from './agricultural_policy';
 import { laborRights } from './labor_rights';
 import { laborAffairs } from './labor_affairs';
@@ -8,6 +9,7 @@ import { impeachPresident } from './impeach_president';
 
 export const GOVERNMENT_AFFAIRS = [
   militaryPolicy,
+  policeAffairs,
   agriculturalPolicy,
   laborRights,
   laborAffairs,

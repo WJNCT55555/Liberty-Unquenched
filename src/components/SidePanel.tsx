@@ -5,9 +5,16 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
+import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport, updateCoalitions } from '../game/utils';
-import { MapFaction } from '../map/types_map';
+import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
+import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
+import { MapFaction, ArmyFormation } from '../map/types_map';
+import { getPlayerMapFaction, getMapFactionName, CIVIL_WAR_FACTIONS } from '../map/rules/factions';
+import { INITIAL_PROVINCES, getProvinceName } from '../map/map_constants';
+import { getPeacetimeArmyPool } from '../game/rules/warSetup';
+import { SECURITY_CORPS_IDS, SECURITY_CORPS_INFO } from '../game/rules/securityForces';
 import { FACTION_NAMES } from '../game/labels';
 import { getOverallFactionDissent } from '../game/utils/factionEffects';
 import { getOrganizationsForOwner, isOrganizationActive, isOrganizationEstablished } from '../game/organizations';
@@ -65,6 +72,9 @@ const getPartySupportBreakdown = (state: GameState, party: 'CNT_FAI' | Party) =>
 export const SidePanel = () => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
+  const effectiveCortes = getEffectiveCortes(state);
+  const parliamentSeats = getParliamentSeatEntries(effectiveCortes);
+  const vacantCortesSeats = getVacantCortesSeats(state);
 
   const unionShare = getUnionShare(state);
   const organizedShare = getOrganizedShare(unionShare);
@@ -272,6 +282,10 @@ export const SidePanel = () => {
           <div className="flex flex-col gap-4">
             {(() => {
               const provincesList = Object.values(state.provinces || {}) as any[];
+              if (state.iberianDefense) return <div className="space-y-2 text-xs">
+                {CIVIL_WAR_FACTIONS.map(faction => <div key={faction} className="flex justify-between gap-2"><span>{getMapFactionName(faction, isZh)}</span><strong>{provincesList.filter(province => province.owner === faction).length}</strong></div>)}
+                <p>{isZh ? '三方互相交战；详情见地图战争概览。' : 'All three camps are at war. See the map war summary.'}</p>
+              </div>;
               const totalProvinces = provincesList.length;
               let computedProgress = 50;
               if (totalProvinces > 0) {
@@ -328,7 +342,7 @@ export const SidePanel = () => {
 
             {/* Spain Civil War Faction/Republican stats */}
             {(() => {
-              const repResources = state.mapResources?.[MapFaction.REPUBLICAN] || {
+                const repResources = state.mapResources?.[getPlayerMapFaction(state)] || {
                 manpower: 15000,
                 industrialCapacity: 100,
                 commandPoints: 2,
@@ -338,7 +352,7 @@ export const SidePanel = () => {
               return (
                 <div className="flex flex-col gap-2 font-mono text-xs border-t border-b border-ink/10 py-3 my-1">
                   <h4 className="font-display font-bold text-ink uppercase tracking-wider mb-1 text-[11px] text-cnt-red">
-                    {isZh ? '共和军军事资源' : 'Republican War Resources'}
+                {state.iberianDefense ? (isZh ? '委员会军事资源' : 'Committee War Resources') : (isZh ? '共和军军事资源' : 'Republican War Resources')}
                   </h4>
                   <div className="flex justify-between items-center border-b border-ink/5 pb-1">
                     <span className="text-ink-light">{isZh ? '人力' : 'Manpower'}</span>
@@ -575,7 +589,7 @@ export const SidePanel = () => {
           </div>
 
           {/* Active Coalition Details Pane (Inside domestic politics, placed under government info) */}
-          {(state.activeCoalitions || []).map((activeCoalition, idx) => {
+          {updateCoalitions(state).map((activeCoalition, idx) => {
             const def = COALITION_DEFS.find(d => d.id === activeCoalition.activeId);
             if (!def) return null;
 
@@ -603,7 +617,7 @@ export const SidePanel = () => {
                     />
                   </div>
                   <div className="flex justify-between text-[7px] font-typewriter text-ink-light/70 uppercase leading-none mt-0.5 select-none">
-                    <span>[0 DISSOLVED]</span>
+                    <span>{activeCoalition.activeId === 'popular_front_wartime' ? '[0 CRISIS]' : '[0 DISSOLVED]'}</span>
                     <span>[50 SECURE]</span>
                     <span>[100 STEADFAST]</span>
                   </div>
@@ -638,7 +652,7 @@ export const SidePanel = () => {
                 </div>
 
                 {/* Redrawn register sheet for member contributions */}
-                <div className="flex flex-col gap-1 mt-1 border-t border-ink/20 pt-2">
+                {activeCoalition.activeId === 'popular_front_wartime' ? <WartimeCoalitionDetails state={state} coalition={activeCoalition} isZh={isZh} /> : <div className="flex flex-col gap-1 mt-1 border-t border-ink/20 pt-2">
                   <div className="grid grid-cols-4 text-[8px] text-ink-light uppercase pb-1 font-bold tracking-wider font-typewriter border-b border-ink/20">
                     <span>{isZh ? '结盟政党' : 'PARTY COAL.'}</span>
                     <span className="text-right">{isZh ? '承诺度' : 'COMMIT'}</span>
@@ -683,7 +697,7 @@ export const SidePanel = () => {
                       });
                     })()}
                   </div>
-                </div>
+                </div>}
               </div>
             );
           })}
@@ -694,6 +708,7 @@ export const SidePanel = () => {
         <div className="flex flex-col gap-2 text-xs font-mono">
           <div className="flex flex-col gap-1">
             {(Object.entries(state.partyRelations) as [Party, number][]).map(([party, value]) => {
+              if (!isRepublicanPartyPresent(state, party)) return null;
               if (party === 'PS' && !state.ps_founded) return null;
               if (party === 'FE' && !state.fe_founded) return null;
               if (party === 'POUM' && !state.poum_founded) return null;
@@ -760,20 +775,14 @@ export const SidePanel = () => {
       </AccordionSection>
 
       {state.cortes && (
-        <AccordionSection title={isZh ? '制宪议会' : 'Constituent Cortes'} defaultOpen={true}>
+        <AccordionSection title={isZh ? '议会分布' : 'Parliamentary Distribution'} defaultOpen={true}>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs font-mono mb-1">
               <span>{isZh ? '左翼' : 'Left'}</span>
-              <span>{getPartyName(state, 'AP', isZh, true)}</span>
+              <span>{isZh ? '右翼' : 'Right'}</span>
             </div>
             <div className="h-4 w-full flex rounded-sm overflow-hidden border border-ink bg-paper-dark">
-              {(Object.entries(state.cortes) as [Party, number][])
-                .filter(([_, seats]) => seats > 0)
-                .sort((a, b) => {
-                  const order = ['POUM', 'PCE', 'PRRevS', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'Other', 'AP', 'RE', 'CT', 'FE'];
-                  return order.indexOf(a[0]) - order.indexOf(b[0]);
-                })
-                .map(([party, seats]) => (
+              {parliamentSeats.map(([party, seats]) => (
                 <div 
                   key={party}
                   className="h-full transition-all duration-1000"
@@ -786,15 +795,13 @@ export const SidePanel = () => {
               ))}
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono mt-1">
-              {(Object.entries(state.cortes) as [Party, number][])
-                .filter(([_, seats]) => seats > 0)
-                .sort((a, b) => b[1] - a[1])
-                .map(([party, seats]) => (
+              {parliamentSeats.map(([party, seats]) => (
                 <div key={party} className="flex items-center gap-1">
                   <div className="w-2 h-2 border border-ink" style={{ backgroundColor: getPartyColor(state, party as any) || '#9ca3af' }} />
                   {party}: {seats}
                 </div>
               ))}
+              {vacantCortesSeats > 0 && <span>{isZh ? '战时空缺' : 'Wartime vacancies'}: {vacantCortesSeats}</span>}
             </div>
           </div>
         </AccordionSection>
@@ -837,7 +844,7 @@ export const SidePanel = () => {
               <span className="text-sm font-bold text-ink">{(state.unemployment_rate !== undefined ? state.unemployment_rate : 11.2).toFixed(1)}%</span>
             </div>
             <div className="flex flex-col mt-1">
-              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '国家财政预算' : 'Gov Budget'}</span>
+              <span className="text-[10px] text-ink-light uppercase tracking-tight">{isZh ? '国库现金余额' : 'Treasury Cash'}</span>
               <span className={`text-sm font-bold ${(state.budget !== undefined ? state.budget : 12.0) >= 0 ? 'text-green-700' : 'text-cnt-red'}`}>
                 {(state.budget !== undefined ? state.budget : 12.0).toFixed(1)}M ₧
               </span>
@@ -1077,28 +1084,39 @@ export const SidePanel = () => {
       <AccordionSection title={isZh ? '武装情况' : 'Armed Forces'} defaultOpen={true}>
         <div className="mb-4">
           <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '政府军' : 'Regular Army'}</h3>
-          <LoyaltyBar 
-            name={isZh ? '正规军' : 'Ejército Regular'} 
-            manpower={state.armedForces.regularArmy.manpower} 
-            loyalty={state.armedForces.regularArmy.loyalty} 
+          <div className="flex justify-between font-typewriter text-[9px] uppercase tracking-wider text-ink-light pb-0.5">
+            <span>{isZh ? '驻军' : 'Garrison'}</span>
+            <span>{isZh ? '人员 · 火炮 · 坦克' : 'Men · Arty · Tanks'}</span>
+          </div>
+          <div className="flex flex-col">
+            {/* The peacetime standing army. Peace keeps no troops on the map, so
+                this panel renders the formation roster, not `state.armies`. */}
+            {(state.armyFormations || [])
+              .map((formation) => (
+                <ArmyItem key={formation.id} formation={formation} />
+              ))}
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '军队人力池' : 'Army Manpower Pool'}</h3>
+          <MilitiaItem
+            name={isZh ? '未编入驻军的陆军员额' : 'Army manpower not yet formed into garrisons'}
+            manpower={getPeacetimeArmyPool(state)}
+            color="bg-republic-purple"
           />
-          <MilitiaItem name={isZh ? '非洲军团 (Ejército de África)' : 'Ejército de África'} manpower={state.armedForces.militias.africaArmy} color="bg-yellow-600" isAfrica={true} />
         </div>
 
         <div className="mb-4">
           <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '治安部队' : 'Security Forces'}</h3>
-          <LoyaltyBar 
-            name={isZh ? '国民警卫队' : 'Guardia Nacional Republicana'} 
-            manpower={state.armedForces.guardiaNacional.manpower} 
-            loyalty={state.armedForces.guardiaNacional.loyalty} 
-          />
-          {state.armedForces.guardiaAsalto.manpower > 0 && (
-            <LoyaltyBar
-              name={isZh ? '突击卫队' : 'Guardia de Asalto'}
-              manpower={state.armedForces.guardiaAsalto.manpower}
-              loyalty={state.armedForces.guardiaAsalto.loyalty}
+          {SECURITY_CORPS_IDS.filter((id) => state.armedForces[id]?.manpower > 0).map((id) => (
+            <MilitiaItem
+              key={id}
+              name={isZh ? SECURITY_CORPS_INFO[id].zh : SECURITY_CORPS_INFO[id].en}
+              manpower={state.armedForces[id].manpower}
+              color={SECURITY_CORPS_INFO[id].color}
             />
-          )}
+          ))}
         </div>
 
         <div>
@@ -1144,22 +1162,9 @@ export const SidePanel = () => {
 
       <AccordionSection title={isZh ? '全国支持率' : 'National Support'}>
         <div className="flex flex-col gap-4">
-          <AllianceBar name={getPartyName(state, 'CNT_FAI', isZh, true)} value={calculatePartySupport(state, 'CNT_FAI')} color={getPartyColor(state, 'CNT_FAI')} breakdown={getPartySupportBreakdown(state, 'CNT_FAI')} />
-          {state.poum_founded && <AllianceBar name={getPartyName(state, 'POUM', isZh, true)} value={calculatePartySupport(state, 'POUM')} color={PARTY_COLORS['POUM']} breakdown={getPartySupportBreakdown(state, 'POUM')} />}
-          <AllianceBar name={getPartyName(state, 'PCE', isZh, true)} value={calculatePartySupport(state, 'PCE')} color={PARTY_COLORS['PCE']} breakdown={getPartySupportBreakdown(state, 'PCE')} />
-          <AllianceBar name={getPartyName(state, 'PSOE', isZh, true)} value={calculatePartySupport(state, 'PSOE')} color={PARTY_COLORS['PSOE']} breakdown={getPartySupportBreakdown(state, 'PSOE')} />
-          {state.ps_founded && <AllianceBar name={getPartyName(state, 'PS', isZh, true)} value={calculatePartySupport(state, 'PS')} color={PARTY_COLORS['PS']} breakdown={getPartySupportBreakdown(state, 'PS')} />}
-          <AllianceBar name={getPartyName(state, 'ERC', isZh, true)} value={calculatePartySupport(state, 'ERC')} color={PARTY_COLORS['ERC']} breakdown={getPartySupportBreakdown(state, 'ERC')} />
-          <AllianceBar name={getPartyName(state, 'IR', isZh, true)} value={calculatePartySupport(state, 'IR')} color={PARTY_COLORS['IR']} breakdown={getPartySupportBreakdown(state, 'IR')} />
-          <AllianceBar name={getPartyName(state, 'UR', isZh, true)} value={calculatePartySupport(state, 'UR')} color={PARTY_COLORS['UR']} breakdown={getPartySupportBreakdown(state, 'UR')} />
-          <AllianceBar name={getPartyName(state, 'PNV', isZh, true)} value={calculatePartySupport(state, 'PNV')} color={PARTY_COLORS['PNV']} breakdown={getPartySupportBreakdown(state, 'PNV')} />
-          <AllianceBar name={getPartyName(state, 'PRR', isZh, true)} value={calculatePartySupport(state, 'PRR')} color={PARTY_COLORS['PRR']} breakdown={getPartySupportBreakdown(state, 'PRR')} />
-          <AllianceBar name={getPartyName(state, 'DLR', isZh, true)} value={calculatePartySupport(state, 'DLR')} color={PARTY_COLORS['DLR']} breakdown={getPartySupportBreakdown(state, 'DLR')} />
-          <AllianceBar name={getPartyName(state, 'AP', isZh, true)} value={calculatePartySupport(state, 'AP')} color={PARTY_COLORS['AP']} breakdown={getPartySupportBreakdown(state, 'AP')} />
-          <AllianceBar name={getPartyName(state, 'RE', isZh, true)} value={calculatePartySupport(state, 'RE')} color={PARTY_COLORS['RE']} breakdown={getPartySupportBreakdown(state, 'RE')} />
-          <AllianceBar name={getPartyName(state, 'CT', isZh, true)} value={calculatePartySupport(state, 'CT')} color={PARTY_COLORS['CT']} breakdown={getPartySupportBreakdown(state, 'CT')} />
-          {state.fe_founded && <AllianceBar name={getPartyName(state, 'FE', isZh, true)} value={calculatePartySupport(state, 'FE')} color={PARTY_COLORS['FE']} breakdown={getPartySupportBreakdown(state, 'FE')} />}
-          <AllianceBar name={getPartyName(state, 'Other', isZh, true)} value={calculatePartySupport(state, 'Other')} color={PARTY_COLORS['Other']} breakdown={getPartySupportBreakdown(state, 'Other')} />
+          {(['CNT_FAI', 'POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other'] as const)
+            .filter(party => isRepublicanPartyPresent(state, party))
+            .map(party => <AllianceBar key={party} name={getPartyName(state, party, isZh, true)} value={calculatePartySupport(state, party)} color={getPartyColor(state, party)} breakdown={getPartySupportBreakdown(state, party)} />)}
         </div>
       </AccordionSection>
 
@@ -1378,26 +1383,25 @@ const AllianceBar: React.FC<{ name: string; value: number; color: string; breakd
   </div>
 )};
 
-const LoyaltyBar: React.FC<{ name: string; manpower: number; loyalty: number }> = ({ name, manpower, loyalty }) => {
+const ArmyItem: React.FC<{ formation: ArmyFormation }> = ({ formation }) => {
   const { state } = useGame();
   const isZh = state.language === 'zh';
-  
+  const province = (state.provinces || INITIAL_PROVINCES)[formation.provinceId];
+  const station = getProvinceName(province, isZh ? 'zh' : 'en');
+  const label = (isZh ? formation.nameZh : formation.name) || formation.name || formation.id;
+
   return (
-    <div className="flex flex-col gap-1 mb-3">
-      <div className="flex justify-between font-typewriter text-[10px] uppercase tracking-wider">
-        <span className="truncate pr-1" title={name}>{name}</span>
-        <span className="flex-shrink-0">{manpower.toLocaleString()} {isZh ? '人' : ''}</span>
+    <div
+      className="flex justify-between items-center font-typewriter text-[10px] uppercase tracking-wider py-1 border-b border-dotted border-ink/30 cursor-help"
+      title={`${isZh ? '士气' : 'Morale'} ${Math.round(formation.morale)} · ${isZh ? '训练度' : 'Training'} ${Math.round(formation.militarization)} · ${station}`}
+    >
+      <div className="flex items-center gap-1.5 overflow-hidden">
+        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-republic-purple"></div>
+        <span className="truncate" title={label}>{label}</span>
       </div>
-      <div className="h-3 w-full border border-ink bg-[#1a1a1a] relative overflow-hidden flex group cursor-help">
-        <div 
-          className="h-full bg-republic-purple transition-all duration-500" 
-          style={{ width: `${loyalty}%` }}
-        />
-        {/* Tooltip */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-max bg-paper border border-ink p-1 text-[10px] font-typewriter z-50 hidden group-hover:block shadow-md">
-          {isZh ? `忠于共和: ${loyalty}% | 倾向叛乱: ${100 - loyalty}%` : `Loyal to Republic: ${loyalty}% | Leaning to Rebellion: ${100 - loyalty}%`}
-        </div>
-      </div>
+      <span className="flex-shrink-0 pl-1 tabular-nums">
+        {formation.manpower.toLocaleString()} · {formation.composition.artillery.toLocaleString()} · {formation.composition.tanks.toLocaleString()}
+      </span>
     </div>
   );
 };

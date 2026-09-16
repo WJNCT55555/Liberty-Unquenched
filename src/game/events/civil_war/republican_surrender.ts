@@ -12,7 +12,7 @@ export const republicanSurrender: GameEvent = {
   id: 'republican_surrender',
   meta: civilWarTerminalMeta,
   condition: (state) => {
-    if (state.civilWarStatus !== 'ongoing') return false;
+    if (state.iberianDefense || state.civilWarStatus !== 'ongoing') return false;
 
     // Madrid, Barcelona, and Valencia must not belong to the Republican Faction
     const madrid = state.provinces?.['madrid'];
@@ -42,7 +42,7 @@ export const republicanSurrender: GameEvent = {
     {
       text: 'A dark day for liberty...',
       textZh: '自由最黑暗的一天……',
-      effect: (state) => ({
+      effect: (state) => state.iberianDefense ? state : ({
         civilWarStatus: 'lost',
         superEvent: 'spanish_civil_war_ends'
       })

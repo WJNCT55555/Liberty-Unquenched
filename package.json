@@ -12,6 +12,8 @@
     "test:effect-previews": "tsx scripts/test-action-affairs-effect-previews.ts",
     "test:armament-income": "tsx scripts/test-armament-income.ts",
     "test:rules": "tsx scripts/test-rules.ts",
+    "test:wartime": "tsx scripts/test-wartime-politics.tsx",
+    "test:may-days": "tsx scripts/test-may-days.tsx",
     "test:union-share": "tsx scripts/test-union-share.ts",
     "test:save-system": "tsx scripts/test-save-system.ts"
   },

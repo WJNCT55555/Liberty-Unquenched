@@ -9,6 +9,7 @@ import {
 } from './types';
 import { POLICY_DEFINITIONS, POLICY_STANCE_PREFERENCES, type PolicyCategory, type PolicyDefinition } from './rules/policyDefinitions';
 import { isOrganizationEstablished } from './organizations';
+import { isRepublicanPartyEligible } from './politicalEligibility';
 
 export const LAW_STANCE_SCORE: Record<LawStance, number> = {
   strongly_support: 8,
@@ -71,6 +72,7 @@ export const isCNTParliamentaryActor = (state: GameState, cortes?: Record<Party,
 };
 
 export const isLegalStancePartyPresent = (state: GameState, party: LegalStanceParty) => {
+  if (!isRepublicanPartyEligible(state, party)) return false;
   // These identities are created by explicit historical events.  The
   // remaining legal parties exist from the start of the Republic.
   if (party === 'POUM') return Boolean(state.poum_founded);
@@ -89,6 +91,7 @@ export const getLegalStanceActors = (state: GameState, cortes?: Record<Party, nu
 };
 
 export const getLegalActorSeats = (state: GameState, actor: PoliticalActor, cortes?: Record<Party, number>) => {
+  if (!isRepublicanPartyEligible(state, actor)) return 0;
   if (actor === 'CNT_FAI') return cortes?.PRRevS || state.cortes?.PRRevS || 0;
   return cortes?.[actor] || state.cortes?.[actor] || 0;
 };
@@ -111,7 +114,7 @@ const isModifierActive = (state: GameState, modifier: LawStanceModifier) => {
 
 export const getEffectiveLawStanceScore = (state: GameState, actor: PoliticalActor, lawId: LawId, targetLevel: number) => {
   let score = getBaselineLawStanceScore(actor, lawId, targetLevel);
-  const modifiers = state.lawStanceModifiers.filter(modifier =>
+  const modifiers = (state.lawStanceModifiers || []).filter(modifier =>
     modifier.actor === actor &&
     modifier.lawId === lawId &&
     isModifierActive(state, modifier) &&

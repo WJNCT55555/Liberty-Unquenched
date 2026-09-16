@@ -9,6 +9,7 @@ import {
 } from '../utils';
 import { prrevsCampaigning } from './prrevs_campaigning';
 import { strike } from './strike';
+import { adjustUnemploymentRate } from '../rules/economy';
 import type { ClassPoliticalForce } from '../utils';
 import {
   classSupportPreview,
@@ -599,7 +600,7 @@ export const mitinPopular: Card = {
             workerControl: clampPercent(s.stats.workerControl + 5 * dissentFactor * coopBonus),
             bureaucratization: clampPercent(s.stats.bureaucratization + 1)
           },
-          unemployment_rate: Math.max(0, s.unemployment_rate - 0.5 * dissentFactor),
+          unemployment_rate: adjustUnemploymentRate(s, -0.5 * dissentFactor),
           currentEvent: null
         };
       }

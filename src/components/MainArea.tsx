@@ -12,9 +12,14 @@ export const MainArea = () => {
   const { state, dispatch } = useGame();
   const isZh = state.language === 'zh';
   const [selectedDeckForChoice, setSelectedDeckForChoice] = React.useState<'Action' | 'Governmental' | 'Military' | null>(null);
+  const mainAreaRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    // A long choice menu must not leave the next event's heading above the viewport.
+    if (state.currentEvent && mainAreaRef.current) mainAreaRef.current.scrollTop = 0;
+  }, [state.currentEvent?.id]);
 
   return (
-    <div className="flex-1 flex flex-col p-8 relative overflow-y-auto bg-halftone">
+    <div ref={mainAreaRef} className="flex-1 flex flex-col p-8 relative overflow-y-auto bg-halftone">
       
       {/* Header for Phase */}
       <div className="absolute top-8 right-8 text-right">
