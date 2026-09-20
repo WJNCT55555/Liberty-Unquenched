@@ -8,8 +8,10 @@ coverage/
 /editor/
 /.agents/
 /start_game.bat
-/docs/
+/docs/*
+!/docs/ARCHITECTURE_MIGRATION_PLAN.md
 /output/
+/tools/
 
 .DS_Store
 *.log

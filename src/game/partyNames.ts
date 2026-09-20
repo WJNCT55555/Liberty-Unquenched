@@ -1,6 +1,6 @@
 import { GameState } from './types';
 import { Party } from './parties';
-import { isOrganizationEstablished } from './organizations';
+import { isOrganizationEstablished, type OrganizationStateReader } from './organizations';
 
 // Unified party names translation mapping
 export const PARTY_NAMES_MAPPING: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
@@ -91,7 +91,7 @@ export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', is
 
 import { PARTY_COLORS } from './parties';
 
-export function getPartyColor(state: GameState, party: Party | 'CNT_FAI'): string {
+export function getPartyColor(state: OrganizationStateReader, party: Party | 'CNT_FAI'): string {
   if (party === 'CNT_FAI' && isOrganizationEstablished(state, 'PRRevS')) {
     return PARTY_COLORS['PS'] || '#4b5563'; // Use PS color for PRRevS based on SidePanel
   }

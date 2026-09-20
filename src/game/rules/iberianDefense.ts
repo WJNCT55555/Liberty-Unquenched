@@ -1,5 +1,12 @@
-import type { GameState, IberianDefenseState } from '../types';
-import { MapFaction, type Army, type ArmyComposition, type ResourceSet } from '../../map/types_map';
+import type { GameState } from '../types';
+import {
+  MapFaction,
+  type Army,
+  type ArmyComposition,
+  type IberianDefenseState,
+  type MapRuntimeState,
+  type ResourceSet,
+} from '../../map/types_map';
 import { PROVINCE_ADJACENCY, PROVINCE_REGIONS } from '../../map/map_constants';
 import { CIVIL_WAR_FACTIONS, getMapFactionName } from '../../map/rules/factions';
 import { isOrganizationActive } from '../organizations';
@@ -17,8 +24,8 @@ export const IBERIAN_SURRENDER_THRESHOLDS = {
 export const PSOE_LEFT_SHARE = 0.4;
 export type IberianAllies = IberianDefenseState['allies'];
 const zeroResources = (): ResourceSet => ({ manpower: 0, supplies: 0, industrialCapacity: 0, tankReserve: 0, commandPoints: 0 });
-export const getFactionStrategicValue = (state: Pick<GameState, 'provinces'>, faction: MapFaction) =>
-  Object.values(state.provinces ?? {}).reduce((sum, province) => sum + (province.owner === faction ? province.strategicValue : 0), 0);
+export const getFactionStrategicValue = (state: Pick<MapRuntimeState, 'provinces'>, faction: MapFaction) =>
+  Object.values(state.provinces).reduce((sum, province) => sum + (province.owner === faction ? province.strategicValue : 0), 0);
 export const canEscalateMayDays = (state: GameState) => isSpanishCivilWarOngoing(state)
   && !state.iberianDefense && state.mayDays?.stage === 'negotiations'
   && state.provinces?.barcelona?.owner === MapFaction.REPUBLICAN && isOrganizationActive(state, 'CNT');
@@ -130,40 +137,43 @@ export const formIberianDefense = (state: GameState, allies: IberianAllies): Gam
 };
 
 /** Resolve capital loss AND low SV. Re-evaluate after each territorial transfer. */
-export const settleIberianCapitulations = (state: GameState): GameState => {
+export const settleIberianCapitulations = <State extends MapRuntimeState>(state: State): State => {
   if (!state.iberianDefense || state.iberianDefense.winner) return state;
   let next = state;
   let changed = true;
   while (changed) {
     changed = false;
     for (const faction of [MapFaction.NATIONALIST, MapFaction.REPUBLICAN, MapFaction.IBERIAN_DEFENSE] as const) {
-      const campaign = next.iberianDefense!;
+      const campaign = next.iberianDefense;
+      if (!campaign) return next;
       if (campaign.eliminated.includes(faction)) continue;
-      const occupier = next.provinces?.[IBERIAN_CAPITALS[faction]]?.owner;
+      const occupier = next.provinces[IBERIAN_CAPITALS[faction]]?.owner;
       const threshold = campaign.surrenderThresholds[faction] ?? IBERIAN_SURRENDER_THRESHOLDS[faction];
       if (!occupier || occupier === faction || !CIVIL_WAR_FACTIONS.some(item => item === occupier)
         || campaign.eliminated.includes(occupier) || getFactionStrategicValue(next, faction) >= threshold) continue;
       const eliminated = [...campaign.eliminated, faction];
       next = {
         ...next,
-        provinces: Object.fromEntries(Object.entries(next.provinces ?? {}).map(([id, province]) => [id, province.owner === faction ? { ...province, owner: occupier } : province])),
-        armies: next.armies?.filter(army => army.faction !== faction),
-        mapResources: { ...next.mapResources!, [faction]: zeroResources() },
+        provinces: Object.fromEntries(Object.entries(next.provinces).map(([id, province]) => [id, province.owner === faction ? { ...province, owner: occupier } : province])),
+        armies: next.armies.filter(army => army.faction !== faction),
+        mapResources: { ...next.mapResources, [faction]: zeroResources() },
         iberianDefense: { ...campaign, eliminated, playerDefeated: eliminated.includes(MapFaction.IBERIAN_DEFENSE),
           eliminations: [...campaign.eliminations, { faction, recipient: occupier, year: next.year, month: next.month }] },
         mapHistory: [next.language === 'zh'
           ? `${getMapFactionName(faction, true)}出局；剩余领土交给占领其首都的${getMapFactionName(occupier, true)}。`
-          : `${getMapFactionName(faction, false)} capitulates; remaining territory passes to ${getMapFactionName(occupier, false)}, holder of its capital.`, ...(next.mapHistory ?? [])],
+          : `${getMapFactionName(faction, false)} capitulates; remaining territory passes to ${getMapFactionName(occupier, false)}, holder of its capital.`, ...next.mapHistory],
       };
       changed = true;
     }
   }
-  const survivors = CIVIL_WAR_FACTIONS.filter(faction => !next.iberianDefense!.eliminated.includes(faction));
+  const campaign = next.iberianDefense;
+  if (!campaign) return next;
+  const survivors = CIVIL_WAR_FACTIONS.filter(faction => !campaign.eliminated.includes(faction));
   if (survivors.length === 1) {
     const winner = survivors[0];
     const status = winner === MapFaction.IBERIAN_DEFENSE ? 'won' : 'lost';
-    next = { ...next, iberianDefense: { ...next.iberianDefense!, winner }, civilWarStatus: status, activeWar: null,
-      wars: { ...next.wars!, spanish_civil_war: status }, mapSelectedArmyId: null, mapSelectedArmyIds: [] };
+    next = { ...next, iberianDefense: { ...campaign, winner }, civilWarStatus: status, activeWar: null,
+      wars: { ...next.wars, spanish_civil_war: status }, mapSelectedArmyId: null, mapSelectedArmyIds: [] };
   }
   return next;
 };

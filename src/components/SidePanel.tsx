@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSelector } from '../game/GameContext';
 import { Party, SocialClass, GameState } from '../game/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { AnimatePresence, motion } from 'motion/react';
@@ -27,6 +27,9 @@ import {
   getRightShare,
   getUnionShare,
 } from '../game/unions';
+import { areSidePanelStatesEqual, selectSidePanelState } from '../game/selectors';
+
+type PartyDisplayState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'falange_jons' | 'organizations'>;
 
 // Resolve public emblems through Vite's deployment base path; a root-relative
 // `/img/...` URL would break when the game is hosted under `/Liberty-Unquenched/`.
@@ -70,8 +73,18 @@ const getPartySupportBreakdown = (state: GameState, party: 'CNT_FAI' | Party) =>
 };
 
 export const SidePanel = () => {
-  const { state, dispatch } = useGame();
+  const state = useGameSelector(selectSidePanelState, areSidePanelStatesEqual);
+  const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
+  const partyDisplayState: PartyDisplayState = {
+    year: state.year,
+    month: state.month,
+    ceda_formed: state.ceda_formed,
+    ir_formed: state.ir_formed,
+    ur_formed: state.ur_formed,
+    falange_jons: state.falange_jons,
+    organizations: state.organizations,
+  };
   const effectiveCortes = getEffectiveCortes(state);
   const parliamentSeats = getParliamentSeatEntries(effectiveCortes);
   const vacantCortesSeats = getVacantCortesSeats(state);
@@ -342,13 +355,7 @@ export const SidePanel = () => {
 
             {/* Spain Civil War Faction/Republican stats */}
             {(() => {
-                const repResources = state.mapResources?.[getPlayerMapFaction(state)] || {
-                manpower: 15000,
-                industrialCapacity: 100,
-                commandPoints: 2,
-                supplies: 8000,
-                tankReserve: 10
-              };
+                const repResources = state.mapResources[getPlayerMapFaction(state)];
               return (
                 <div className="flex flex-col gap-2 font-mono text-xs border-t border-b border-ink/10 py-3 my-1">
                   <h4 className="font-display font-bold text-ink uppercase tracking-wider mb-1 text-[11px] text-cnt-red">
@@ -421,8 +428,8 @@ export const SidePanel = () => {
             color="bg-red-600" 
             tooltip={
               isZh 
-                ? `内战爆发的风险（当前难度下当紧张局势达到 ${state.difficulty === 'easy' || state.difficulty === 'sandbox' ? 95 : state.difficulty === 'hard' ? 70 : 80} 时将触发内战）` 
-                : `Risk of Civil War (Civil war will trigger when tension reaches ${state.difficulty === 'easy' || state.difficulty === 'sandbox' ? 95 : state.difficulty === 'hard' ? 70 : 80} in this difficulty)`
+                ? '共和国矛盾的合成指标：共和国权威 30% + 军官忠诚 40% + 革命热情 30%。'
+                : 'Composite index of the Republic\'s contradictions: Rep. authority 30% + Army loyalty 40% + Revolutionary fervor 30%.'
             } 
           />
           <StatBar name={isZh ? '共和国权威' : 'Rep. Authority'} value={state.stats.republicanAuthority} color="bg-blue-600" tooltip={isZh ? '政府的控制力' : 'Government Control'} />
@@ -810,15 +817,15 @@ export const SidePanel = () => {
       {state.cortes && (
         <AccordionSection title={isZh ? '内阁部长' : 'Cabinet Ministers'} defaultOpen={true}>
           <div className="flex flex-col gap-2 text-xs font-mono">
-            <MinisterRow deptKey="labor" nameEn="Labor" nameZh="劳工部" party={state.ministers.labor} />
-            <MinisterRow deptKey="health" nameEn="Health" nameZh="卫生部" party={state.ministers.health} />
-            <MinisterRow deptKey="justice" nameEn="Justice" nameZh="司法部" party={state.ministers.justice} />
-            <MinisterRow deptKey="industry" nameEn="Industry" nameZh="工业部" party={state.ministers.industry} />
-            <MinisterRow deptKey="interior" nameEn="Interior" nameZh="内政部" party={state.ministers.interior} />
-            <MinisterRow deptKey="finance" nameEn="Finance" nameZh="财政部" party={state.ministers.finance || 'AP'} />
-            <MinisterRow deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'AP'} />
-            <MinisterRow deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
-            <MinisterRow deptKey="estado" nameEn="State (Foreign)" nameZh="国务部" party={state.ministers.estado || 'AP'} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="labor" nameEn="Labor" nameZh="劳工部" party={state.ministers.labor} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="health" nameEn="Health" nameZh="卫生部" party={state.ministers.health} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="justice" nameEn="Justice" nameZh="司法部" party={state.ministers.justice} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="industry" nameEn="Industry" nameZh="工业部" party={state.ministers.industry} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="interior" nameEn="Interior" nameZh="内政部" party={state.ministers.interior} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="finance" nameEn="Finance" nameZh="财政部" party={state.ministers.finance || 'AP'} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'AP'} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
+            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="estado" nameEn="State (Foreign)" nameZh="国务部" party={state.ministers.estado || 'AP'} />
           </div>
         </AccordionSection>
       )}
@@ -869,24 +876,28 @@ export const SidePanel = () => {
       <AccordionSection title={isZh ? '内部派系' : 'Internal Factions'} defaultOpen={true}>
         <div className="flex flex-col gap-4">
           <FactionBar 
+            isZh={isZh}
             name={isZh ? factionNames.Treintistas.zh : factionNames.Treintistas.en} 
             influence={state.factions.Treintistas.influence} 
             dissent={state.factions.Treintistas.dissent}
             color="bg-ink-light" 
           />
           <FactionBar 
+            isZh={isZh}
             name={isZh ? factionNames.Cenetistas.zh : factionNames.Cenetistas.en} 
             influence={state.factions.Cenetistas.influence} 
             dissent={state.factions.Cenetistas.dissent}
             color="bg-ink" 
           />
           <FactionBar 
+            isZh={isZh}
             name={isZh ? factionNames.Faistas.zh : factionNames.Faistas.en} 
             influence={state.factions.Faistas.influence} 
             dissent={state.factions.Faistas.dissent}
             color="bg-cnt-red" 
           />
           <FactionBar 
+            isZh={isZh}
             name={isZh ? factionNames.Puristas.zh : factionNames.Puristas.en} 
             influence={state.factions.Puristas.influence} 
             dissent={state.factions.Puristas.dissent}
@@ -894,6 +905,7 @@ export const SidePanel = () => {
           />
           {state.factions.Jabalistas && state.factions.Jabalistas.influence > 0 && (
             <FactionBar 
+              isZh={isZh}
               name={isZh ? factionNames.Jabalistas.zh : factionNames.Jabalistas.en} 
               influence={state.factions.Jabalistas.influence} 
               dissent={state.factions.Jabalistas.dissent}
@@ -1093,7 +1105,7 @@ export const SidePanel = () => {
                 this panel renders the formation roster, not `state.armies`. */}
             {(state.armyFormations || [])
               .map((formation) => (
-                <ArmyItem key={formation.id} formation={formation} />
+                <ArmyItem key={formation.id} formation={formation} isZh={isZh} provinces={state.provinces} />
               ))}
           </div>
         </div>
@@ -1101,6 +1113,7 @@ export const SidePanel = () => {
         <div className="mb-4">
           <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '军队人力池' : 'Army Manpower Pool'}</h3>
           <MilitiaItem
+            isZh={isZh}
             name={isZh ? '未编入驻军的陆军员额' : 'Army manpower not yet formed into garrisons'}
             manpower={getPeacetimeArmyPool(state)}
             color="bg-republic-purple"
@@ -1111,6 +1124,7 @@ export const SidePanel = () => {
           <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '治安部队' : 'Security Forces'}</h3>
           {SECURITY_CORPS_IDS.filter((id) => state.armedForces[id]?.manpower > 0).map((id) => (
             <MilitiaItem
+              isZh={isZh}
               key={id}
               name={isZh ? SECURITY_CORPS_INFO[id].zh : SECURITY_CORPS_INFO[id].en}
               manpower={state.armedForces[id].manpower}
@@ -1126,6 +1140,7 @@ export const SidePanel = () => {
               .filter((definition) => definition.type === 'militia' && isOrganizationActive(state, definition.id))
               .map((definition) => (
                 <MilitiaItem
+                  isZh={isZh}
                   key={definition.id}
                   name={isZh
                     ? (definition.militiaDisplayNameZh || definition.nameZh)
@@ -1146,6 +1161,8 @@ export const SidePanel = () => {
             const classSupport = state.classes[id as SocialClass].support;
             return (
               <ClassBar 
+                partyState={partyDisplayState}
+                isZh={isZh}
                 key={id}
                 name={isZh ? info.nameZh : info.nameEn}
                 pop={info.pop}
@@ -1164,7 +1181,7 @@ export const SidePanel = () => {
         <div className="flex flex-col gap-4">
           {(['CNT_FAI', 'POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'Other'] as const)
             .filter(party => isRepublicanPartyPresent(state, party))
-            .map(party => <AllianceBar key={party} name={getPartyName(state, party, isZh, true)} value={calculatePartySupport(state, party)} color={getPartyColor(state, party)} breakdown={getPartySupportBreakdown(state, party)} />)}
+            .map(party => <AllianceBar key={party} isZh={isZh} name={getPartyName(state, party, isZh, true)} value={calculatePartySupport(state, party)} color={getPartyColor(state, party)} breakdown={getPartySupportBreakdown(state, party)} />)}
         </div>
       </AccordionSection>
 
@@ -1219,9 +1236,7 @@ const AccordionSection: React.FC<{ title: string; defaultOpen?: boolean; childre
   );
 };
 
-const ClassBar: React.FC<{ name: string; pop: number; support: number; supportData: Record<'CNT_FAI' | Party, number>; appeal: string; sensitive: string; description?: string }> = ({ name, pop, support, supportData, appeal, sensitive, description }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
+const ClassBar: React.FC<{ partyState: PartyDisplayState; isZh: boolean; name: string; pop: number; support: number; supportData: Record<'CNT_FAI' | Party, number>; appeal: string; sensitive: string; description?: string }> = ({ partyState, isZh, name, pop, support, supportData, appeal, sensitive, description }) => {
   
   
   const sortedSupport = (Object.entries(supportData) as [string, number][])
@@ -1232,9 +1247,9 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
   const relativeSupportPercent = Number(((support / totalSupport) * 100).toFixed(2));
     
   const pieData = sortedSupport.map(([party, val]) => ({
-    name: getPartyName(state, party as any, isZh, true),
+    name: getPartyName(partyState, party as any, isZh, true),
     value: val,
-    fill: getPartyColor(state, party as any) || '#9ca3af'
+    fill: getPartyColor(partyState, party as any) || '#9ca3af'
   }));
   
   const [isHovered, setIsHovered] = React.useState(false);
@@ -1275,8 +1290,8 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
             {sortedSupport.map(([party, val]) => (
               <div key={party} className="flex justify-between text-ink-light items-center">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getPartyColor(state, party as any) || '#9ca3af' }} />
-                  <span>{getPartyName(state, party as any, isZh, true)}</span>
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getPartyColor(partyState, party as any) || '#9ca3af' }} />
+                  <span>{getPartyName(partyState, party as any, isZh, true)}</span>
                 </div>
                 <span>{((val / totalSupport) * 100).toFixed(2)}%</span>
               </div>
@@ -1293,10 +1308,7 @@ const ClassBar: React.FC<{ name: string; pop: number; support: number; supportDa
   );
 };
 
-const FactionBar: React.FC<{ name: string; influence: number; dissent: number; color: string }> = ({ name, influence, dissent, color }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
-  
+const FactionBar: React.FC<{ isZh: boolean; name: string; influence: number; dissent: number; color: string }> = ({ isZh, name, influence, dissent, color }) => {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between font-typewriter text-xs uppercase tracking-wider">
@@ -1323,9 +1335,7 @@ const FactionBar: React.FC<{ name: string; influence: number; dissent: number; c
   );
 };
 
-const AllianceBar: React.FC<{ name: string; value: number; color: string; breakdown?: { classId: SocialClass; contribution: number }[] }> = ({ name, value, color, breakdown }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
+const AllianceBar: React.FC<{ isZh: boolean; name: string; value: number; color: string; breakdown?: { classId: SocialClass; contribution: number }[] }> = ({ isZh, name, value, color, breakdown }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   
   const exactTotal = breakdown?.reduce((sum, b) => sum + b.contribution, 0) || 1;
@@ -1383,10 +1393,8 @@ const AllianceBar: React.FC<{ name: string; value: number; color: string; breakd
   </div>
 )};
 
-const ArmyItem: React.FC<{ formation: ArmyFormation }> = ({ formation }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
-  const province = (state.provinces || INITIAL_PROVINCES)[formation.provinceId];
+const ArmyItem: React.FC<{ formation: ArmyFormation; isZh: boolean; provinces: GameState['provinces'] }> = ({ formation, isZh, provinces }) => {
+  const province = (provinces || INITIAL_PROVINCES)[formation.provinceId];
   const station = getProvinceName(province, isZh ? 'zh' : 'en');
   const label = (isZh ? formation.nameZh : formation.name) || formation.name || formation.id;
 
@@ -1406,10 +1414,7 @@ const ArmyItem: React.FC<{ formation: ArmyFormation }> = ({ formation }) => {
   );
 };
 
-const MilitiaItem: React.FC<{ name: string; manpower: number; color: string; isAfrica?: boolean; isHighlighted?: boolean }> = ({ name, manpower, color, isAfrica, isHighlighted }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
-  
+const MilitiaItem: React.FC<{ isZh: boolean; name: string; manpower: number; color: string; isAfrica?: boolean; isHighlighted?: boolean }> = ({ isZh, name, manpower, color, isAfrica, isHighlighted }) => {
   let extraClasses = '';
   if (isAfrica) {
     extraClasses = 'text-yellow-800 font-bold bg-yellow-500/20 px-1 border-yellow-800/50';
@@ -1634,20 +1639,20 @@ export const DEPT_INFO_PACK: Record<string, {
 };
 
 const MinisterRow: React.FC<{
+  partyState: PartyDisplayState;
+  isZh: boolean;
   deptKey: string;
   nameEn: string;
   nameZh: string;
   party: string;
-}> = ({ deptKey, nameEn, nameZh, party }) => {
-  const { state } = useGame();
-  const isZh = state.language === 'zh';
+}> = ({ partyState, isZh, deptKey, nameEn, nameZh, party }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   const cleanParty = party || 'Other';
   const partyInfo = PARTY_INFLUENCE_INFO[cleanParty] || PARTY_INFLUENCE_INFO['Other'];
   const partyLabel = party === 'CNT'
-    ? getPartyName(state, 'CNT_FAI', isZh)
-    : getPartyName(state, party as Party, isZh);
+    ? getPartyName(partyState, 'CNT_FAI', isZh)
+    : getPartyName(partyState, party as Party, isZh);
   const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
 
   const isUpward = ['interior', 'agriculture', 'war', 'finance'].includes(deptKey);

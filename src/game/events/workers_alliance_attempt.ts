@@ -1,4 +1,5 @@
 import type { GameEvent } from '../types';
+import { activateJournal } from '../rules/journalEvents';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,
@@ -27,7 +28,8 @@ export const workersAllianceAttempt: GameEvent = {
       textZh: '启动工人团结的尝试。联合无产阶级兄弟！',
       effect: (state) => ({
         uhp_attempt_triggered: true,
-        uhp_journal_activated: true
+        // 开始事件是日志激活的唯一入口（见 JournalEntryDef.activationEventId）。
+        ...activateJournal(state, 'journal_uhp')
       })
     }
   ]

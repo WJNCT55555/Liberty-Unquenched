@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ArmedEntityId } from '../game/types';
-
 export enum MapFaction {
   REPUBLICAN = 'REPUBLICAN',
   NATIONALIST = 'NATIONALIST',
@@ -15,6 +13,20 @@ export enum MapFaction {
   UNITED_KINGDOM = 'UNITED_KINGDOM',
   ANDORRA = 'ANDORRA',
 }
+
+/** Stable provenance ids shared by pre-war pools, recruitment, saves, and map units. */
+export type ArmedEntityId =
+  | 'republican_state'
+  | 'cnt_defense_committees'
+  | 'ugt_socialist_militias'
+  | 'maoc'
+  | 'fifth_regiment'
+  | 'poum_militias'
+  | 'requetes'
+  | 'falange_first_line'
+  | 'euzko_gudarostea'
+  | 'international_brigades'
+  | 'italian_ctv';
 
 export interface Province {
   id: string;
@@ -51,30 +63,6 @@ export const getEffectiveFortressLevel = (province: {
   MAX_EFFECTIVE_FORTRESS,
   Math.max(0, province.fortification || 0) + Math.max(0, province.buildings?.fortress || 0),
 );
-
-export interface GameState {
-  turn: number;
-  date: string;
-  currentPlayer: MapFaction;
-  resources: {
-    [MapFaction.REPUBLICAN]: ResourceSet;
-    [MapFaction.NATIONALIST]: ResourceSet;
-    [MapFaction.PORTUGAL]: ResourceSet;
-    [MapFaction.IBERIAN_DEFENSE]?: ResourceSet;
-  };
-  provinces: { [key: string]: Province };
-  armies: Army[];
-  selectedProvinceId: string | null;
-  selectedArmyId: string | null;
-  selectedArmyIds: string[];
-  history: string[];
-  aiConfig?: {
-    enabled: boolean;
-    aiFaction: MapFaction;
-    difficulty: 'easy' | 'normal' | 'hard';
-    confirmed?: boolean;
-  };
-}
 
 export interface ArmyComposition {
   infantry: number;   // Number of infantry soldiers
@@ -130,4 +118,48 @@ export interface ResourceSet {
   commandPoints: number; // 2 per turn
   supplies: number;
   tankReserve: number;
+}
+
+export interface IberianDefenseState {
+  formedAt: { year: number; month: number };
+  allies: { poum: boolean; psoeLeft: boolean };
+  leftSocialistReserve: number;
+  eliminated: MapFaction[];
+  eliminations: Array<{ faction: MapFaction; recipient: MapFaction; year: number; month: number }>;
+  surrenderThresholds: Partial<Record<MapFaction, number>>;
+  completedAiMonth?: number;
+  playerDefeated?: boolean;
+  winner?: MapFaction;
+  initialProvinces: string[];
+  contributions: { cnt: number; poum: number; psoeLeft: number };
+}
+
+/**
+ * Required state owned or consumed by the strategic-map runtime.
+ *
+ * Field names intentionally match the canonical application GameState. This
+ * lets the complete state satisfy the contract directly and avoids a second
+ * resources/currentPlayer/selection vocabulary.
+ */
+export interface MapRuntimeState {
+  difficulty: 'easy' | 'normal' | 'hard' | 'historical' | 'sandbox';
+  language: 'en' | 'zh';
+  year: number;
+  month: number;
+  phase: 'event' | 'action' | 'war';
+  civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
+  activeWar?: 'spanish_civil_war' | 'asturias_war' | null;
+  wars?: {
+    spanish_civil_war?: 'not_started' | 'ongoing' | 'won' | 'lost';
+    asturias_war?: 'not_started' | 'ongoing' | 'won' | 'lost' | 'failed';
+  };
+  provinces: Record<string, Province>;
+  armies: Army[];
+  mapSelectedProvinceId: string | null;
+  mapSelectedArmyId: string | null;
+  mapSelectedArmyIds: string[];
+  mapCurrentPlayer: MapFaction;
+  iberianDefense?: IberianDefenseState;
+  mapResources: Record<MapFaction, ResourceSet>;
+  mapHistory: string[];
 }

@@ -3,20 +3,11 @@ import { motion } from 'motion/react';
 import { Trophy, Lock, Star } from 'lucide-react';
 import { ACHIEVEMENTS, getUnlockedGlobalAchievements, getUnlockedHistoricalAchievements } from '../game/achievements';
 import { useGameSelector } from '../game/GameContext';
+import { getImageUrl } from '../lib/assetUrl';
 
 interface AchievementsModalProps {
   onClose: () => void;
 }
-
-
-const getImageUrl = (url?: string) => {
-  if (!url) return '';
-  if (url.startsWith('http') || url.startsWith('data:')) return url;
-  const base = (import.meta as any).env.BASE_URL || '/';
-  if (url.startsWith(base)) return url;
-  if (url.startsWith('/')) return url;
-  return `${base}${url}`;
-};
 
 export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
   const language = useGameSelector(state => state.language);

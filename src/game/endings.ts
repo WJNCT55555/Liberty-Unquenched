@@ -61,8 +61,8 @@ export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; de
     descriptionZh: '现在是1939年，伊比利亚半岛成了一道不断流血的伤口。西班牙内战陷入了可怕且无休止的僵局。战壕在广袤的土地上留下伤疤，城市在无情的轰炸中化为瓦砾，整整一代西班牙人被抹去。CNT-FAI 仍在绝望地战斗，但最初的革命狂热已被全面战争那冷酷、机械的现实所取代。胜利遥遥无期，只有为阵亡者敲响的丧钟在无尽地回荡。'
   },
   [ENDINGS.ASTURIAS_WAR_LOST]: {
-    title: 'Defeat of Workers\' Alliance Government',
-    titleZh: '工人联盟自治政府战败',
+    title: 'Elegy for the Asturian Workers',
+    titleZh: '阿斯图里亚斯工人的挽歌',
     description: 'Due to severe suppression by government and reactionary forces, the Workers\' Alliance Autonomous Government in Asturias has fallen. Thousands of armed workers and miners fell, and the uprising ended in defeat. The national labor movement suffers a severe blow, and our revolution is drowned in blood.',
     descriptionZh: '由于反动派和政府军的联合残酷镇压，工人联盟自治政府在阿斯图里亚斯的革命阵地不幸失陷。成千上万的工人武装成员和矿工战士牺牲，起义宣告失败。全国的工人运动陷入低谷，我们的革命被淹没在血泊之中。'
   },

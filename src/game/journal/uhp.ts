@@ -1,4 +1,14 @@
-import { JournalEntryDef } from '../types';
+import { GameState, JournalEntryDef } from '../types';
+
+/**
+ * UHP 日志是否已经完成（PSOE 关系达到 70）。
+ *
+ * 顾问的「推动工人联盟」以此为解锁条件：UHP 完成之前，工人联盟日志仍是
+ * inactive、进度条不渲染，此时开放该行动会让进度被静默记录，玩家会在日志
+ * 激活的当月看到联盟「凭空成立」。
+ */
+export const isUhpJournalCompleted = (state: Pick<GameState, 'journal'>): boolean =>
+  state.journal?.['journal_uhp']?.status === 'completed';
 
 export const uhpJournal: JournalEntryDef = {
   id: 'journal_uhp',
@@ -18,24 +28,30 @@ export const uhpJournal: JournalEntryDef = {
   progressMax: 70,
   getProgress: (state) => state.partyRelations?.PSOE ?? 0,
 
-  checkStatus: (state, entryState) => {
-    if (entryState.status === 'completed' || entryState.status === 'failed') return null;
+  /**
+   * 事件—日志—事件契约：开始事件是「工人联盟的尝试？」，它的选项效果调用
+   * `activateJournal()` 把本日志置为 active。因此 `checkStatus` 不再自行激活
+   * （也不允许返回 `active`），只负责完成/失败判定。
+   */
+  activationEventId: 'workers_alliance_attempt',
 
-    if (!state.uhp_journal_activated) return 'inactive';
+  checkStatus: (state, entryState) => {
+    // 激活不属于 checkStatus：未激活或已终局时不做任何判定。
+    if (entryState.status !== 'active') return null;
 
     // Fail if PSOE enters a political coalition (Republican-Socialist Coalition or Popular Front)
     const psoeCoalition = state.activeCoalitions.find(c => c.activeId === 'republican_socialist' || c.activeId === 'popular_front');
-    const isPsoeInCoalition = !!psoeCoalition;
-    if (isPsoeInCoalition) return 'failed';
+    if (psoeCoalition) return 'failed';
 
     if ((state.partyRelations?.PSOE ?? 0) >= 70) return 'completed';
 
-    return 'active';
+    return null;
   },
 
-  onComplete: (state) => ({
+  onComplete: () => ({
+    // 工人联盟日志的激活目前仍是旧路径（它的开始事件尚未落笔）。
     alliance_obrera_activated: true
   }),
 
-  onFail: (state) => ({})
+  onFail: () => ({})
 };

@@ -41,28 +41,6 @@ export const organizationsCard: Card = {
           }
         },
         {
-          text: 'Fortify Strike Funds (-1 Resource)',
-          textZh: '巩固抵抗基金和互助网络 (-1 资源)',
-          subtitle: 'Provide a safety net for striking workers and their families.',
-          subtitleZh: '为罢工工人及其家属提供安全网，增强群众的斗争底气。',
-          condition: (s: GameState) => s.resources >= 1,
-          unavailableSubtitle: () => 'Need at least 1 resource.',
-          unavailableSubtitleZh: () => '资源不足。',
-          effect: (s: GameState) => {
-            const dissentModifier = 1 - ((s.stats.tension || 0) / 100); 
-            const supportGain = Math.floor(5 * dissentModifier);
-
-            let newClasses = s.classes;
-            newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', supportGain);
-            newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportGain);
-
-            return {
-              resources: s.resources - 1,
-              classes: newClasses
-            };
-          }
-        },
-        {
           text: 'Expand Ateneos Libertarios (-1 Resource)',
           textZh: '扩展自由雅典学院 (-1 资源)',
           subtitle: 'Cultural centers to educate the workers and reduce factionalism.',

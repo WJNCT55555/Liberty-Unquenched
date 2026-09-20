@@ -1,4 +1,4 @@
-import { INITIAL_STATE } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
 import {
   UNION_SHARE_KEYS,
   UNION_SHARE_MIN_UNORGANIZED,
@@ -22,7 +22,7 @@ const shareSum = (state: GameState): number =>
   UNION_SHARE_KEYS.reduce((total, key) => total + (state.unionShare?.[key] ?? 0), 0);
 
 const withScenario = (scenario: GameState['scenario']): GameState => ({
-  ...INITIAL_STATE,
+  ...PRE_START_STATE,
   scenario,
   organizations: getDefaultOrganizationState(scenario),
   unionShare: getDefaultUnionShare(scenario),
@@ -77,7 +77,7 @@ assert(Math.abs(getCntDominance(defaults) - (defaults.CNT / left) * 100) < 0.01,
 assert(getCntDominance({ CNT: 0, UGT: 0, UR: 0, ELA: 0, CNCA: 0, CONS: 0, other: 0, unorganized: 100 }) === 0, 'dominance is 0 when no left-wing union exists');
 
 // 7) 旧存档迁移：缺失 unionShare 时按剧本补默认值
-const legacy: GameState = { ...INITIAL_STATE, scenario: '1933' };
+const legacy: GameState = { ...PRE_START_STATE, scenario: '1933' };
 delete legacy.unionShare;
 const migrated = normalizeUnionShare(legacy);
 assert(Boolean(migrated.unionShare), 'missing unionShare should be hydrated');
@@ -86,7 +86,7 @@ assert(Math.abs(shareSum(migrated) - 100) < 0.01, 'migrated share must sum to 10
 // 8) 显式增量映射：从 UGT 与未组织者争取（零和）
 const baseShare = getDefaultUnionShare('1931');
 const fromRivals = applyUnionShareDelta(
-  { ...INITIAL_STATE, unionShare: baseShare },
+  { ...PRE_START_STATE, unionShare: baseShare },
   { CNT: 8, UGT: -4, unorganized: -4 },
 ).unionShare!;
 assert(fromRivals.CNT === baseShare.CNT + 8, 'CNT should gain the requested amount');
@@ -96,11 +96,11 @@ assert(Math.abs(UNION_SHARE_KEYS.reduce((sum, key) => sum + fromRivals[key], 0) 
 
 // 9) 工人控制程度月度漂移：无制度支撑则衰减，1936.7 前封顶 40
 const noSupport: GameState = {
-  ...INITIAL_STATE,
+  ...PRE_START_STATE,
   year: 1931,
   month: 6,
-  domesticPolicy: { ...INITIAL_STATE.domesticPolicy, union_status: 1, land_reform_progress: 0 },
-  stats: { ...INITIAL_STATE.stats, workerControl: 10 },
+  domesticPolicy: { ...PRE_START_STATE.domesticPolicy, union_status: 1, land_reform_progress: 0 },
+  stats: { ...PRE_START_STATE.stats, workerControl: 10 },
 };
 assert(applyControlObreroDrift(noSupport).stats.workerControl === 9, 'worker control should decay by 1 without institutional support');
 

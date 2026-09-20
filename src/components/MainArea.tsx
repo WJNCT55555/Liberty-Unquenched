@@ -1,17 +1,33 @@
 import React from 'react';
-import { useGame } from '../game/GameContext';
-import { Card, GameEvent } from '../game/types';
+import { shallowEqual, useGameActions, useGameSelector, useGameSnapshotWhen } from '../game/GameContext';
+import { Card, CardType, GameEvent } from '../game/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { EventBoard } from './EventBoard';
 import { EffectPreviewTooltip } from './EffectPreviewTooltip';
-import { getOptionEffectPreview } from '../game/effectPreview';
 import { isOrganizationEstablished } from '../game/organizations';
+import {
+  areCardViewModelsEqual,
+  areEventModalViewModelsEqual,
+  selectCardViewModel,
+  selectEventModalViewModel,
+} from '../game/selectors';
 
 export const MainArea = () => {
-  const { state, dispatch } = useGame();
+  const state = useGameSelector((gameState) => ({
+    language: gameState.language,
+    phase: gameState.phase,
+    actionsLeft: gameState.actionsLeft,
+    currentEvent: gameState.currentEvent,
+    pendingEvents: gameState.pendingEvents,
+    civilWarStatus: gameState.civilWarStatus,
+    organizations: gameState.organizations,
+    hand: gameState.hand,
+    difficulty: gameState.difficulty,
+  }), shallowEqual);
+  const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
-  const [selectedDeckForChoice, setSelectedDeckForChoice] = React.useState<'Action' | 'Governmental' | 'Military' | null>(null);
+  const [selectedDeckForChoice, setSelectedDeckForChoice] = React.useState<CardType | null>(null);
   const mainAreaRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     // A long choice menu must not leave the next event's heading above the viewport.
@@ -54,7 +70,7 @@ export const MainArea = () => {
               {/* Decks (Top Layer) */}
               <div className="flex flex-row gap-8 justify-center">
                 <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
-                <DeckView type="Governmental" onSelectOpen={setSelectedDeckForChoice} />
+                <DeckView type="Government" onSelectOpen={setSelectedDeckForChoice} />
                 {(state.civilWarStatus !== 'not_started' || isOrganizationEstablished(state, 'DC')) && (
                   <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
                 )}
@@ -126,8 +142,12 @@ export const MainArea = () => {
 };
 
 const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
-  const { state, dispatch } = useGame();
-  const isZh = state.language === 'zh';
+  const viewModel = useGameSelector(
+    (state) => selectEventModalViewModel(state, event),
+    areEventModalViewModelsEqual,
+  );
+  const { dispatch } = useGameActions();
+  const { isZh } = viewModel;
 
   return (
     <motion.div 
@@ -138,32 +158,26 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
     >
       <div className="absolute top-0 left-0 w-full h-2 bg-cnt-red"></div>
       <h3 className="font-display text-4xl uppercase mb-4 text-ink leading-none">
-        {(() => {
-          const resolvedTitle = isZh && event.titleZh ? event.titleZh : event.title;
-          return typeof resolvedTitle === 'function' ? resolvedTitle(state) : resolvedTitle;
-        })()}
+        {viewModel.title}
       </h3>
       <div className="max-h-[40vh] overflow-y-auto mb-8 border-l-4 border-ink pl-4">
         <p className="font-serif text-xl leading-relaxed italic">
-          {isZh && event.descriptionZh ? event.descriptionZh : event.description}
+          {viewModel.description}
         </p>
-        {event.renderContent && (
+        {viewModel.hasCustomContent && (
           <div className="mt-6">
-            {event.renderContent(state, dispatch)}
+            <EventCustomContent event={event} />
           </div>
         )}
       </div>
       
       <div className="flex flex-col gap-4">
-        {event.options.map((opt, idx) => {
-          const isAvailable = !opt.condition || opt.condition(state);
-          const showEffectPreview = state.difficulty === 'easy' || state.difficulty === 'sandbox';
-          const previewLines = showEffectPreview ? getOptionEffectPreview(state, opt) : [];
+        {viewModel.options.map(({ option, text, subtitle, isAvailable, unavailableReason, previewLines }, idx) => {
           return (
             <div key={`${event.id}-${idx}`} className="relative group">
             <button
               disabled={!isAvailable}
-              onClick={() => dispatch({ type: 'RESOLVE_EVENT', payload: opt.effect })}
+              onClick={() => dispatch({ type: 'RESOLVE_EVENT', payload: option.effect })}
               className={cn(
                 "w-full text-left p-4 border transition-colors font-typewriter text-sm uppercase tracking-wider relative overflow-hidden",
                 isAvailable 
@@ -173,23 +187,16 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
             >
               <div className="relative z-10 flex flex-col">
                 <span className="font-bold">
-                  {(() => {
-                    const resolvedText = isZh && opt.textZh ? opt.textZh : opt.text;
-                    return typeof resolvedText === 'function' ? resolvedText(state) : resolvedText;
-                  })()}
+                  {text}
                 </span>
-                {(opt.subtitle || opt.subtitleZh) && isAvailable && (
+                {subtitle && isAvailable && (
                   <span className="text-xs mt-1 normal-case font-serif italic opacity-80">
-                    {isZh && opt.subtitleZh ? opt.subtitleZh : opt.subtitle}
+                    {subtitle}
                   </span>
                 )}
                 {!isAvailable && (
                   <span className="text-[10px] text-cnt-red mt-1 normal-case font-serif italic">
-                    {isZh && opt.unavailableSubtitleZh 
-                      ? opt.unavailableSubtitleZh(state) 
-                      : opt.unavailableSubtitle 
-                        ? opt.unavailableSubtitle(state) 
-                        : (isZh ? '条件未满足' : 'Condition not met')}
+                    {unavailableReason}
                   </span>
                 )}
               </div>
@@ -206,19 +213,32 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
   );
 };
 
-const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military'; onSelectOpen: (type: 'Action' | 'Governmental' | 'Military') => void }> = ({ type, onSelectOpen }) => {
-  const { state, dispatch } = useGame();
+const EventCustomContent: React.FC<{ event: GameEvent }> = ({ event }) => {
+  const state = useGameSnapshotWhen(Boolean(event.renderContent));
+  const { dispatch } = useGameActions();
+  if (!state || !event.renderContent) return null;
+  return <>{event.renderContent(state, dispatch)}</>;
+};
+
+const DeckView: React.FC<{ type: CardType; onSelectOpen: (type: CardType) => void }> = ({ type, onSelectOpen }) => {
+  const state = useGameSelector((gameState) => ({
+    language: gameState.language,
+    difficulty: gameState.difficulty,
+    hand: gameState.hand,
+    sandboxCardChoiceEnabled: gameState.sandboxCardChoiceEnabled,
+  }), shallowEqual);
+  const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
   const handLimit = state.difficulty === 'hard' ? 3 : 4;
   const canDraw = state.hand.length < handLimit;
   
   const typeName = isZh 
-    ? (type === 'Action' ? '行动卡牌' : type === 'Governmental' ? '政府卡牌' : '武装卡牌')
-    : (type === 'Action' ? 'Action Deck' : type === 'Governmental' ? 'Gov Deck' : 'Mil Deck');
+    ? (type === 'Action' ? '行动卡牌' : type === 'Government' ? '政府卡牌' : '武装卡牌')
+    : (type === 'Action' ? 'Action Deck' : type === 'Government' ? 'Gov Deck' : 'Mil Deck');
 
   const getBgColor = () => {
     if (type === 'Action') return "bg-cnt-red border-ink text-paper";
-    if (type === 'Governmental') return "bg-ink border-cnt-red text-paper";
+    if (type === 'Government') return "bg-ink border-cnt-red text-paper";
     return "bg-amber-900 border-ink text-paper"; // Military deck color
   };
 
@@ -250,16 +270,12 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military'; onSelec
 };
 
   const CardView: React.FC<{ card: Card }> = ({ card }) => {
-    const { state, dispatch } = useGame();
-    const isZh = state.language === 'zh';
-    const isPlayable = state.actionsLeft >= card.cost && 
-                       (card.resourceCost === undefined || state.resources >= card.resourceCost) &&
-                       (card.armamentCost === undefined || state.armaments >= card.armamentCost) &&
-                       (card.condition === undefined || card.condition(state));
-  
-    const typeName = isZh 
-      ? (card.type === 'Action' ? '行动事务' : card.type === 'Military' ? '武装事务' : '政府事务')
-      : card.type;
+    const viewModel = useGameSelector(
+      (state) => selectCardViewModel(state, card),
+      areCardViewModelsEqual,
+    );
+    const { dispatch } = useGameActions();
+    const { isZh, isPlayable, typeName, title, description } = viewModel;
   
     return (
       <motion.div
@@ -286,13 +302,13 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military'; onSelec
         </div>
         
         <h4 className="font-display text-2xl uppercase mb-2 leading-tight">
-          {isZh && card.titleZh ? card.titleZh : card.title}
+          {title}
         </h4>
         
         <div className="w-full h-px bg-ink opacity-20 mb-4"></div>
         
         <p className="font-serif text-sm flex-1">
-          {isZh && card.descriptionZh ? card.descriptionZh : card.description}
+          {description}
         </p>
         
         <button
@@ -307,18 +323,26 @@ const DeckView: React.FC<{ type: 'Action' | 'Governmental' | 'Military'; onSelec
   };
 
 interface CardSelectorModalProps {
-  deckType: 'Action' | 'Governmental' | 'Military';
+  deckType: CardType;
   onClose: () => void;
 }
 
 const CardSelectorModal: React.FC<CardSelectorModalProps> = ({ deckType, onClose }) => {
-  const { state, dispatch } = useGame();
+  const state = useGameSelector((gameState) => ({
+    language: gameState.language,
+    difficulty: gameState.difficulty,
+    hand: gameState.hand,
+    actionDeck: gameState.actionDeck,
+    governmentDeck: gameState.governmentDeck,
+    militaryDeck: gameState.militaryDeck,
+  }), shallowEqual);
+  const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
   const [search, setSearch] = React.useState('');
   
   const deck = deckType === 'Action' 
     ? state.actionDeck 
-    : deckType === 'Governmental' 
+    : deckType === 'Government'
       ? state.governmentDeck 
       : state.militaryDeck;
 
@@ -335,7 +359,7 @@ const CardSelectorModal: React.FC<CardSelectorModalProps> = ({ deckType, onClose
   };
 
   const deckName = isZh
-    ? (deckType === 'Action' ? '行动牌库' : deckType === 'Governmental' ? '政府牌库' : '武装牌库')
+    ? (deckType === 'Action' ? '行动牌库' : deckType === 'Government' ? '政府牌库' : '武装牌库')
     : `${deckType} Deck`;
 
   return (

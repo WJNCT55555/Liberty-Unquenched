@@ -91,8 +91,6 @@ const BOOLEAN_FIELDS: Record<string, Labels> = {
   andorra_secured: { label: 'Andorra secured', labelZh: '安道尔通道已确保' },
   usa_total_embargo: { label: 'US total embargo', labelZh: '美国全面禁运' },
   latin_american_diaspora_mobilized: { label: 'Latin American diaspora mobilized', labelZh: '拉美侨民已动员' },
-  educationSecularized: { label: 'Education secularized', labelZh: '教育世俗化' },
-  womensRightsReformed: { label: 'Women rights reformed', labelZh: '妇女权利改革' },
   moscowGoldTransferred: { label: 'Moscow gold transferred', labelZh: '莫斯科黄金已转移' },
   pceInPower: { label: 'PCE in power', labelZh: 'PCE掌权' },
   pceAcceptsComintern: { label: 'PCE accepts Comintern', labelZh: 'PCE接受共产国际' }

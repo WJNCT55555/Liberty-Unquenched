@@ -18,6 +18,9 @@ const sandboxAuthorityFiles = new Set([
 const wartimeAuthorityFiles = new Set(['src/game/events/civil_war/wartime_power_arrangement.tsx']);
 const wartimeReshuffleFiles = new Set(['src/game/rules/mayDays.ts']);
 const resetOnlyFiles = new Set([
+  // The pre-start template itself. It moved out of GameContext.tsx into the
+  // scenario base, but it is still only a `null` initial reset, not a write.
+  'src/game/scenarios/base.ts',
   'src/game/GameContext.tsx',
   'src/components/SandboxMenu.tsx'
 ]);

@@ -4,17 +4,26 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Province, MapFaction as Faction, GameState, Army } from './types_map';
+import { Province, MapFaction as Faction, type MapRuntimeState, Army, type ArmedEntityId } from './types_map';
 import { FACTION_COLORS, UI_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from './rules/costs';
 import { getEffectiveFortressLevel } from './types_map';
-import type { ArmedEntityId } from '../game/types';
 import type { RecruitmentPoolView } from '../game/rules/warSetup';
 import { getMapFactionName } from './rules/factions';
 import { Shield, Target, ScrollText, MapPin, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
+
+const FACTION_FLAG_FILES: Partial<Record<Faction, string>> = {
+  [Faction.IBERIAN_DEFENSE]: 'IBERIAN_DEFENSE.png',
+  [Faction.REPUBLICAN]: 'REPUBLICAN.png',
+  [Faction.NATIONALIST]: 'NATIONALIST.png',
+  [Faction.WORKERS_ALLIANCE]: 'WORKERS_ALLIANCE.png',
+  [Faction.PORTUGAL]: 'PORTUGAL.png',
+  [Faction.UNITED_KINGDOM]: 'UNITED_KINGDOM.png',
+  [Faction.ANDORRA]: 'ANDORRA.png',
+};
 
 const getTerrainImgPath = (terrain: string) => {
   const t = (terrain || '').toLowerCase();
@@ -159,58 +168,25 @@ const ControlBox: React.FC<{ label: string; value: string; color?: string }> = (
 };
 
 const FlagBox: React.FC<{ faction: Faction }> = ({ faction }) => {
+  const flagFile = FACTION_FLAG_FILES[faction];
+
   const renderFlag = () => {
-    switch (faction) {
-      case Faction.IBERIAN_DEFENSE:
-        return <div className="w-12 h-8 border border-ink" style={{ background: 'linear-gradient(145deg, #A62626 50%, #202020 50%)' }} />;
-      case Faction.REPUBLICAN:
-        return (
-          <div className="flex flex-col w-12 h-8 border border-[#1E1C1A] shadow-sm overflow-hidden relative rounded-none">
-            <div className="bg-[#C63B2B] h-1/3 w-full" />
-            <div className="bg-[#E5B53B] h-1/3 w-full" />
-            <div className="bg-[#5F2D51] h-1/3 w-full" />
-          </div>
-        );
-      case Faction.NATIONALIST:
-        return (
-          <div className="flex flex-col w-12 h-8 border border-[#1E1C1A] shadow-sm overflow-hidden relative rounded-none">
-            <div className="bg-[#C63B2B] h-1/4 w-full" />
-            <div className="bg-[#E5B53B] h-2/4 w-full" />
-            <div className="bg-[#C63B2B] h-1/4 w-full" />
-          </div>
-        );
-      case Faction.PORTUGAL:
-        return (
-          <div className="flex w-12 h-8 border border-[#1E1C1A] shadow-sm overflow-hidden relative rounded-none">
-            <div className="bg-[#1C4E2D] w-[40%] h-full" />
-            <div className="bg-[#C63B2B] w-[60%] h-full" />
-          </div>
-        );
-      case Faction.UNITED_KINGDOM:
-        return (
-          <div className="flex w-12 h-8 border border-[#1E1C1A] bg-[#012169] relative overflow-hidden rounded-none">
-            <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-white -translate-x-1/2" />
-            <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white -translate-y-1/2" />
-            <div className="absolute left-1/2 top-1/2 w-[130%] h-[2px] bg-white -translate-x-1/2 -translate-y-1/2 rotate-[35deg]" />
-            <div className="absolute left-1/2 top-1/2 w-[130%] h-[2px] bg-white -translate-x-1/2 -translate-y-1/2 -rotate-[35deg]" />
-          </div>
-        );
-      case Faction.ANDORRA:
-        return (
-          <div className="flex w-12 h-8 border border-[#1E1C1A] overflow-hidden rounded-none">
-            <div className="bg-[#0018A8] w-1/3 h-full" />
-            <div className="bg-[#FEDD00] w-1/3 h-full" />
-            <div className="bg-[#D50032] w-1/3 h-full" />
-          </div>
-        );
-      default:
-        return (
-          <div className="flex w-12 h-8 border border-[#1E1C1A] bg-[#FAF5E6] justify-center items-center shadow-sm relative overflow-hidden rounded-none">
-            <div className="absolute w-[140%] h-[1px] bg-[#1E1C1A]/40 rotate-[22deg]" />
-            <div className="absolute w-[140%] h-[1px] bg-[#1E1C1A]/40 -rotate-[22deg]" />
-          </div>
-        );
+    if (flagFile) {
+      return (
+        <img
+          src={`${BASE_URL}img/Flag/${flagFile}`}
+          alt={`${getMapFactionName(faction, false)} flag`}
+          className="w-12 h-8 border border-[#1E1C1A] shadow-sm object-cover rounded-none"
+        />
+      );
     }
+
+    return (
+      <div className="flex w-12 h-8 border border-[#1E1C1A] bg-[#FAF5E6] justify-center items-center shadow-sm relative overflow-hidden rounded-none">
+        <div className="absolute w-[140%] h-[1px] bg-[#1E1C1A]/40 rotate-[22deg]" />
+        <div className="absolute w-[140%] h-[1px] bg-[#1E1C1A]/40 -rotate-[22deg]" />
+      </div>
+    );
   };
 
   return (
@@ -366,7 +342,7 @@ const CardCorners: React.FC = () => (
 );
 
 interface SidebarProps {
-  state: GameState;
+  state: MapRuntimeState;
   /** Party militia pools the current camp may raise units from. */
   recruitmentPools: RecruitmentPoolView[];
   onExecuteOffensive: (id: string) => void;
@@ -461,11 +437,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return regionEn;
   };
 
-  const selectedProvince = state.selectedProvinceId ? state.provinces[state.selectedProvinceId] : null;
-  const selectedArmy = state.selectedArmyId ? state.armies.find(a => a.id === state.selectedArmyId) : null;
+  const selectedProvince = state.mapSelectedProvinceId ? state.provinces[state.mapSelectedProvinceId] : null;
+  const selectedArmy = state.mapSelectedArmyId ? state.armies.find(a => a.id === state.mapSelectedArmyId) : null;
 
   // Multi-selection calculations
-  const selectedArmies = state.armies.filter(a => state.selectedArmyIds.includes(a.id));
+  const selectedArmies = state.armies.filter(a => state.mapSelectedArmyIds.includes(a.id));
   const isMultipleSelected = selectedArmies.length > 1;
 
   // Recruitment formulation state
@@ -491,7 +467,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setSplitArt(0);
     setSplitTnk(0);
     setIsSplitting(false);
-  }, [state.selectedArmyId]);
+  }, [state.mapSelectedArmyId]);
 
   // Reset counters when selected province shifts
   useEffect(() => {
@@ -502,7 +478,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setSelectedSlotType(null);
     setActiveEmptySlotIdx(null);
     setHoveredBuildingId(null);
-  }, [state.selectedProvinceId]);
+  }, [state.mapSelectedProvinceId]);
 
   // Calculations for mobilize costs
   const recruitCost = armyRecruitCost({ infantry: recruitInf, artillery: recruitArt, tanks: recruitTnk });
@@ -511,7 +487,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const reqIndustry = recruitCost.ic;
   const reqTankReserve = recruitCost.tankReserve;
 
-  const playerRes = state.resources[state.currentPlayer];
+  const playerRes = state.mapResources[state.mapCurrentPlayer];
   // Manpower can come from the camp (national conscripts) or from a party militia
   // pool. Supplies, industry and armour always come from the camp.
   const selectedPool = recruitSource
@@ -543,7 +519,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const isArmyReinforceable = selectedArmy && 
-    state.provinces[selectedArmy.provinceId]?.owner === state.currentPlayer;
+    state.provinces[selectedArmy.provinceId]?.owner === state.mapCurrentPlayer;
 
   return (
     <aside className="w-80 shrink-0 h-full bg-[#FAF6EC] border-l-[5px] border-l-[#1E1C1A] flex flex-col overflow-hidden text-[#1E1C1A] font-serif select-none relative">
@@ -590,7 +566,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : Math.round(selectedArmies.reduce((sum, a) => sum + a.militarization, 0) / selectedArmies.length);
                     
                     const minMoves = Math.min(...selectedArmies.map(a => a.movesLeft));
-                    const sameFaction = selectedArmies.every(a => a.faction === state.currentPlayer);
+                    const sameFaction = selectedArmies.every(a => a.faction === state.mapCurrentPlayer);
 
                     return (
                       <div className="space-y-4">
@@ -693,7 +669,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               {lang === 'zh' ? '合并选中部队' : 'Merge Selected Stacks'}
                             </button>
 
-                            {selectedArmies[0].faction === state.currentPlayer && (
+                            {selectedArmies[0].faction === state.mapCurrentPlayer && (
                               <button
                                 onClick={onDisbandArmies}
                                 className="w-full py-2 bg-[#8C3A35] hover:bg-[#A64A45] border border-[#1E1C1A] text-[#FAF6EC] font-serif italic font-bold uppercase tracking-wider text-xs transition-all shadow-[2px_2px_0_0_rgba(30,28,26,1)] rounded-none active:translate-x-0.5 active:translate-y-0.5 active:shadow-none mt-2"
@@ -962,7 +938,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               <input 
                                 type="checkbox" 
                                 checked={true} 
-                                disabled={selectedArmy.faction !== state.currentPlayer}
+                                disabled={selectedArmy.faction !== state.mapCurrentPlayer}
                                 onChange={() => onSelectArmy(selectedArmy.id, true)}
                                 className="rounded-none border-[#1E1C1A] text-[#A62626] focus:ring-[#A62626] bg-[#FAF6EC]"
                               />
@@ -978,7 +954,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <input 
                                   type="checkbox" 
                                   checked={false} 
-                                  disabled={a.faction !== state.currentPlayer}
+                                  disabled={a.faction !== state.mapCurrentPlayer}
                                   onChange={() => onSelectArmy(a.id, true)}
                                   className="rounded-none border-[#1E1C1A] text-[#A62626] focus:ring-[#A62626] cursor-pointer bg-[#FAF6EC]"
                                 />
@@ -992,7 +968,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     );
                   })()}
 
-                  {selectedArmy.faction === state.currentPlayer && (
+                  {selectedArmy.faction === state.mapCurrentPlayer && (
                     <div className="mb-2.5">
                       {!isSplitting ? (
                         <button
@@ -1113,7 +1089,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   )}
 
-                  {selectedArmy.faction === state.currentPlayer && (
+                  {selectedArmy.faction === state.mapCurrentPlayer && (
                     <button
                       onClick={onDisbandArmies}
                       className="w-full bg-[#8C3A35] hover:bg-[#A64A45] text-[#FAF6EC] border border-[#1E1C1A] py-2 text-xs font-serif font-bold transition-all uppercase tracking-wider shadow-[2px_2px_0_0_rgba(30,28,26,1)] rounded-none active:translate-x-0.5 active:translate-y-0.5 active:shadow-none mb-1"
@@ -1174,7 +1150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   })()}
 
                   {/* Toggle buttons for tabs */}
-                  {selectedProvince.owner === state.currentPlayer && (
+                  {selectedProvince.owner === state.mapCurrentPlayer && (
                     <div className="flex flex-col gap-2">
                       {provinceTab !== 'info' ? (
                         <button
@@ -1327,7 +1303,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   className="w-full flex justify-between items-center p-2 bg-[#FAF6EC] hover:bg-[#FAF6EC] border border-[#1E1C1A]/15 rounded-none text-[10px] font-serif transition-colors text-left cursor-pointer"
                                 >
                                   <div className="flex items-center gap-1.5">
-                                    <Swords size={10} className={a.faction === state.currentPlayer ? 'text-[#2C5E3B]' : 'text-[#8C3A35]'} />
+                                    <Swords size={10} className={a.faction === state.mapCurrentPlayer ? 'text-[#2C5E3B]' : 'text-[#8C3A35]'} />
                                     <span className="font-bold text-[#1E1C1A]">{lang === 'zh' ? `${a.id.slice(-4).toUpperCase()} 师` : `Div. ${a.id.slice(-4).toUpperCase()}`}</span>
                                     <span className="text-[8px] px-1 rounded-none border border-black/10 font-serif font-bold uppercase text-[#1E1C1A]" style={{ color: FACTION_COLORS[a.faction] }}>
                                       {getFactionName(a.faction)}
@@ -1349,7 +1325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ) : provinceTab === 'mobilize' ? (
                     <div className="space-y-4 pt-1 animate-fadeIn">
                       {/* Mobilization Section with Recruiting Office checking block */}
-                      {selectedProvince.owner === state.currentPlayer ? (
+                      {selectedProvince.owner === state.mapCurrentPlayer ? (
                         <div className="bg-[#FAF6EC] p-3 border border-[#1E1C1A]/25 space-y-3 relative shadow-sm rounded-none">
                           <h3 className="text-xs font-bold uppercase tracking-wider text-[#1E1C1A] font-serif border-b border-[#1E1C1A]/20 pb-1.5 flex justify-between items-center bg-transparent">
                             <span>{lang === 'zh' ? '动员集结新师团' : 'Mobilize New Division'}</span>
@@ -1401,7 +1377,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       : 'National conscripts: men come from the camp pool and require Barracks here.')}
                                 </p>
                               </div>
-                              {/* Selectors and adjusters */}
+                              {/* Selectors and adjusters — 三类兵员的下限都是 0（可以只征募一种兵） */}
                               <div className="space-y-3">
                                 <MobilizeAdjuster 
                                   label={lang === 'zh' ? '步兵' : 'Infantry'} 
@@ -1410,6 +1386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   color="text-[#2C5E3B]"
                                   icon={<Users size={12} />}
                                   lang={lang}
+                                  min={0}
                                 />
                                 <MobilizeAdjuster 
                                   label={lang === 'zh' ? '炮兵' : 'Artillery'} 
@@ -1418,6 +1395,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   color="text-[#AC6428]"
                                   icon={<Crosshair size={12} />}
                                   lang={lang}
+                                  min={0}
                                 />
                                 <MobilizeAdjuster 
                                   label={lang === 'zh' ? '坦克' : 'Tanks'} 
@@ -1427,7 +1405,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   icon={<Flame size={12} />}
                                   lang={lang}
                                   step={1}
-                                  min={1}
+                                  min={0}
                                   max={500}
                                   unit={lang === 'zh' ? '辆' : 'Tanks'}
                                 />
@@ -1733,7 +1711,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             // Calculate build eligibility
                                             const cost = typeof item.cost === 'function' ? item.cost(1) : item.cost;
                                             const meetsRestriction = item.checkRestriction();
-                                            const stateRes = state.resources[state.currentPlayer];
+                                            const stateRes = state.mapResources[state.mapCurrentPlayer];
                                             const hasResource = stateRes 
                                               ? (stateRes.supplies >= cost.supplies && 
                                                  stateRes.industrialCapacity >= cost.ic && 
@@ -1786,7 +1764,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       const item = hoveredBuilding;
                                       const cost = typeof item.cost === 'function' ? item.cost(1) : item.cost;
                                       const meetsRestriction = item.checkRestriction();
-                                      const stateRes = state.resources[state.currentPlayer];
+                                      const stateRes = state.mapResources[state.mapCurrentPlayer];
                                       const hasResource = stateRes 
                                         ? (stateRes.supplies >= cost.supplies && 
                                            stateRes.industrialCapacity >= cost.ic && 
@@ -1872,7 +1850,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 const cost = typeof item.cost === 'function' ? item.cost(nextLvl) : item.cost;
                                 const meetsRestriction = item.checkRestriction();
                                 
-                                const stateRes = state.resources[state.currentPlayer];
+                                const stateRes = state.mapResources[state.mapCurrentPlayer];
                                 const hasResource = stateRes 
                                   ? (stateRes.supplies >= cost.supplies && 
                                      stateRes.industrialCapacity >= cost.ic && 

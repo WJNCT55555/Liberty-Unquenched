@@ -98,6 +98,16 @@ function getSegments(geometry: any): Segment[] {
 
 const DIMENSIONS = { width: 800, height: 600 };
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
+const POLITICAL_LEGEND_ORDER: Faction[] = [
+  Faction.IBERIAN_DEFENSE,
+  Faction.WORKERS_ALLIANCE,
+  Faction.REPUBLICAN,
+  Faction.NATIONALIST,
+  Faction.PORTUGAL,
+  Faction.UNITED_KINGDOM,
+  Faction.ANDORRA,
+  Faction.NEUTRAL,
+];
 
 export const ProvinceMap: React.FC<ProvinceMapProps> = ({ 
   provinces, 
@@ -118,6 +128,12 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
   const [hoveredProvinceId, setHoveredProvinceId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<'political' | 'terrain' | 'ethnic' | 'region' | 'strategic'>('political');
+  const presentPoliticalFactions = useMemo(() => {
+    const presentFactions = new Set(
+      (Object.values(provinces) as Province[]).map(province => province.owner),
+    );
+    return POLITICAL_LEGEND_ORDER.filter(faction => presentFactions.has(faction));
+  }, [provinces]);
   
   const projection = useMemo(() => {
     return d3.geoMercator()
@@ -1155,38 +1171,15 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
         <div className="space-y-1.5 text-[10px] font-mono font-bold leading-tight text-[#2A2621]">
           {mapMode === 'political' && (
             <>
-              {(Object.values(provinces) as Province[]).some(province => province.owner === Faction.IBERIAN_DEFENSE) && <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.IBERIAN_DEFENSE] }} />
-                <span>{getMapFactionName(Faction.IBERIAN_DEFENSE, lang === 'zh')}</span>
-              </div>}
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.WORKERS_ALLIANCE] }} />
-                <span>{lang === 'zh' ? '工人联盟自治政府' : "Workers' Alliance"}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.REPUBLICAN] }} />
-                <span>{lang === 'zh' ? '共和国' : 'Republicans (Rep.)'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.NATIONALIST] }} />
-                <span>{lang === 'zh' ? '国民军' : 'Nationalists (Nat.)'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.PORTUGAL] }} />
-                <span>{lang === 'zh' ? '葡萄牙' : 'Portugal'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.NEUTRAL] }} />
-                <span>{lang === 'zh' ? '中立' : 'Neutral'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.UNITED_KINGDOM] }} />
-                <span>{lang === 'zh' ? '英国' : 'United Kingdom'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0" style={{ backgroundColor: FACTION_COLORS[Faction.ANDORRA] }} />
-                <span>{lang === 'zh' ? '安道尔' : 'Andorra'}</span>
-              </div>
+              {presentPoliticalFactions.map(faction => (
+                <div key={faction} className="flex items-center gap-1.5">
+                  <span
+                    className="w-3.5 h-3.5 rounded-sm border border-black/10 inline-block shrink-0"
+                    style={{ backgroundColor: FACTION_COLORS[faction] }}
+                  />
+                  <span>{getMapFactionName(faction, lang === 'zh')}</span>
+                </div>
+              ))}
             </>
           )}
 

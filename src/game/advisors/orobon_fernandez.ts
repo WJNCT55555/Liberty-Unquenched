@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { adjustClassSupport } from '../utils';
+import { isUhpJournalCompleted } from '../journal/uhp';
 
 export const orobonFernandez: Advisor = {
   id: 'orobon_fernandez',
@@ -40,23 +40,17 @@ export const orobonFernandez: Advisor = {
       subtitle: 'Only a united working class can crush the reactionary plots.',
       subtitleZh: '只有团结一致的工人阶级，才能粉碎反动派的阴谋。',
       description: '',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => {
-        const multiplier = 1 - (state.factions.Cenetistas.dissent / 100);
-        const supportIncrease = 2 * multiplier;
-        
-        let newClasses = state.classes;
-        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportIncrease);
-
-        return {
-          ...state,
-          advisorActionTimer: 6,
-          workersAllianceProgress: (state.workersAllianceProgress || 0) + 1,
-          classes: newClasses
-        };
-      }
+      unavailableSubtitle: (state) => isUhpJournalCompleted(state)
+        ? `${state.advisorActionTimer} months before next advisor action.`
+        : 'Requires the UHP journal to be completed first.',
+      unavailableSubtitleZh: (state) => isUhpJournalCompleted(state)
+        ? `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`
+        : '需要先完成「联合无产阶级兄弟（UHP）」日志。',
+      condition: (state) => state.advisorActionTimer <= 0 && isUhpJournalCompleted(state),
+      effect: (state) => ({
+        advisorActionTimer: 6,
+        workersAllianceProgress: (state.workersAllianceProgress || 0) + 1
+      })
     }
   ]
 };

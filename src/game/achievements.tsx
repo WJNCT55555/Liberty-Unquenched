@@ -6,6 +6,7 @@ import { isOrganizationEstablished } from './organizations';
 import { getOverallFactionDissent } from './utils/factionEffects';
 
 import { toast } from 'sonner';
+import { getImageUrl } from '../lib/assetUrl';
 
 export interface Achievement {
   id: string;
@@ -29,12 +30,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'A_YOUNG_WORLD', title: { en: 'El mundo cuando era joven', zh: '当世界正年轻' }, description: { en: 'International Brigades arrive in Madrid.', zh: '国际纵队到达马德里。' }, icon: 'img/Achievement Icon/el_mundo_cuando_era_joven.png' },
   { id: 'A_CULTURAL_REV', title: { en: 'Ateneos fiebre', zh: '雅典娜热' }, description: { en: 'Reach the highest level of women\'s rights and education, and establish 5 Ateneos Libertarios.', zh: '将女性权利与教育制度提升至最高等级，并建立至少5个自由雅典学苑。' }, icon: 'img/Achievement Icon/ateneos_fiebre.png' },
   { id: 'A_OTHER_FRANCO', title: { en: 'El otro Franco', zh: '另一个佛朗哥' }, description: { en: 'Elect Ramón Franco — the Caudillo\'s own brother — President of the Republic.', zh: '让拉蒙·佛朗哥——那位"领袖"的亲弟弟——当选共和国总统。' }, icon: '✈️' },
-  { id: 'A_NONE_LEFT', title: { en: 'Y no quedó ninguno', zh: '无人生还' }, description: { en: 'All eight of these figures are dead.', zh: '这八个角色全部死亡。' }, icon: '💀' },
-  { id: 'A_NO_VOTEIS', title: { en: '¡No votéis!', zh: '不要投票！' }, description: { en: 'Reach an ending without the CNT ever abandoning its anti-electoral stance.', zh: '坚守 CNT 的反选举立场直到结局，从未转向合作或参政。' }, icon: '🚫' },
+  { id: 'A_NONE_LEFT', title: { en: 'Y no quedó ninguno', zh: '无人生还' }, description: { en: 'All eight of these figures are dead.', zh: '这八个角色全部死亡。' }, icon: 'img/Achievement Icon/y_no_quedo_ninguno.png' },
+  { id: 'A_NO_VOTEIS', title: { en: '¡No votéis!', zh: '不要投票！' }, description: { en: 'Reach an ending without the CNT ever abandoning its anti-electoral stance.', zh: '坚守 CNT 的反选举立场直到结局，从未转向合作或参政。' }, icon: 'img/Achievement Icon/no_voteis.png' },
   { id: 'A_SIN_PARTIDO', title: { en: 'El partido de los sin partido', zh: '无党之党' }, description: { en: 'Found the PRRevS — a party of anarcho-syndicalists who swore they would never have one.', zh: '成立 PRRevS——一个由发誓永不结党的人组成的政党。' }, icon: '🗳️' },
   { id: 'A_MOSQUETEROS', title: { en: 'Los tres mosqueteros', zh: '三个火枪手' }, description: { en: 'Have Ascaso, Durruti and García Oliver serving as advisors at the same time.', zh: '让阿斯卡索、杜鲁蒂与加西亚·奥利弗同时担任顾问。' }, icon: '⚔️' },
-  { id: 'A_ESPERANTO', title: { en: 'Esperanto', zh: '世界语' }, description: { en: 'Raise the language law all the way to Esperanto.', zh: '将语言法律提升至世界语。' }, icon: '🌍' },
-  { id: 'A_OLIMPIADA', title: { en: 'Olimpíada Popular', zh: '人民奥林匹克' }, description: { en: 'Hold the People\'s Olympiad in Barcelona while the Republic is still at peace.', zh: '在共和国仍然和平时，让人民奥林匹克运动会在巴塞罗那举行。' }, icon: '🏅' }
+  { id: 'A_ESPERANTO', title: { en: 'Esperanto', zh: '世界语' }, description: { en: 'Raise the language law all the way to Esperanto.', zh: '将语言法律提升至世界语。' }, icon: 'img/Achievement Icon/esperanto.png' },
+  { id: 'A_OLIMPIADA', title: { en: 'Olimpíada Popular', zh: '人民奥林匹克' }, description: { en: 'Hold the People\'s Olympiad in Barcelona while the Republic is still at peace.', zh: '在共和国仍然和平时，让人民奥林匹克运动会在巴塞罗那举行。' }, icon: 'img/Achievement Icon/olimpiada_popular.png' }
 ];
 
 /**
@@ -100,7 +101,7 @@ export const checkAchievements = (state: GameState): GameState => {
             
             <div className="text-4xl drop-shadow-md">
               {ach.icon.endsWith('.png') ? (
-                <img src={ach.icon} alt={ach.title.en} className="w-16 h-16 object-contain" />
+                <img src={getImageUrl(ach.icon)} alt={ach.title.en} className="w-16 h-16 object-contain" />
               ) : (
                 ach.icon
               )}

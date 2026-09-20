@@ -13,6 +13,13 @@ export {
 } from './controlObrero';
 export { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance, calculateMonthlyEventQueue } from './monthlyPipeline';
 export type { MonthlyPipelineResult, MonthlyMapStage } from './monthlyPipeline';
+export {
+  getJournalOutcomeEventId,
+  isEventMediatedJournal,
+  activateJournal,
+  queueJournalOutcomeEvent,
+} from './journalEvents';
+export { isAnyWarOngoing, isRepublicCrisisSuspended } from './republicCrisis';
 export { POLICY_DEFINITIONS, POLICY_DEFINITION_BY_ID, POLICY_STANCE_PREFERENCES, getPolicyDefinition, getPolicyLevelDefinition, getPolicyEffectLines } from './policyDefinitions';
 export type { PolicyCategory, PolicyCondition, PolicyDefinition, PolicyLevelDefinition, PolicyModifier, BilingualText, PolicyStanceMatrix } from './policyDefinitions';
 export { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from './fiscalPolicy';

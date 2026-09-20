@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { INITIAL_STATE, gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState, WartimeGovernmentRoute } from '../src/game/types';
-import { INITIAL_EVENTS, RESTORABLE_EVENTS } from '../src/game/events';
-import { INITIAL_CARDS } from '../src/game/data';
+import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
+import { RESTORABLE_EVENT_REGISTRY } from '../src/game/registries/restorableEventRegistry';
+import { CARD_REGISTRY } from '../src/game/registries/cardRegistry';
 import { INITIAL_ADVISORS } from '../src/game/advisors';
 import { civilWarSetup } from '../src/game/events/civil_war/civil_war_setup';
 import { wartimePowerArrangement, wartimeCabinetCoordination } from '../src/game/events/civil_war/wartime_power_arrangement';
@@ -37,7 +39,7 @@ Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
   setItem: (key: string, value: string) => storage.set(key, value),
   removeItem: (key: string) => storage.delete(key),
 } });
-const runtime = { cards: INITIAL_CARDS, advisors: INITIAL_ADVISORS, events: RESTORABLE_EVENTS };
+const runtime = { cards: CARD_REGISTRY, advisors: INITIAL_ADVISORS, events: RESTORABLE_EVENT_REGISTRY };
 const restore = (state: GameState) => deserializeGameState(serializeGameState(state), runtime);
 const troop = (id: string, identity: Army['identity'], manpower: number): Army => ({
   id, identity, faction: MapFaction.REPUBLICAN, provinceId: 'barcelona', manpower, maxManpower: manpower,
@@ -45,7 +47,7 @@ const troop = (id: string, identity: Army['identity'], manpower: number): Army =
   movesLeft: 2, morale: 70, militarization: 50,
 });
 const seed = (route: WartimeGovernmentRoute = 'cabinet', difficulty: GameState['difficulty'] = 'historical', scenario: GameState['scenario'] = '1936'): GameState => {
-  let state = gameReducer(copy(INITIAL_STATE), { type: 'START_GAME', payload: { scenario, difficulty } });
+  let state = gameReducer(copy(PRE_START_STATE), { type: 'START_GAME', payload: { scenario, difficulty } });
   state = { ...state, year: 1936, month: 7, currentEvent: null, pendingEvents: [], superEvent: null, eventHistory: { triggered: [], resolved: [] } };
   state = { ...state, ...civilWarSetup.options[0].effect(state), month: 8 };
   state.classes = Object.fromEntries(Object.entries(state.classes).map(([id, value]) => [id, { ...value, support: {
@@ -315,7 +317,7 @@ test('All six nodes hydrate with callable choices and bilingual content; only ro
   const states = [root, negotiation, government, result, poum, poumResult];
   for (let index = 0; index < nodes.length; index++) {
     const event = nodes[index];
-    assert.equal(INITIAL_EVENTS.some(candidate => candidate.id === event.id), index === 0 || index === 4);
+    assert.equal(SCHEDULED_EVENT_REGISTRY.some(candidate => candidate.id === event.id), index === 0 || index === 4);
     const restored = restore(states[index]);
     assert.equal(restored.currentEvent?.id, event.id);
     assert.equal(restored.phase, 'event');

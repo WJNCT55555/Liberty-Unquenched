@@ -1,6 +1,5 @@
 import React from 'react';
-import type { Card, GameEvent, GameState } from '../types';
-import { useGame } from '../GameContext';
+import type { Card, GameEvent, GameEventDispatch, GameState } from '../types';
 import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
 import { calculateMonthlyEconomy } from '../rules/economy';
 import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from '../rules/fiscalPolicy';
@@ -8,12 +7,13 @@ import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } fr
 const getDraftRevenueChange = (state: GameState, draft: Partial<GameState>): number =>
   calculateMonthlyEconomy({ ...state, ...draft }).revenue.total - calculateMonthlyEconomy(state).revenue.total;
 
-const TaxButtons: React.FC<{ onAdjust: (amount: number) => void }> = ({ onAdjust }) => (
+const TaxButtons: React.FC<{ onAdjust: (amount: number) => void; disabled?: boolean }> = ({ onAdjust, disabled = false }) => (
   <div className="flex gap-2 justify-end mt-1">
     {[-5, -1, 1, 5].map(amount => (
       <button
         key={amount}
         onClick={() => onAdjust(amount)}
+        disabled={disabled}
         className="px-2 py-0.5 border border-ink hover:bg-ink hover:text-paper font-bold"
       >
         {amount > 0 ? '+' : ''}{amount}%
@@ -22,8 +22,12 @@ const TaxButtons: React.FC<{ onAdjust: (amount: number) => void }> = ({ onAdjust
   </div>
 );
 
-export const IncomeTaxAdjuster: React.FC = () => {
-  const { state, dispatch } = useGame();
+interface FiscalAdjusterProps {
+  state: GameState;
+  dispatch?: GameEventDispatch;
+}
+
+export const IncomeTaxAdjuster: React.FC<FiscalAdjusterProps> = ({ state, dispatch }) => {
   const isZh = state.language === 'zh';
   const initialLower = state.temp_tax_lower ?? state.tax_lower_class;
   const initialMiddle = state.temp_tax_middle ?? state.tax_middle_class;
@@ -50,7 +54,7 @@ export const IncomeTaxAdjuster: React.FC = () => {
 
   const adjustValue = (type: 'lower' | 'middle' | 'upper', current: number, amount: number) => {
     const value = Math.max(1, Math.min(100, current + amount));
-    dispatch({
+    dispatch?.({
       type: 'UPDATE_TAX_DRAFT',
       payload: type === 'lower'
         ? { draft_tax_lower: value }
@@ -79,7 +83,7 @@ export const IncomeTaxAdjuster: React.FC = () => {
               {row.value}% <span className="opacity-60 text-[10px]">({isZh ? '审查基准' : 'Review baseline'}: {row.initial}%)</span>
             </span>
           </div>
-          <TaxButtons onAdjust={amount => adjustValue(row.type, row.value, amount)} />
+          <TaxButtons disabled={!dispatch} onAdjust={amount => adjustValue(row.type, row.value, amount)} />
         </div>
       ))}
       <div className="bg-paper border border-ink/20 p-3 flex flex-col gap-1.5 rounded-sm">
@@ -110,8 +114,7 @@ export const IncomeTaxAdjuster: React.FC = () => {
   );
 };
 
-export const TariffConsumptionAdjuster: React.FC = () => {
-  const { state, dispatch } = useGame();
+export const TariffConsumptionAdjuster: React.FC<FiscalAdjusterProps> = ({ state, dispatch }) => {
   const isZh = state.language === 'zh';
   const initialTariff = state.temp_tax_tariff ?? state.tax_tariff;
   const initialConsumption = state.temp_tax_consumption ?? state.tax_consumption;
@@ -128,7 +131,7 @@ export const TariffConsumptionAdjuster: React.FC = () => {
   });
   const adjustValue = (type: 'tariff' | 'consumption', current: number, amount: number) => {
     const value = Math.max(1, Math.min(100, current + amount));
-    dispatch({
+    dispatch?.({
       type: 'UPDATE_TAX_DRAFT',
       payload: type === 'tariff' ? { draft_tax_tariff: value } : { draft_tax_consumption: value },
     });
@@ -144,14 +147,14 @@ export const TariffConsumptionAdjuster: React.FC = () => {
           <span>{isZh ? '进口与贸易关税' : 'Import and Trade Tariff'}</span>
           <span className="text-cnt-red whitespace-nowrap">{draftTariff}% <span className="opacity-60 text-[10px]">({isZh ? '审查基准' : 'Review baseline'}: {initialTariff}%)</span></span>
         </div>
-        <TaxButtons onAdjust={amount => adjustValue('tariff', draftTariff, amount)} />
+        <TaxButtons disabled={!dispatch} onAdjust={amount => adjustValue('tariff', draftTariff, amount)} />
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex justify-between font-bold gap-4">
           <span>{isZh ? '国内大众商品消费税' : 'Goods Consumption Tax'}</span>
           <span className="text-cnt-red whitespace-nowrap">{draftConsumption}% <span className="opacity-60 text-[10px]">({isZh ? '审查基准' : 'Review baseline'}: {initialConsumption}%)</span></span>
         </div>
-        <TaxButtons onAdjust={amount => adjustValue('consumption', draftConsumption, amount)} />
+        <TaxButtons disabled={!dispatch} onAdjust={amount => adjustValue('consumption', draftConsumption, amount)} />
       </div>
       <div className="bg-paper border border-ink/20 p-3 flex flex-col gap-1.5 rounded-sm">
         <div className="font-bold border-b border-ink/10 pb-1 text-[11px] uppercase tracking-wide flex justify-between">
@@ -181,7 +184,7 @@ export const fiscalPolicyIncomeTaxesEvent: GameEvent = {
   titleZh: '财政政策：所得税草案',
   description: 'Edit the income-tax draft against the immutable baseline captured when this review began.',
   descriptionZh: '依据本次财政审查开始时保存的不可变基准，修改所得税独立草案。',
-  renderContent: () => React.createElement(IncomeTaxAdjuster, null),
+  renderContent: (state, dispatch) => React.createElement(IncomeTaxAdjuster, { state, dispatch }),
   options: [
     {
       text: 'Submit Income Tax Draft',
@@ -238,7 +241,7 @@ export const fiscalPolicyTariffConsumptionEvent: GameEvent = {
   titleZh: '财政政策：关税与消费税草案',
   description: 'Edit trade and consumption taxes without changing the rates currently used by the economy.',
   descriptionZh: '修改关税与消费税独立草案；经济系统在审查结束前继续使用现行税率。',
-  renderContent: () => React.createElement(TariffConsumptionAdjuster, null),
+  renderContent: (state, dispatch) => React.createElement(TariffConsumptionAdjuster, { state, dispatch }),
   options: [
     {
       text: 'Submit Tariff and Consumption Tax Draft',

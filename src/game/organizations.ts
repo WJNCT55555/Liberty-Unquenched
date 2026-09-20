@@ -5,10 +5,10 @@ import type {
   OrganizationState,
   OrganizationStateMap,
   OrganizationType,
-  ArmedEntityId,
   ArmedEntityPool,
   OrganizationUiVisibility,
 } from './types';
+import type { ArmedEntityId } from '../map/types_map';
 
 export interface OrganizationDefinition {
   id: OrganizationId;
@@ -100,6 +100,7 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     nameZh: '自由女性',
     type: 'women',
     owner: 'CNT_FAI',
+    icon: '/img/Organization/ML_Emblem.png',
     defaultEstablished: { '1936': true },
     defaultEstablishedAt: { '1936': { year: 1936, month: 5 } },
     uiVisibility: 'visible',
@@ -115,6 +116,7 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     nameZh: '全国农民联合会',
     type: 'agricultural',
     owner: 'CNT_FAI',
+    icon: '/img/Organization/FNA_Emblem.png',
     uiVisibility: 'visible',
     monthlyEffectText: 'No monthly effect.',
     monthlyEffectTextZh: '暂无月度效果。',
@@ -126,6 +128,7 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     nameZh: '防御委员会',
     type: 'militia',
     owner: 'CNT_FAI',
+    icon: '/img/Organization/DC_Emblem.png',
     defaultEstablished: { '1936': true },
     defaultEstablishedAt: { '1936': { year: 1934, month: 11 } },
     uiVisibility: 'visible',

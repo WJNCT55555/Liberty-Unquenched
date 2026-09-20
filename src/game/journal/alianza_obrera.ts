@@ -1,6 +1,5 @@
 import { JournalEntryDef } from '../types';
 import { formCoalition } from '../utils';
-import { workersAllianceFormation } from '../events/workers_alliance_formation';
 import { getRightShare, getUnionShare } from '../unions';
 
 export const alianzaObreraJournal: JournalEntryDef = {
@@ -9,8 +8,8 @@ export const alianzaObreraJournal: JournalEntryDef = {
   titleZh: '工人联盟 (Alianza Obrera)',
   description: 'The Workers\' Alliance is the ultimate goal for the revolutionary factions. By combining PSOE and CNT forces, the working class can build a formidable revolutionary power capable of challenging the old order.',
   descriptionZh: '工人联盟是革命派的终极目标。通过将 PSOE 和 CNT 的力量结合起来，工人阶级可以建立起一股强大的革命力量，足以挑战旧秩序。',
-  successCondition: 'Relations with PSOE reaches 80, Valeriano Orobón promotes the alliance 3 times, CNT share is at least 18, CNT+UGT at least 35, and right-wing unions no more than 12',
-  successConditionZh: '与 PSOE 的关系达到 80，瓦莱里亚诺·奥罗本推动工人联盟达到 3 次，CNT 工会占比至少 18、CNT+UGT 至少 35，且右翼工会不超过 12',
+  successCondition: 'Relations with PSOE reaches 80, Workers\' Alliance progress reaches 3 (advisor action "Promote Workers\' Alliance" by Valeriano Orobón or Segundo Blanco, unlocked once the UHP journal is completed), CNT share is at least 18, CNT+UGT at least 35, and right-wing unions no more than 12',
+  successConditionZh: '与 PSOE 的关系达到 80，工人联盟进度达到 3（由奥罗本或布兰科的「推动工人联盟」顾问行动累积，需先完成 UHP 日志），CNT 工会占比至少 18、CNT+UGT 至少 35，且右翼工会不超过 12',
   successEffectDesc: 'Activates the Workers\' Alliance and triggers its formation event',
   successEffectDescZh: '激活工人联盟，并触发其组建事件',
   failureCondition: 'PSOE enters a political coalition',
@@ -20,6 +19,12 @@ export const alianzaObreraJournal: JournalEntryDef = {
   hasProgress: true,
   progressMax: 3,
   getProgress: (state) => state.workersAllianceProgress || 0,
+
+  /**
+   * 结果事件：完成时由月结管线自动推入（`rules/journalEvents.ts`），同一回合的
+   * 事件阶段即可读到。数值/状态效果只由下面的 `onComplete` 负责，事件只叙事。
+   */
+  completionEventId: 'workers_alliance_formation',
 
   checkStatus: (state, entryState) => {
     if (entryState.status === 'completed' || entryState.status === 'failed') return null;
@@ -51,19 +56,13 @@ export const alianzaObreraJournal: JournalEntryDef = {
   },
 
   onComplete: (state) => {
-    // Form the workers_alliance coalition
+    // Form the workers_alliance coalition. 结果事件由 completionEventId 自动入队，
+    // 这里不再手动改 pendingEvents，避免同一个事件被推两次。
     const newState = formCoalition(state, 'workers_alliance');
-    
-    // Queue the workers_alliance_formation event
-    const updatedEvents = [
-      workersAllianceFormation,
-      ...(newState.pendingEvents || [])
-    ];
 
     return {
       activeCoalitions: newState.activeCoalitions,
-      coalitionHistory: newState.coalitionHistory,
-      pendingEvents: updatedEvents
+      coalitionHistory: newState.coalitionHistory
     };
   },
 

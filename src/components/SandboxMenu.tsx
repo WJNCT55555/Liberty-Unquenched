@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSnapshotWhen } from '../game/GameContext';
 import { X, Plus, Minus } from 'lucide-react';
 import type { CoalitionId, CoalitionMember, Faction } from '../game/types';
 import { isRepublicanPartyEligible } from '../game/politicalEligibility';
@@ -24,11 +24,12 @@ const ORGANIZATION_TYPE_LABELS = {
 } as const;
 
 export const SandboxMenu = () => {
-  const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
   const [coalitionRole, setCoalitionRole] = useState<CoalitionRole>('opposition');
   const [selectedCoalitionId, setSelectedCoalitionId] = useState<CoalitionId | null>(null);
-  const isZh = state.language === 'zh';
+  const state = useGameSnapshotWhen(isOpen);
+  const { dispatch } = useGameActions();
+  const isZh = state?.language === 'zh';
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true);
@@ -36,7 +37,7 @@ export const SandboxMenu = () => {
     return () => window.removeEventListener('open-sandbox-menu', handleOpen);
   }, []);
 
-  if (!isOpen) return null;
+  if (!isOpen || !state) return null;
 
   const handleEdit = (key: string, value: any) => {
     dispatch({ type: 'SANDBOX_EDIT', payload: { [key]: value } });

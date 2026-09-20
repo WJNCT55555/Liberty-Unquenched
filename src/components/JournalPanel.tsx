@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useGameSelector } from '../game/GameContext';
 import { getJournalEntryDef } from '../game/journal';
 import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { areJournalViewModelsEqual, selectJournalViewModel } from '../game/selectors';
 
 export const JournalPanel: React.FC = () => {
-  const state = useGameSelector(snapshot => ({
-    journal: snapshot.journal,
-    language: snapshot.language,
-  }), (left, right) => left.journal === right.journal && left.language === right.language);
+  const state = useGameSelector(selectJournalViewModel, areJournalViewModelsEqual);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [order, setOrder] = useState<string[]>([]);
@@ -85,6 +83,7 @@ export const JournalPanel: React.FC = () => {
     const description = isZh ? def.descriptionZh : def.description;
     const isExpanded = expandedIds.has(id);
     const fileCode = def.id.split('_').pop()?.substring(0, 6).toUpperCase() || 'DOC';
+    const progress = state.progressById[id] ?? entryState.progress;
 
     return (
       <div 
@@ -176,7 +175,7 @@ export const JournalPanel: React.FC = () => {
                 <div className="mb-2 bg-paper-dark p-2 border-2 border-ink/30">
                   <div className="flex justify-between text-[10px] font-typewriter uppercase tracking-widest mb-1.5 font-bold">
                     <span>{isZh ? '进展' : 'PROGRESS'}</span>
-                    <span>{Math.round((def.getProgress ? def.getProgress(state, entryState) : entryState.progress) / (def.progressMax || 100) * 100)}%</span>
+                    <span>{Math.round(progress / (def.progressMax || 100) * 100)}%</span>
                   </div>
                   <div className="w-full bg-ink/10 h-3 border border-ink relative overflow-hidden p-[1px]">
                     <div className="absolute inset-0 flex justify-between px-1 opacity-20 pointer-events-none">
@@ -185,7 +184,7 @@ export const JournalPanel: React.FC = () => {
                     <div 
                       className="bg-ink h-full transition-all duration-1000 ease-out" 
                       style={{ 
-                        width: `${Math.min(100, Math.max(0, ((def.getProgress ? def.getProgress(state, entryState) : entryState.progress) / (def.progressMax || 100)) * 100))}%`,
+                        width: `${Math.min(100, Math.max(0, (progress / (def.progressMax || 100)) * 100))}%`,
                         backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px)'
                       }}
                     />

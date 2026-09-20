@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapFaction as Faction, Province, Army } from './types_map';
 import { Swords, Factory, Users, Package, Crosshair, X, Star } from 'lucide-react';
-import type { IberianDefenseState } from '../game/types';
+import type { IberianDefenseState } from './types_map';
 import { IberianWarDetails } from '../components/IberianWarDetails';
 
 interface WarSummaryProps {

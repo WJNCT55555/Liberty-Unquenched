@@ -16,8 +16,9 @@
   get length() { return this._s.size; },
 };
 
-import { gameReducer, INITIAL_STATE } from '../src/game/GameContext';
-import type { GameState } from '../src/game/types';
+import { gameReducer } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
+import type { CardType, GameState } from '../src/game/types';
 import { MapFaction } from '../src/map/types_map';
 import { PROVINCE_ADJACENCY } from '../src/map/map_constants';
 
@@ -177,9 +178,9 @@ function playActionPhase(s: GameState, cfg: Config): GameState {
   const handLimit = state.difficulty === 'hard' ? 3 : 4;
   while (state.hand.length < handLimit) {
     const before = state.hand.length;
-    const decks: any[] = [];
+    const decks: CardType[] = [];
     if (state.actionDeck.length) decks.push('Action');
-    if (state.governmentDeck.length) decks.push('Governmental');
+    if (state.governmentDeck.length) decks.push('Government');
     if (state.civilWarStatus !== 'not_started' && state.militaryDeck.length) decks.push('Military');
     if (decks.length === 0) break;
     state = D(state, { type: 'DRAW_CARD', payload: decks[0] });
@@ -327,7 +328,7 @@ function playWarPhase(s: GameState, cfg: Config): GameState {
 // ---------- 主循环 ----------
 function run(cfg: Config): void {
   const log: string[] = [];
-  let state = D(INITIAL_STATE, { type: 'START_GAME', payload: { scenario: cfg.scenario, difficulty: cfg.difficulty } });
+  let state = D(PRE_START_STATE, { type: 'START_GAME', payload: { scenario: cfg.scenario, difficulty: cfg.difficulty } });
   state = setupAdvisors(state, cfg);
   let months = 0, iterations = 0, stuck = 0, lastKey = '';
   let lastMonth = `${state.year}-${state.month}`;

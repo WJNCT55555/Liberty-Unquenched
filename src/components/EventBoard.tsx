@@ -1,17 +1,14 @@
 import React from 'react';
-import { useEventState, useGameActions, useGameSelector } from '../game/GameContext';
+import { useGameActions, useGameSelector } from '../game/GameContext';
 import { motion } from 'motion/react';
+import { areEventBoardViewModelsEqual, selectEventBoardViewModel } from '../game/selectors';
 
 export const EventBoard: React.FC = () => {
-  const state = useEventState();
-  // Event titles may be state-dependent (e.g. election seat totals or round
-  // numbers), so resolve them against the complete snapshot rather than the
-  // presentation slice used to decide whether the board is visible.
-  const fullState = useGameSelector(snapshot => snapshot);
+  const viewModel = useGameSelector(selectEventBoardViewModel, areEventBoardViewModelsEqual);
   const { dispatch } = useGameActions();
-  const isZh = state.language === 'zh';
+  const { isZh } = viewModel;
 
-  if (state.pendingEvents.length === 0 || state.currentEvent) return null;
+  if (!viewModel.isVisible) return null;
 
   return (
     <motion.div 
@@ -30,17 +27,14 @@ export const EventBoard: React.FC = () => {
       </p>
 
       <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
-        {state.pendingEvents.filter((event, idx, self) => self.findIndex(e => e.id === event.id) === idx).map((event) => (
+        {viewModel.events.map((event) => (
           <button
             key={event.id}
             onClick={() => dispatch({ type: 'SELECT_EVENT', payload: { eventId: event.id } })}
             className="w-full text-left p-4 bg-transparent border-2 border-ink hover:bg-ink hover:text-paper transition-colors flex justify-between items-center group"
           >
             <span className="font-display text-xl uppercase tracking-widest">
-              {(() => {
-                const resolvedTitle = isZh && event.titleZh ? event.titleZh : event.title;
-                return typeof resolvedTitle === 'function' ? resolvedTitle(fullState) : resolvedTitle;
-              })()}
+              {event.title}
             </span>
             <span className="font-typewriter text-sm tracking-widest">
               {isZh ? '查看' : 'VIEW'} &rarr;

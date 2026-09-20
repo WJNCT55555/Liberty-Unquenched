@@ -132,8 +132,24 @@ const restored = deserializeGameState(JSON.parse(serializedText), {
 assert.equal(restored.hand[0], card);
 assert.equal(restored.activeAdvisors[0], advisor);
 assert.equal(restored.armies?.[0]?.identity, 'gov', 'Legacy armies must receive the default gov identity.');
+assert.equal(restored.mapCurrentPlayer, MapFaction.REPUBLICAN, 'Legacy saves must receive the default map player.');
+assert.equal(restored.mapSelectedProvinceId, null);
+assert.deepEqual(restored.mapSelectedArmyIds, []);
+assert(Object.keys(restored.provinces).length > 0, 'Legacy saves must receive the canonical province map.');
+assert.equal(restored.mapResources[MapFaction.WORKERS_ALLIANCE].manpower, 0, 'Every map faction must have normalized resources.');
 assert.equal(typeof restored.currentEvent?.options[0].effect, 'function');
 assert.equal(restored.currentEvent?.options[0].effect(restored).resources, 10);
+
+const partialMapSnapshot = JSON.parse(serializedText);
+partialMapSnapshot.state.mapResources = { [MapFaction.REPUBLICAN]: { manpower: 321 } };
+const restoredPartialMap = deserializeGameState(partialMapSnapshot, {
+  cards: [card],
+  advisors: [advisor],
+  events: [],
+});
+assert.equal(restoredPartialMap.mapResources[MapFaction.REPUBLICAN].manpower, 321);
+assert.equal(restoredPartialMap.mapResources[MapFaction.REPUBLICAN].supplies, 8000, 'Partial resource records must merge with canonical defaults.');
+assert.equal(restoredPartialMap.mapResources[MapFaction.NATIONALIST].manpower, 12000, 'Missing factions must be restored from canonical defaults.');
 
 const easyStateBeforeCard = {
   ...state,

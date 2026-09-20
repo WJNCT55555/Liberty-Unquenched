@@ -6,16 +6,18 @@ import { mujeresLibresCard } from '../src/game/action_affairs/mujeres_libres';
 import { fijlCard } from '../src/game/action_affairs/fijl';
 import { propagandaByDeed } from '../src/game/action_affairs/propaganda_by_deed';
 import { getOptionEffectPreview } from '../src/game/effectPreview';
-import { INITIAL_STATE } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
+import { INITIAL_CLASSES } from '../src/game/parties';
+import { getDefaultOrganizationState } from '../src/game/organizations';
 import type { Card, EffectPreviewLine, GameEvent, GameState } from '../src/game/types';
 
 const cloneData = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const buildState = (overrides: Partial<GameState> = {}): GameState => ({
-  ...INITIAL_STATE,
-  factions: cloneData(INITIAL_STATE.factions),
-  classes: cloneData(INITIAL_STATE.classes),
-  stats: { ...INITIAL_STATE.stats },
+  ...PRE_START_STATE,
+  factions: cloneData(PRE_START_STATE.factions),
+  classes: cloneData(INITIAL_CLASSES),
+  stats: { ...PRE_START_STATE.stats },
   currentEvent: null,
   ...overrides
 });
@@ -188,7 +190,7 @@ const establishedOrganizations = openCardEvent(
   organizationsCard,
   buildState({
     organizations: {
-      ...cloneData(INITIAL_STATE.organizations),
+      ...cloneData(getDefaultOrganizationState('1931')),
       FIJL: { established: true },
       ML: { established: true },
     },
@@ -216,7 +218,7 @@ const mujeresLibresOpened = openCardEvent(
   buildState({
     unemployment_rate: 8,
     organizations: {
-      ...cloneData(INITIAL_STATE.organizations),
+      ...cloneData(getDefaultOrganizationState('1931')),
       ML: { established: true }
     }
   })
@@ -290,7 +292,7 @@ const fijlOpened = openCardEvent(
   fijlCard,
   buildState({
     organizations: {
-      ...cloneData(INITIAL_STATE.organizations),
+      ...cloneData(getDefaultOrganizationState('1931')),
       FIJL: { established: true }
     }
   })

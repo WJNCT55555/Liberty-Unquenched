@@ -89,6 +89,15 @@ export const StartScreen = () => {
               </p>
             </div>
 
+            {/* Flag collage */}
+            <div className="start-screen-home__flag">
+              <img
+                src={`${(import.meta as any).env.BASE_URL || '/'}img/UI/flag_collage.png`}
+                alt={isZh ? '西班牙革命旗帜拼贴' : 'Collage of Spanish Revolution flags'}
+                draggable={false}
+              />
+            </div>
+
             {/* Menu */}
             <nav className="start-screen-home__menu" aria-label={isZh ? '主菜单' : 'Main menu'}>
               <MenuButton onClick={handleNewGame} text={isZh ? '开始革命' : 'START REVOLUTION'} primary />

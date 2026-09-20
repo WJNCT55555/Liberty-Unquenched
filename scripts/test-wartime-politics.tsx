@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { INITIAL_STATE, gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState, WartimeGovernmentRoute } from '../src/game/types';
 import { civilWarSetup, civilWarStep31 } from '../src/game/events/civil_war/civil_war_setup';
 import { wartimePowerArrangement, wartimePowerArrangementResult, wartimeCabinetCoordination } from '../src/game/events/civil_war/wartime_power_arrangement';
-import { INITIAL_EVENTS, RESTORABLE_EVENTS } from '../src/game/events';
-import { INITIAL_CARDS } from '../src/game/data';
+import { elections1931Results } from '../src/game/events/elections_1931_results';
+import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
+import { RESTORABLE_EVENT_REGISTRY } from '../src/game/registries/restorableEventRegistry';
+import { CARD_REGISTRY } from '../src/game/registries/cardRegistry';
 import { INITIAL_ADVISORS } from '../src/game/advisors';
 import { calculateMonthlyEventQueue, applyMonthlyPoliticalMaintenance } from '../src/game/rules/monthlyPipeline';
 import { shouldQueueEvent, checkCoalitionDissolve, updateCoalitions } from '../src/game/utils';
@@ -21,9 +24,9 @@ import { cntInterPartyRelationships } from '../src/game/action_affairs/inter_par
 import { WartimeCoalitionDetails } from '../src/components/WartimeCoalitionDetails';
 
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
-const runtime = { cards: INITIAL_CARDS, advisors: INITIAL_ADVISORS, events: RESTORABLE_EVENTS };
+const runtime = { cards: CARD_REGISTRY, advisors: INITIAL_ADVISORS, events: RESTORABLE_EVENT_REGISTRY };
 const seed = (scenario: GameState['scenario'] = '1936', difficulty: GameState['difficulty'] = 'normal'): GameState => {
-  const initial = gameReducer(copy(INITIAL_STATE), { type: 'START_GAME', payload: { scenario, difficulty } });
+  const initial = gameReducer(copy(PRE_START_STATE), { type: 'START_GAME', payload: { scenario, difficulty } });
   return {
     ...copy(initial), year: 1936, month: 7, phase: 'action', actionsLeft: 2,
     superEvent: null, currentEvent: null, pendingEvents: [], civilWarStatus: 'not_started', activeWar: null,
@@ -79,7 +82,7 @@ test('Monthly reducer opens the arrangement before ordinary events', () => {
   assert.equal(next.currentEvent?.id, wartimePowerArrangement.id);
   assert.equal(next.pendingEvents.some(event => event.id === wartimePowerArrangement.id), false);
   assert.equal(gameReducer(next, { type: 'NEXT_PHASE' }).currentEvent?.id, wartimePowerArrangement.id);
-  const otherEvent = INITIAL_EVENTS.find(event => event.id === 'elections_1931_results')!;
+  const otherEvent = elections1931Results;
   assert.equal(gameReducer({ ...next, pendingEvents: [otherEvent] }, { type: 'SELECT_EVENT', payload: { eventId: otherEvent.id } }).currentEvent?.id, wartimePowerArrangement.id);
   const earlyWar = { ...setup(seed('1931')), year: 1931, month: 5 };
   const queue = calculateMonthlyEventQueue(earlyWar, { ...earlyWar, month: 6, pendingEvents: [otherEvent] }, 1931, 6);
@@ -270,8 +273,8 @@ test('Chinese and English details expose real power, participation and law modif
     assert.ok(html.includes(isZh ? '军事修正' : 'Military'));
     assert.ok(html.includes(isZh ? '法律修正' : 'law modifier'));
   }
-  assert.equal(INITIAL_EVENTS.filter(event => event.id === wartimePowerArrangement.id).length, 1);
-  assert.ok(RESTORABLE_EVENTS.some(event => event.id === wartimePowerArrangementResult.id));
+  assert.equal(SCHEDULED_EVENT_REGISTRY.filter(event => event.id === wartimePowerArrangement.id).length, 1);
+  assert.ok(RESTORABLE_EVENT_REGISTRY.some(event => event.id === wartimePowerArrangementResult.id));
 });
 
 console.log(`Wartime politics: ${checks} checks passed (including 30 scenario/mode/setup combinations).`);

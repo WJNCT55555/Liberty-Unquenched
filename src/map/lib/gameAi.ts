@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GameState, MapFaction as Faction, Province, Army } from '../types_map';
+import { MapFaction as Faction, type MapRuntimeState } from '../types_map';
 import { PROVINCE_ADJACENCY, isPortugalProvince } from '../map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../rules/costs';
 import { canEnterMapProvince } from '../rules/factions';
@@ -33,14 +33,14 @@ export interface AiAction {
  * 6. Finishes up by executing an End Turn phase.
  */
 export function calculateAiMoves(
-  state: GameState,
+  state: Pick<MapRuntimeState, 'mapResources' | 'provinces' | 'armies'>,
   aiFaction: Faction,
   difficulty: 'easy' | 'normal' | 'hard' = 'normal'
 ): AiAction[] {
   const actions: AiAction[] = [];
   
   // Track visual planning resources to avoid over-purchasing during planning phase
-  let simResources = { ...state.resources[aiFaction] };
+  let simResources = { ...state.mapResources[aiFaction] };
   let simManpower = simResources.manpower;
   let simSupplies = simResources.supplies;
   let simIC = simResources.industrialCapacity;

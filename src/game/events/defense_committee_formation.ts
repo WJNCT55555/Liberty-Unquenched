@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
+import { isAnyWarOngoing } from '../rules/republicCrisis';
 
 const cntMilitaryMeta = {
   category: 'cnt' as const,
@@ -11,12 +12,21 @@ export const defenseCommitteeFormation: GameEvent = {
   id: 'defense_committee_formation',
   meta: cntMilitaryMeta,
   condition: (state) => {
+    if (isOrganizationEstablished(state, 'DC')) return false;
+
+    // 新触发条件：当下正处于战争状态（阿斯图里亚斯战争进行中，或内战进行中）
+    // ——"没有准备，就没有革命"的教训已经用血换来，防御委员会直接排队成立，
+    // 不再看紧张度／革命热情，也不要求 CNT 处于反对派立场。
+    // 注意：只看"是否在战争中"，战后再回头看结果不触发（won/lost/failed 不算）。
+    if (isAnyWarOngoing(state)) return true;
+
+    // 旧路径：和平期的自我准备（1934·11 起 + 高紧张 + 高热情 + 非参政 + 两派主导）
     const tension = state.stats?.tension ?? 0;
     const fervor = state.stats?.revolutionaryFervor ?? 0;
     const puristas = state.factions?.Puristas?.influence ?? 0;
     const faistas = state.factions?.Faistas?.influence ?? 0;
     const historicalWindow = state.year > 1934 || (state.year === 1934 && state.month >= 11);
-    return historicalWindow && !isOrganizationEstablished(state, 'DC') && tension > 60 && fervor > 70 && state.cntStance !== 'govern' && (puristas + faistas) > 60;
+    return historicalWindow && tension > 60 && fervor > 70 && state.cntStance !== 'govern' && (puristas + faistas) > 60;
   },
   title: 'Establishment of the Defense Committee',
   titleZh: '防御委员会成立',

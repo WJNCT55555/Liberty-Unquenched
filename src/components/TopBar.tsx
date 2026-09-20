@@ -11,6 +11,16 @@ import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
 import { LawStanceModal } from './LawStanceModal';
 import { SaveManagerModal } from './SaveManagerModal';
+import {
+  areDomesticPolicyModalStatesEqual,
+  areEconomyModalStatesEqual,
+  areLawStanceModalStatesEqual,
+  arePoliticalModalStatesEqual,
+  selectDomesticPolicyModalState,
+  selectEconomyModalState,
+  selectLawStanceModalState,
+  selectPoliticalModalState,
+} from '../game/selectors';
 
 const formatCompactNumber = (value: number): string => {
   if (!Number.isFinite(value)) return '0';
@@ -27,8 +37,6 @@ export const TopBar = () => {
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isLawStanceModalOpen, setIsLawStanceModalOpen] = useState(false);
   const [isSaveManagerOpen, setIsSaveManagerOpen] = useState(false);
-  const hasOpenDetailModal = isEconomyModalOpen || isPoliticsModalOpen || isPolicyModalOpen || isLawStanceModalOpen;
-
   const state = useGameSelector(snapshot => ({
     language: snapshot.language,
     year: snapshot.year,
@@ -283,19 +291,10 @@ export const TopBar = () => {
         )}
       </AnimatePresence>
 
-      {hasOpenDetailModal && (
-        <TopBarModalLayer
-          isEconomyModalOpen={isEconomyModalOpen}
-          isPoliticsModalOpen={isPoliticsModalOpen}
-          isPolicyModalOpen={isPolicyModalOpen}
-          isLawStanceModalOpen={isLawStanceModalOpen}
-          onCloseEconomy={() => setIsEconomyModalOpen(false)}
-          onClosePolitics={() => setIsPoliticsModalOpen(false)}
-          onClosePolicy={() => setIsPolicyModalOpen(false)}
-          onCloseLawStance={() => setIsLawStanceModalOpen(false)}
-          isZh={isZh}
-        />
-      )}
+      {isEconomyModalOpen && <EconomyModalLayer onClose={() => setIsEconomyModalOpen(false)} isZh={isZh} />}
+      {isPoliticsModalOpen && <PoliticsModalLayer onClose={() => setIsPoliticsModalOpen(false)} isZh={isZh} />}
+      {isPolicyModalOpen && <PolicyModalLayer onClose={() => setIsPolicyModalOpen(false)} isZh={isZh} />}
+      {isLawStanceModalOpen && <LawStanceModalLayer onClose={() => setIsLawStanceModalOpen(false)} isZh={isZh} />}
       <SaveManagerModal
         isOpen={isSaveManagerOpen}
         onClose={() => setIsSaveManagerOpen(false)}
@@ -307,62 +306,30 @@ export const TopBar = () => {
   );
 };
 
-interface TopBarModalLayerProps {
-  isEconomyModalOpen: boolean;
-  isPoliticsModalOpen: boolean;
-  isPolicyModalOpen: boolean;
-  isLawStanceModalOpen: boolean;
-  onCloseEconomy: () => void;
-  onClosePolitics: () => void;
-  onClosePolicy: () => void;
-  onCloseLawStance: () => void;
+interface DetailModalLayerProps {
+  onClose: () => void;
   isZh: boolean;
 }
 
-/** Supplies a complete snapshot only while one of the top-bar detail modals is open. */
-const TopBarModalLayer: React.FC<TopBarModalLayerProps> = ({
-  isEconomyModalOpen,
-  isPoliticsModalOpen,
-  isPolicyModalOpen,
-  isLawStanceModalOpen,
-  onCloseEconomy,
-  onClosePolitics,
-  onClosePolicy,
-  onCloseLawStance,
-  isZh,
-}) => {
-  const modalState = useGameSelector(snapshot => snapshot);
+const EconomyModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
+  const state = useGameSelector(selectEconomyModalState, areEconomyModalStatesEqual);
   const { dispatch } = useGameActions();
+  return <EconomyModal isOpen onClose={onClose} state={state} dispatch={dispatch} isZh={isZh} />;
+};
 
-  return (
-    <>
-      <EconomyModal
-        isOpen={isEconomyModalOpen}
-        onClose={onCloseEconomy}
-        state={modalState}
-        dispatch={dispatch}
-        isZh={isZh}
-      />
-      <DomesticPoliticsModal
-        isOpen={isPoliticsModalOpen}
-        onClose={onClosePolitics}
-        state={modalState}
-        isZh={isZh}
-      />
-      <DomesticPolicyModal
-        isOpen={isPolicyModalOpen}
-        onClose={onClosePolicy}
-        state={modalState}
-        isZh={isZh}
-      />
-      <LawStanceModal
-        isOpen={isLawStanceModalOpen}
-        onClose={onCloseLawStance}
-        state={modalState}
-        isZh={isZh}
-      />
-    </>
-  );
+const PoliticsModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
+  const state = useGameSelector(selectPoliticalModalState, arePoliticalModalStatesEqual);
+  return <DomesticPoliticsModal isOpen onClose={onClose} state={state} isZh={isZh} />;
+};
+
+const PolicyModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
+  const state = useGameSelector(selectDomesticPolicyModalState, areDomesticPolicyModalStatesEqual);
+  return <DomesticPolicyModal isOpen onClose={onClose} state={state} isZh={isZh} />;
+};
+
+const LawStanceModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
+  const state = useGameSelector(selectLawStanceModalState, areLawStanceModalStatesEqual);
+  return <LawStanceModal isOpen onClose={onClose} state={state} isZh={isZh} />;
 };
 
 const TabButton = ({ onClick, isActive, label }: { onClick: () => void, isActive?: boolean, label: string }) => (

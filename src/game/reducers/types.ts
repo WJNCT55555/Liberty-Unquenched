@@ -1,4 +1,5 @@
-import type { Advisor, ArmedEntityId, Card, GameEvent, GameState } from '../types';
+import type { Advisor, Card, CardType, GameEvent, GameState } from '../types';
+import type { ArmedEntityId } from '../../map/types_map';
 
 /** All user and engine commands accepted by the game store. */
 export type GameAction =
@@ -11,8 +12,8 @@ export type GameAction =
   | { type: 'SELECT_EVENT'; payload: { eventId: string } }
   | { type: 'ADD_ADVISOR'; payload: { advisor: Advisor; slotIndex: number } }
   | { type: 'REMOVE_ADVISOR'; payload: { slotIndex: number } }
-  | { type: 'DRAW_CARD'; payload: 'Action' | 'Governmental' | 'Military' }
-  | { type: 'DRAW_SPECIFIC_CARD'; payload: { cardId: string; deckType: 'Action' | 'Governmental' | 'Military' } }
+  | { type: 'DRAW_CARD'; payload: CardType }
+  | { type: 'DRAW_SPECIFIC_CARD'; payload: { cardId: string; deckType: CardType } }
   | { type: 'CHECK_EVENT' }
   | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' }
   | { type: 'LOAD_STATE'; payload: GameState }

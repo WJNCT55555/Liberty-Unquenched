@@ -1,6 +1,7 @@
 import type { GameState, LawId } from '../types';
 import { adjustClassSupport } from '../utils';
 import { POLICY_DEFINITION_BY_ID, type PolicyCondition, type PolicyModifier } from './policyDefinitions';
+import { isRepublicCrisisSuspended } from './republicCrisis';
 
 export interface MonthlyPolicyEffects {
   stats: GameState['stats'];
@@ -70,7 +71,10 @@ export const calculateMonthlyPolicyEffects = (
       // them in the shared definition prevents policy cards and previews from
       // maintaining a second set of policy-level values.
     } else if (modifier.kind === 'coupProgress') {
-      coupProgress = roundTo(clampPercent(coupProgress + modifier.delta), 2);
+      // 法律带来的政变增量与逐月蓄积同属"政变进度机制"，战争期间一并停摆。
+      if (!isRepublicCrisisSuspended(state)) {
+        coupProgress = roundTo(clampPercent(coupProgress + modifier.delta), 2);
+      }
     } else if (modifier.kind === 'landProgress') {
       domesticPolicy = {
         ...domesticPolicy,
@@ -102,7 +106,7 @@ export const calculateMonthlyPolicyEffects = (
 
   if (!state.coupSystemActive) {
     coupProgress = 0;
-  } else {
+  } else if (!isRepublicCrisisSuspended(state)) {
     const tension = stats.tension !== undefined ? stats.tension : 34;
     const armyLoyalty = stats.armyLoyalty !== undefined ? stats.armyLoyalty : 50;
     const monthlyCoupDelta = 0.15 + (tension * 0.012) + ((100 - armyLoyalty) * 0.025);

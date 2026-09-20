@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { useGame } from '../game/GameContext';
-import { Advisor, AdvisorAction } from '../game/types';
+import { useGameActions, useGameSelector } from '../game/GameContext';
+import { Advisor } from '../game/types';
 import { cn } from '../lib/utils';
 import { UserPlus, X, Users, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FACTION_NAMES } from '../game/labels';
+import {
+  areAdvisorPanelViewModelsEqual,
+  selectAdvisorPanelViewModel,
+  type AdvisorActionViewModel,
+} from '../game/selectors';
 
 // Note: Cabinet Ministers tooltips on hover are implemented in SidePanel.tsx (where the Cabinet UI is rendered)
 
@@ -43,18 +48,23 @@ const getImageUrl = (url?: string) => {
 };
 
 export const AdvisorPanel = () => {
-  const { state, dispatch } = useGame();
   const [isPoolOpen, setIsPoolOpen] = useState(false);
   const [selectedAdvisor, setSelectedAdvisor] = useState<Advisor | null>(null);
-  const isZh = state.language === 'zh';
+  const viewModel = useGameSelector(
+    (state) => selectAdvisorPanelViewModel(state, selectedAdvisor?.id || null),
+    areAdvisorPanelViewModelsEqual,
+  );
+  const { dispatch } = useGameActions();
+  const { isZh } = viewModel;
 
   const factionNames = FACTION_NAMES;
 
-  const handleActionClick = (action: AdvisorAction) => {
-    if (action.condition(state) && state.actionsLeft > 0) {
+  const handleActionClick = ({ action, isAvailable }: AdvisorActionViewModel) => {
+    if (isAvailable) {
       dispatch({ 
         type: 'RESOLVE_EVENT', 
         payload: (s) => {
+          if (s.actionsLeft <= 0 || !action.condition(s)) return {};
           const newState = action.effect(s);
           return {
             ...newState,
@@ -71,10 +81,9 @@ export const AdvisorPanel = () => {
       <div className="h-48 border-t-2 border-ink bg-[#e6e2d6] p-4 flex justify-center gap-6 items-center shadow-[inset_0_8px_16px_rgba(0,0,0,0.1)] relative overflow-hidden">
         
         {/* 3 Active Advisor Slots */}
-        {state.activeAdvisors.map((advisor, idx) => {
+        {viewModel.slots.map(({ advisor, isAvailable }, idx) => {
           const rotations = ['-rotate-2', 'rotate-1', '-rotate-1'];
           const rot = rotations[idx % rotations.length];
-          const isAvailable = advisor ? advisor.actions.some(a => a.condition(state) && state.actionsLeft > 0) : false;
 
           return (
             <div 
@@ -153,7 +162,7 @@ export const AdvisorPanel = () => {
             {isZh ? '档案柜' : 'DOSSIERS'}
           </h4>
           <span className="font-typewriter text-[10px] mt-1 bg-ink text-paper px-1.5 py-0.5">
-            {state.advisorPool.length} {isZh ? '份' : 'FILES'}
+            {viewModel.advisorPool.length} {isZh ? '份' : 'FILES'}
           </span>
         </div>
       </div>
@@ -192,12 +201,12 @@ export const AdvisorPanel = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {state.advisorPool.map((advisor) => (
+                {viewModel.advisorPool.map((advisor) => (
                   <div 
                     key={advisor.id}
                     className="border-2 border-ink bg-paper p-4 flex flex-col relative cursor-pointer transition-all duration-200 group shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]"
                     onClick={() => {
-                      const emptySlot = state.activeAdvisors.findIndex(a => a === null);
+                      const emptySlot = viewModel.emptySlot;
                       if (emptySlot !== -1) {
                         dispatch({ type: 'ADD_ADVISOR', payload: { advisor, slotIndex: emptySlot } });
                         setIsPoolOpen(false);
@@ -237,7 +246,7 @@ export const AdvisorPanel = () => {
                   </div>
                 ))}
                 
-                {state.advisorPool.length === 0 && (
+                {viewModel.advisorPool.length === 0 && (
                   <div className="col-span-full py-16 text-center border-2 border-dashed border-ink/30 bg-paper-dark">
                     <div className="font-typewriter text-lg uppercase tracking-widest opacity-50">
                       {isZh ? '档案柜为空' : 'CABINET EMPTY'}
@@ -319,22 +328,19 @@ export const AdvisorPanel = () => {
                   </p>
                 </div>
 
-                {selectedAdvisor.actions.length > 0 && (
+                {viewModel.selectedActions.length > 0 && (
                   <div>
                     <h3 className="font-display text-xl uppercase border-b border-ink mb-4 flex items-center gap-2">
                       <Zap className="w-5 h-5" />
                       {isZh ? '执行指令 (消耗 1 AP)' : 'EXECUTIVE DIRECTIVES (1 AP)'}
                     </h3>
                     <div className="flex flex-col gap-4">
-                      {selectedAdvisor.actions.map(action => {
-                        const canAfford = state.actionsLeft > 0;
-                        const meetsCondition = action.condition(state);
-                        const isAvailable = canAfford && meetsCondition;
-                        
+                      {viewModel.selectedActions.map(actionViewModel => {
+                        const { action, isAvailable, unavailableReason } = actionViewModel;
                         return (
                           <div key={action.id} className="relative">
                             <button
-                              onClick={() => handleActionClick(action)}
+                              onClick={() => handleActionClick(actionViewModel)}
                               disabled={!isAvailable}
                               className={cn(
                                 "w-full text-left p-4 border-2 transition-all duration-200 relative group bg-paper",
@@ -357,9 +363,7 @@ export const AdvisorPanel = () => {
                                 <div className="border-4 border-cnt-red text-cnt-red font-display text-3xl uppercase rotate-[-10deg] px-4 py-1 opacity-80 bg-paper/80 backdrop-blur-sm shadow-sm">
                                   {isZh ? '条件不符' : 'UNAVAILABLE'}
                                   <div className="text-[10px] font-typewriter text-center mt-1 border-t border-cnt-red pt-1">
-                                    {!meetsCondition 
-                                      ? (isZh && action.unavailableSubtitleZh ? action.unavailableSubtitleZh(state) : action.unavailableSubtitle ? action.unavailableSubtitle(state) : (isZh ? '前置条件未满足' : 'Prerequisites not met'))
-                                      : (isZh ? '行动点数不足' : 'Insufficient AP')}
+                                    {unavailableReason}
                                   </div>
                                 </div>
                               </div>

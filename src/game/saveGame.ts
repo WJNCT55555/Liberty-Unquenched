@@ -1,9 +1,9 @@
 import type { Advisor, Card, GameEvent, GameState } from './types';
-import type { ArmyIdentity } from '../map/types_map';
+import { MapFaction, type ArmyIdentity, type ResourceSet } from '../map/types_map';
 import { addEasyUndoOption, createEasyConfirmationEvent } from './easyMode';
 import { activateCivilWarOrganizations, normalizeOrganizationState } from './organizations';
 import { normalizeUnionShare } from './unions';
-import { SPANISH_ARMY_FORMATIONS } from '../map/map_constants';
+import { createDefaultMapResources, INITIAL_PROVINCES, SPANISH_ARMY_FORMATIONS } from '../map/map_constants';
 import { applySecurityForcesDerivedState } from './rules/securityForces';
 import { ECONOMIC_RULES } from './rules/economy';
 import { migrateWartimePolitics } from './rules/wartimeCoalition';
@@ -141,6 +141,27 @@ const normalizeMilitaryState = (state: GameState): GameState => {
   }
 
   return applySecurityForcesDerivedState({ ...state, armies });
+};
+
+/** Fill the required map runtime for old saves before they enter typed reducers. */
+const normalizeMapState = (state: GameState): GameState => {
+  const resources = createDefaultMapResources();
+  const savedResources = state.mapResources as Partial<Record<MapFaction, Partial<ResourceSet>>> | undefined;
+  for (const faction of Object.values(MapFaction)) {
+    const saved = savedResources?.[faction];
+    if (saved) resources[faction] = { ...resources[faction], ...saved };
+  }
+  return {
+    ...state,
+    provinces: state.provinces || { ...INITIAL_PROVINCES },
+    armies: Array.isArray(state.armies) ? state.armies : [],
+    mapSelectedProvinceId: state.mapSelectedProvinceId ?? null,
+    mapSelectedArmyId: state.mapSelectedArmyId ?? null,
+    mapSelectedArmyIds: Array.isArray(state.mapSelectedArmyIds) ? state.mapSelectedArmyIds : [],
+    mapCurrentPlayer: state.mapCurrentPlayer ?? MapFaction.REPUBLICAN,
+    mapResources: resources,
+    mapHistory: Array.isArray(state.mapHistory) ? state.mapHistory : [],
+  };
 };
 
 export const serializeGameState = (state: GameState): SaveGameSnapshot => {
@@ -397,8 +418,19 @@ export const deserializeGameState = (
     ? state.economic_output_index
     : ECONOMIC_RULES.defaults.outputIndex;
   state.sandboxSovereignInterventionsEnabled = state.sandboxSovereignInterventionsEnabled === true;
+  // 日志—事件契约迁移：UHP 过去由 `uhp_journal_activated` 标志在月结时激活，
+  // 现在由开始事件（「工人联盟的尝试？」）直接把日志写成 active。旧档若恰好停在
+  // 「标志已置位但日志尚未激活」的那一个月，这里补上激活，避免日志永久沉默。
+  const legacyUhpActivated = (state as unknown as { uhp_journal_activated?: boolean }).uhp_journal_activated === true;
+  if (legacyUhpActivated && state.journal?.['journal_uhp']?.status === 'inactive') {
+    state.journal = {
+      ...state.journal,
+      journal_uhp: { ...state.journal['journal_uhp'], status: 'active' },
+    };
+  }
+
   // 工会占比：旧档缺失时按剧本默认值初始化，并保证未成立组织为零、和恒为 100。
-  const normalized = normalizeUnionShare(normalizeMilitaryState(normalizeOrganizationState(state)));
+  const normalized = normalizeUnionShare(normalizeMilitaryState(normalizeMapState(normalizeOrganizationState(state))));
   const activated = normalized.civilWarStatus !== 'not_started'
     ? { ...normalized, ...activateCivilWarOrganizations(normalized) }
     : normalized;

@@ -1,6 +1,7 @@
 import type { Advisor, Card, EventHistory, GameEvent } from '../types';
 import type { DomainReducer, GameAction } from './types';
-import { INITIAL_CARDS, INITIAL_EVENTS } from '../data';
+import { CARD_REGISTRY } from '../registries/cardRegistry';
+import { RESTORABLE_EVENT_REGISTRY } from '../registries/restorableEventRegistry';
 import { INITIAL_ADVISORS } from '../advisors';
 import { civilWarSetup } from '../events/civil_war/civil_war_setup';
 import { addEasyUndoOption, createEasyConfirmationEvent } from '../easyMode';
@@ -19,7 +20,7 @@ const appendEventHistoryId = (
 };
 
 const hydrateCards = (cards: Card[]) => cards.map(card => {
-  const original = INITIAL_CARDS.find(candidate => candidate.id === card.id);
+  const original = CARD_REGISTRY.find(candidate => candidate.id === card.id);
   return original ? { ...card, effect: original.effect, condition: original.condition } : card;
 });
 
@@ -37,7 +38,7 @@ const hydrateAdvisors = (advisors: (Advisor | null)[]) => advisors.map(advisor =
 });
 
 const hydrateEvents = (events: GameEvent[]) => events.map(event => {
-  const original = INITIAL_EVENTS.find(candidate => candidate.id === event.id);
+  const original = RESTORABLE_EVENT_REGISTRY.find(candidate => candidate.id === event.id);
   if (!original) return event;
   return {
     ...event,
@@ -55,7 +56,7 @@ export const reduceEvent: DomainReducer = (state, action) => {
     case 'PLAY_CARD': {
       if (state.actionsLeft <= 0) return state;
       const cardPayload = action.payload;
-      const card = INITIAL_CARDS.find(candidate => candidate.id === cardPayload.id) || cardPayload;
+      const card = CARD_REGISTRY.find(candidate => candidate.id === cardPayload.id) || cardPayload;
       if (typeof card.effect !== 'function') return state;
       if (card.resourceCost !== undefined && state.resources < card.resourceCost) return state;
       if (card.armamentCost !== undefined && state.armaments < card.armamentCost) return state;
@@ -150,7 +151,7 @@ export const reduceEvent: DomainReducer = (state, action) => {
       const cardType = action.payload;
       let sourceDeck = cardType === 'Action'
         ? state.actionDeck
-        : cardType === 'Governmental' ? state.governmentDeck : state.militaryDeck;
+        : cardType === 'Government' ? state.governmentDeck : state.militaryDeck;
       let availableCards = sourceDeck.filter(card => card.condition ? card.condition(state) : true);
       let actionDeck = [...state.actionDeck];
       let governmentDeck = [...state.governmentDeck];
@@ -158,19 +159,19 @@ export const reduceEvent: DomainReducer = (state, action) => {
       let discard = [...state.discard];
 
       if (availableCards.length === 0) {
-        const discardedOfType = state.discard.filter(card => cardType === 'Governmental' ? card.type === 'Government' : card.type === cardType);
+        const discardedOfType = state.discard.filter(card => card.type === cardType);
         if (discardedOfType.length === 0) return state;
         if (cardType === 'Action') { actionDeck = [...actionDeck, ...discardedOfType]; sourceDeck = actionDeck; }
-        else if (cardType === 'Governmental') { governmentDeck = [...governmentDeck, ...discardedOfType]; sourceDeck = governmentDeck; }
+        else if (cardType === 'Government') { governmentDeck = [...governmentDeck, ...discardedOfType]; sourceDeck = governmentDeck; }
         else { militaryDeck = [...militaryDeck, ...discardedOfType]; sourceDeck = militaryDeck; }
-        discard = discard.filter(card => cardType === 'Governmental' ? card.type !== 'Government' : card.type !== cardType);
+        discard = discard.filter(card => card.type !== cardType);
         availableCards = sourceDeck.filter(card => card.condition ? card.condition(state) : true);
         if (availableCards.length === 0) return state;
       }
 
       const drawnCard = availableCards[Math.floor(Math.random() * availableCards.length)];
       if (cardType === 'Action') actionDeck = actionDeck.filter(card => card.id !== drawnCard.id);
-      else if (cardType === 'Governmental') governmentDeck = governmentDeck.filter(card => card.id !== drawnCard.id);
+      else if (cardType === 'Government') governmentDeck = governmentDeck.filter(card => card.id !== drawnCard.id);
       else militaryDeck = militaryDeck.filter(card => card.id !== drawnCard.id);
       return { ...state, hand: [...state.hand, drawnCard], actionDeck, governmentDeck, militaryDeck, discard };
     }
@@ -178,14 +179,14 @@ export const reduceEvent: DomainReducer = (state, action) => {
       const handLimit = state.difficulty === 'hard' ? 3 : 4;
       if (state.hand.length >= handLimit) return state;
       const { cardId, deckType } = action.payload;
-      const sourceDeck = deckType === 'Action' ? state.actionDeck : deckType === 'Governmental' ? state.governmentDeck : state.militaryDeck;
+      const sourceDeck = deckType === 'Action' ? state.actionDeck : deckType === 'Government' ? state.governmentDeck : state.militaryDeck;
       const card = sourceDeck.find(candidate => candidate.id === cardId);
       if (!card) return state;
       return {
         ...state,
         hand: [...state.hand, card],
         actionDeck: deckType === 'Action' ? state.actionDeck.filter(candidate => candidate.id !== cardId) : state.actionDeck,
-        governmentDeck: deckType === 'Governmental' ? state.governmentDeck.filter(candidate => candidate.id !== cardId) : state.governmentDeck,
+        governmentDeck: deckType === 'Government' ? state.governmentDeck.filter(candidate => candidate.id !== cardId) : state.governmentDeck,
         militaryDeck: deckType === 'Military' ? state.militaryDeck.filter(candidate => candidate.id !== cardId) : state.militaryDeck,
       };
     }

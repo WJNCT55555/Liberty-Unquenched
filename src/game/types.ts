@@ -1,5 +1,10 @@
 import React from 'react';
-import { Province, Army, ArmyFormation, ArmyIdentity, MapFaction, ResourceSet } from '../map/types_map';
+import type {
+  ArmedEntityId,
+  ArmyFormation,
+  MapFaction,
+  MapRuntimeState,
+} from '../map/types_map';
 import { Party } from './parties';
 
 export type Faction = 'Treintistas' | 'Cenetistas' | 'Faistas' | 'Puristas' | 'Jabalistas';
@@ -35,20 +40,6 @@ export type OrganizationId =
 export type OrganizationType = 'union' | 'political' | 'youth' | 'women' | 'agricultural' | 'militia' | 'command';
 export type OrganizationOwner = Party | 'CNT_FAI';
 export type OrganizationUiVisibility = 'visible' | 'internal';
-
-/** A source-owned wartime stockpile. It intentionally has only three assets. */
-export type ArmedEntityId =
-  | 'republican_state'
-  | 'cnt_defense_committees'
-  | 'ugt_socialist_militias'
-  | 'maoc'
-  | 'fifth_regiment'
-  | 'poum_militias'
-  | 'requetes'
-  | 'falange_first_line'
-  | 'euzko_gudarostea'
-  | 'international_brigades'
-  | 'italian_ctv';
 
 export interface ArmedEntityPool {
   entityId: ArmedEntityId;
@@ -180,6 +171,26 @@ export interface JournalEntryDef {
   hasProgress?: boolean;
   progressMax?: number;
   getProgress?: (state: GameState, entryState: JournalState) => number;
+
+  /**
+   * 事件—日志—事件契约（设计文档 §6.3）。
+   *
+   * 目标形态：**触发事件激活日志 → 日志按月推进（activeEffect）→ 完成/失败
+   * 条件满足 → 日志自己结算 onComplete / onFail → 管线推入结果事件**。
+   *
+   * - `activationEventId`：本日志的开始事件。声明之后日志不再自行激活：
+   *   `checkStatus` 不得返回 `active`（管线也会忽略这类返回值），激活只由该事件的
+   *   选项效果调用 `activateJournal()` 完成。未声明者暂时保留旧的自动激活路径。
+   * - `completionEventId` / `failureEventId`：结果事件。日志完成/失败时先立即结算
+   *   `onComplete` / `onFail` 的数值，随后由管线把对应事件推入待办事件，同一回合的
+   *   事件阶段即可读到（`rules/journalEvents.ts` + 月结管线）。
+   *
+   * 分工：数值效果只由日志负责，结果事件只负责叙事；同一个奖励不允许在
+   * `onComplete` 与结果事件里各写一次。
+   */
+  activationEventId?: string;
+  completionEventId?: string;
+  failureEventId?: string;
 
   // Called to check if it should be activated automatically, or complete/fail
   checkStatus?: (state: GameState, entryState: JournalState) => JournalStatus | null;
@@ -357,10 +368,22 @@ export interface EventHistory {
  * Keeping this contract in the data types prevents event definitions from
  * importing GameContext and creating a runtime dependency cycle.
  */
-export type GameEventDispatch = (action: {
-  type: 'RESOLVE_EVENT';
-  payload: (state: GameState) => Partial<GameState>;
-}) => void;
+export type GameEventDispatch = (action:
+  | {
+      type: 'RESOLVE_EVENT';
+      payload: (state: GameState) => Partial<GameState>;
+    }
+  | {
+      type: 'UPDATE_TAX_DRAFT';
+      payload: {
+        draft_tax_lower?: number;
+        draft_tax_middle?: number;
+        draft_tax_upper?: number;
+        draft_tax_tariff?: number;
+        draft_tax_consumption?: number;
+      };
+    }
+) => void;
 
 export interface GameEvent {
   id: string;
@@ -387,36 +410,11 @@ export interface GameEvent {
   }[];
 }
 
-export interface IberianDefenseState {
-  formedAt: { year: number; month: number };
-  allies: { poum: boolean; psoeLeft: boolean };
-  leftSocialistReserve: number;
-  eliminated: MapFaction[];
-  eliminations: Array<{ faction: MapFaction; recipient: MapFaction; year: number; month: number }>;
-  surrenderThresholds: Partial<Record<MapFaction, number>>;
-  completedAiMonth?: number;
-  playerDefeated?: boolean;
-  winner?: MapFaction;
-  initialProvinces: string[];
-  contributions: { cnt: number; poum: number; psoeLeft: number };
-}
-
-export interface GameState {
+export interface GameState extends MapRuntimeState {
   screen: 'start' | 'game';
   currentView?: 'standard' | 'map';
-  provinces?: Record<string, Province>;
-  /** Map units. Empty during peace: the standing army lives in `armyFormations`. */
-  armies?: Army[];
   /** The peacetime standing army. The civil war instantiates it into `armies`. */
   armyFormations?: ArmyFormation[];
-  mapSelectedProvinceId?: string | null;
-  mapSelectedArmyId?: string | null;
-  mapSelectedArmyIds?: string[];
-  mapCurrentPlayer?: MapFaction;
-  /** Present only after the May Days secession. Old saves retain Republican command. */
-  iberianDefense?: IberianDefenseState;
-  mapResources?: Record<MapFaction, ResourceSet>;
-  mapHistory?: string[];
   mapAiConfig?: {
     enabled: boolean;
     aiFaction: MapFaction;
@@ -424,11 +422,6 @@ export interface GameState {
     confirmed?: boolean;
   };
   scenario: '1931' | '1933' | '1936';
-  difficulty: 'easy' | 'normal' | 'hard' | 'historical' | 'sandbox';
-  language: 'en' | 'zh';
-  year: number;
-  month: number; // 1-12
-  phase: 'event' | 'action' | 'war';
   actionsLeft: number;
   
   resources: number;
@@ -653,14 +646,7 @@ export interface GameState {
   militiaReorgTimer: number;
   tankTimer: number;
 
-  civilWarStatus: 'not_started' | 'ongoing' | 'won' | 'lost';
   warRuntime?: WarRuntime;
-  
-  activeWar?: 'spanish_civil_war' | 'asturias_war' | null;
-  wars?: {
-    spanish_civil_war?: 'not_started' | 'ongoing' | 'won' | 'lost';
-    asturias_war?: 'not_started' | 'ongoing' | 'won' | 'lost' | 'failed';
-  };
   asturiasWarTurns?: number;
   forceAsturiasRevolutionNextMonth?: boolean;
   
@@ -696,7 +682,6 @@ export interface GameState {
   francoStatus: 'alive' | 'dead' | 'republic' | 'nationalist';
   africaArmyStatus: 'delayed' | 'nationalist' | 'republic' | 'neutral';
   cataloniaControl: 'republic' | 'cnt_fai' | 'committee';
-  navyStatus: 'republic' | 'nationalist' | 'anarchist' | 'neutral';
 
   moscowGoldTransferred: boolean;
   pceInPower: boolean;
@@ -713,7 +698,11 @@ export interface GameState {
   isJabaliTriggered: boolean;
   isAndalusiaFireTriggered?: boolean;
   uhp_attempt_triggered: boolean;
-  uhp_journal_activated: boolean;
+  /**
+   * 工人联盟日志的激活标志。UHP 已迁移到「开始事件直接写日志状态」
+   * （`journal.journal_uhp.status`），因此不再有 `uhp_journal_activated`；
+   * 工人联盟等待自己的开始事件落笔后再做同样的迁移。
+   */
   alliance_obrera_activated: boolean;
   crossroads_uprising_alliance_decided?: boolean;
   crossroads_choice?: 'uprising' | 'popular_front';
@@ -740,9 +729,6 @@ export interface GameState {
   sanjurjoStatus: 'alive' | 'dead';
   francoAfricaControl: boolean;
   hasArmoredCars: boolean;
-  womensRightsReformed: boolean;
-  internationalBrigadesArrived: boolean;
-  educationSecularized: boolean;
   
   journal_ramon_franco_presidency_seen?: boolean;
   ramon_franco_campaign_count?: number;

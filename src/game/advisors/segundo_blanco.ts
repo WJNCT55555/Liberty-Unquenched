@@ -1,6 +1,7 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence, adjustClassSupport } from '../utils';
+import { adjustFactionInfluence } from '../utils';
 import { applyUnionShareDelta } from '../unions';
+import { isUhpJournalCompleted } from '../journal/uhp';
 
 export const segundoBlanco: Advisor = {
   id: 'Segundo Blanco',
@@ -15,24 +16,19 @@ export const segundoBlanco: Advisor = {
       id: 'blanco_promote_workers_alliance',
       title: 'Promote Workers Alliance',
       titleZh: '推动工人联盟',
-      subtitle: 'Increase industrial workers support for CNT by (2 × Neutralist Cohesion Coefficient), Workers Alliance progress +1.',
-      subtitleZh: '产业工人对 CNT 支持度 +(2 × 中立派凝聚力系数)，工人联盟进度 +1。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => {
-        const multiplier = 1 - (state.factions.Cenetistas.dissent / 100);
-        const supportIncrease = 2 * multiplier;
-        
-        let newClasses = state.classes;
-        newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', supportIncrease);
-
-        return {
-          advisorActionTimer: 6,
-          workersAllianceProgress: (state.workersAllianceProgress || 0) + 1,
-          classes: newClasses
-        };
-      },
+      subtitle: 'Only a united working class can crush the reactionary plots.',
+      subtitleZh: '只有团结一致的工人阶级，才能粉碎反动派的阴谋。',
+      unavailableSubtitle: (state) => isUhpJournalCompleted(state)
+        ? `${state.advisorActionTimer} months before next advisor action.`
+        : 'Requires the UHP journal to be completed first.',
+      unavailableSubtitleZh: (state) => isUhpJournalCompleted(state)
+        ? `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`
+        : '需要先完成「联合无产阶级兄弟（UHP）」日志。',
+      condition: (state) => state.advisorActionTimer <= 0 && isUhpJournalCompleted(state),
+      effect: (state) => ({
+        advisorActionTimer: 6,
+        workersAllianceProgress: (state.workersAllianceProgress || 0) + 1
+      }),
       description: 'By working closely with local union committees, we foster a shared class consciousness across syndicalist and socialist ranks, paving the way for a unified proletarian alliance.',
       descriptionZh: '通过同基层工会委员会紧密协作，我们在工团与社会主义队伍中培养了共同的阶级觉悟，为实现钢铁般坚固的无产阶级联盟扫清了障碍。',
     },

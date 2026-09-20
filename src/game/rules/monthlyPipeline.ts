@@ -6,7 +6,7 @@ import { applyControlObreroDrift } from './controlObrero';
 import { INITIAL_PROVINCES } from '../../map/map_constants';
 import { MapFaction, type ResourceSet } from '../../map/types_map';
 import { checkCoalitionDissolve, updateCoalitions, updatePartySupport, shouldQueueEvent } from '../utils';
-import { INITIAL_EVENTS } from '../data';
+import { SCHEDULED_EVENT_REGISTRY } from '../registries/scheduledEventRegistry';
 import { applyMonthlyOrganizationEffects, isOrganizationEstablished } from '../organizations';
 import { isSpanishCivilWarOngoing, settleWartimeCoalition, WARTIME_EVENT_ID } from './wartimeCoalition';
 import { getMayDaysProductionFactor, isMayDaysEvent, settleMayDaysPressure } from './mayDays';
@@ -103,14 +103,14 @@ export const calculateMonthlyEventQueue = (
   nextMonth: number,
 ): GameEvent[] => {
   let pendingEvents = [...nextState.pendingEvents];
-  const monthlyEvents = INITIAL_EVENTS.filter(event => shouldQueueEvent(event, nextState, {
+  const monthlyEvents = SCHEDULED_EVENT_REGISTRY.filter(event => shouldQueueEvent(event, nextState, {
     mode: getEventTriggerMode(previousState.difficulty),
     date: { year: nextYear, month: nextMonth },
     pendingEvents,
     currentEvent: previousState.currentEvent,
   }));
   if (previousState.forceAsturiasRevolutionNextMonth && !nextState.activeWar && nextState.civilWarStatus !== 'ongoing') {
-    const asturiasEvent = INITIAL_EVENTS.find(event => event.id === 'asturias_revolution');
+    const asturiasEvent = SCHEDULED_EVENT_REGISTRY.find(event => event.id === 'asturias_revolution');
     if (asturiasEvent
       && !monthlyEvents.some(event => event.id === asturiasEvent.id)
       && !pendingEvents.some(event => event.id === asturiasEvent.id)
@@ -154,7 +154,7 @@ export const calculateMonthlyEventQueue = (
     && nextState.civilWarStatus !== 'ongoing'
     && !electionAlreadyScheduled
   ) {
-    const dissolutionEvent = INITIAL_EVENTS.find(event => event.id === 'presidential_dissolution_of_cortes');
+    const dissolutionEvent = SCHEDULED_EVENT_REGISTRY.find(event => event.id === 'presidential_dissolution_of_cortes');
     if (dissolutionEvent) pendingEvents = [dissolutionEvent, ...pendingEvents];
   }
   return pendingEvents;

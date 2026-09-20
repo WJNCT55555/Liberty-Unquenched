@@ -5,25 +5,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProvinceMap } from './ProvinceMap';
-import { MapFaction as Faction, Province, Army } from './types_map';
-import { INITIAL_PROVINCES } from './map_constants';
-import { getMilitiaRecruitmentPools } from '../game/rules/warSetup';
-import { useGameActions, useMapState } from '../game/GameContext';
+import { MapFaction as Faction } from './types_map';
+import { useGameActions, useGameSelector, useMapRuntimeState } from '../game/GameContext';
+import { areRecruitmentPoolViewsEqual, selectMapRecruitmentPools } from '../game/selectors';
 import { Sidebar } from './Sidebar';
 import { WarSummary } from './WarSummary';
 import { getPlayerMapFaction, getMapFactionName } from './rules/factions';
 
 export const MapView: React.FC = () => {
-  const gameState = useMapState();
+  const gameState = useMapRuntimeState();
   const { dispatch } = useGameActions();
+  const recruitmentPools = useGameSelector(selectMapRecruitmentPools, areRecruitmentPoolViewsEqual);
   const isZh = gameState.language === 'zh';
   const [showWarSummary, setShowWarSummary] = useState(false);
 
-  const provinces = gameState.provinces || INITIAL_PROVINCES;
-  const armies = gameState.armies || [];
-  const selectedProvinceId = gameState.mapSelectedProvinceId || null;
-  const selectedArmyId = gameState.mapSelectedArmyId || null;
-  const selectedArmyIds = gameState.mapSelectedArmyIds || [];
+  const provinces = gameState.provinces;
+  const armies = gameState.armies;
+  const selectedProvinceId = gameState.mapSelectedProvinceId;
+  const selectedArmyId = gameState.mapSelectedArmyId;
+  const selectedArmyIds = gameState.mapSelectedArmyIds;
   const playerFaction = getPlayerMapFaction(gameState);
 
   const selectProvince = (id: string | null) => {
@@ -38,37 +38,11 @@ export const MapView: React.FC = () => {
     dispatch({ type: 'MOVE_MAP_ARMY', payload: { armyId, targetProvinceId } });
   };
 
-  // Build the complete map-specific GameState expected by the Sidebar props
-  const sidebarState = {
-    turn: gameState.month || 1, // mapping calendar month/turn to game turn
-    date: `${gameState.year}-${gameState.month}`,
-    currentPlayer: playerFaction,
-    resources: gameState.mapResources || {
-      [Faction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
-      [Faction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
-      [Faction.IBERIAN_DEFENSE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
-      [Faction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
-      [Faction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
-      [Faction.UNITED_KINGDOM]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
-      [Faction.ANDORRA]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
-    },
-    provinces: provinces,
-    armies: armies,
-    selectedProvinceId: selectedProvinceId,
-    selectedArmyId: selectedArmyId,
-    selectedArmyIds: selectedArmyIds,
-    history: gameState.mapHistory || [],
-    aiConfig: gameState.mapAiConfig || { enabled: true, aiFaction: Faction.NATIONALIST, difficulty: 'normal' as const }
-  };
-
-  const currentPlayer = gameState.mapCurrentPlayer || Faction.REPUBLICAN;
+  const currentPlayer = gameState.mapCurrentPlayer;
   const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
   const isPlayerTurn = currentPlayer === playerFaction && !gameState.iberianDefense?.playerDefeated && !gameState.iberianDefense?.winner;
   const isAiTurn = gameState.iberianDefense ? !isPlayerTurn && !gameState.iberianDefense.winner : currentPlayer === aiFaction;
-  const commandPoints = gameState.mapResources?.[playerFaction]?.commandPoints ?? 0;
-  // Party militia pools the current camp may raise units from; computed here because
-  // the sidebar only receives the map-local slice of the game state.
-  const recruitmentPools = getMilitiaRecruitmentPools(gameState, playerFaction);
+  const commandPoints = gameState.mapResources[playerFaction].commandPoints;
   const selectedArmy = armies.find((army) => army.id === selectedArmyId);
   const canMoveSelectedArmy = Boolean(
     gameState.phase === 'war' &&
@@ -169,7 +143,7 @@ export const MapView: React.FC = () => {
 
         {/* Sidebar Component */}
         <fieldset disabled={!isPlayerTurn || gameState.phase !== 'war'} className="contents"><Sidebar
-          state={sidebarState}
+          state={gameState}
           recruitmentPools={recruitmentPools}
           onSelectProvince={selectProvince}
           onSelectArmy={selectArmy}
@@ -188,7 +162,7 @@ export const MapView: React.FC = () => {
         <WarSummary
           provinces={provinces}
           armies={armies}
-          resources={gameState.mapResources || sidebarState.resources}
+          resources={gameState.mapResources}
           isZh={isZh}
           onClose={() => setShowWarSummary(false)}
           activeWar={gameState.activeWar || undefined}

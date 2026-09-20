@@ -1,5 +1,5 @@
 import type { DomainReducer, GameAction } from './types';
-import type { Army } from '../../map/types_map';
+import type { Army, Province } from '../../map/types_map';
 import { MapFaction, MAX_BUILT_FORTRESS } from '../../map/types_map';
 import { INITIAL_PROVINCES, PROVINCE_ADJACENCY, isPortugalProvince } from '../../map/map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
@@ -63,7 +63,7 @@ export type MapAction = Extract<GameAction, {
 }>;
 
 export interface MapReducerHelpers {
-  resolveBattle: (armies: Army[], provinces: Record<string, any>, movedArmy: Army, targetProvinceId: string, isZh: boolean) => { updatedArmies: Army[]; updatedProvinces: Record<string, any>; messages: string[] };
+  resolveBattle: (armies: Army[], provinces: Record<string, Province>, movedArmy: Army, targetProvinceId: string, isZh: boolean) => { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] };
   executeAiTurn: (state: GameState, aiFaction: MapFaction, isZh: boolean) => GameState;
   checkWarStatus: (state: GameState, isZh: boolean) => GameState;
 }
@@ -169,6 +169,8 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
 
       const recruitCost = armyRecruitCost({ infantry, artillery, tanks });
       const reqManpower = recruitCost.manpower;
+      // 步兵/炮兵/坦克的下限都是 0（可以只征募一种兵），但空编成不成立。
+      if (reqManpower <= 0) break;
       const reqSupplies = recruitCost.supplies;
       const reqIndustry = recruitCost.ic;
       const reqTankReserve = recruitCost.tankReserve;

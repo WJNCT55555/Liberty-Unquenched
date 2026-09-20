@@ -1,4 +1,7 @@
-import { INITIAL_STATE, gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/GameContext';
+import { PRE_START_STATE } from '../src/game/scenarios';
+import { getDefaultUnionShare } from '../src/game/unions';
+import { INITIAL_CLASSES } from '../src/game/parties';
 import {
   calculateIncomeTaxAdjustment,
   calculateMonthlyEconomy,
@@ -49,7 +52,7 @@ import { birthOfFeDeLasJons } from '../src/game/events/birth_of_fe_de_las_jons';
 import { fijlFormation } from '../src/game/events/fijl_formation';
 import { azanaMilitaryReform } from '../src/game/events/azana_military_reform';
 import { mujeresLibresFormation } from '../src/game/events/mujeres_libres_formation';
-import { INITIAL_EVENTS } from '../src/game/events';
+import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
 import { MapFaction } from '../src/map/types_map';
 import type { Army, ArmyIdentity } from '../src/map/types_map';
 import { setupArmiesForCivilWar } from '../src/game/events/civil_war/civil_war_setup';
@@ -73,12 +76,12 @@ type StatePatch = Omit<Partial<GameState>, 'stats' | 'domesticPolicy' | 'relatio
 };
 
 const stateWith = (patch: StatePatch): GameState => ({
-  ...INITIAL_STATE,
+  ...PRE_START_STATE,
   ...patch,
-  stats: { ...INITIAL_STATE.stats, ...(patch.stats || {}) },
-  domesticPolicy: { ...INITIAL_STATE.domesticPolicy, ...(patch.domesticPolicy || {}) },
-  relations: { ...INITIAL_STATE.relations, ...(patch.relations || {}) },
-  unionShare: { ...INITIAL_STATE.unionShare!, ...(patch.unionShare || {}) },
+  stats: { ...PRE_START_STATE.stats, ...(patch.stats || {}) },
+  domesticPolicy: { ...PRE_START_STATE.domesticPolicy, ...(patch.domesticPolicy || {}) },
+  relations: { ...PRE_START_STATE.relations, ...(patch.relations || {}) },
+  unionShare: { ...getDefaultUnionShare('1931'), ...(patch.unionShare || {}) },
 });
 
 // 收入由 CNT 工会占比驱动（每 20 点 +1，上限 +5），与工人控制程度无关。
@@ -134,7 +137,7 @@ assert(level4.patrullasObreras.loyalty > level3.guardiaRepublicana.loyalty, 'Wor
 const legacyAssaultGuard = applySecurityForcesDerivedState({
   ...stateWith({ domesticPolicy: { security_corps_law: 0 } }),
   armedForces: {
-    ...INITIAL_STATE.armedForces,
+    ...PRE_START_STATE.armedForces,
     guardiaAsalto: { manpower: 30000, loyalty: 70 },
   },
 });
@@ -161,7 +164,7 @@ assert(capped.armedForces!.guardiaNacional.loyalty === 100, 'Loyalty must be cap
 // Scenario hydration: the 1931 start predates the corps, while the 1933 and 1936
 // starts inherit the law the Republic had already passed.
 const startScenario = (scenario: '1931' | '1933' | '1936') =>
-  gameReducer(INITIAL_STATE, { type: 'START_GAME', payload: { scenario, difficulty: 'normal' } });
+  gameReducer(PRE_START_STATE, { type: 'START_GAME', payload: { scenario, difficulty: 'normal' } });
 
 const start1931 = startScenario('1931');
 assert(start1931.domesticPolicy.security_corps_law === 0, 'The 1931 start must not have passed the Security Corps Law');
@@ -183,10 +186,10 @@ const afterAzana = applySecurityForcesDerivedState({ ...start1931, ...azanaEffec
 assert(afterAzana.armedForces.guardiaAsalto.manpower === GUARDIA_ASALTO_ESTABLISHMENT, 'Resolving the Azaña reform must raise the Assault Guard');
 
 // Map pools are wartime mobilization income, so peace months must not bank them.
-const seededRepublicManpower = INITIAL_STATE.mapResources![MapFaction.REPUBLICAN].manpower;
+const seededRepublicManpower = PRE_START_STATE.mapResources![MapFaction.REPUBLICAN].manpower;
 const peaceMapStage = calculateMonthlyMapStage(stateWith({ civilWarStatus: 'not_started', activeWar: null }));
 assert(peaceMapStage.mapResources[MapFaction.REPUBLICAN].manpower === seededRepublicManpower, 'Peacetime months must not accrue provincial manpower');
-assert(peaceMapStage.mapResources[MapFaction.NATIONALIST].manpower === INITIAL_STATE.mapResources![MapFaction.NATIONALIST].manpower, 'Peacetime months must not accrue manpower for any faction');
+assert(peaceMapStage.mapResources[MapFaction.NATIONALIST].manpower === PRE_START_STATE.mapResources![MapFaction.NATIONALIST].manpower, 'Peacetime months must not accrue manpower for any faction');
 
 const warMapStage = calculateMonthlyMapStage(stateWith({ civilWarStatus: 'ongoing', activeWar: 'spanish_civil_war' }));
 assert(warMapStage.mapResources[MapFaction.REPUBLICAN].manpower > seededRepublicManpower, 'Wartime months must accrue provincial manpower');
@@ -205,7 +208,7 @@ assert(getPeacetimeArmyPool(start1931) === 69500, 'The army pool must exclude th
 const armySplit = applyCivilWarLoyaltySplit(start1931, start1931.mapResources);
 assert(armySplit.republicanGain === 52200, 'The Republican camp must receive its share of the army pool and the loyal police');
 assert(armySplit.nationalistGain === 47300, 'The Nationalist camp must receive the disloyal share');
-assert(armySplit.mapResources![MapFaction.NATIONALIST].manpower === INITIAL_STATE.mapResources![MapFaction.NATIONALIST].manpower + 47300, 'The split must land in the Nationalist pool');
+assert(armySplit.mapResources![MapFaction.NATIONALIST].manpower === PRE_START_STATE.mapResources![MapFaction.NATIONALIST].manpower + 47300, 'The split must land in the Nationalist pool');
 assert(armySplit.armedForces.guardiaNacional.manpower === 0, 'Absorbed police corps must be emptied once they become camp manpower');
 
 // The two corps split differently: the Civil Guard mostly goes over while the
@@ -215,7 +218,7 @@ const splitWithBothCorps = applyCivilWarLoyaltySplit(
     ...stateWith({ domesticPolicy: { security_corps_law: 1 } }),
     armyFormations: start1931.armyFormations,
   }),
-  INITIAL_STATE.mapResources,
+  PRE_START_STATE.mapResources,
 );
 assert(splitWithBothCorps.republicanGain === 57800, 'Loyal police must be added to the Republican share');
 assert(splitWithBothCorps.nationalistGain === 49700, 'Disloyal police must be added to the Nationalist share');
@@ -240,8 +243,8 @@ const militiaArmy = (id: string, identity: ArmyIdentity, manpower: number): Army
 const withCntPool = (cntFai: number) => stateWith({
   armaments: 0,
   armedForces: {
-    ...INITIAL_STATE.armedForces,
-    militias: { ...INITIAL_STATE.armedForces.militias, cntFai },
+    ...PRE_START_STATE.armedForces,
+    militias: { ...PRE_START_STATE.armedForces.militias, cntFai },
   },
 });
 
@@ -260,14 +263,14 @@ assert(historicalPrep.reserveTanks === 0, 'Tank research that never completed mu
 assert(applyPeacetimeMobilization(stateWith({ armaments: 8 }), []).reserveSupplies === 2000, 'Accumulated armaments must convert into supplies');
 assert(applyPeacetimeMobilization(stateWith({ armaments: 0, tankResearchCompleted: true }), []).reserveTanks === 10, 'Completed tank research must grant an armoured reserve');
 
-const appliedMobilization = applyMobilizationToMapResources(INITIAL_STATE.mapResources, {
+const appliedMobilization = applyMobilizationToMapResources(PRE_START_STATE.mapResources, {
   armies: [],
   reserveManpower: 1000,
   reserveSupplies: 500,
   reserveTanks: 3,
 });
-assert(appliedMobilization![MapFaction.REPUBLICAN].manpower === INITIAL_STATE.mapResources![MapFaction.REPUBLICAN].manpower + 1000, 'Reserve manpower must go to the Republican pool');
-assert(appliedMobilization![MapFaction.NATIONALIST].manpower === INITIAL_STATE.mapResources![MapFaction.NATIONALIST].manpower, 'The Nationalist pool must not receive Republican reserves');
+assert(appliedMobilization![MapFaction.REPUBLICAN].manpower === PRE_START_STATE.mapResources![MapFaction.REPUBLICAN].manpower + 1000, 'Reserve manpower must go to the Republican pool');
+assert(appliedMobilization![MapFaction.NATIONALIST].manpower === PRE_START_STATE.mapResources![MapFaction.NATIONALIST].manpower, 'The Nationalist pool must not receive Republican reserves');
 
 // The whole chain: the real civil-war setup must deploy the historical militia
 // columns first and only then spend the surplus.
@@ -324,7 +327,7 @@ const warStateWith = (patch: Partial<GameState>): GameState => stateWith({
 // Province manpower income is DISABLED; only the flat base and recruiting offices
 // still produce men.
 const provinceOnly = calculateMonthlyMapStage(warStateWith({}));
-const seededWarManpower = INITIAL_STATE.mapResources![MapFaction.REPUBLICAN].manpower;
+const seededWarManpower = PRE_START_STATE.mapResources![MapFaction.REPUBLICAN].manpower;
 const officesOnly = calculateMonthlyMapStage(warStateWith({
   provinces: {
     ...INITIAL_PROVINCES,
@@ -376,7 +379,7 @@ const militiaPoolState = warStateWith({
   },
   organizations: { ...getDefaultOrganizationState('1936'), DC: { established: true, status: 'active' } },
   armedForces: {
-    ...INITIAL_STATE.armedForces,
+    ...PRE_START_STATE.armedForces,
     entityPools: {
       ...getDefaultArmedEntityPools(),
       cnt_defense_committees: {
@@ -393,7 +396,7 @@ const militiaRecruit = reduceMapWarAction(
 )!;
 assert(militiaRecruit.armies.length === 1 && militiaRecruit.armies[0].identity === 'cnt', 'A militia pool must raise a unit with that party identity');
 assert(militiaRecruit.armedForces.entityPools!.cnt_defense_committees.manpower === 4000, 'Militia recruitment must spend the pool, not the camp');
-assert(militiaRecruit.mapResources![MapFaction.REPUBLICAN].manpower === INITIAL_STATE.mapResources![MapFaction.REPUBLICAN].manpower, 'Militia recruitment must leave the camp manpower untouched');
+assert(militiaRecruit.mapResources![MapFaction.REPUBLICAN].manpower === PRE_START_STATE.mapResources![MapFaction.REPUBLICAN].manpower, 'Militia recruitment must leave the camp manpower untouched');
 
 const noOfficeState = {
   ...militiaPoolState,
@@ -413,7 +416,7 @@ const nationalRecruit = reduceMapWarAction(
   mergeHelpers,
 )!;
 assert(nationalRecruit.armies.length === 1 && nationalRecruit.armies[0].identity === 'gov', 'National conscripts must be government units');
-assert(nationalRecruit.mapResources![MapFaction.REPUBLICAN].manpower === INITIAL_STATE.mapResources![MapFaction.REPUBLICAN].manpower - 1000, 'National conscripts must spend camp manpower');
+assert(nationalRecruit.mapResources![MapFaction.REPUBLICAN].manpower === PRE_START_STATE.mapResources![MapFaction.REPUBLICAN].manpower - 1000, 'National conscripts must spend camp manpower');
 
 const policyState = stateWith({
   budget: 12,
@@ -461,7 +464,7 @@ const cashFinancedDeficit = calculateMonthlyEconomy(stateWith({
   civilWarStatus: 'ongoing',
 }));
 assert(cashFinancedDeficit.budgetDelta < 0, 'The cash-financing fixture must run a deficit');
-assert(cashFinancedDeficit.nextDebt === INITIAL_STATE.public_debt, 'A deficit covered by treasury cash must not also increase debt');
+assert(cashFinancedDeficit.nextDebt === PRE_START_STATE.public_debt, 'A deficit covered by treasury cash must not also increase debt');
 assert(cashFinancedDeficit.nextBudget < 100, 'A cash-financed deficit must reduce treasury cash');
 const debtFinancedDeficit = calculateMonthlyEconomy(stateWith({
   budget: 0,
@@ -472,7 +475,7 @@ const debtFinancedDeficit = calculateMonthlyEconomy(stateWith({
   tax_consumption: 1,
   civilWarStatus: 'ongoing',
 }));
-assert(debtFinancedDeficit.financing.newBorrowing > 0 && debtFinancedDeficit.nextDebt > INITIAL_STATE.public_debt, 'An uncovered deficit should create new borrowing');
+assert(debtFinancedDeficit.financing.newBorrowing > 0 && debtFinancedDeficit.nextDebt > PRE_START_STATE.public_debt, 'An uncovered deficit should create new borrowing');
 const arrearsDeficit = calculateMonthlyEconomy(stateWith({
   budget: 0,
   public_debt: 5000,
@@ -504,7 +507,7 @@ assert(
 // Economic hardship → political realignment (SDAAH-style feedback).
 const hardshipClasses = calculateEconomicPoliticalFeedback(stateWith({ unemployment_rate: 20, fe_founded: true }));
 assert(
-  Math.abs(hardshipClasses.PequenaBurguesia.support.AP - (INITIAL_STATE.classes.PequenaBurguesia.support.AP + 4 / 12)) < 0.001,
+  Math.abs(hardshipClasses.PequenaBurguesia.support.AP - (INITIAL_CLASSES.PequenaBurguesia.support.AP + 4 / 12)) < 0.001,
   'High unemployment should push the petty bourgeoisie toward AP/CEDA (+4/12)',
 );
 // Note: class support is zero-sum (sum stays 100), so when two forces are
@@ -512,30 +515,30 @@ assert(
 // Assertions therefore check the last-applied force exactly and the earlier
 // one for a net positive/negative move.
 assert(
-  hardshipClasses.Obreros.support.CNT_FAI > INITIAL_STATE.classes.Obreros.support.CNT_FAI + 0.02,
+  hardshipClasses.Obreros.support.CNT_FAI > INITIAL_CLASSES.Obreros.support.CNT_FAI + 0.02,
   'High unemployment should push workers toward CNT-FAI (net gain after zero-sum normalization)',
 );
 assert(
-  Math.abs(hardshipClasses.Braceros.support.FE - (INITIAL_STATE.classes.Braceros.support.FE + 1 / 12)) < 0.001,
+  Math.abs(hardshipClasses.Braceros.support.FE - (INITIAL_CLASSES.Braceros.support.FE + 1 / 12)) < 0.001,
   'High unemployment should push peasants toward FE when the Falange exists (+1/12)',
 );
 const noFalangeClasses = calculateEconomicPoliticalFeedback(stateWith({ unemployment_rate: 20, fe_founded: false }));
 assert(
-  noFalangeClasses.Obreros.support.FE === INITIAL_STATE.classes.Obreros.support.FE,
+  noFalangeClasses.Obreros.support.FE === INITIAL_CLASSES.Obreros.support.FE,
   'FE support must stay untouched while the Falange is not founded',
 );
 const inflationClasses = calculateEconomicPoliticalFeedback(stateWith({ inflation_rate: 9, fe_founded: true }));
 assert(
-  inflationClasses.PequenaBurguesia.support.PSOE < INITIAL_STATE.classes.PequenaBurguesia.support.PSOE - 0.3,
+  inflationClasses.PequenaBurguesia.support.PSOE < INITIAL_CLASSES.PequenaBurguesia.support.PSOE - 0.3,
   'High inflation should move the petty bourgeoisie away from PSOE (-4/12)',
 );
 assert(
-  Math.abs(inflationClasses.PequenaBurguesia.support.FE - (INITIAL_STATE.classes.PequenaBurguesia.support.FE + 4 / 12)) < 0.001,
+  Math.abs(inflationClasses.PequenaBurguesia.support.FE - (INITIAL_CLASSES.PequenaBurguesia.support.FE + 4 / 12)) < 0.001,
   'High inflation should move the petty bourgeoisie toward FE (+4/12)',
 );
 const feedbackPipeline = calculateMonthlyPipeline(stateWith({ unemployment_rate: 25, fe_founded: true }));
 assert(
-  feedbackPipeline.state.classes.PequenaBurguesia.support.AP > INITIAL_STATE.classes.PequenaBurguesia.support.AP,
+  feedbackPipeline.state.classes.PequenaBurguesia.support.AP > INITIAL_CLASSES.PequenaBurguesia.support.AP,
   'The monthly pipeline should apply economic political feedback after policy effects',
 );
 
@@ -545,7 +548,7 @@ const policyResult = calculateMonthlyPolicyEffects(stateWith({
 }));
 assert(policyResult.coupProgress === 0, 'Inactive coup system should reset progress');
 assert(policyResult.domesticPolicy.land_reform_progress === 1.5, 'Land law level 2 should add 1.5 monthly progress');
-assert(policyResult.stats.revolutionaryFervor > INITIAL_STATE.stats.revolutionaryFervor, 'Unrestricted labor laws should increase monthly fervor');
+assert(policyResult.stats.revolutionaryFervor > PRE_START_STATE.stats.revolutionaryFervor, 'Unrestricted labor laws should increase monthly fervor');
 
 const upperLaborBoundary = calculateMonthlyPolicyEffects(stateWith({
   stats: { revolutionaryFervor: 100 },
@@ -610,7 +613,7 @@ assert(organizations1931.SECCION_FEMENINA?.established !== true && organizations
 assert(organizations1931.JSU?.established !== true && organizations1933.JSU?.established !== true && organizations1936.JSU?.established === true, 'The JSU is founded in April 1936');
 const p4Events = [jonsFormation, seuFormation, seccionFemeninaFormation, jsuFormation, mujeresAntifascistasFormation, egiFormation, jciFormation];
 p4Events.forEach((event) => {
-  assert(INITIAL_EVENTS.some((scheduled) => scheduled.id === event.id), `${event.id} must be scheduled`);
+  assert(SCHEDULED_EVENT_REGISTRY.some((scheduled) => scheduled.id === event.id), `${event.id} must be scheduled`);
 });
 // Each P4 event must actually register its organization.
 const p4Cases: Array<[GameEvent, GameState, string]> = [
@@ -681,7 +684,7 @@ assert(legacyUnion.organizations.UNIO_RABASSAIRES?.established === true, 'A lega
 assert(legacyUnion.organizations.UR?.established === true, 'The UR party organization must survive the legacy migration');
 
 // The two news events that fill the remaining gaps.
-assert(INITIAL_EVENTS.some((event) => event.id === maocFormation.id) && INITIAL_EVENTS.some((event) => event.id === consFormation.id), 'The MAOC and CONS formation events must be scheduled');
+assert(SCHEDULED_EVENT_REGISTRY.some((event) => event.id === maocFormation.id) && SCHEDULED_EVENT_REGISTRY.some((event) => event.id === consFormation.id), 'The MAOC and CONS formation events must be scheduled');
 const maocState = stateWith({ scenario: '1931', year: 1933, month: 1 });
 assert(maocFormation.condition?.(maocState) === true, 'The MAOC must form in a 1931 run reaching 1933');
 assert(maocFormation.condition?.({ ...maocState, scenario: '1936' }) === false, 'The MAOC must not form in the 1936 start');
@@ -711,7 +714,7 @@ const fijlHistoricalState = stateWith({
   month: 1,
   organizations: organizations1931,
 });
-assert(INITIAL_EVENTS.some((event) => event.id === fijlFormation.id) && INITIAL_EVENTS.some((event) => event.id === mujeresLibresFormation.id), 'Organization formation events should be registered in the initial event catalog');
+assert(SCHEDULED_EVENT_REGISTRY.some((event) => event.id === fijlFormation.id) && SCHEDULED_EVENT_REGISTRY.some((event) => event.id === mujeresLibresFormation.id), 'Organization formation events should be registered in the scheduled event catalog');
 assert(fijlFormation.date?.year === 1932 && fijlFormation.date.month === 1, 'FIJL formation should be scheduled for January 1932');
 assert(fijlFormation.condition?.(fijlHistoricalState) === true, 'FIJL formation should trigger for a historical 1931 start in 1932');
 assert(fijlFormation.condition?.({ ...fijlHistoricalState, difficulty: 'normal' }) === false, 'FIJL formation should remain historical-mode only');
@@ -729,7 +732,7 @@ assert(mujeresLibresFormation.condition?.(mujeresLibresHistoricalState) === true
 assert(mujeresLibresFormation.condition?.({ ...mujeresLibresHistoricalState, scenario: '1936' }) === false, 'Mujeres Libres formation should not repeat in the 1936 start');
 const mujeresLibresEstablished = mujeresLibresFormation.options[0].effect(mujeresLibresHistoricalState);
 assert(mujeresLibresEstablished.organizations?.ML?.established === true, 'Mujeres Libres formation should update the organization registry');
-const mapStage = calculateMonthlyMapStage(INITIAL_STATE);
+const mapStage = calculateMonthlyMapStage(PRE_START_STATE);
 assert(mapStage.armies?.every(army => army.movesLeft === 2), 'Monthly map stage should reset army movement points');
 
 const sandboxRulingCoalition = formRulingCoalitionFromSandbox(
@@ -757,7 +760,7 @@ assert(tradeTaxChange.workingClassSupport === 3, 'Consumption-tax cuts should su
 
 // A fiscal review freezes its baseline, writes only drafts, locks each group
 // after one submission, and commits rates together on conclusion.
-const fiscalBase = stateWith({ cntStance: 'govern', ministers: { ...INITIAL_STATE.ministers, finance: 'CNT' } });
+const fiscalBase = stateWith({ cntStance: 'govern', ministers: { ...PRE_START_STATE.ministers, finance: 'CNT' } });
 const fiscalStarted = { ...fiscalBase, ...fiscalPolicy.effect(fiscalBase) } as GameState;
 assert(fiscalStarted.temp_tax_lower === fiscalBase.tax_lower_class && fiscalStarted.draft_tax_lower === fiscalBase.tax_lower_class, 'Starting a fiscal review should capture an immutable baseline and a separate draft');
 const incomeDraft = { ...fiscalStarted, draft_tax_lower: fiscalStarted.draft_tax_lower! + 5 };
@@ -773,10 +776,10 @@ assert(concluded.budget === fiscalBase.budget, 'Enacting a rate should still lea
 assert(concluded.draft_tax_lower === undefined && concluded.temp_tax_lower === undefined, 'Concluding the review should clear draft and baseline fields');
 
 const normalIntervention = gameReducer(stateWith({ difficulty: 'normal', sandboxSovereignInterventionsEnabled: true }), { type: 'SELL_GOLD_FOR_FX' });
-assert(normalIntervention.gold_reserves === INITIAL_STATE.gold_reserves, 'Emergency sovereign interventions must be blocked outside sandbox mode');
+assert(normalIntervention.gold_reserves === PRE_START_STATE.gold_reserves, 'Emergency sovereign interventions must be blocked outside sandbox mode');
 const hiddenSandboxIntervention = gameReducer(stateWith({ difficulty: 'sandbox', sandboxSovereignInterventionsEnabled: false }), { type: 'SELL_GOLD_FOR_FX' });
-assert(hiddenSandboxIntervention.gold_reserves === INITIAL_STATE.gold_reserves, 'Emergency sovereign interventions must be blocked until the sandbox toggle is enabled');
+assert(hiddenSandboxIntervention.gold_reserves === PRE_START_STATE.gold_reserves, 'Emergency sovereign interventions must be blocked until the sandbox toggle is enabled');
 const enabledSandboxIntervention = gameReducer(stateWith({ difficulty: 'sandbox', sandboxSovereignInterventionsEnabled: true }), { type: 'SELL_GOLD_FOR_FX' });
-assert(enabledSandboxIntervention.gold_reserves === INITIAL_STATE.gold_reserves - 100, 'The sandbox toggle should enable emergency sovereign interventions');
+assert(enabledSandboxIntervention.gold_reserves === PRE_START_STATE.gold_reserves - 100, 'The sandbox toggle should enable emergency sovereign interventions');
 
 console.log('Pure rules calculator tests passed.');

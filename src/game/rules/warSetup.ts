@@ -1,5 +1,5 @@
-import type { GameState, ArmedEntityId, OrganizationId } from '../types';
-import { MapFaction, type Army, type ArmyIdentity } from '../../map/types_map';
+import type { GameState, OrganizationId } from '../types';
+import { MapFaction, type ArmedEntityId, type Army, type ArmyIdentity } from '../../map/types_map';
 import { SECURITY_CORPS_IDS, type SecurityCorpsState } from './securityForces';
 import { ORGANIZATION_DEFINITIONS, isOrganizationActive } from '../organizations';
 import { isRepublicanPartyEligible } from '../politicalEligibility';

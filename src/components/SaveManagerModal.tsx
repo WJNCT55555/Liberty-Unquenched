@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Clock3, Download, HardDrive, Pencil, Save, Trash2, X, Check } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useGame } from '../game/GameContext';
+import { useGameActions, useGameSnapshotWhen } from '../game/GameContext';
 import {
   clearManualSaveSlot,
   readSaveLibrary,
@@ -34,7 +34,8 @@ export const SaveManagerModal: React.FC<SaveManagerModalProps> = ({
   canSaveManual,
   canLoadManual,
 }) => {
-  const { state, loadSave } = useGame();
+  const state = useGameSnapshotWhen(isOpen);
+  const { loadSave } = useGameActions();
   const [library, setLibrary] = useState<SaveLibrary>(() => readSaveLibrary());
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -57,7 +58,7 @@ export const SaveManagerModal: React.FC<SaveManagerModalProps> = ({
     minute: '2-digit',
   }), [locale]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !state) return null;
 
   const showMessage = (text: string) => {
     setMessage(text);

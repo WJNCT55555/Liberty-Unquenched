@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useGame } from '../game/GameContext';
+import { useGameSelector } from '../game/GameContext';
+import { selectEndingState } from '../game/selectors';
 import { ENDING_DETAILS } from '../game/endings';
 import { ACHIEVEMENTS } from '../game/achievements';
 import { motion } from 'motion/react';
@@ -9,6 +10,7 @@ import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getPartySupport } from '../game/utils';
 import { Party } from '../game/types';
 import { FACTION_NAMES } from '../game/labels';
+import { getImageUrl } from '../lib/assetUrl';
 
 const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -37,9 +39,9 @@ const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) =
 };
 
 export const EndingScreen = () => {
-  const { state } = useGame();
+  const state = useGameSelector(selectEndingState);
   
-  if (!state.isGameOver || !state.ending) return null;
+  if (!state) return null;
 
   const isZh = state.language === 'zh';
   const endingDetail = ENDING_DETAILS[state.ending];
@@ -255,7 +257,7 @@ export const EndingScreen = () => {
                     <div key={id} className="flex items-center gap-3 bg-paper-dark border-2 border-ink p-3 shadow-[2px_2px_0px_#141414] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
                       <div className="w-12 h-12 shrink-0 flex items-center justify-center bg-paper border border-ink/20">
                         {ach.icon.endsWith('.png') ? (
-                          <img src={ach.icon} referrerPolicy="no-referrer" alt={ach.title.en} className="w-10 h-10 object-contain shrink-0" />
+                          <img src={getImageUrl(ach.icon)} referrerPolicy="no-referrer" alt={ach.title.en} className="w-10 h-10 object-contain shrink-0" />
                         ) : (
                           <span className="text-2xl shrink-0">{ach.icon}</span>
                         )}

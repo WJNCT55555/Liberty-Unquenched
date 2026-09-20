@@ -15,7 +15,16 @@
     "test:wartime": "tsx scripts/test-wartime-politics.tsx",
     "test:may-days": "tsx scripts/test-may-days.tsx",
     "test:union-share": "tsx scripts/test-union-share.ts",
-    "test:save-system": "tsx scripts/test-save-system.ts"
+    "test:save-system": "tsx scripts/test-save-system.ts",
+    "test:architecture": "tsx scripts/test-architecture-boundaries.ts",
+    "test:selectors": "tsx scripts/test-selector-read-models.ts",
+    "test:orchestration": "tsx scripts/test-phase-orchestration.ts",
+    "test:scenario-parity": "tsx scripts/test-scenario-parity.ts",
+    "test:registries": "tsx scripts/test-runtime-registries.ts",
+    "verify:phase3": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:scenario-parity && npm run test:orchestration && npm run build",
+    "verify:phase4": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:scenario-parity && npm run test:orchestration && npm run build",
+    "verify:phase5": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:registries && npm run test:scenario-parity && npm run test:orchestration && npm run build",
+    "scenario-history-probe": "tsx scripts/scenario-history-probe.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
