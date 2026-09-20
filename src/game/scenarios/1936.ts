@@ -114,13 +114,13 @@ export const SCENARIO_1936: ScenarioDefinition = {
   },
 
   // July 1936 militia levels, used by the direct civil-war start.
-  militias: {
-    cntFai: 50000,
+  armedEntityManpower: {
+    cnt_defense_committees: 50000,
     maoc: 10000,
-    poum: 5000,
-    ugt: 20000,
-    requete: 30000,
-    falange: 10000,
+    poum_militias: 5000,
+    ugt_socialist_militias: 20000,
+    requetes: 30000,
+    falange_first_line: 10000,
   },
 
   regionalStatuses: {

@@ -7,8 +7,7 @@ import {
   PoliticalActor,
   Party,
 } from './types';
-import { POLICY_DEFINITIONS, POLICY_STANCE_PREFERENCES, type PolicyCategory, type PolicyDefinition } from './rules/policyDefinitions';
-import { isOrganizationEstablished } from './organizations';
+import { LAW_DEFINITIONS, type PolicyCategory, type PolicyDefinition } from './rules/policyDefinitions';
 import { isRepublicanPartyEligible } from './politicalEligibility';
 
 export const LAW_STANCE_SCORE: Record<LawStance, number> = {
@@ -26,10 +25,6 @@ export const LEGAL_STANCE_PARTIES: LegalStanceParty[] = [
 
 export type LawCategory = PolicyCategory;
 export type LawDefinition = PolicyDefinition;
-export { POLICY_DEFINITIONS };
-
-// Backwards-compatible name used by the legal stance panel and older content.
-export const LAW_DEFINITIONS = POLICY_DEFINITIONS;
 const LAW_BY_ID = Object.fromEntries(LAW_DEFINITIONS.map(def => [def.id, def])) as Record<LawId, LawDefinition>;
 export const LAW_LEVEL_LIMITS = Object.fromEntries(
   LAW_DEFINITIONS.map(definition => [definition.id, definition.levels.length - 1])
@@ -52,9 +47,6 @@ export const normalizeDomesticPolicyLawLevels = (
 
 const clampPreference = (score: number) => Math.max(-10, Math.min(10, Math.round(score)));
 
-// Kept as a compatibility alias; policy levels now own the baseline stance scores.
-export const BASELINE_LAW_PREFERENCES = POLICY_STANCE_PREFERENCES;
-
 const scoreToStance = (score: number): LawStance => {
   const clamped = clampPreference(score);
   if (clamped >= 7) return 'strongly_support';
@@ -66,11 +58,6 @@ const scoreToStance = (score: number): LawStance => {
 
 const stanceToScore = (stance: LawStance) => LAW_STANCE_SCORE[stance];
 
-export const isCNTParliamentaryActor = (state: GameState, cortes?: Record<Party, number>) => {
-  const prrevsSeats = cortes?.PRRevS || state.cortes?.PRRevS || 0;
-  return state.cntStance === 'govern' || (isOrganizationEstablished(state, 'PRRevS') && prrevsSeats > 0);
-};
-
 export const isLegalStancePartyPresent = (state: GameState, party: LegalStanceParty) => {
   if (!isRepublicanPartyEligible(state, party)) return false;
   // These identities are created by explicit historical events.  The
@@ -81,7 +68,7 @@ export const isLegalStancePartyPresent = (state: GameState, party: LegalStancePa
   return true;
 };
 
-export const getLegalStanceActors = (state: GameState, cortes?: Record<Party, number>): PoliticalActor[] => {
+export const getLegalStanceActors = (state: GameState): PoliticalActor[] => {
   // CNT is always selectable as a political actor, even while it remains
   // outside parliament.  Its seat weight is still resolved separately.
   return [
@@ -95,8 +82,6 @@ export const getLegalActorSeats = (state: GameState, actor: PoliticalActor, cort
   if (actor === 'CNT_FAI') return cortes?.PRRevS || state.cortes?.PRRevS || 0;
   return cortes?.[actor] || state.cortes?.[actor] || 0;
 };
-
-export const getLawDefinition = (lawId: LawId) => LAW_BY_ID[lawId];
 
 export const getBaselineLawStanceScore = (actor: PoliticalActor, lawId: LawId, targetLevel: number) => {
   const definition = LAW_BY_ID[lawId];
@@ -136,10 +121,6 @@ export const applyLawStanceModifier = (state: GameState, modifier: LawStanceModi
   lawStanceModifiers: [...state.lawStanceModifiers, modifier],
 });
 
-// Alias used by future card/event effects.  Keeping one implementation avoids
-// direct nested mutation of GameState in individual content files.
-export const adjustLawStance = applyLawStanceModifier;
-
 export interface PartyLawSatisfaction {
   overall: number;
   byCategory: Record<LawCategory, number>;
@@ -177,7 +158,7 @@ export const getPartyLawSatisfaction = (state: GameState, actor: PoliticalActor)
 };
 
 export const getParliamentWeightedLawSatisfaction = (state: GameState, cortes?: Record<Party, number>) => {
-  const actors = getLegalStanceActors(state, cortes);
+  const actors = getLegalStanceActors(state);
   const weighted = actors.reduce((sum, actor) => sum + getPartyLawSatisfaction(state, actor).overall * getLegalActorSeats(state, actor, cortes), 0);
   const seats = actors.reduce((sum, actor) => sum + getLegalActorSeats(state, actor, cortes), 0);
   return seats > 0 ? Math.round(weighted / seats) : 0;

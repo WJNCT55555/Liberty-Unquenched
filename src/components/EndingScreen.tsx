@@ -5,7 +5,6 @@ import { ENDING_DETAILS } from '../game/endings';
 import { ACHIEVEMENTS } from '../game/achievements';
 import { motion } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { PARTY_COLORS } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getPartySupport } from '../game/utils';
 import { Party } from '../game/types';

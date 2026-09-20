@@ -12,7 +12,7 @@
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/reducers/gameReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState } from '../src/game/types';
 

@@ -1,4 +1,4 @@
-import type { DomainReducer, GameAction } from './types';
+import type { DomainReducer } from './types';
 import type { GameState } from '../types';
 import { ECONOMIC_RULES, clampMilitarySpending } from '../rules/economy';
 
@@ -65,18 +65,3 @@ export const reduceEconomy: DomainReducer = (state, action) => {
       return null;
   }
 };
-
-export type EconomyAction = Extract<GameAction, {
-  type: 'UPDATE_TAXES' | 'UPDATE_TAX_DRAFT' | 'SELL_GOLD_FOR_FX' | 'ISSUE_WAR_BONDS' | 'BUY_RESOURCES_URGENT'
-}>;
-
-export type EconomyState = Pick<GameState,
-  | 'budget'
-  | 'gold_reserves'
-  | 'foreign_exchange'
-  | 'public_debt'
-  | 'military_spending'
-  | 'inflation_rate'
-  | 'resources'
-  | 'armaments'
->;

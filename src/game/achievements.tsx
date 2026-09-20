@@ -91,7 +91,7 @@ export const checkAchievements = (state: GameState): GameState => {
       
       const ach = ACHIEVEMENTS.find(a => a.id === id);
       if (ach) {
-        toast.custom((t) => (
+        toast.custom(() => (
           <div className="flex items-center gap-4 bg-paper border-2 border-ink p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] w-[360px] relative overflow-hidden">
             {/* Decorative corners */}
             <div className="absolute top-1 left-1 w-2 h-2 border-t-2 border-l-2 border-ink"></div>
@@ -129,7 +129,7 @@ export const checkAchievements = (state: GameState): GameState => {
   checkAndUnlock('A_POPULAR', state.ending === ENDINGS.POPULAR_FRONT);
   
   checkAndUnlock('A_RICH', state.armaments >= 50);
-  checkAndUnlock('A_BARRICADES', state.armedForces.militias.cntFai > 100000);
+  checkAndUnlock('A_BARRICADES', state.armedForces.entityPools.cnt_defense_committees.manpower > 100000);
   
   const overallDissent = getOverallFactionDissent(state.factions);
   checkAndUnlock('A_UNITY', overallDissent === 0);

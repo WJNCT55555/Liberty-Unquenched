@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
-import { GameState, Party, CoalitionId } from '../game/types';
+import { GameState, Party } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport } from '../game/parties';
 import { getPartyName, getPartyColor } from '../game/partyNames';
@@ -10,7 +10,7 @@ import { calculateElectionResults, getCoalitionMembers } from '../game/utils';
 import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
 import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
 import { ParliamentChart, type ParliamentData } from './ParliamentChart';
-import { X, Users, Vote, Briefcase, Info, Layers, UserCheck } from 'lucide-react';
+import { X, Users, Vote, Briefcase, Layers, UserCheck } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;

@@ -7,6 +7,7 @@ import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { isOrganizationEstablished } from '../game/organizations';
 import { ParliamentChart, type ParliamentData } from './ParliamentChart';
 import { getEffectiveCortes, getVacantCortesSeats } from '../game/politicalEligibility';
+import { LAW_DEFINITIONS } from '../game/rules/policyDefinitions';
 import {
   getEffectiveLawStance,
   getEffectiveLawStanceScore,
@@ -14,7 +15,6 @@ import {
   getLegalStanceActors,
   getParliamentWeightedLawSatisfaction,
   getPartyLawSatisfaction,
-  LAW_DEFINITIONS,
   LawCategory,
 } from '../game/lawStances';
 
@@ -59,7 +59,7 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
   const cortes = getEffectiveCortes(state, state.cortes || calculateElectionResults(state));
   const vacantSeats = getVacantCortesSeats(state);
   const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0) + vacantSeats;
-  const actors = getLegalStanceActors(state, cortes);
+  const actors = getLegalStanceActors(state);
   const actor = actors.includes(selectedActor) ? selectedActor : actors[0];
   const parliamentChartData: ParliamentData[] = getParliamentSeatEntries(cortes)
     .map(([party, seats]) => ({

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/reducers/gameReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState, WartimeGovernmentRoute } from '../src/game/types';
 import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
@@ -21,8 +21,8 @@ import { activateCivilWarOrganizations, isOrganizationActive, normalizeOrganizat
 import { getMilitiaRecruitmentPool } from '../src/game/rules/warSetup';
 import { serializeGameState, deserializeGameState } from '../src/game/saveGame';
 import { MapFaction, type Army } from '../src/map/types_map';
-import { formIberianDefense, getIberianTransferProvinces, projectIberianForces, settleIberianCapitulations, getFactionStrategicValue, IBERIAN_CAPITALS, IBERIAN_SURRENDER_THRESHOLDS } from '../src/game/rules/iberianDefense';
-import { mayDaysSplitAlignment, mayDaysSplitResult } from '../src/game/events/civil_war/may_days';
+import { formIberianDefense, settleIberianCapitulations, IBERIAN_CAPITALS, IBERIAN_SURRENDER_THRESHOLDS } from '../src/game/rules/iberianDefense';
+import { mayDaysSplitAlignment } from '../src/game/events/civil_war/may_days';
 import { getPlayerMapFaction, canEnterMapProvince, CIVIL_WAR_FACTIONS } from '../src/map/rules/factions';
 import { finishPlayerMapTurn, reduceMapWarAction, type MapReducerHelpers } from '../src/game/reducers/mapReducer';
 import { calculateAiMoves } from '../src/map/lib/gameAi';

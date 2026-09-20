@@ -7,7 +7,7 @@ import { PARTY_COLORS, CLASS_COLORS, CLASS_INFO } from '../game/constants';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { COALITION_DEFS } from '../game/coalitions';
-import { getPartySupport, updateCoalitions } from '../game/utils';
+import { updateCoalitions } from '../game/utils';
 import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
 import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
 import { MapFaction, ArmyFormation } from '../map/types_map';
@@ -201,90 +201,6 @@ export const SidePanel = () => {
     FE: { en: 'Party using syndicalism as a means but with opposite goals.', zh: '同样以工团作为手段的政党但目的相反。' },
     Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' },
     PRRevS: { en: 'Our revolutionary syndicalist party representing the CNT in the Cortes.', zh: '我们在议会中代表 CNT 的革命共和工团党。' }
-  };
-
-  const getNationalisationText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '不存在' : 'None';
-    if (val === 1) return isZh ? '关键行业国有化' : 'Key Industries';
-    if (val === 2) return isZh ? '中等国有化' : 'Moderate';
-    if (val === 3 || val === 4) return isZh ? '深度国有化' : 'Extensive';
-    return isZh ? '全面国有化' : 'Total';
-  };
-
-  const getLandReformText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '私人土地兼并' : 'Private Consolidation';
-    if (val === 1) return isZh ? '轻微土地改革' : 'Minor Reform';
-    if (val === 2) return isZh ? '中等土地改革' : 'Moderate Reform';
-    if (val === 3) return isZh ? '重大' : 'Major';
-    return isZh ? '全面' : 'Total';
-  };
-
-  const getMaxHoursText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '无限制' : 'No Limits';
-    if (val === 1) return isZh ? '70小时工作制' : '70-Hour Week';
-    if (val === 2) return isZh ? '56小时工作制' : '56-Hour Week';
-    if (val === 3) return isZh ? '40小时工作制' : '40-Hour Week';
-    return isZh ? '36小时工作制' : '36-Hour Week';
-  };
-
-  const getMinWageText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '无' : 'None';
-    if (val === 1) return isZh ? '最低限度' : 'Minimal';
-    if (val === 2) return isZh ? '基本' : 'Basic';
-    if (val === 3) return isZh ? '生活工资' : 'Living Wage';
-    return isZh ? '优厚' : 'Generous';
-  };
-
-  const getWorkplaceSafetyText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '无' : 'None';
-    if (val === 1) return isZh ? '基本' : 'Basic';
-    if (val === 2) return isZh ? '中等' : 'Moderate';
-    if (val === 3) return isZh ? '严格' : 'Strict';
-    return isZh ? '全面' : 'Comprehensive';
-  };
-
-  const getPoliticalRightsText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '无选举' : 'No Elections';
-    if (val === 1) return isZh ? '男性普选权' : 'Male Suffrage';
-    if (val === 2) return isZh ? '有限女性选举权' : 'Limited Women Suffrage';
-    return isZh ? '完全普选' : 'Universal Suffrage';
-  };
-
-  const getReligionPolicyText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '国教' : 'State Religion';
-    if (val === 1) return isZh ? '信仰自由' : 'Freedom of Belief';
-    if (val === 2) return isZh ? '世俗社会' : 'Secular Society';
-    return isZh ? '国家无神论' : 'State Atheism';
-  };
-
-  const getEducationInstitutionsText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '教会学校' : 'Church Schools';
-    if (val === 1) return isZh ? '传统教育' : 'Traditional Education';
-    if (val === 2) return isZh ? '理性教育' : 'Rational Education';
-    return isZh ? '现代教育' : 'Modern Education';
-  };
-
-  const getLanguagePolicyText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '强制卡斯蒂利亚语' : 'Castilian Only';
-    if (val === 1) return isZh ? '有限承认' : 'Limited Recognition';
-    if (val === 2) return isZh ? '自治双轨' : 'Dual Track';
-    if (val === 3) return isZh ? '多语制' : 'Multilingualism';
-    return isZh ? '世界语' : 'Esperanto';
-  };
-
-  const getUnionStatusText = (val: number, isZh: boolean) => {
-    if (val === 0) return isZh ? '工会非法' : 'Union Outlawed';
-    if (val === 1) return isZh ? '结社自由' : 'Freedom of Association';
-    if (val === 2) return isZh ? '混合陪审团' : 'Mixed Jury';
-    if (val === 3) return isZh ? '集体谈判' : 'Collective Bargaining';
-    return isZh ? '委员会控制' : 'Committee Control';
-  };
-
-  const getPolicyColorClass = (val: number, maxVal: number) => {
-    if (val === 0) return 'text-ink-light';
-    if (val >= maxVal - 1 && maxVal > 1) return 'text-cnt-red font-bold';
-    if (val === maxVal && maxVal === 1) return 'text-cnt-red font-bold';
-    return 'text-ink';
   };
 
   return (
@@ -596,7 +512,7 @@ export const SidePanel = () => {
           </div>
 
           {/* Active Coalition Details Pane (Inside domestic politics, placed under government info) */}
-          {updateCoalitions(state).map((activeCoalition, idx) => {
+          {updateCoalitions(state).map((activeCoalition) => {
             const def = COALITION_DEFS.find(d => d.id === activeCoalition.activeId);
             if (!def) return null;
 
@@ -1145,7 +1061,7 @@ export const SidePanel = () => {
                   name={isZh
                     ? (definition.militiaDisplayNameZh || definition.nameZh)
                     : (definition.militiaDisplayName || definition.name)}
-                  manpower={state.organizations[definition.id]?.militiaManpower || 0}
+                  manpower={definition.armedEntityId ? state.armedForces.entityPools[definition.armedEntityId]?.manpower || 0 : 0}
                   color="bg-cnt-red"
                   isHighlighted={definition.id === 'DC'}
                 />
@@ -1210,13 +1126,6 @@ const RelationItem: React.FC<{ name: string; value: number; text: string; colorC
       <span className={colorClass}>{text}</span>
       <span className="text-ink-light font-normal">({formatRelationValue(value)}/100)</span>
     </span>
-  </div>
-);
-
-const PolicyItem: React.FC<{ name: string; text: string; colorClass: string }> = ({ name, text, colorClass }) => (
-  <div className="flex justify-between items-center font-typewriter text-[10px] uppercase tracking-wider py-1 border-b border-dotted border-ink/30">
-    <span>{name}</span>
-    <span className={colorClass}>{text}</span>
   </div>
 );
 

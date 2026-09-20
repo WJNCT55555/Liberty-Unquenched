@@ -163,13 +163,13 @@ export const mitinPopular: Card = {
             classSupportPreview(s2, 'Intelectuales', 'CNT_FAI', 3 * df),
             statPreview(s2, 'revolutionaryFervor', 5 * df),
             textPreview(
-              'If arrested: resources -1, pro-Republic sentiment -2, then the assembly is dispersed.',
-              '若被逮捕：资源 -1，亲共和国倾向 -2，然后集会被驱散。',
+              'If arrested: resources -1, then the assembly is dispersed.',
+              '若被逮捕：资源 -1，然后集会被驱散。',
               'negative'
             ),
             textPreview(
-              'If not arrested: pro-Republic sentiment +1, then return to the assembly.',
-              '若未被逮捕：亲共和国倾向 +1，然后返回集会。',
+              'If not arrested: return to the assembly.',
+              '若未被逮捕：返回集会。',
               'positive'
             )
           ];
@@ -189,7 +189,6 @@ export const mitinPopular: Card = {
               ...s2.stats,
               revolutionaryFervor: clampPercent(s2.stats.revolutionaryFervor + 5 * df)
             },
-            pro_republic: s2.pro_republic + (arrested ? -2 : 1),
             currentEvent: arrested
               ? buildCancelledEvent(
                   df,
@@ -437,7 +436,6 @@ export const mitinPopular: Card = {
             ...s.stats,
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 5 * dissentFactor)
           },
-          socialism: clampPercent(s.socialism + 4 * dissentFactor),
           currentEvent: null
         };
       }
@@ -515,7 +513,6 @@ export const mitinPopular: Card = {
           Faistas: -3,
           Puristas: -3
         });
-        const pacifismEffect = s.pacifism >= 3 ? 1.8 : 1;
 
         return {
           classes,
@@ -525,8 +522,6 @@ export const mitinPopular: Card = {
             armyLoyalty: Math.max(0, s.stats.armyLoyalty - 1),
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor)
           },
-          pacifism: clampPercent(s.pacifism + 3 * dissentFactor * pacifismEffect),
-          nationalism: Math.max(0, s.nationalism - 2 * dissentFactor),
           currentEvent: null
         };
       }
@@ -538,7 +533,6 @@ export const mitinPopular: Card = {
       subtitle: 'Focus the assembly on concrete economic demands: higher wages and workplace safety.',
       subtitleZh: '将集会焦点放在具体的经济诉求上：提高工资和工作场所安全。',
       effect: (s: GameState): Partial<GameState> => {
-        const laborMomentum = 1 + (s.domesticPolicy.max_hours_law + s.domesticPolicy.min_wage + s.domesticPolicy.workplace_safety) * 0.1;
         const classes = adjustClassSupports(s.classes, [
           ['Obreros', 'CNT_FAI', 6 * dissentFactor],
           ['Braceros', 'CNT_FAI', 3 * dissentFactor],
@@ -644,7 +638,6 @@ export const mitinPopular: Card = {
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor),
             republicanAuthority: clampPercent(s.stats.republicanAuthority + 1)
           },
-          pro_republic: s.pro_republic + 4,
           currentEvent: null
         };
       }
@@ -686,7 +679,6 @@ export const mitinPopular: Card = {
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 6 * dissentFactor),
             workerControl: clampPercent(s.stats.workerControl + 3 * dissentFactor)
           },
-          socialism: clampPercent(s.socialism + 3 * dissentFactor),
           currentEvent: null
         };
       }

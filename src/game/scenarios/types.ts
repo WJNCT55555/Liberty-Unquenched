@@ -14,8 +14,17 @@
  * here; it lives in the neutral base.
  */
 import type { GameState } from '../types';
+import type { ArmedEntityId } from '../../map/types_map';
 
 export type ScenarioId = GameState['scenario'];
+type ScenarioMilitiaEntityId = Extract<ArmedEntityId,
+  | 'cnt_defense_committees'
+  | 'maoc'
+  | 'poum_militias'
+  | 'ugt_socialist_militias'
+  | 'requetes'
+  | 'falange_first_line'
+>;
 
 /** Economy scalars applied at the start of the scenario. */
 export interface ScenarioEconomy {
@@ -94,7 +103,7 @@ export interface ScenarioDefinition {
   economy: ScenarioEconomy;
   history: ScenarioHistoryFlags;
 
-  militias: GameState['armedForces']['militias'];
+  armedEntityManpower: Record<ScenarioMilitiaEntityId, number>;
   regionalStatuses: GameState['regionalStatuses'];
 
   superEvent: GameState['superEvent'];

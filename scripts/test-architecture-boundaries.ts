@@ -151,6 +151,42 @@ for (const selector of exportedSelectors) {
   );
 }
 
+// Phase 6 keeps migration-only shapes at the deserialization boundary and
+// prevents deleted compatibility entry points from growing back.
+[
+  path.join('src', 'game', 'reducers', 'index.ts'),
+  path.join('src', 'game', 'rules', 'index.ts'),
+  path.join('tools', 'sim.mjs'),
+  path.join('tools', 'driver.ts'),
+  path.join('tools', 'check_unused_imports.cjs'),
+].forEach((removedPath) => {
+  assert(!fs.existsSync(removedPath), `${normalizePath(removedPath)} is a retired migration artifact and must stay deleted.`);
+});
+
+const runtimeSources = allSourceFiles
+  .filter((file) => normalizePath(file) !== 'src/game/saveMigrations.ts')
+  .map((file) => fs.readFileSync(file, 'utf8'));
+assert(
+  runtimeSources.every((source) => !/\bmilitiaManpower\b|armedForces(?:\?|)\.militias\b/.test(source)),
+  'Legacy militia views may exist only inside saveMigrations.ts.',
+);
+assert(
+  runtimeSources.every((source) => !/\bPOLICY_DEFINITIONS\b|\bPOLICY_DEFINITION_BY_ID\b|\bmapAiConfig\b/.test(source)),
+  'Retired policy-definition aliases and map AI scaffold fields must stay deleted.',
+);
+
+const gameStateSource = fs.readFileSync(path.join('src', 'game', 'types.ts'), 'utf8');
+[
+  'warRuntime',
+  'fe_leadership_crisis',
+  'africaArmyStatus',
+  'molaStatus',
+  'francoAfricaControl',
+  'usa_total_embargo',
+].forEach((retainedField) => {
+  assert(new RegExp(`\\b${retainedField}\\b`).test(gameStateSource), `${retainedField} is intentionally reserved for future gameplay and must remain in GameState.`);
+});
+
 const cardIds = CARD_REGISTRY.map((card) => card.id);
 assert.equal(new Set(cardIds).size, cardIds.length, 'The runtime card registry must not contain duplicate ids.');
 assert(cardIds.includes('fiscal_policy'), 'The fiscal policy card must remain available through the runtime registry.');

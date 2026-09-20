@@ -1,6 +1,5 @@
 import { GameState, Party, SocialClass } from '../types';
 import { CLASS_INFO } from '../constants';
-import { getPartySupport } from './coalition';
 import { isOrganizationEstablished } from '../organizations';
 import { getEffectiveCortes } from '../politicalEligibility';
 

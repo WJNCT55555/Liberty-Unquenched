@@ -1,33 +1,29 @@
-import { gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/reducers/gameReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import { getDefaultUnionShare } from '../src/game/unions';
 import { INITIAL_CLASSES } from '../src/game/parties';
+import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from '../src/game/rules/fiscalPolicy';
+import { calculateMonthlyEconomy, clampMilitarySpending, adjustUnemploymentRate } from '../src/game/rules/economy';
+import { calculateMonthlyIncome } from '../src/game/rules/income';
+import { calculateMonthlyPolicyEffects } from '../src/game/rules/policy';
+import { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance } from '../src/game/rules/monthlyPipeline';
+import { calculateEconomicPoliticalFeedback } from '../src/game/rules/economicFeedback';
+import { getPolicyEffectLines, LAW_DEFINITIONS } from '../src/game/rules/policyDefinitions';
 import {
-  calculateIncomeTaxAdjustment,
-  calculateMonthlyEconomy,
-  calculateMonthlyIncome,
-  calculateMonthlyPolicyEffects,
-  calculateMonthlyPipeline,
-  calculateMonthlyMapStage,
-  applyMonthlyPoliticalMaintenance,
-  calculateTariffConsumptionAdjustment,
-  calculateEconomicPoliticalFeedback,
-  getPolicyEffectLines,
-  POLICY_DEFINITIONS,
   GUARDIA_NACIONAL_ESTABLISHMENT,
   GUARDIA_ASALTO_ESTABLISHMENT,
   WORKER_PATROL_ESTABLISHMENT,
   getSecurityForces,
   raiseSecurityCorpsLoyalty,
   applySecurityForcesDerivedState,
+} from '../src/game/rules/securityForces';
+import {
   applyPeacetimeMobilization,
   applyMobilizationToMapResources,
   getDeployedGarrisonManpower,
   getPeacetimeArmyPool,
   applyCivilWarLoyaltySplit,
-  clampMilitarySpending,
-  adjustUnemploymentRate,
-} from '../src/game/rules';
+} from '../src/game/rules/warSetup';
 import { getBaselineLawStanceScore } from '../src/game/lawStances';
 import { formCoalition, formRulingCoalitionFromSandbox } from '../src/game/utils';
 import type { GameEvent, GameState } from '../src/game/types';
@@ -35,7 +31,6 @@ import {
   applyMonthlyOrganizationEffects,
   getDefaultArmedEntityPools,
   getDefaultOrganizationState,
-  isOrganizationEstablished,
   normalizeOrganizationState,
   ORGANIZATION_DEFINITIONS,
 } from '../src/game/organizations';
@@ -244,7 +239,13 @@ const withCntPool = (cntFai: number) => stateWith({
   armaments: 0,
   armedForces: {
     ...PRE_START_STATE.armedForces,
-    militias: { ...PRE_START_STATE.armedForces.militias, cntFai },
+    entityPools: {
+      ...PRE_START_STATE.armedForces.entityPools,
+      cnt_defense_committees: {
+        ...PRE_START_STATE.armedForces.entityPools.cnt_defense_committees,
+        manpower: cntFai,
+      },
+    },
   },
 });
 
@@ -279,7 +280,13 @@ const mobilizationState = {
   armaments: 0,
   armedForces: {
     ...start1931.armedForces,
-    militias: { ...start1931.armedForces.militias, cntFai: 50000 },
+    entityPools: {
+      ...start1931.armedForces.entityPools,
+      cnt_defense_committees: {
+        ...start1931.armedForces.entityPools.cnt_defense_committees,
+        manpower: 50000,
+      },
+    },
   },
 };
 const mobilisedWarStart = setupArmiesForCivilWar(mobilizationState, false, {});
@@ -675,13 +682,6 @@ assert(flagSynced.organizations.POUM?.established === true, 'A set party flag mu
 assert(flagSynced.organizations.FE?.established === true, 'A set Falange flag must establish its organization');
 assert(flagSynced.organizations.PS?.established === true, 'A set Syndicalist Party flag must establish its organization');
 assert(flagSynced.organizations.ML?.established !== true, 'An unset flag must never dissolve an organization');
-// Legacy saves kept the Rabassaire union under the `UR` id.
-const legacyUnion = normalizeOrganizationState(stateWith({
-  scenario: '1931',
-  organizations: { ...organizations1931, UR: { established: true, status: 'active' } },
-}));
-assert(legacyUnion.organizations.UNIO_RABASSAIRES?.established === true, 'A legacy UR union entry must move to its new id');
-assert(legacyUnion.organizations.UR?.established === true, 'The UR party organization must survive the legacy migration');
 
 // The two news events that fill the remaining gaps.
 assert(SCHEDULED_EVENT_REGISTRY.some((event) => event.id === maocFormation.id) && SCHEDULED_EVENT_REGISTRY.some((event) => event.id === consFormation.id), 'The MAOC and CONS formation events must be scheduled');
@@ -743,8 +743,8 @@ const sandboxWithOpposition = formCoalition(sandboxRulingCoalition, 'workers_all
 assert(sandboxWithOpposition.rulingCoalition === 'provisional_government', 'Sandbox opposition formation must preserve the ruling coalition');
 assert(sandboxWithOpposition.activeCoalitions.some(coalition => coalition.activeId === 'workers_alliance'), 'Sandbox must allow an opposition coalition alongside the ruling coalition');
 
-assert(POLICY_DEFINITIONS.length === 14, 'Every domestic policy must have one central definition');
-assert(POLICY_DEFINITIONS.every(definition => definition.levels.every(level => level.name.en && level.name.zh && level.description.en && level.description.zh && level.effect.en && level.effect.zh)), 'Policy levels must carry bilingual text');
+assert(LAW_DEFINITIONS.length === 14, 'Every domestic law must have one central definition');
+assert(LAW_DEFINITIONS.every(definition => definition.levels.every(level => level.name.en && level.name.zh && level.description.en && level.description.zh && level.effect.en && level.effect.zh)), 'Law levels must carry bilingual text');
 assert(getBaselineLawStanceScore('CNT_FAI', 'land_law', 2) === 6, 'Law stance scores must come from policy level definitions');
 const educationPreview = getPolicyEffectLines('education_institutions', 2, stateWith({ ateneos_established: 0 }), true);
 assert(educationPreview.some(line => line.includes('无阶层支持度影响')), 'Education preview should explain unmet Ateneos condition');

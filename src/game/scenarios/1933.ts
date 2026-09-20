@@ -122,13 +122,13 @@ export const SCENARIO_1933: ScenarioDefinition = {
     coupSystemActive: true,
   },
 
-  militias: {
-    cntFai: 0,
+  armedEntityManpower: {
+    cnt_defense_committees: 0,
     maoc: 0,
-    poum: 0,
-    ugt: 0,
-    requete: 0,
-    falange: 0,
+    poum_militias: 0,
+    ugt_socialist_militias: 0,
+    requetes: 0,
+    falange_first_line: 0,
   },
 
   regionalStatuses: {

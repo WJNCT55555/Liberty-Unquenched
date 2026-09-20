@@ -12,9 +12,6 @@ export const UNION_SHARE_KEYS: readonly UnionShareKey[] = [
   'CNT', 'UGT', 'UR', 'ELA', 'CNCA', 'CONS', 'other', 'unorganized',
 ];
 
-/** 向量中对应真实组织注册表（OrganizationId）的键。 */
-export const UNION_ORGANIZATION_KEYS: readonly UnionShareKey[] = ['CNT', 'UGT', 'UR', 'ELA', 'CNCA', 'CONS'];
-
 /**
  * 占比键到组织 id 的映射。多数键与组织 id 同名，但 `UR` 键指的是拉巴塞尔联盟
  * （Unió de Rabassaires），而 `UR` 这个组织 id 现在属于共和联盟（Unión

@@ -145,8 +145,7 @@ const TARGETS: Record<TargetId, TargetDef> = {
         stats: {
           ...s.stats,
           armyLoyalty: Math.max(0, s.stats.armyLoyalty - 2)
-        },
-        pro_republic: clampPercent(s.pro_republic + 2)
+        }
       };
     },
     failure: (s: GameState): Partial<GameState> => {
@@ -227,8 +226,7 @@ const TARGETS: Record<TargetId, TargetDef> = {
           RE: clampRelation((s.partyRelations.RE || 0) - 8),
           CT: clampRelation((s.partyRelations.CT || 0) - 8),
           FE: clampRelation((s.partyRelations.FE || 0) - 8)
-        },
-        pro_republic: Math.max(0, s.pro_republic - 2)
+        }
       };
     },
     failure: (s: GameState): Partial<GameState> => {
@@ -237,7 +235,6 @@ const TARGETS: Record<TargetId, TargetDef> = {
           ...s.partySupport,
           AP: clampPercent((s.partySupport.AP || 0) + 2)
         },
-        pro_republic: Math.max(0, s.pro_republic - 3),
         resources: Math.max(0, s.resources - 1)
       };
     },
@@ -352,7 +349,6 @@ const TARGETS: Record<TargetId, TargetDef> = {
         stats: {
           ...s.stats
         },
-        pro_republic: Math.max(0, s.pro_republic - 8),
         resources: Math.max(0, s.resources - 2)
       };
     },
@@ -362,7 +358,6 @@ const TARGETS: Record<TargetId, TargetDef> = {
         stats: {
           ...s.stats
         },
-        pro_republic: Math.max(0, s.pro_republic - 2),
         resources: Math.max(0, s.resources - 1)
       };
     },
@@ -394,9 +389,7 @@ const TARGETS: Record<TargetId, TargetDef> = {
         partyRelations: {
           ...s.partyRelations,
           RE: clampRelation((s.partyRelations.RE || 0) - 8)
-        },
-        pro_republic: clampPercent(s.pro_republic + 2),
-        nationalism: clampPercent(s.nationalism + 3)
+        }
       };
     },
     failure: (s: GameState): Partial<GameState> => {
@@ -406,7 +399,6 @@ const TARGETS: Record<TargetId, TargetDef> = {
           uk: Math.max(0, s.relations.uk - 3),
           france: Math.max(0, s.relations.france - 3)
         },
-        pro_republic: Math.max(0, s.pro_republic - 1),
         resources: Math.max(0, s.resources - 3)
       };
     },
@@ -538,7 +530,6 @@ export const propagandaByDeed: Card = {
                 factionDissentPreview('Treintistas', 8),
                 statPreview(s, 'revolutionaryFervor', 8 * df),
                 effectLine('Ideological propaganda', '意识形态宣传', 2),
-                effectLine('Pro-Republic sentiment', '亲共和国倾向', -5, { reverseTone: true }),
                 textPreview('End current event', '结束当前事件')
               ];
             },
@@ -565,7 +556,6 @@ export const propagandaByDeed: Card = {
                   revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 8 * df)
                 },
                 ideological_propaganda: (s.ideological_propaganda || 0) + 2,
-                pro_republic: Math.max(0, s.pro_republic - 5),
                 currentEvent: null
               };
             }
@@ -579,7 +569,6 @@ export const propagandaByDeed: Card = {
               return [
                 factionDissentPreview('Faistas', 5),
                 statPreview(s, 'revolutionaryFervor', 3 * getDissentMultiplier(s.factions)),
-                effectLine('Pro-Republic sentiment', '亲共和国倾向', -2, { reverseTone: true }),
                 textPreview('End current event', '结束当前事件')
               ];
             },
@@ -592,7 +581,6 @@ export const propagandaByDeed: Card = {
                   ...s.stats,
                   revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 3 * getDissentMultiplier(s.factions))
                 },
-                pro_republic: Math.max(0, s.pro_republic - 2),
                 currentEvent: null
               };
             }
@@ -725,8 +713,7 @@ export const propagandaByDeed: Card = {
                   ...(result.relations || s.relations),
                   uk: Math.max(0, (result.relations?.uk ?? s.relations.uk) - 3),
                   france: Math.max(0, (result.relations?.france ?? s.relations.france) - 3)
-                },
-                pro_republic: Math.max(0, (result.pro_republic ?? s.pro_republic) - 5)
+                }
               };
             }
 

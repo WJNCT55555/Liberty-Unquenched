@@ -94,7 +94,7 @@ Completion verification: type checking and coalition audit, architecture boundar
 
 ## Phase 2 - Complete UI subscription migration
 
-Status: implementation completed; final runtime verification pending host authorization recovery.
+Status: completed.
 
 - Classify consumers into:
   - simple field readers;
@@ -123,7 +123,7 @@ Exit criteria:
 - Economy, political, event, map, ending, advisor, and save UI have explicit read boundaries.
 - Selector equality behavior has focused tests for stable and changed slices.
 
-Exit audit: all code criteria are satisfied and type checking passes. The new selector test, architecture test, production build, and full regression rerun remain pending because the host's escalation-review refresh token was revoked; `tsx`/Vite require an esbuild child process that the normal sandbox rejects.
+Exit audit: all criteria are satisfied. Selector and architecture tests, the complete domain/save/scenario regression suite, editor build, and production build pass.
 
 ## Phase 3 - Extract root orchestration from GameContext
 
@@ -141,7 +141,7 @@ Completed implementation:
 - Moved AI turn execution to `rules/mapAiTurn.ts` and initially narrowed it behind transitional runtime contracts; Phase 4 replaced those contracts with the canonical `MapRuntimeState`.
 - Moved `NEXT_PHASE` month/phase ordering to `rules/phaseOrchestrator.ts`.
 - Moved invariant repair, ending detection, and achievement tracking to one `reducers/postReducer.ts` pipeline.
-- Moved the root reducer to `reducers/gameReducer.ts`; `GameContext.tsx` now contains only store/provider/hook wiring and compatibility re-exports.
+- Moved the root reducer to `reducers/gameReducer.ts`; `GameContext.tsx` now contains only store/provider/hook wiring.
 - Added deterministic combat, AI-turn, and phase-ordering coverage in `test:orchestration`, plus architecture guards that prevent these responsibilities from returning to the context.
 
 Exit criteria:
@@ -212,10 +212,23 @@ Exit audit: all criteria are satisfied. `test:registries` verifies 26 cards, 57 
 
 ## Phase 6 - Remove migration scaffolding and dead code
 
+Status: completed.
+
 - Delete unused selector hooks, compatibility aliases, unused barrels, and superseded preview helpers.
 - Move legacy save compatibility into explicit deserialization migrations.
 - Decide each write-only state field: implement its consumer, migrate it, or delete it.
 - Fix or remove one-off tools that are not part of package scripts and CI.
+
+Completed implementation:
+
+- Deleted the unused reducer/rules barrels, GameContext compatibility re-exports, speculative type aliases, preview helpers, old policy-formatting UI, and other statically verified unused symbols.
+- Replaced the `POLICY_DEFINITIONS` compatibility path with the canonical `LAW_DEFINITIONS` / `LAW_DEFINITION_BY_ID` exports and migrated every consumer.
+- Centralized old-save repair in `saveMigrations.ts`. Runtime organization and combat code now uses `armedForces.entityPools` as the only militia manpower/equipment model; legacy `militias`, organization `militiaManpower`, old organization IDs, and old pool IDs exist only inside the migration boundary and migration tests.
+- Deleted the orphaned `tools/sim.mjs`, `tools/driver.ts`, and `tools/check_unused_imports.cjs` utilities and removed their stale documentation references.
+- Removed four unused local editor roadmap implementations and the superseded one-shot sandbox execution API while keeping the active flow workbench and session-based test bench.
+- Deleted `mapAiConfig` and the confirmed dead fields `educationSecularized`, `womensRightsReformed`, `internationalBrigadesArrived`, and `navyStatus`.
+- Intentionally retained `warRuntime`, `fe_leadership_crisis`, `africaArmyStatus`, `molaStatus`, `francoAfricaControl`, and `usa_total_embargo` for planned gameplay. Architecture tests protect this explicit allowlist from accidental cleanup.
+- Enabled `noUnusedLocals` for the repository and added architecture guards that keep deleted barrels, legacy runtime militia fields, policy aliases, and orphan tools from returning.
 
 Exit criteria:
 
@@ -223,7 +236,11 @@ Exit criteria:
 - Every persisted field is read by gameplay/UI or documented as migration-only.
 - Static unused-export and invalid-tool checks run in CI.
 
+Exit audit: all criteria are satisfied for the verified cleanup scope. Type checking, coalition audit, effect-preview, armament-income, rules, wartime, May Days, union-share, save migration, architecture-boundary, selector, registry, scenario-parity, deterministic orchestration tests, the main production build, and the local editor build pass. Both Vite builds retain only their pre-existing large-chunk warnings.
+
 ## Phase 7 - Tighten compiler and build boundaries
+
+Status: in progress (`noUnusedLocals` completed; parameter and strictness rollout remains).
 
 - Enable `noUnusedLocals` and `noUnusedParameters` directory by directory.
 - Enable strict options incrementally after the state and map boundaries are stable.

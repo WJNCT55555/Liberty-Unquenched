@@ -288,7 +288,7 @@ const ScenarioCard = ({ id, title, description, selected, onClick, disabled }: {
   </div>
 );
 
-const DifficultyCard = ({ id, title, description, selected, onClick, icon, disabled }: { id: string, title: string, description: string, selected: boolean, onClick: () => void, icon?: React.ReactNode, disabled?: boolean }) => (
+const DifficultyCard = ({ title, description, selected, onClick, icon, disabled }: { id: string, title: string, description: string, selected: boolean, onClick: () => void, icon?: React.ReactNode, disabled?: boolean }) => (
   <div 
     onClick={disabled ? undefined : onClick}
     className={`group relative p-3 border-2 transition-all duration-200 flex items-center justify-center h-16 ${disabled ? 'opacity-50 cursor-not-allowed grayscale border-paper/20 bg-ink/50' : 'cursor-pointer'} ${selected ? 'border-yellow-500 bg-yellow-500/10' : (!disabled && 'border-paper/30 hover:border-paper/60 hover:bg-paper/5')}`}

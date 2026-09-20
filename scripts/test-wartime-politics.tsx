@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/reducers/gameReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState, WartimeGovernmentRoute } from '../src/game/types';
 import { civilWarSetup, civilWarStep31 } from '../src/game/events/civil_war/civil_war_setup';
@@ -172,7 +172,10 @@ test('Union ownership, state troops, international forces and explicit Basque pr
   assert.equal(getArmyPoliticalMember(state.armies[2]), null);
   assert.equal(getArmyPoliticalMember(state.armies[4]), null);
   close(rows.reduce((sum, item) => sum + item.weight, 0), 1, 'normalized weights');
-  const hugeReserves = { ...state, armedForces: { ...state.armedForces, militias: { ...state.armedForces.militias, cntFai: 10_000_000 } } };
+  const hugeReserves = { ...state, armedForces: { ...state.armedForces, entityPools: {
+    ...state.armedForces.entityPools,
+    cnt_defense_committees: { ...state.armedForces.entityPools.cnt_defense_committees, manpower: 10_000_000 },
+  } } };
   assert.deepEqual(getWartimeCoalitionPower(hugeReserves, createWartimeCoalition(hugeReserves, 'cabinet')), rows);
 });
 

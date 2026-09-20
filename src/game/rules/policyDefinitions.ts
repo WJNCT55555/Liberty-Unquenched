@@ -6,9 +6,9 @@ import type { GameState, LawId, Party, PoliticalActor, SocialClass } from '../ty
  * level names, costs, effects, and stance tables.
  */
 export type PolicyCategory = 'economy' | 'society' | 'security';
-export type BilingualText = { en: string; zh: string };
+type BilingualText = { en: string; zh: string };
 
-export type PolicyStanceMatrix = Record<PoliticalActor, Record<LawId, readonly number[]>>;
+type PolicyStanceMatrix = Record<PoliticalActor, Record<LawId, readonly number[]>>;
 
 export type PolicyCondition =
   | { kind: 'coupActive' }
@@ -44,7 +44,7 @@ export type PolicyModifier = (
   | { kind: 'landProgress'; delta: number }
 ) & { conditions?: readonly PolicyCondition[] };
 
-export interface PolicyLevelDefinition {
+interface PolicyLevelDefinition {
   level: number;
   name: BilingualText;
   description: BilingualText;
@@ -88,7 +88,7 @@ const level = (
   ...metadata,
 });
 
-const BASE_POLICY_DEFINITIONS: readonly PolicyDefinition[] = [
+const BASE_LAW_DEFINITIONS: readonly PolicyDefinition[] = [
   {
     id: 'max_hours_law', category: 'economy', name: text('Max Hours', '最高工时'), levels: [
       level(0, 'No Limits', '无限制', 'Workers toil without legal limits.', '工人没有法定工时保护。', 'Monthly revolutionary fervor: +1.', '革命热情：+1/月。', { monthlyModifiers: [{ kind: 'stat', target: 'revolutionaryFervor', delta: 1 }] }),
@@ -213,7 +213,7 @@ const BASE_POLICY_DEFINITIONS: readonly PolicyDefinition[] = [
   },
 ];
 
-const POLICY_STANCE_SCORES: PolicyStanceMatrix = {
+const LAW_STANCE_PREFERENCES: PolicyStanceMatrix = {
   CNT_FAI: {
     max_hours_law: [-10, 2, 4, 8, 10],
     min_wage: [-10, 1, 4, 7, 8],
@@ -456,26 +456,24 @@ const POLICY_STANCE_SCORES: PolicyStanceMatrix = {
   },
 };
 
-export const POLICY_STANCE_PREFERENCES: PolicyStanceMatrix = POLICY_STANCE_SCORES;
-
-export const POLICY_DEFINITIONS: readonly PolicyDefinition[] = BASE_POLICY_DEFINITIONS.map(definition => ({
+export const LAW_DEFINITIONS: readonly PolicyDefinition[] = BASE_LAW_DEFINITIONS.map(definition => ({
   ...definition,
   levels: definition.levels.map(levelDefinition => ({
     ...levelDefinition,
     stanceChanges: Object.fromEntries(
-      (Object.keys(POLICY_STANCE_SCORES) as PoliticalActor[]).map(actor => [
+      (Object.keys(LAW_STANCE_PREFERENCES) as PoliticalActor[]).map(actor => [
         actor,
-        POLICY_STANCE_SCORES[actor][definition.id][levelDefinition.level],
+        LAW_STANCE_PREFERENCES[actor][definition.id][levelDefinition.level],
       ]),
     ) as Partial<Record<PoliticalActor, number>>,
   })),
 }));
 
-export const POLICY_DEFINITION_BY_ID = Object.fromEntries(
-  POLICY_DEFINITIONS.map(definition => [definition.id, definition]),
+export const LAW_DEFINITION_BY_ID = Object.fromEntries(
+  LAW_DEFINITIONS.map(definition => [definition.id, definition]),
 ) as Record<LawId, PolicyDefinition>;
 
-export const getPolicyDefinition = (policyId: LawId): PolicyDefinition => POLICY_DEFINITION_BY_ID[policyId];
+const getPolicyDefinition = (policyId: LawId): PolicyDefinition => LAW_DEFINITION_BY_ID[policyId];
 
 export const getPolicyLevelDefinition = (policyId: LawId, level: number): PolicyLevelDefinition | undefined =>
   getPolicyDefinition(policyId).levels.find(policyLevel => policyLevel.level === level);

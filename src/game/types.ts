@@ -2,7 +2,6 @@ import React from 'react';
 import type {
   ArmedEntityId,
   ArmyFormation,
-  MapFaction,
   MapRuntimeState,
 } from '../map/types_map';
 import { Party } from './parties';
@@ -56,8 +55,6 @@ export interface OrganizationState {
   established: boolean;
   establishedAt?: { year: number; month: number };
   status?: 'unformed' | 'active' | 'integrated' | 'dissolved';
-  /** Manpower held by a militia organization; absent for non-militia organizations. */
-  militiaManpower?: number;
 }
 
 export type OrganizationStateMap = Partial<Record<OrganizationId, OrganizationState>>;
@@ -415,12 +412,6 @@ export interface GameState extends MapRuntimeState {
   currentView?: 'standard' | 'map';
   /** The peacetime standing army. The civil war instantiates it into `armies`. */
   armyFormations?: ArmyFormation[];
-  mapAiConfig?: {
-    enabled: boolean;
-    aiFaction: MapFaction;
-    difficulty: 'easy' | 'normal' | 'hard';
-    confirmed?: boolean;
-  };
   scenario: '1931' | '1933' | '1936';
   actionsLeft: number;
   
@@ -575,16 +566,8 @@ export interface GameState extends MapRuntimeState {
     guardiaAsalto: { manpower: number; loyalty: number };
     guardiaRepublicana: { manpower: number; loyalty: number };
     patrullasObreras: { manpower: number; loyalty: number };
-    militias: {
-      cntFai: number;
-      maoc: number;
-      poum: number;
-      ugt: number;
-      requete: number;
-      falange: number;
-    };
-    /** Canonical source-owned pools; `militias` remains a legacy compatibility view. */
-    entityPools?: Record<ArmedEntityId, ArmedEntityPool>;
+    /** Canonical source-owned manpower and equipment pools. */
+    entityPools: Record<ArmedEntityId, ArmedEntityPool>;
   };
   
   // Domestic Politics
@@ -674,11 +657,6 @@ export interface GameState extends MapRuntimeState {
   zamoraStatus: 'alive' | 'dead';
   alfonsoXIIIStatus: 'alive' | 'dead';
   fe_leadership_crisis: boolean;
-  socialism: number;
-  nationalism: number;
-  pacifism: number;
-  democratization: number;
-  pro_republic: number;
   francoStatus: 'alive' | 'dead' | 'republic' | 'nationalist';
   africaArmyStatus: 'delayed' | 'nationalist' | 'republic' | 'neutral';
   cataloniaControl: 'republic' | 'cnt_fai' | 'committee';

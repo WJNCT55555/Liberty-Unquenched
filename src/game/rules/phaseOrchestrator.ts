@@ -129,7 +129,6 @@ export const advancePhase = (
     // National accounting is a pure, shared pipeline. Journal effects and
     // phase/timer orchestration remain in this reducer.
     const monthlyPipeline = calculateMonthlyPipeline(tempState);
-    const economy = monthlyPipeline.economy;
     tempState = monthlyPipeline.state;
     const updatedHistory = [
       ...(state.economyHistory || []),

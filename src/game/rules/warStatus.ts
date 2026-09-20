@@ -6,8 +6,7 @@ export function checkWarStatus(state: GameState, isZh: boolean): GameState {
   if (state.iberianDefense) return settleIberianCapitulations(state);
   if (state.activeWar === 'asturias_war') {
     const provinces = state.provinces || {};
-    const armies = state.armies || [];
-    
+
     // Check Workers' Alliance control
     const hasAsturias = provinces['asturias']?.owner === MapFaction.WORKERS_ALLIANCE;
     const hasOviedo = provinces['oviedo']?.owner === MapFaction.WORKERS_ALLIANCE;

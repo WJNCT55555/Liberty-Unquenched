@@ -65,6 +65,11 @@ export const createScenarioState = (
   }
 
   const startMapState = initializeMapState(scenario, startCivilWarStatus);
+  const entityPools = getDefaultArmedEntityPools();
+  Object.entries(definition.armedEntityManpower).forEach(([entityId, manpower]) => {
+    const pool = entityPools[entityId as keyof typeof entityPools];
+    entityPools[entityId as keyof typeof entityPools] = { ...pool, manpower };
+  });
 
   // The starting-event filter deliberately inspects the *pre-start template*
   // rather than the finished state: event conditions were written and tuned
@@ -147,8 +152,7 @@ export const createScenarioState = (
     armedForces: {
       // The police corps baseline and everything below it is scenario-free.
       ...NEUTRAL_ARMED_FORCES,
-      militias: { ...definition.militias },
-      entityPools: getDefaultArmedEntityPools(),
+      entityPools,
     },
   };
 

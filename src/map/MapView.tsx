@@ -153,7 +153,6 @@ export const MapView: React.FC = () => {
           onDisbandArmies={() => dispatch({ type: 'DISBAND_MAP_ARMIES' })}
           onSplitArmy={(armyId, composition) => dispatch({ type: 'SPLIT_MAP_ARMY', payload: { armyId, composition } })}
           onBuildBuilding={(provinceId, buildingType) => dispatch({ type: 'BUILD_MAP_BUILDING', payload: { provinceId, buildingType } })}
-          onExecuteOffensive={(id) => console.log('execute offensive', id)}
           lang={isZh ? 'zh' : 'en'}
         /></fieldset>
       </div>

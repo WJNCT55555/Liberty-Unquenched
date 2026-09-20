@@ -6,6 +6,11 @@
 
 项目目前处于持续开发阶段。当前版本已经包含政治模拟、事件与决策、顾问、议会席位图、经济与国内政策、行省地图、军队管理、战争总结、成就和结局等系统；部分历史内容、平衡性和系统之间的联动仍在完善。
 
+## 项目文档
+
+- [游戏设计文档](docs/游戏设计文档.md)：游戏目标、核心机制、系统规则与后续可玩党派扩展。
+- [当前架构说明](docs/ARCHITECTURE.md)：开发者和 AI 修改代码时的事实来源、模块导航、依赖边界与验证标准。
+- [架构迁移计划](docs/ARCHITECTURE_MIGRATION_PLAN.md)：历史迁移方案、阶段状态与验收记录。
 
 ## 在线版本与分支关系
 
@@ -184,101 +189,13 @@ Vite 默认使用 `/Liberty-Unquenched/` 作为页面基础路径。部署工作
 
 不要直接编辑 `gh-pages` 中的构建文件。需要修复线上页面时，应修改 `main` 中的源码并重新推送。
 
-## 目录结构
+## 产品与内容限制
 
-```text
-.
-├─ .github/
-│  └─ workflows/
-│     └─ deploy.yml          # GitHub Pages 自动部署
-├─ public/
-│  ├─ date/                  # 地图及地理数据
-│  ├─ img/                   # 图片、肖像、图标和超级事件素材
-│  └─ music/                 # 音乐素材
-├─ src/
-│  ├─ components/            # React 界面组件
-│  ├─ game/                  # 游戏状态、党派、事件、行动和规则
-│  │  ├─ action_affairs/     # 行动事务
-│  │  ├─ advisors/           # 顾问
-│  │  ├─ events/              # 历史事件和内战事件
-│  │  ├─ government_affairs/ # 政府事务
-│  │  ├─ journal/            # 长期日志
-│  │  └─ military_affairs/   # 军事事务
-│  ├─ lib/                   # D3 等底层可视化和通用工具
-│  └─ map/                   # 行省地图、军队和战争系统
-├─ index.html                # Vite HTML 入口
-├─ package.json              # npm 脚本和依赖
-├─ package-lock.json         # 锁定的依赖版本
-├─ tsconfig.json             # TypeScript 配置
-├─ vite.config.ts            # Vite 配置和 GitHub Pages 基础路径
-└─ metadata.json             # 项目元数据
-```
-
-## 开发约定
-
-### 新增事件、行动或政策
-
-1. 将代码放入对应的 `src/game/` 子目录。
-2. 在相应的 `index.ts` 或注册表中导出/注册。
-3. 明确写出触发条件、消耗、冷却时间和效果。
-4. 同时提供中文和英文文本（如果界面需要显示该内容）。
-5. 检查对党派、派系、阶级、政府和地图状态的影响是否符合类型定义。
-6. 运行 `npm run lint` 和 `npm run build`。
-
-### 新增或修改成就
-
-成就系统集中在 `src/game/achievements.tsx`：`ACHIEVEMENTS` 是成就目录，`checkAchievements` 是唯一的判定入口（由 `gameReducer` 在 `checkEndings` 之后调用）。新增成就时注意：
-
-1. **先验证可达性再写条件。** 判定条件只能读取真实被写入过的状态字段；仓库中存在若干只被声明和初始化、从未被赋值的字段，直接引用会导致成就永远无法解锁。数值阈值还需要先确认游戏时间上限与行动点预算是否够用。
-2. **`id` 一旦发布就不可更改**，因为它是 `localStorage` 中的键；重命名会让已有玩家丢失该成就记录。
-3. **同时提供中英文名称和描述。**
-4. **图标命名使用蛇形命名**，并且只能放在 `public/img/Achievement Icon/` 下：去掉重音、全小写、非字母数字折叠为 `_`，例如 `Homenaje a Cataluña` → `homenaje_a_cataluna.png`。没有对应图片时使用单个 emoji 代替，不要指向其他图片目录。
-5. **需要记录历史状态的成就**（例如"整局从未改变立场"）应在 `GameState` 中增加单调标记位，并在 `gameReducer` 收口处统一维护，而不是在条件里做推断。
-
-### 修改党派、选举或联盟
-
-政治系统涉及多个相互关联的模块，修改时应同时检查：
-
-- `src/game/types.ts`：类型和状态字段。
-- `src/game/parties.ts`：党派支持和党派数据。
-- `src/game/partyNames.ts`：党派显示名称。
-- `src/game/coalitions.ts`：联盟定义。
-- `src/game/utils/election.ts`：选举计算。
-- `src/components/DomesticPoliticsModal.tsx`：政治界面。
-- `src/components/ParliamentChart.tsx`：议会席位图。
-
-### 修改地图或军事系统
-
-地图状态和普通政治状态由不同的类型、组件和 reducer 逻辑管理。修改行省、部队或资源时，应检查：
-
-- `src/map/types_map.ts`：地图状态类型。
-- `src/map/map_constants.ts`：行省、邻接关系、阵营和初始军队。
-- `src/map/ProvinceMap.tsx`：地图渲染。
-- `src/map/MapView.tsx`：地图状态和操作分发。
-- `src/map/Sidebar.tsx`：行省、部队和建筑控制面板。
-- `src/map/WarSummary.tsx`：战争统计和总结。
-- `src/map/lib/gameAi.ts`：地图 AI 行动。
-
-## 已知限制与后续方向
-
-当前版本仍有以下工程和内容层面的限制：
-
-- 游戏数据和规则主要以 TypeScript 源码形式维护，尚未完全由独立数据文件或编辑器驱动。
-- `editor/` 是独立的本地编辑器项目，目前不会随主游戏源码发布，也没有纳入主项目的构建流程。
 - 存档保存在浏览器 `localStorage`（键名 `cnt_fai_saves_v2`），只对当前浏览器与访问地址有效：无法跨设备同步，清除站点数据会一并删除存档。
-- 部分政治、选举、联盟、政府和内阁规则仍需继续统一数据模型和历史设定。
 - 部分中文和英文文本仍需要持续校对，尤其是历史组织名称、职务名称和事件描述。
-- 生产构建的主 JavaScript bundle 较大，后续可以通过代码分割和按需加载优化初始加载速度。
 - 历史模拟包含必要的抽象、简化和游戏化设计；内容应继续通过可靠史料进行校对。
 
-适合的后续工作包括：
-
-- 让编辑器能够稳定输出主项目可直接导入的 TypeScript 或数据文件。
-- 建立事件、行动、党派、联盟、政府和顾问的统一 schema。
-- 增加自动化规则测试和历史日期/触发条件测试。
-- 完善存档、回放和调试工具。
-- 拆分大体积前端 bundle，并优化地图数据的加载。
-- 为历史来源、图片、音乐和第三方素材建立清晰的归属与许可记录。
+工程架构限制、下一阶段工作和各类开发操作手册统一维护在[当前架构说明](docs/ARCHITECTURE.md)中，不在 README 重复维护。
 
 ## 安全与隐私
 
@@ -311,6 +228,8 @@ rg -n -S "AIza|sk-|AKIA|BEGIN .*PRIVATE KEY|GEMINI_API_KEY" . \
 
 6. 检查 `git status` 和 `git diff --check`。
 7. 提交并通过审查后合并到 `main`，由 GitHub Actions 自动发布。
+
+涉及状态、规则、事件、注册表、地图或存档的变更，还应按[架构验证矩阵](docs/ARCHITECTURE.md#verification)运行对应领域测试。
 
 ## 许可证与素材归属
 

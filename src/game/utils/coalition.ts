@@ -237,27 +237,6 @@ export function formRulingCoalitionFromSandbox(state: GameState, id: CoalitionId
   };
 }
 
-export function adjustMemberContribution(state: GameState, party: CoalitionMember, amount: number, targetCoalitionId?: CoalitionId): GameState {
-  if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
-  
-  let targetId = targetCoalitionId;
-  if (!targetId) targetId = state.rulingCoalition || state.activeCoalitions[0].activeId;
-
-  const currentActive = state.activeCoalitions.map(c => {
-    if (c.activeId === targetId) {
-      const contributions = { ...c.memberContributions };
-      const oldVal = contributions[party] ?? 80;
-      contributions[party] = Math.min(100, Math.max(0, oldVal + amount));
-      return { ...c, memberContributions: contributions };
-    }
-    return c;
-  });
-
-  const newState = { ...state, activeCoalitions: currentActive };
-  newState.activeCoalitions = updateCoalitions(newState);
-  return newState;
-}
-
 export function checkCoalitionDissolve(state: GameState): GameState {
   if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
 

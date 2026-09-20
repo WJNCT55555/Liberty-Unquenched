@@ -1,6 +1,6 @@
 import type { GameState, LawId } from '../types';
 import { adjustClassSupport } from '../utils';
-import { POLICY_DEFINITION_BY_ID, type PolicyCondition, type PolicyModifier } from './policyDefinitions';
+import { LAW_DEFINITION_BY_ID, type PolicyCondition, type PolicyModifier } from './policyDefinitions';
 import { isRepublicCrisisSuspended } from './republicCrisis';
 
 export interface MonthlyPolicyEffects {
@@ -32,7 +32,7 @@ const conditionSatisfied = (
   return true;
 };
 
-/** Computes all policy-driven monthly changes from POLICY_DEFINITIONS. */
+/** Computes all policy-driven monthly changes from LAW_DEFINITIONS. */
 export const calculateMonthlyPolicyEffects = (
   state: GameState,
   options: MonthlyPolicyOptions = {},
@@ -84,7 +84,7 @@ export const calculateMonthlyPolicyEffects = (
   };
 
   const applyPolicyModifiers = (policyId: LawId, level: number, aggregateStats = false) => {
-    const levelDefinition = POLICY_DEFINITION_BY_ID[policyId].levels.find(item => item.level === level);
+    const levelDefinition = LAW_DEFINITION_BY_ID[policyId].levels.find(item => item.level === level);
     levelDefinition?.monthlyModifiers?.forEach(modifier => applyModifier(modifier, aggregateStats));
   };
 
