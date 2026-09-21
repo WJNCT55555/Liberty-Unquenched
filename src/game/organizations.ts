@@ -84,7 +84,7 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     nameZh: '伊比利亚自由青年联合会',
     type: 'youth',
     owner: 'CNT_FAI',
-    icon: '/img/Organization/JJLA_Emblempng.png',
+    icon: '/img/Organization/FIJL_Emblempng.png',
     defaultEstablished: { '1933': true, '1936': true },
     defaultEstablishedAt: { '1933': { year: 1932, month: 1 }, '1936': { year: 1932, month: 1 } },
     uiVisibility: 'visible',
