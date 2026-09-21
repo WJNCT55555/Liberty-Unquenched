@@ -6,6 +6,7 @@ import {
   getMilitiaRecruitmentPools,
   type RecruitmentPoolView,
 } from './rules/warSetup';
+import { normalizeGeneralElectionSchedule } from './rules/electionSchedule';
 import type {
   Advisor,
   AdvisorAction,
@@ -61,6 +62,57 @@ export const selectEndingState = (state: GameState): GameState | null => (
   state.isGameOver && state.ending ? state : null
 );
 
+export interface GeneralElectionViewModel {
+  status: 'scheduled' | 'suspended';
+  schedule: GameState['generalElectionSchedule'];
+}
+
+/** Single presentation boundary for every consumer of the election calendar. */
+export const selectGeneralElectionViewModel = (state: GameState): GeneralElectionViewModel => ({
+  status: state.civilWarStatus === 'not_started' ? 'scheduled' : 'suspended',
+  schedule: normalizeGeneralElectionSchedule(state),
+});
+
+const ENGLISH_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+export const formatGeneralElectionViewModel = (
+  view: GeneralElectionViewModel,
+  isZh: boolean,
+): string => {
+  if (view.status === 'suspended') {
+    return isZh ? '已停摆 (内战爆发)' : 'Suspended (Civil War)';
+  }
+
+  const { nextElectionAt, reason, crisis } = view.schedule;
+  const date = isZh
+    ? `${nextElectionAt.year}年${nextElectionAt.month}月`
+    : `${ENGLISH_MONTHS[nextElectionAt.month - 1]} ${nextElectionAt.year}`;
+
+  if (reason === 'constituent') {
+    return `${date} (${isZh ? '制宪议会大选' : 'Constituent Cortes'})`;
+  }
+  if (reason === 'term_expiry') {
+    return `${date} (${isZh ? '四年期满' : '4-Year Term'})`;
+  }
+  if (crisis?.coalitionId === 'ceda_radical') {
+    return `${date} (${isZh ? '因丑闻与联盟瓦解提前大选' : 'Early Election due to Scandal & Collapse'})`;
+  }
+  return `${date} (${isZh ? '因内阁危机提前大选' : 'Early Election due to Cabinet Crisis'})`;
+};
+
 const equalStateKeys = <Key extends keyof GameState>(keys: readonly Key[]) => (
   left: GameState,
   right: GameState,
@@ -112,11 +164,10 @@ export const arePoliticalModalStatesEqual = equalStateKeys([
   'domesticPolicy',
   'falange_jons',
   'fe_founded',
+  'generalElectionSchedule',
   'government',
   'iberianDefense',
   'ir_formed',
-  'isCedaRadicalDissolved',
-  'isRepublicanSocialistDissolved',
   'lawStanceModifiers',
   'ministers',
   'month',
@@ -185,13 +236,12 @@ export const areSidePanelStatesEqual = equalStateKeys([
   'falange_jons',
   'fe_founded',
   'foreign_exchange',
+  'generalElectionSchedule',
   'gold_reserves',
   'government',
   'iberianDefense',
   'inflation_rate',
   'ir_formed',
-  'isCedaRadicalDissolved',
-  'isRepublicanSocialistDissolved',
   'language',
   'lawStanceModifiers',
   'mapResources',

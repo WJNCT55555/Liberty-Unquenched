@@ -2,7 +2,7 @@ import { getPartyName } from "../game/partyNames";
 import React, { useState } from 'react';
 import { useGameActions, useGameSelector, shallowEqual } from '../game/GameContext';
 import { cn } from '../lib/utils';
-import { Calendar, Coins, ShieldAlert, Zap, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
+import { Calendar, Coins, ShieldAlert, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AchievementsModal } from './AchievementsModal';
 import { useMusic, MusicPlayerUI } from './MusicPlayer';
@@ -342,16 +342,6 @@ const TabButton = ({ onClick, isActive, label }: { onClick: () => void, isActive
   >
     <span className="skew-x-[30deg] text-[10px] uppercase font-typewriter tracking-wider group-hover:scale-105 transition-transform">{label}</span>
   </button>
-);
-
-const StatItem = ({ icon, label, value, isAlert }: { icon: React.ReactNode; label: string; value: number; isAlert?: boolean }) => (
-  <div className="flex flex-col items-center">
-    <div className={cn("flex items-center gap-1.5 mb-1", isAlert ? "text-cnt-red animate-pulse" : "")}>
-      {icon}
-      <span className="font-mono text-lg tracking-tight">{formatCompactNumber(value)}%</span>
-    </div>
-    <span className="text-[9px] uppercase tracking-widest opacity-60">{label}</span>
-  </div>
 );
 
 const ResourceItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) => (

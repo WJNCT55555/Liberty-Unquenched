@@ -73,6 +73,7 @@ export const crossroadsUprisingAlliance: GameEvent = {
           journal: updatedJournal,
           activeCoalitions: nextState.activeCoalitions,
           coalitionHistory: nextState.coalitionHistory,
+          pendingEvents: nextState.pendingEvents,
           stats: {
             ...nextState.stats
           }

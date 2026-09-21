@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
-import { GameState, Party, CoalitionId } from '../game/types';
+import { GameState, Party } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport } from '../game/parties';
 import { getPartyName, getPartyColor } from '../game/partyNames';
 import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { calculateElectionResults, getCoalitionMembers } from '../game/utils';
 import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
+import { formatGeneralElectionViewModel, selectGeneralElectionViewModel } from '../game/selectors';
 import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
 import { ParliamentChart, type ParliamentData } from './ParliamentChart';
-import { X, Users, Vote, Briefcase, Info, Layers, UserCheck } from 'lucide-react';
+import { X, Users, Vote, Briefcase, Layers, UserCheck } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -389,32 +390,10 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
     }));
   if (vacantSeats > 0) chartData.push({ id: 'vacant', name: isZh ? '战时空缺' : 'Wartime vacancies', seats: vacantSeats, color: '#d1ccc2' });
 
-  // Calculate Next Election Date
-  const getNextElectionText = () => {
-    if (state.civilWarStatus !== 'not_started') {
-      return isZh ? '已停摆 (内战爆发)' : 'Suspended (Civil War)';
-    }
-    const year = state.year;
-    const month = state.month;
-    
-    if (year < 1931 || (year === 1931 && month < 6)) {
-      return isZh ? '1931年6月 (制宪议会大选)' : 'June 1931 (Constituent Cortes)';
-    } else if (year < 1933 || (year === 1933 && month < 11)) {
-      if (state.isRepublicanSocialistDissolved) {
-        return isZh ? '1933年11月 (因内阁危机提前大选)' : 'November 1933 (Early Election due to Cabinet Crisis)';
-      } else {
-        return isZh ? '1935年6月 (四年期满)' : 'June 1935 (4-Year Term)';
-      }
-    } else if (year < 1936 || (year === 1936 && month < 2)) {
-      if (state.isCedaRadicalDissolved) {
-        return isZh ? '1936年2月 (因丑闻与联盟瓦解提前大选)' : 'February 1936 (Early Election due to Scandal & Collapse)';
-      } else {
-        return isZh ? '1937年11月 (四年期满)' : 'November 1937 (4-Year Term)';
-      }
-    } else {
-      return isZh ? '1940年2月 (四年期满)' : 'February 1940 (4-Year Term)';
-    }
-  };
+  const nextElectionText = formatGeneralElectionViewModel(
+    selectGeneralElectionViewModel(state),
+    isZh,
+  );
 
 
   const allParties = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT_FAI'] as const;
@@ -651,7 +630,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         {isZh ? '下届大选日程' : 'Next Election'}
                       </span>
                       <span className="font-typewriter text-[11px] font-bold text-cnt-red mt-1.5 tracking-tight leading-tight block">
-                        {getNextElectionText()}
+                        {nextElectionText}
                       </span>
                     </div>
                   </div>

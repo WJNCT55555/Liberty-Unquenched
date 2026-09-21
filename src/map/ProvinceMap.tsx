@@ -6,7 +6,7 @@
 import React, { useMemo, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Province, MapFaction as Faction, Army } from './types_map';
-import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, CultureGroup, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, isPortugalProvince } from './map_constants';
+import { FACTION_COLORS, UI_COLORS, MAJOR_CITIES, PROVINCE_ADJACENCY, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords } from './map_constants';
 import { ZoomIn, ZoomOut, RotateCcw, Swords, Map, Mountain, Users, Shield } from 'lucide-react';
 import * as d3 from 'd3';
 import { getMapFactionName, canEnterMapProvince } from './rules/factions';
@@ -173,12 +173,6 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
     return centers;
   }, [geoData, provinces]);
 
-  const [collapsedStates, setCollapsedStates] = useState<Record<string, boolean>>({
-    canarias: false,
-    azores: true,
-    madeira: true,
-  });
-
   // Inset Map Configuration
   const INSET_CONFIG = useMemo<Record<string, InsetConfig>>(() => ({
     canarias: { 
@@ -206,10 +200,6 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
       collapsedBox: { x: 20, y: 250, w: 80, h: 30 }
     }
   }), []);
-
-  const toggleInset = (key: string) => {
-    setCollapsedStates(prev => ({ ...prev, [key]: !prev[key] }));
-  };
 
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1484,7 +1474,6 @@ export const ProvinceMap: React.FC<ProvinceMapProps> = ({
                 const prov = provinces[hoveredProvinceId];
                 const culture = PROVINCE_CULTURES[hoveredProvinceId];
                 const region = PROVINCE_REGIONS[hoveredProvinceId];
-                const factionNameCn = prov.owner === Faction.REPUBLICAN ? '共和国' : prov.owner === Faction.NATIONALIST ? '国民军' : prov.owner === Faction.PORTUGAL ? '葡萄牙' : prov.owner === Faction.WORKERS_ALLIANCE ? '工人联盟自治政府' : prov.owner === Faction.UNITED_KINGDOM ? '英国' : prov.owner === Faction.ANDORRA ? '安道尔' : '中立';
                 const factionName = getMapFactionName(prov.owner, lang === 'zh');
                 const terrainLabels: Record<string, string> = lang === 'zh' 
                   ? { urban: '城市', plains: '平原', mountains: '山地', forest: '森林' }

@@ -1,4 +1,4 @@
-import { Party, SocialClass } from './types';
+import type { SocialClass } from './types';
 import { PARTY_COLORS } from './parties';
 
 export { PARTY_COLORS };

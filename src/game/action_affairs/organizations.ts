@@ -1,6 +1,10 @@
 import { Card, GameState } from '../types';
 import { adjustClassSupport, adjustFactionDissent, adjustFactionDissents, adjustFactionInfluence } from '../utils';
+import { fijlCard } from './fijl';
+import { landAndFreedom } from './land_and_freedom';
 import { media } from './media';
+import { mujeresLibresCard } from './mujeres_libres';
+import { prrevsCampaigning } from './prrevs_campaigning';
 import { adjustCntMilitiaManpower, isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
 
 export const organizationsCard: Card = {
@@ -80,6 +84,61 @@ export const organizationsCard: Card = {
             };
           }
         },
+        ...(isOrganizationEstablished(state, 'FNA') ? [{
+              text: 'Open Land and Freedom (-1 Resource)',
+              textZh: '进入土地与自由（-1 资源）',
+              subtitle: 'Use the FNA network to open the Land and Freedom decisions immediately.',
+              subtitleZh: '借助全国农民联合会网络，直接进入土地与自由决策。',
+              condition: (s: GameState) => s.resources >= 1,
+              unavailableSubtitle: () => 'Need at least 1 resource.',
+              unavailableSubtitleZh: () => '需要至少 1 资源。',
+              effect: (s: GameState) => {
+                const landResult = landAndFreedom.effect(s);
+                return {
+                  resources: s.resources - 1,
+                  currentEvent: landResult.currentEvent
+                };
+              }
+            }] : []),
+        ...(isOrganizationEstablished(state, 'ML') ? [{
+              text: 'Open Mujeres Libres',
+              textZh: '进入自由女性',
+              subtitle: 'Open the Mujeres Libres decisions immediately, bypassing its standalone card cooldown.',
+              subtitleZh: '直接进入自由女性决策，并绕过其独立卡牌冷却。',
+              effect: (s: GameState) => {
+                const mujeresResult = mujeresLibresCard.effect(s);
+                return {
+                  mujeres_libres_timer: 0,
+                  currentEvent: mujeresResult.currentEvent
+                };
+              }
+            }] : []),
+        ...(isOrganizationEstablished(state, 'FIJL') ? [{
+              text: 'Open FIJL Youth',
+              textZh: '进入伊比利亚自由青年联合会',
+              subtitle: 'Open the FIJL decisions immediately, bypassing its standalone card cooldown.',
+              subtitleZh: '直接进入伊比利亚自由青年联合会决策，并绕过其独立卡牌冷却。',
+              effect: (s: GameState) => {
+                const fijlResult = fijlCard.effect(s);
+                return {
+                  fijl_timer: 0,
+                  currentEvent: fijlResult.currentEvent
+                };
+              }
+            }] : []),
+        ...(isOrganizationEstablished(state, 'PRRevS') ? [{
+              text: 'Open PRRevS Electoral Campaign',
+              textZh: '进入PRRevS选举宣传',
+              subtitle: 'Open the PRRevS electoral campaign decisions immediately, bypassing its campaign cooldown.',
+              subtitleZh: '直接进入PRRevS选举宣传决策，并绕过竞选冷却。',
+              effect: (s: GameState) => {
+                const prrevsResult = prrevsCampaigning.effect(s);
+                return {
+                  prrevs_campaign_timer: 0,
+                  currentEvent: prrevsResult.currentEvent
+                };
+              }
+            }] : []),
         ...(!isOrganizationEstablished(state, 'FIJL') ? [{
               text: 'Establish FIJL Youth (-2 Resources)',
               textZh: '推动自由青年联合会(FIJL)成立 (-2 资源)',

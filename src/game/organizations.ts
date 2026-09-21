@@ -419,7 +419,6 @@ export const getDefaultOrganizationState = (scenario: GameState['scenario']): Or
     result[definition.id] = {
       established: definition.defaultEstablished?.[scenario] === true,
       status: definition.defaultEstablished?.[scenario] === true ? 'active' : 'unformed',
-      ...(definition.type === 'militia' ? { militiaManpower: 0 } : {}),
       ...(definition.defaultEstablishedAt?.[scenario]
         ? { establishedAt: definition.defaultEstablishedAt[scenario] }
         : {}),
@@ -486,26 +485,13 @@ const FLAG_BACKED_ORGANIZATIONS: Array<[OrganizationId, keyof GameState]> = [
 
 /** Ensure every registered organization has a normalized state entry. */
 export const normalizeOrganizationState = (state: GameState): GameState => {
-  const rawOrganizations = { ...(state.organizations || {}) } as OrganizationStateMap & Record<string, OrganizationState | undefined>;
-  // Migrate the short-lived split model: old MC state is now the DC militia state.
-  if (rawOrganizations.MC?.established && !rawOrganizations.DC?.established) {
-    rawOrganizations.DC = { ...(rawOrganizations.DC || {}), ...rawOrganizations.MC };
-  }
-  delete rawOrganizations.MC;
-  // The Rabassaire union used to hold the `UR` id, which now belongs to the Unión
-  // Republicana party. Move the legacy entry once; UR itself is rebuilt below.
-  if (!rawOrganizations.UNIO_RABASSAIRES && rawOrganizations.UR) {
-    rawOrganizations.UNIO_RABASSAIRES = { ...rawOrganizations.UR };
-    delete rawOrganizations.UR;
-  }
-  const organizations = rawOrganizations as OrganizationStateMap;
+  const organizations = { ...(state.organizations || {}) } as OrganizationStateMap;
   ORGANIZATION_DEFINITIONS.forEach((definition) => {
     const current = organizations[definition.id];
     organizations[definition.id] = {
       ...(current || {}),
       established: current?.established === true,
       status: current?.status || (current?.established === true ? 'active' : 'unformed'),
-      ...(definition.type === 'militia' ? { militiaManpower: Math.max(0, current?.militiaManpower || 0) } : {}),
       ...(current?.established && !current.establishedAt && definition.defaultEstablishedAt?.[state.scenario]
         ? { establishedAt: definition.defaultEstablishedAt[state.scenario] }
         : {}),
@@ -527,49 +513,15 @@ export const normalizeOrganizationState = (state: GameState): GameState => {
     };
   });
 
-  const legacyPools = (state.armedForces?.entityPools || {}) as Record<string, ArmedEntityPool | undefined>;
   const entityPools = {
     ...getDefaultArmedEntityPools(),
-    ...legacyPools,
+    ...state.armedForces.entityPools,
   };
-  if (legacyPools.milicias_confederales) {
-    const currentCntPool = entityPools.cnt_defense_committees;
-    const legacyCntPool = legacyPools.milicias_confederales;
-    entityPools.cnt_defense_committees = {
-      ...currentCntPool,
-      entityId: 'cnt_defense_committees',
-      organizationId: 'DC',
-      status: currentCntPool.status === 'active' || legacyCntPool.status === 'active' ? 'active' : currentCntPool.status,
-      manpower: currentCntPool.manpower + legacyCntPool.manpower,
-      artillery: currentCntPool.artillery + legacyCntPool.artillery,
-      tanks: currentCntPool.tanks + legacyCntPool.tanks,
-    };
-  }
-  delete (entityPools as Record<string, unknown>).milicias_confederales;
-
-  const legacyMilitiaManpower: Partial<Record<OrganizationId, number>> = {
-    DC: state.armedForces?.militias?.cntFai,
-    MAOC: state.armedForces?.militias?.maoc,
-  };
-  ORGANIZATION_DEFINITIONS.forEach((definition) => {
-    if (definition.type !== 'militia' || !definition.armedEntityId) return;
-    if (!isOrganizationActive({ organizations }, definition.id)) return;
-    const pool = entityPools[definition.armedEntityId];
-    const militiaManpower = Math.max(
-      organizations[definition.id]?.militiaManpower || 0,
-      pool?.manpower || 0,
-      legacyMilitiaManpower[definition.id] || 0,
-    );
-    organizations[definition.id] = { ...organizations[definition.id]!, militiaManpower };
-    entityPools[definition.armedEntityId] = { ...pool, manpower: militiaManpower };
-  });
 
   return {
     ...state,
     organizations,
-    armedForces: state.armedForces
-      ? { ...state.armedForces, entityPools }
-      : state.armedForces,
+    armedForces: { ...state.armedForces, entityPools },
     fijl_timer: Number.isFinite(state.fijl_timer)
       ? Math.max(0, state.fijl_timer)
       : 0,
@@ -646,25 +598,6 @@ export const getDefaultArmedEntityPools = (): Record<ArmedEntityId, ArmedEntityP
   }, {} as Record<ArmedEntityId, ArmedEntityPool>)
 );
 
-/** Activate an entity only after its corresponding organization exists. */
-export const activateArmedEntity = (
-  state: GameState,
-  organizationId: OrganizationId,
-  activeFrom = { year: state.year, month: state.month },
-): Partial<GameState> => {
-  const definition = getOrganizationDefinition(organizationId);
-  if (!definition?.armedEntityId || !isOrganizationActive(state, organizationId)) return {};
-  const pools = {
-    ...(state.armedForces.entityPools || getDefaultArmedEntityPools()),
-    [definition.armedEntityId]: {
-      ...(state.armedForces.entityPools?.[definition.armedEntityId] || EMPTY_POOL(definition.armedEntityId, organizationId, definition.owner)),
-      status: 'active' as const,
-      activeFrom,
-    },
-  };
-  return { armedForces: { ...state.armedForces, entityPools: pools } };
-};
-
 /**
  * Apply the July 1936 mobilization chain. Party organizations are historical
  * prerequisites; their militia organizations and pools activate when the
@@ -701,7 +634,7 @@ export const activateCivilWarOrganizations = (state: GameState): Partial<GameSta
   }
   if (state.year > 1936 || (state.year === 1936 && state.month >= 12)) form('ITALIAN_CTV');
 
-  const pools = { ...(state.armedForces.entityPools || getDefaultArmedEntityPools()) };
+  const pools = { ...state.armedForces.entityPools };
   ORGANIZATION_DEFINITIONS.forEach((definition) => {
     if (!definition.armedEntityId || !isOrganizationActive({ organizations }, definition.id)) return;
     const existing = pools[definition.armedEntityId] || EMPTY_POOL(definition.armedEntityId, definition.id, definition.owner);
@@ -713,42 +646,12 @@ export const activateCivilWarOrganizations = (state: GameState): Partial<GameSta
     };
   });
 
-  const legacyManpower: Partial<Record<ArmedEntityId, number>> = {
-    cnt_defense_committees: state.armedForces.militias.cntFai,
-    maoc: state.armedForces.militias.maoc,
-    poum_militias: state.armedForces.militias.poum,
-    ugt_socialist_militias: state.armedForces.militias.ugt,
-    requetes: state.armedForces.militias.requete,
-    falange_first_line: state.armedForces.militias.falange,
-    international_brigades: state.internationalBrigades,
-  };
-  Object.entries(legacyManpower).forEach(([entityId, manpower]) => {
-    const pool = pools[entityId as ArmedEntityId];
-    if (pool && pool.status === 'active' && pool.manpower === 0 && manpower !== undefined) {
-      pools[entityId as ArmedEntityId] = { ...pool, manpower: Math.max(0, manpower) };
-    }
-  });
   const maocPool = pools.maoc;
   const fifthPool = pools.fifth_regiment;
   if (maocPool && fifthPool && fifthPool.status === 'active' && fifthPool.manpower === 0) {
-    pools.fifth_regiment = { ...fifthPool, manpower: maocPool.manpower || Math.max(0, state.armedForces.militias.maoc) };
+    pools.fifth_regiment = { ...fifthPool, manpower: maocPool.manpower };
     pools.maoc = { ...maocPool, status: 'integrated', manpower: 0 };
   }
-
-  ORGANIZATION_DEFINITIONS.forEach((definition) => {
-    if (definition.type !== 'militia' || !definition.armedEntityId) return;
-    if (!isOrganizationActive({ organizations }, definition.id)) return;
-    const pool = pools[definition.armedEntityId];
-    const legacyValue = definition.id === 'DC' ? state.armedForces.militias.cntFai : 0;
-    const militiaManpower = Math.max(
-      0,
-      organizations[definition.id]?.militiaManpower || 0,
-      pool?.manpower || 0,
-      legacyValue,
-    );
-    organizations[definition.id] = { ...organizations[definition.id]!, militiaManpower };
-    pools[definition.armedEntityId] = { ...pool, manpower: militiaManpower };
-  });
 
   return {
     organizations,
@@ -756,31 +659,22 @@ export const activateCivilWarOrganizations = (state: GameState): Partial<GameSta
   };
 };
 
-/** Keep the DC militia organization, source-owned pool, and legacy view in sync. */
+/** Adjust the canonical CNT defence-committee manpower pool. */
 export const adjustCntMilitiaManpower = (state: GameState, delta: number): Partial<GameState> => {
   const organizationId: OrganizationId = 'DC';
   if (!isOrganizationActive(state, organizationId)) return {};
   const definition = getOrganizationDefinition(organizationId);
   const entityId = definition.armedEntityId;
   if (!entityId) return {};
-  const existingPool = state.armedForces.entityPools?.[entityId]
+  const existingPool = state.armedForces.entityPools[entityId]
     || EMPTY_POOL(entityId, organizationId, 'CNT_FAI');
-  const currentValue = Math.max(
-    existingPool.manpower,
-    state.organizations.DC?.militiaManpower || 0,
-    state.armedForces.militias.cntFai || 0,
-  );
+  const currentValue = existingPool.manpower;
   const nextValue = Math.max(0, currentValue + delta);
   const pools = {
-    ...(state.armedForces.entityPools || getDefaultArmedEntityPools()),
+    ...state.armedForces.entityPools,
     [entityId]: { ...existingPool, status: 'active' as const, manpower: nextValue },
   };
-  const organizations = {
-    ...state.organizations,
-    DC: { ...state.organizations.DC!, militiaManpower: nextValue },
-  };
-  const militias = { ...state.armedForces.militias, cntFai: nextValue };
-  return { organizations, armedForces: { ...state.armedForces, militias, entityPools: pools } };
+  return { armedForces: { ...state.armedForces, entityPools: pools } };
 };
 
 /** Apply all recurring organization effects without mutating the input. */

@@ -139,6 +139,8 @@ export const calculateMonthlyEventQueue = (
     'elections_1933_results',
     'elections_1936',
     'elections_1936_results',
+    'general_election_campaign',
+    'general_election_results',
     'presidential_dissolution_of_cortes',
     'early_general_election_results',
     'presidential_election_decision',
@@ -146,12 +148,25 @@ export const calculateMonthlyEventQueue = (
   if (isSpanishCivilWarOngoing(nextState)) {
     pendingEvents = pendingEvents.filter(event => !electionChainIds.has(event.id) && !event.id.startsWith('presidential_election_'));
   }
+  const awaitingPresidentialDissolution = Boolean(
+    nextState.governmentCrisis
+    && !nextState.earlyElectionInProgress
+    && nextState.civilWarStatus !== 'ongoing',
+  );
+  if (awaitingPresidentialDissolution) {
+    // A crisis must first pass through the constitutional dissolution event.
+    // If its scheduled election date is already due, defer that campaign until
+    // the next monthly queue pass instead of entering both roots together.
+    pendingEvents = pendingEvents.filter(event => ![
+      'elections_1933',
+      'elections_1936',
+      'general_election_campaign',
+    ].includes(event.id));
+  }
   const electionAlreadyScheduled = pendingEvents.some(event => electionChainIds.has(event.id))
     || Boolean(previousState.currentEvent && electionChainIds.has(previousState.currentEvent.id));
   if (
-    nextState.governmentCrisis
-    && !nextState.earlyElectionInProgress
-    && nextState.civilWarStatus !== 'ongoing'
+    awaitingPresidentialDissolution
     && !electionAlreadyScheduled
   ) {
     const dissolutionEvent = SCHEDULED_EVENT_REGISTRY.find(event => event.id === 'presidential_dissolution_of_cortes');

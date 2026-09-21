@@ -7,6 +7,8 @@ import * as wartimeArrangementDefinitions from '../events/civil_war/wartime_powe
 import * as mayDaysDefinitions from '../events/civil_war/may_days';
 import * as elections1936Definitions from '../events/elections_1936';
 import * as earlyElectionDefinitions from '../events/early_general_election';
+import * as generalElectionDefinitions from '../events/general_election';
+import { coalitionDissolutionEvents } from '../events/coalition_dissolution';
 import * as ramonCampaignDefinitions from '../events/ramon_campaign_events';
 import * as presidentialElectionDefinitions from '../events/presidential_election_chain';
 import * as asturiasDefinitions from '../events/asturias_revolution';
@@ -40,6 +42,8 @@ export const RESTORABLE_EVENT_REGISTRY: GameEvent[] = mergeRegistryDefinitions('
   ...eventDefinitionsFrom(mayDaysDefinitions),
   ...eventDefinitionsFrom(elections1936Definitions),
   ...eventDefinitionsFrom(earlyElectionDefinitions),
+  ...eventDefinitionsFrom(generalElectionDefinitions),
+  ...coalitionDissolutionEvents,
   ...eventDefinitionsFrom(ramonCampaignDefinitions),
   ...eventDefinitionsFrom(presidentialElectionDefinitions),
   ...eventDefinitionsFrom(asturiasDefinitions),

@@ -114,6 +114,11 @@ const state = {
   pendingEvents: [rootEvent],
   currentEvent: nestedEvent,
   armies: [legacyArmy],
+  generalElectionSchedule: {
+    lastElectionAt: { year: 1931, month: 6 },
+    nextElectionAt: { year: 1935, month: 6 },
+    reason: 'term_expiry',
+  },
 } as unknown as GameState;
 
 const snapshot = serializeGameState(state);
@@ -137,8 +142,93 @@ assert.equal(restored.mapSelectedProvinceId, null);
 assert.deepEqual(restored.mapSelectedArmyIds, []);
 assert(Object.keys(restored.provinces).length > 0, 'Legacy saves must receive the canonical province map.');
 assert.equal(restored.mapResources[MapFaction.WORKERS_ALLIANCE].manpower, 0, 'Every map faction must have normalized resources.');
+assert.deepEqual(restored.generalElectionSchedule, state.generalElectionSchedule);
 assert.equal(typeof restored.currentEvent?.options[0].effect, 'function');
 assert.equal(restored.currentEvent?.options[0].effect(restored).resources, 10);
+
+const legacyOrganizationSnapshot = JSON.parse(serializedText);
+legacyOrganizationSnapshot.state.civilWarStatus = 'not_started';
+legacyOrganizationSnapshot.state.uhp_journal_activated = true;
+Object.assign(legacyOrganizationSnapshot.state, {
+  socialism: 12,
+  nationalism: 34,
+  pacifism: 56,
+  democratization: 78,
+  pro_republic: 90,
+});
+legacyOrganizationSnapshot.state.journal = {
+  journal_uhp: { id: 'journal_uhp', status: 'inactive', progress: 0 },
+};
+legacyOrganizationSnapshot.state.organizations = {
+  UR: { established: true, status: 'active' },
+  MC: { established: true, status: 'active', militiaManpower: 450 },
+};
+legacyOrganizationSnapshot.state.armedForces = {
+  militias: { cntFai: 200, maoc: 80 },
+  entityPools: {
+    milicias_confederales: {
+      entityId: 'milicias_confederales',
+      organizationId: 'MC',
+      owner: 'CNT_FAI',
+      status: 'active',
+      manpower: 100,
+      artillery: 2,
+      tanks: 1,
+    },
+  },
+};
+const restoredLegacyOrganizations = deserializeGameState(legacyOrganizationSnapshot, {
+  cards: [card],
+  advisors: [advisor],
+  events: [],
+});
+assert.equal(restoredLegacyOrganizations.organizations.UNIO_RABASSAIRES?.established, true, 'The legacy UR union entry must move to its canonical id.');
+assert.equal(restoredLegacyOrganizations.organizations.UR?.established, false, 'The UR party must remain a separate canonical organization.');
+assert.equal(restoredLegacyOrganizations.organizations.DC?.established, true, 'The legacy MC organization must move to DC.');
+assert.equal(restoredLegacyOrganizations.armedForces.entityPools.cnt_defense_committees.manpower, 450, 'Organization manpower must migrate to the canonical entity pool without double counting.');
+assert.equal(restoredLegacyOrganizations.armedForces.entityPools.cnt_defense_committees.artillery, 2);
+assert.equal(restoredLegacyOrganizations.armedForces.entityPools.maoc.manpower, 80);
+assert.equal(restoredLegacyOrganizations.journal.journal_uhp.status, 'active');
+assert.equal('uhp_journal_activated' in restoredLegacyOrganizations, false);
+assert.equal('militias' in restoredLegacyOrganizations.armedForces, false);
+assert.equal('militiaManpower' in restoredLegacyOrganizations.organizations.DC, false);
+for (const key of ['socialism', 'nationalism', 'pacifism', 'democratization', 'pro_republic']) {
+  assert.equal(key in restoredLegacyOrganizations, false, `Legacy SDAAH field ${key} must be removed during load.`);
+}
+
+const legacyElectionSnapshot = JSON.parse(serializedText);
+delete legacyElectionSnapshot.state.generalElectionSchedule;
+legacyElectionSnapshot.state.isRepublicanSocialistDissolved = false;
+legacyElectionSnapshot.state.isCedaRadicalDissolved = false;
+const restoredLegacyElection = deserializeGameState(legacyElectionSnapshot, {
+  cards: [card],
+  advisors: [advisor],
+  events: [],
+});
+assert.deepEqual(restoredLegacyElection.generalElectionSchedule, {
+  lastElectionAt: { year: 1931, month: 6 },
+  nextElectionAt: { year: 1935, month: 6 },
+  reason: 'term_expiry',
+});
+
+const phaseZeroElectionSnapshot = JSON.parse(serializedText);
+phaseZeroElectionSnapshot.state.year = 1935;
+phaseZeroElectionSnapshot.state.month = 11;
+phaseZeroElectionSnapshot.state.dissolutionCount = 1;
+phaseZeroElectionSnapshot.state.governmentCrisisSequence = 1;
+phaseZeroElectionSnapshot.state.generalElectionSchedule = {
+  lastElectionAt: { year: 1933, month: 11 },
+  nextElectionAt: { year: 1936, month: 2 },
+  reason: 'government_crisis',
+  crisis: { coalitionId: 'ceda_radical', sequence: 1 },
+};
+const restoredPhaseZeroElection = deserializeGameState(phaseZeroElectionSnapshot, {
+  cards: [card],
+  advisors: [advisor],
+  events: [],
+});
+assert.equal(restoredPhaseZeroElection.governmentCrisisSequence, 2);
+assert.equal(restoredPhaseZeroElection.generalElectionSchedule.crisis?.sequence, 2);
 
 const partialMapSnapshot = JSON.parse(serializedText);
 partialMapSnapshot.state.mapResources = { [MapFaction.REPUBLICAN]: { manpower: 321 } };

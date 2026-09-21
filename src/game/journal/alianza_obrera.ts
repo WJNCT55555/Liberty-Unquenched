@@ -1,5 +1,4 @@
-import { JournalEntryDef } from '../types';
-import { formCoalition } from '../utils';
+import type { JournalEntryDef } from '../types';
 import { getRightShare, getUnionShare } from '../unions';
 
 export const alianzaObreraJournal: JournalEntryDef = {
@@ -21,8 +20,7 @@ export const alianzaObreraJournal: JournalEntryDef = {
   getProgress: (state) => state.workersAllianceProgress || 0,
 
   /**
-   * 结果事件：完成时由月结管线自动推入（`rules/journalEvents.ts`），同一回合的
-   * 事件阶段即可读到。数值/状态效果只由下面的 `onComplete` 负责，事件只叙事。
+   * 完成时只排入组建事件；联盟必须由玩家在事件中正式批准，不能在月结时静默创建。
    */
   completionEventId: 'workers_alliance_formation',
 
@@ -53,17 +51,6 @@ export const alianzaObreraJournal: JournalEntryDef = {
     }
 
     return 'active';
-  },
-
-  onComplete: (state) => {
-    // Form the workers_alliance coalition. 结果事件由 completionEventId 自动入队，
-    // 这里不再手动改 pendingEvents，避免同一个事件被推两次。
-    const newState = formCoalition(state, 'workers_alliance');
-
-    return {
-      activeCoalitions: newState.activeCoalitions,
-      coalitionHistory: newState.coalitionHistory
-    };
   },
 
   onFail: (state) => ({})

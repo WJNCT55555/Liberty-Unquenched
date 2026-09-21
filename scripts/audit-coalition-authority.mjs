@@ -7,6 +7,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const sourceRoot = path.join(projectRoot, 'src');
 const coalitionAuthorityFile = 'src/game/utils/coalition.ts';
 const electionAuthorityFiles = new Set([
+  'src/game/events/general_election.tsx',
   'src/game/events/early_general_election.ts',
   'src/game/events/elections_1931_results.tsx',
   'src/game/events/elections_1933.ts',
@@ -14,6 +15,11 @@ const electionAuthorityFiles = new Set([
 ]);
 const sandboxAuthorityFiles = new Set([
   'src/components/SandboxMenu.tsx'
+]);
+const ordinaryCoalitionAuthorityFiles = new Set([
+  'src/game/events/crossroads_uprising_alliance.ts',
+  'src/game/events/workers_alliance_formation.ts',
+  ...sandboxAuthorityFiles,
 ]);
 const wartimeAuthorityFiles = new Set(['src/game/events/civil_war/wartime_power_arrangement.tsx']);
 const wartimeReshuffleFiles = new Set(['src/game/rules/mayDays.ts']);
@@ -204,6 +210,9 @@ const auditSourceFile = (absolutePath) => {
       if (name === 'formCoalition' && node.arguments.length !== 2) {
         addIssue(sourceFile, node, 'formCoalition calls must pass exactly state and coalition id; a ruling flag is forbidden.');
       }
+      if (name === 'formCoalition' && relativePath !== coalitionAuthorityFile && !ordinaryCoalitionAuthorityFiles.has(relativePath)) {
+        addIssue(sourceFile, node, 'ordinary coalition formation must be driven by an approved event option (sandbox controls excepted).');
+      }
       if (name === 'formRulingCoalitionFromElection') {
         if (!electionAuthorityFiles.has(relativePath)) {
           addIssue(sourceFile, node, 'only an approved election-result module may install a ruling coalition.');
@@ -232,6 +241,9 @@ const auditSourceFile = (absolutePath) => {
       }
       if (importedName === 'formWartimeGovernment' && !wartimeAuthorityFiles.has(relativePath)) {
         addIssue(sourceFile, node, 'wartime appointment authority may only be imported by the wartime arrangement event.');
+      }
+      if (importedName === 'formCoalition' && !ordinaryCoalitionAuthorityFiles.has(relativePath)) {
+        addIssue(sourceFile, node, 'ordinary coalition formation authority may only be imported by approved formation events or SandboxMenu.');
       }
       if (importedName === 'formRulingCoalitionFromElection' && !electionAuthorityFiles.has(relativePath)) {
         addIssue(sourceFile, node, 'ruling-coalition authority may only be imported by approved election-result modules.');

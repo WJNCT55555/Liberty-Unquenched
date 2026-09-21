@@ -2,7 +2,6 @@ import React from 'react';
 import type {
   ArmedEntityId,
   ArmyFormation,
-  MapFaction,
   MapRuntimeState,
 } from '../map/types_map';
 import { Party } from './parties';
@@ -56,8 +55,6 @@ export interface OrganizationState {
   established: boolean;
   establishedAt?: { year: number; month: number };
   status?: 'unformed' | 'active' | 'integrated' | 'dissolved';
-  /** Manpower held by a militia organization; absent for non-militia organizations. */
-  militiaManpower?: number;
 }
 
 export type OrganizationStateMap = Partial<Record<OrganizationId, OrganizationState>>;
@@ -323,6 +320,37 @@ export interface GovernmentCrisis {
   occurredAt: { year: number; month: number };
 }
 
+export interface ElectionDate {
+  year: number;
+  month: number;
+}
+
+export type GeneralElectionReason = 'constituent' | 'term_expiry' | 'government_crisis';
+export type GeneralElectionParticipation =
+  | 'abstain'
+  | 'support_left'
+  | 'prrevs_independent'
+  | 'prrevs_left_alliance';
+
+/**
+ * Canonical schedule for the next Cortes election.
+ *
+ * UI and runtime scheduling both consume this state. Dated 1933/1936 events
+ * remain historical presentation roots, but they may enter only when this
+ * schedule identifies the matching constitutional dissolution.
+ */
+export interface GeneralElectionSchedule {
+  lastElectionAt: ElectionDate | null;
+  nextElectionAt: ElectionDate;
+  reason: GeneralElectionReason;
+  /** CNT/PRRevS campaign strategy for the election currently being resolved. */
+  participation?: GeneralElectionParticipation;
+  crisis?: {
+    coalitionId: CoalitionId;
+    sequence: number;
+  };
+}
+
 export interface CoalitionDef {
   id: CoalitionId;
   name: string;
@@ -415,12 +443,6 @@ export interface GameState extends MapRuntimeState {
   currentView?: 'standard' | 'map';
   /** The peacetime standing army. The civil war instantiates it into `armies`. */
   armyFormations?: ArmyFormation[];
-  mapAiConfig?: {
-    enabled: boolean;
-    aiFaction: MapFaction;
-    difficulty: 'easy' | 'normal' | 'hard';
-    confirmed?: boolean;
-  };
   scenario: '1931' | '1933' | '1936';
   actionsLeft: number;
   
@@ -517,6 +539,7 @@ export interface GameState extends MapRuntimeState {
   governmentCrisis: GovernmentCrisis | null;
   governmentCrisisSequence: number;
   earlyElectionInProgress: boolean;
+  generalElectionSchedule: GeneralElectionSchedule;
   civilWarSetupCompletedAt?: { year: number; month: number; inferred?: boolean };
   wartimePowerArrangement?: WartimePowerArrangement;
   mayDays?: MayDaysState;
@@ -575,16 +598,8 @@ export interface GameState extends MapRuntimeState {
     guardiaAsalto: { manpower: number; loyalty: number };
     guardiaRepublicana: { manpower: number; loyalty: number };
     patrullasObreras: { manpower: number; loyalty: number };
-    militias: {
-      cntFai: number;
-      maoc: number;
-      poum: number;
-      ugt: number;
-      requete: number;
-      falange: number;
-    };
-    /** Canonical source-owned pools; `militias` remains a legacy compatibility view. */
-    entityPools?: Record<ArmedEntityId, ArmedEntityPool>;
+    /** Canonical source-owned manpower and equipment pools. */
+    entityPools: Record<ArmedEntityId, ArmedEntityPool>;
   };
   
   // Domestic Politics
@@ -674,11 +689,6 @@ export interface GameState extends MapRuntimeState {
   zamoraStatus: 'alive' | 'dead';
   alfonsoXIIIStatus: 'alive' | 'dead';
   fe_leadership_crisis: boolean;
-  socialism: number;
-  nationalism: number;
-  pacifism: number;
-  democratization: number;
-  pro_republic: number;
   francoStatus: 'alive' | 'dead' | 'republic' | 'nationalist';
   africaArmyStatus: 'delayed' | 'nationalist' | 'republic' | 'neutral';
   cataloniaControl: 'republic' | 'cnt_fai' | 'committee';

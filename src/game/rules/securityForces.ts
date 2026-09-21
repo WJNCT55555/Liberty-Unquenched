@@ -99,12 +99,6 @@ const clampLawLevel = (level: number): number => {
 export const getSecurityForces = (securityCorpsLawLevel: number): SecurityForcesState =>
   SECURITY_FORCES_BY_LAW_LEVEL[clampLawLevel(securityCorpsLawLevel)];
 
-/** Establishment strength the law grants one corps. */
-export const getSecurityCorps = (
-  securityCorpsLawLevel: number,
-  corpsId: SecurityCorpsId,
-): SecurityCorpsState => getSecurityForces(securityCorpsLawLevel)[corpsId];
-
 /**
  * Keeps the police corps in sync with the Security Corps Law.
  *

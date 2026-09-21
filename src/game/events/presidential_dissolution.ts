@@ -1,5 +1,4 @@
 import type { GameEvent } from '../types';
-import { earlyGeneralElectionResults } from './early_general_election';
 
 const presidentialDissolutionMeta = {
   category: 'politics' as const,
@@ -14,8 +13,8 @@ export const presidentialDissolutionOfCortes: GameEvent = {
   condition: () => false,
   title: 'The President Dissolves the Cortes!',
   titleZh: '总统宣布解散议会！',
-  description: 'With the collapse of the governing coalition, the legislative chamber has descended into paralysis. The President has dissolved the Cortes and decreed an early general election. Spain is again thrown into an electoral campaign, and only the result at the ballot box may establish the next governing coalition.',
-  descriptionZh: '随着执政联盟崩溃，议会陷入瘫痪。总统宣布解散议会并提前举行大选。西班牙再次进入选举周期，下一届执政联盟只能由投票结果产生。',
+  description: 'With the collapse of the governing coalition, the legislative chamber has descended into paralysis. The President has dissolved the Cortes and decreed an early general election for the date already recorded in the constitutional calendar. Spain enters a caretaker period; the election result will establish the next governing coalition.',
+  descriptionZh: '随着执政联盟崩溃，议会陷入瘫痪。总统宣布解散议会，并按照宪政日程中已经记录的日期提前举行大选。西班牙进入看守期；下一届执政联盟将由选举结果产生。',
   options: [
     {
       text: 'Acknowledge the presidential decree and prepare for early elections.',
@@ -31,10 +30,6 @@ export const presidentialDissolutionOfCortes: GameEvent = {
           earlyElectionInProgress: true,
           dissolutionCount: nextCount,
           impeachPresidentAvailable: state.impeachPresidentAvailable || canImpeach,
-          pendingEvents: [
-            { ...earlyGeneralElectionResults },
-            ...state.pendingEvents.filter(e => e.id !== earlyGeneralElectionResults.id)
-          ]
         };
       }
     }

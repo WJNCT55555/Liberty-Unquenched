@@ -13,11 +13,13 @@ import {
   arePoliticalModalStatesEqual,
   areRecruitmentPoolViewsEqual,
   areSidePanelStatesEqual,
+  formatGeneralElectionViewModel,
   selectAdvisorPanelViewModel,
   selectCardViewModel,
   selectEventBoardViewModel,
   selectEventModalViewModel,
   selectJournalViewModel,
+  selectGeneralElectionViewModel,
   selectMapRecruitmentPools,
   selectMapRuntimeState,
 } from '../src/game/selectors';
@@ -97,6 +99,22 @@ assert(areLawStanceModalStatesEqual(baseState, actionOnlyChange));
 assert(!areLawStanceModalStatesEqual(baseState, { ...baseState, lawStanceModifiers: [...baseState.lawStanceModifiers] }));
 assert(areSidePanelStatesEqual(baseState, { ...baseState, resources: baseState.resources + 1 }));
 assert(!areSidePanelStatesEqual(baseState, { ...baseState, stats: { ...baseState.stats, tension: baseState.stats.tension + 1 } }));
+assert.equal(
+  formatGeneralElectionViewModel(selectGeneralElectionViewModel(baseState), true),
+  '1931年6月 (制宪议会大选)',
+);
+assert.equal(
+  formatGeneralElectionViewModel(selectGeneralElectionViewModel({ ...baseState, civilWarStatus: 'ongoing' }), false),
+  'Suspended (Civil War)',
+);
+assert(!areSidePanelStatesEqual(baseState, {
+  ...baseState,
+  generalElectionSchedule: {
+    lastElectionAt: { year: 1931, month: 6 },
+    nextElectionAt: { year: 1935, month: 6 },
+    reason: 'term_expiry',
+  },
+}));
 
 const mapRuntime = selectMapRuntimeState(baseState);
 const unrelatedMapRuntime = selectMapRuntimeState({ ...baseState, resources: baseState.resources + 1 });

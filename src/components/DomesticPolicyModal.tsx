@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GameState } from '../game/types';
 import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, X, Languages, Users, ShieldCheck, Swords, Crosshair, UserCheck } from 'lucide-react';
-import { POLICY_DEFINITIONS, getPolicyEffectLines, type PolicyCategory, type PolicyDefinition } from '../game/rules/policyDefinitions';
+import { LAW_DEFINITIONS, getPolicyEffectLines, type PolicyCategory, type PolicyDefinition } from '../game/rules/policyDefinitions';
 
 type PolicyViewDefinition = PolicyDefinition & { icon: React.ReactNode };
 
@@ -23,13 +23,13 @@ const POLICY_ICONS: Record<PolicyDefinition['id'], React.ReactNode> = {
 };
 
 export const POLICIES_DEF: Record<PolicyCategory, PolicyViewDefinition[]> = {
-  economy: POLICY_DEFINITIONS
+  economy: LAW_DEFINITIONS
     .filter(policy => policy.category === 'economy')
     .map(policy => ({ ...policy, icon: POLICY_ICONS[policy.id] })),
-  society: POLICY_DEFINITIONS
+  society: LAW_DEFINITIONS
     .filter(policy => policy.category === 'society')
     .map(policy => ({ ...policy, icon: POLICY_ICONS[policy.id] })),
-  security: POLICY_DEFINITIONS
+  security: LAW_DEFINITIONS
     .filter(policy => policy.category === 'security')
     .map(policy => ({ ...policy, icon: POLICY_ICONS[policy.id] })),
 };

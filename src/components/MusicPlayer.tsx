@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle, Volume2, VolumeX, Radio, Disc3, Star, X, List, Music } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle, Radio, X, List, Music } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGameSelector } from '../game/GameContext';

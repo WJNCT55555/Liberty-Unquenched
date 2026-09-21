@@ -12,6 +12,7 @@ import {
   WARTIME_EVENT_ID,
 } from '../rules/wartimeCoalition';
 import { MAY_DAYS_EVENT_IDS } from '../rules/mayDays';
+import { isCoalitionDissolutionEventId } from '../events/coalition_dissolution';
 
 /**
  * Applies invariant repair, derived state, terminal-state detection, and
@@ -193,6 +194,27 @@ export const applyPostReducerPipeline = (
   // earn it back, even if a later event returns `cntStance` to 'oppose'.
   if (newState.cntStance !== 'oppose') {
     newState.cntStanceAlwaysOpposed = false;
+  }
+
+  // Coalition endings are player-facing political transitions, not silent
+  // maintenance details. Promote the first queued notice to the active event;
+  // resolving it lets this same pipeline promote the next notice, if any.
+  if (!newState.currentEvent) {
+    const noticeIndex = newState.pendingEvents.findIndex(event => isCoalitionDissolutionEventId(event.id));
+    if (noticeIndex >= 0) {
+      const notice = newState.pendingEvents[noticeIndex];
+      newState = {
+        ...newState,
+        phase: 'event',
+        actionsLeft: 0,
+        currentEvent: notice,
+        pendingEvents: newState.pendingEvents.filter((_event, index) => index !== noticeIndex),
+        eventHistory: {
+          ...newState.eventHistory,
+          triggered: [...new Set([...newState.eventHistory.triggered, notice.id])],
+        },
+      };
+    }
   }
 
   const stateWithEndings = checkEndings(newState);

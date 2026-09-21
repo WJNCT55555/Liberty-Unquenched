@@ -1,6 +1,5 @@
-import { GameState, Party, SocialClass } from '../types';
+import type { CoalitionId, GameState, Party, SocialClass } from '../types';
 import { CLASS_INFO } from '../constants';
-import { getPartySupport } from './coalition';
 import { isOrganizationEstablished } from '../organizations';
 import { getEffectiveCortes } from '../politicalEligibility';
 
@@ -32,15 +31,28 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
   // 2. Handle CNT-FAI votes
   const cntVoteFraction = (state.cntVotingRate || 0) / 100;
   const actualCntVotes = cntVotes * cntVoteFraction;
+  const participation = state.generalElectionSchedule.participation;
 
   if (actualCntVotes > 0) {
-    if (isOrganizationEstablished(state, 'PRRevS')) {
+    if (participation === 'abstain') {
+      // Deliberately leave the mobilizable CNT electorate outside the ballot.
+    } else if (
+      isOrganizationEstablished(state, 'PRRevS')
+      && (
+        participation === undefined
+        || participation === 'prrevs_independent'
+        || participation === 'prrevs_left_alliance'
+      )
+    ) {
       votes['PRRevS'] += actualCntVotes;
     } else {
-      const eligibleParties = (Object.keys(state.partyRelations) as Party[]).filter(p => {
+      const preferredParties: Party[] = participation === 'support_left'
+        ? ['PSOE', 'PCE', 'IR', 'UR', 'POUM', 'PS', 'ERC']
+        : (Object.keys(state.partyRelations) as Party[]);
+      const eligibleParties = preferredParties.filter(p => {
         if (p === 'PRRevS' || p === 'Other') return false;
         const rel = state.partyRelations[p] || 0;
-        return rel > 60;
+        return participation === 'support_left' ? rel > 40 : rel > 60;
       });
 
       if (eligibleParties.length > 0) {
@@ -100,6 +112,190 @@ export function calculateElectionResults(state: GameState): Record<Party, number
   const rawVotes = calculateRawVotes(state);
   return votesToSeats(rawVotes, 470);
 }
+
+export type GeneralElectionBloc = 'left' | 'center' | 'right' | 'prrevs';
+
+/** Every parliamentary party belongs to exactly one bloc for result comparison. */
+export const GENERAL_ELECTION_BLOC_PARTIES: Record<GeneralElectionBloc, readonly Party[]> = {
+  left: ['PSOE', 'PCE', 'IR', 'UR', 'POUM', 'PS', 'ERC'],
+  center: ['PRR', 'DLR', 'PNV', 'Other'],
+  right: ['AP', 'FE', 'CT', 'RE'],
+  prrevs: ['PRRevS'],
+};
+
+export interface GeneralElectionOutcome {
+  cortes: Record<Party, number>;
+  blocSeats: Record<GeneralElectionBloc, number>;
+  totalSeats: number;
+  majority: number;
+  leadingBloc: GeneralElectionBloc;
+  majorityBloc: GeneralElectionBloc | null;
+  formation: 'majority' | 'negotiated' | 'minority';
+  coalitionId: CoalitionId;
+  governingSeats: number;
+  prrevsConfidenceSupportPossible: boolean;
+  prrevsCabinetPossible: boolean;
+}
+
+const sumPartySeats = (cortes: Record<Party, number>, parties: readonly Party[]): number => (
+  parties.reduce((sum, party) => sum + (cortes[party] || 0), 0)
+);
+
+const coalitionForBloc = (
+  state: Pick<GameState, 'year' | 'crossroads_choice'>,
+  bloc: GeneralElectionBloc,
+): CoalitionId => {
+  if (bloc === 'left') {
+    return state.year >= 1935 || state.crossroads_choice === 'popular_front'
+      ? 'popular_front'
+      : 'republican_socialist';
+  }
+  if (bloc === 'center') return 'republican_coalition';
+  if (bloc === 'prrevs') return 'workers_alliance';
+  return state.year >= 1935 ? 'national_front' : 'ceda_radical';
+};
+
+/**
+ * Resolve one Cortes into non-overlapping blocs and a viable government route.
+ * AP belongs only to the right bloc; coalition negotiation may add the center,
+ * but the same seats are never counted twice when comparing election strength.
+ */
+export const summarizeGeneralElection = (
+  state: GameState,
+  cortes: Record<Party, number> = calculateElectionResults(state),
+): GeneralElectionOutcome => {
+  const blocSeats = Object.fromEntries(
+    (Object.entries(GENERAL_ELECTION_BLOC_PARTIES) as [GeneralElectionBloc, readonly Party[]][])
+      .map(([bloc, parties]) => [bloc, sumPartySeats(cortes, parties)]),
+  ) as Record<GeneralElectionBloc, number>;
+  const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0);
+  const majority = Math.floor(totalSeats / 2) + 1;
+  const orderedBlocs = (Object.keys(blocSeats) as GeneralElectionBloc[])
+    .sort((left, right) => blocSeats[right] - blocSeats[left]);
+  const leadingBloc = orderedBlocs[0];
+  const majorityBloc = orderedBlocs.find((bloc) => blocSeats[bloc] >= majority) || null;
+  const laborLeftSeats = sumPartySeats(cortes, ['PSOE', 'PCE', 'POUM', 'PS']);
+  const prrevsConfidenceSupportPossible = blocSeats.prrevs > 0
+    && blocSeats.left + blocSeats.prrevs >= majority;
+  const prrevsCabinetPossible = blocSeats.prrevs > 0
+    && laborLeftSeats + blocSeats.prrevs >= majority;
+
+  if (majorityBloc) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc,
+      formation: 'majority',
+      coalitionId: coalitionForBloc(state, majorityBloc),
+      governingSeats: blocSeats[majorityBloc],
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+  const participation = state.generalElectionSchedule.participation;
+  if (participation === 'prrevs_left_alliance' && prrevsCabinetPossible) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc: null,
+      formation: 'negotiated',
+      coalitionId: 'workers_alliance',
+      governingSeats: laborLeftSeats + blocSeats.prrevs,
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+  if (participation === 'prrevs_left_alliance' && prrevsConfidenceSupportPossible) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc: null,
+      formation: 'negotiated',
+      coalitionId: coalitionForBloc(state, 'left'),
+      governingSeats: blocSeats.left + blocSeats.prrevs,
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+  if (
+    participation !== 'abstain'
+    && blocSeats.left >= blocSeats.right
+    && blocSeats.left + blocSeats.center >= majority
+  ) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc: null,
+      formation: 'negotiated',
+      coalitionId: coalitionForBloc(state, 'left'),
+      governingSeats: blocSeats.left + blocSeats.center,
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+  if (blocSeats.right + blocSeats.center >= majority) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc: null,
+      formation: 'negotiated',
+      coalitionId: coalitionForBloc(state, 'right'),
+      governingSeats: blocSeats.right + blocSeats.center,
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+
+  if (blocSeats.left + blocSeats.center >= majority) {
+    return {
+      cortes,
+      blocSeats,
+      totalSeats,
+      majority,
+      leadingBloc,
+      majorityBloc: null,
+      formation: 'negotiated',
+      coalitionId: coalitionForBloc(state, 'left'),
+      governingSeats: blocSeats.left + blocSeats.center,
+      prrevsConfidenceSupportPossible,
+      prrevsCabinetPossible,
+    };
+  }
+
+  return {
+    cortes,
+    blocSeats,
+    totalSeats,
+    majority,
+    leadingBloc,
+    majorityBloc: null,
+    formation: 'minority',
+    coalitionId: coalitionForBloc(state, leadingBloc),
+    governingSeats: blocSeats[leadingBloc],
+    prrevsConfidenceSupportPossible,
+    prrevsCabinetPossible,
+  };
+};
 
 export function calculatePresidentialVotes(
   state: GameState,

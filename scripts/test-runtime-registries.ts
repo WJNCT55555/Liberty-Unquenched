@@ -11,6 +11,7 @@ import { civilWarSetup, civilWarStep31 } from '../src/game/events/civil_war/civi
 import { elections1931Results } from '../src/game/events/elections_1931_results';
 import { cabinetFormation1931 } from '../src/game/events/elections_1931_results';
 import { ramonCampaignEvent1 } from '../src/game/events/ramon_campaign_events';
+import { coalitionDissolutionEvents } from '../src/game/events/coalition_dissolution';
 import { deserializeGameState, serializeGameState } from '../src/game/saveGame';
 
 const uniqueIds = (name: string, values: readonly { id: string }[]) => {
@@ -51,7 +52,7 @@ const eventFiles = (directory: string): string[] => fs.readdirSync(directory, { 
   });
 
 /** Read authored definitions statically; importing editor metadata is never runtime scheduling logic. */
-const authoredEventIds = eventFiles(path.join('src', 'game', 'events')).flatMap((file) => {
+const literalAuthoredEventIds = eventFiles(path.join('src', 'game', 'events')).flatMap((file) => {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   return source.statements.flatMap((statement) => {
     if (!ts.isVariableStatement(statement)
@@ -65,6 +66,10 @@ const authoredEventIds = eventFiles(path.join('src', 'game', 'events')).flatMap(
     });
   });
 });
+const authoredEventIds = [
+  ...literalAuthoredEventIds,
+  ...coalitionDissolutionEvents.map(event => event.id),
+];
 
 assert.equal(new Set(authoredEventIds).size, authoredEventIds.length, 'Authored GameEvent ids must be unique.');
 assert.deepEqual(

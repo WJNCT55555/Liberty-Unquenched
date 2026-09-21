@@ -65,6 +65,11 @@ export const createScenarioState = (
   }
 
   const startMapState = initializeMapState(scenario, startCivilWarStatus);
+  const entityPools = getDefaultArmedEntityPools();
+  Object.entries(definition.armedEntityManpower).forEach(([entityId, manpower]) => {
+    const pool = entityPools[entityId as keyof typeof entityPools];
+    entityPools[entityId as keyof typeof entityPools] = { ...pool, manpower };
+  });
 
   // The starting-event filter deliberately inspects the *pre-start template*
   // rather than the finished state: event conditions were written and tuned
@@ -109,6 +114,16 @@ export const createScenarioState = (
     year: startYear,
     month: startMonth,
     civilWarStatus: startCivilWarStatus,
+    generalElectionSchedule: {
+      ...definition.generalElectionSchedule,
+      lastElectionAt: definition.generalElectionSchedule.lastElectionAt
+        ? { ...definition.generalElectionSchedule.lastElectionAt }
+        : null,
+      nextElectionAt: { ...definition.generalElectionSchedule.nextElectionAt },
+      ...(definition.generalElectionSchedule.crisis
+        ? { crisis: { ...definition.generalElectionSchedule.crisis } }
+        : {}),
+    },
     government: { ...definition.government },
     ministers: { ...definition.ministers },
     cortes: definition.cortes as GameState['cortes'],
@@ -138,6 +153,7 @@ export const createScenarioState = (
     isRepublicanSocialistDissolved: definition.history.isRepublicanSocialistDissolved,
     isCedaRadicalDissolved: definition.history.isCedaRadicalDissolved,
     dissolutionCount: definition.history.dissolutionCount,
+    governmentCrisisSequence: definition.history.dissolutionCount,
     impeachPresidentAvailable: definition.history.impeachPresidentAvailable,
     isPresidentImpeached: definition.history.isPresidentImpeached,
     presidentElectionSeen: definition.history.presidentElectionSeen,
@@ -147,8 +163,7 @@ export const createScenarioState = (
     armedForces: {
       // The police corps baseline and everything below it is scenario-free.
       ...NEUTRAL_ARMED_FORCES,
-      militias: { ...definition.militias },
-      entityPools: getDefaultArmedEntityPools(),
+      entityPools,
     },
   };
 

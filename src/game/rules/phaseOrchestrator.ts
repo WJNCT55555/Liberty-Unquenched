@@ -129,7 +129,6 @@ export const advancePhase = (
     // National accounting is a pure, shared pipeline. Journal effects and
     // phase/timer orchestration remain in this reducer.
     const monthlyPipeline = calculateMonthlyPipeline(tempState);
-    const economy = monthlyPipeline.economy;
     tempState = monthlyPipeline.state;
     const updatedHistory = [
       ...(state.economyHistory || []),
@@ -184,7 +183,8 @@ export const advancePhase = (
         tempState = { ...tempState, ...def.onFail(tempState) };
       }
 
-      // 结果事件：数值效果已由日志结算，这里只把叙事事件排进本回合的事件阶段。
+      // 结果事件在本回合事件阶段出现；需要玩家确认的状态转换可由事件选项完成，
+      // 月结不应抢先执行同一效果。
       const outcomeEventId = getJournalOutcomeEventId(def, newStatus);
       if (!outcomeEventId) return;
       const outcomeEvent = RESTORABLE_EVENT_REGISTRY.find(event => event.id === outcomeEventId);

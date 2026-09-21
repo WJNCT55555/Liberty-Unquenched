@@ -15,8 +15,6 @@ import { UNION_SHARE_LABELS } from './unions';
 type Labels = { label: string; labelZh: string };
 type FieldConfig = Labels & { reverseTone?: boolean; suffix?: string; suffixZh?: string };
 
-const POSITIVE_KEYS = new Set(['enabled', 'formed', 'completed', 'unlocked', 'established', 'secured', 'resolved', 'arrived']);
-
 const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   actionsLeft: { label: 'AP', labelZh: '行动点' },
   resources: { label: 'Resources', labelZh: '资源' },
@@ -69,11 +67,6 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   commercialized_propaganda: { label: 'Commercial propaganda', labelZh: '商业化宣传' },
   campaign_propaganda: { label: 'Campaign propaganda', labelZh: '动员宣传' },
   ideological_propaganda: { label: 'Ideological propaganda', labelZh: '意识形态宣传' },
-  socialism: { label: 'Socialism', labelZh: '社会主义倾向' },
-  nationalism: { label: 'Nationalism', labelZh: '民族主义倾向' },
-  pacifism: { label: 'Pacifism', labelZh: '和平主义倾向' },
-  democratization: { label: 'Democratization', labelZh: '民主化倾向' },
-  pro_republic: { label: 'Pro-Republic sentiment', labelZh: '亲共和国倾向' },
   leverage: { label: 'Leverage', labelZh: '政治筹码' }
 };
 
@@ -168,7 +161,7 @@ const PARTY_LABELS: Record<'CNT_FAI' | Party, Labels> = {
   IR: { label: 'AR / IR', labelZh: '共和行动 / 共和左翼' },
   UR: { label: 'PRRS / UR', labelZh: '激进社会共和党 / 共和联盟' },
   PNV: { label: 'PNV', labelZh: 'PNV' },
-  PRR: { label: 'PRR', labelZh: '共和激进党' },
+  PRR: { label: 'PRR', labelZh: '激进共和党' },
   DLR: { label: 'DLR', labelZh: '自由共和右翼' },
   AP: { label: 'AP / CEDA', labelZh: 'AP / CEDA阶段' },
   RE: { label: 'Spanish Renovation', labelZh: '西班牙革新党' },
@@ -235,7 +228,6 @@ const resolveDelta = (state: GameState, delta: number, scaledByDissent?: boolean
 
 export const resourcePreview = (delta: number): EffectPreviewLine => effectLine('Resources', '资源', delta);
 export const armamentPreview = (delta: number): EffectPreviewLine => effectLine('Armaments', '军备', delta);
-export const budgetPreview = (delta: number): EffectPreviewLine => effectLine('Budget', '预算', delta);
 
 export const statPreview = (
   state: GameState,
@@ -281,38 +273,6 @@ export const classSupportPreview = (
     resolveDelta(state, delta, options.scaledByDissent)
   );
 };
-export const partyRelationPreview = (party: Exclude<Party, 'PRRevS'>, delta: number): EffectPreviewLine => {
-  const labels = PARTY_LABELS[party];
-  return effectLine(`Relations with ${labels.label}`, `与${labels.labelZh}关系`, delta);
-};
-
-export const partySupportPreview = (party: Party, delta: number): EffectPreviewLine => {
-  const labels = PARTY_LABELS[party];
-  return effectLine(`${labels.label} support`, `${labels.labelZh}支持率`, delta);
-};
-
-export const relationPreview = (relation: keyof GameState['relations'], delta: number): EffectPreviewLine => {
-  const labels = RELATION_LABELS[relation];
-  return effectLine(labels.label, labels.labelZh, delta);
-};
-
-export const domesticPolicyPreview = (
-  policy: keyof GameState['domesticPolicy'],
-  delta: number
-): EffectPreviewLine => {
-  const labels = DOMESTIC_POLICY_LABELS[policy];
-  return effectLine(labels.label, labels.labelZh, delta, { reverseTone: labels.reverseTone });
-};
-
-export const timerPreview = (field: keyof GameState, value: number): EffectPreviewLine => {
-  const labels = TOP_LEVEL_FIELDS[String(field)] || humanizeKey(String(field));
-  return textPreview(
-    `${labels.label} set to ${formatSignedNumber(value).replace('+', '')}`,
-    `${labels.labelZh}设为 ${formatSignedNumber(value).replace('+', '')}`,
-    'neutral'
-  );
-};
-
 export const eventPreview = (title: string, titleZh: string): EffectPreviewLine => (
   textPreview(`Open event: ${title}`, `打开事件：${titleZh}`)
 );
@@ -653,12 +613,14 @@ const addArmedForcesDiffs = (
     addNumericDelta(lines, { label: 'Workers\' patrol manpower', labelZh: '工人巡逻队人力' }, before.patrullasObreras.manpower, after.patrullasObreras.manpower);
   }
 
-  if (after.militias) {
-    Object.keys(before.militias).forEach((key) => {
-      const militiaKey = key as keyof GameState['armedForces']['militias'];
-      if (!(militiaKey in after.militias!)) return;
-      const labels = humanizeKey(`${militiaKey} militia`);
-      addNumericDelta(lines, labels, before.militias[militiaKey], after.militias[militiaKey]);
+  if (after.entityPools) {
+    Object.entries(after.entityPools).forEach(([entityId, nextPool]) => {
+      if (!nextPool) return;
+      const previousPool = before.entityPools[entityId as keyof typeof before.entityPools];
+      if (!previousPool) return;
+      addNumericDelta(lines, humanizeKey(`${entityId} manpower`), previousPool.manpower, nextPool.manpower);
+      addNumericDelta(lines, humanizeKey(`${entityId} artillery`), previousPool.artillery, nextPool.artillery);
+      addNumericDelta(lines, humanizeKey(`${entityId} tanks`), previousPool.tanks, nextPool.tanks);
     });
   }
 };
@@ -772,10 +734,4 @@ export const getOptionEffectPreview = (
       textPreview('Effect preview unavailable', '效果预览不可用')
     ];
   }
-};
-
-export const enabledPreview = (label: string, labelZh: string): EffectPreviewLine => {
-  const key = label.toLowerCase();
-  const isPositive = [...POSITIVE_KEYS].some((token) => key.includes(token));
-  return textPreview(`${label}: enabled`, `${labelZh}：启用`, isPositive ? 'positive' : 'neutral');
 };

@@ -1,41 +1,37 @@
-import { gameReducer } from '../src/game/GameContext';
+import { gameReducer } from '../src/game/reducers/gameReducer';
+import { applyPostReducerPipeline } from '../src/game/reducers/postReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import { getDefaultUnionShare } from '../src/game/unions';
 import { INITIAL_CLASSES } from '../src/game/parties';
+import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from '../src/game/rules/fiscalPolicy';
+import { calculateMonthlyEconomy, clampMilitarySpending, adjustUnemploymentRate } from '../src/game/rules/economy';
+import { calculateMonthlyIncome } from '../src/game/rules/income';
+import { calculateMonthlyPolicyEffects } from '../src/game/rules/policy';
+import { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance } from '../src/game/rules/monthlyPipeline';
+import { calculateEconomicPoliticalFeedback } from '../src/game/rules/economicFeedback';
+import { getPolicyEffectLines, LAW_DEFINITIONS } from '../src/game/rules/policyDefinitions';
 import {
-  calculateIncomeTaxAdjustment,
-  calculateMonthlyEconomy,
-  calculateMonthlyIncome,
-  calculateMonthlyPolicyEffects,
-  calculateMonthlyPipeline,
-  calculateMonthlyMapStage,
-  applyMonthlyPoliticalMaintenance,
-  calculateTariffConsumptionAdjustment,
-  calculateEconomicPoliticalFeedback,
-  getPolicyEffectLines,
-  POLICY_DEFINITIONS,
   GUARDIA_NACIONAL_ESTABLISHMENT,
   GUARDIA_ASALTO_ESTABLISHMENT,
   WORKER_PATROL_ESTABLISHMENT,
   getSecurityForces,
   raiseSecurityCorpsLoyalty,
   applySecurityForcesDerivedState,
+} from '../src/game/rules/securityForces';
+import {
   applyPeacetimeMobilization,
   applyMobilizationToMapResources,
   getDeployedGarrisonManpower,
   getPeacetimeArmyPool,
   applyCivilWarLoyaltySplit,
-  clampMilitarySpending,
-  adjustUnemploymentRate,
-} from '../src/game/rules';
+} from '../src/game/rules/warSetup';
 import { getBaselineLawStanceScore } from '../src/game/lawStances';
-import { formCoalition, formRulingCoalitionFromSandbox } from '../src/game/utils';
+import { checkCoalitionDissolve, formCoalition, formRulingCoalitionFromSandbox } from '../src/game/utils';
 import type { GameEvent, GameState } from '../src/game/types';
 import {
   applyMonthlyOrganizationEffects,
   getDefaultArmedEntityPools,
   getDefaultOrganizationState,
-  isOrganizationEstablished,
   normalizeOrganizationState,
   ORGANIZATION_DEFINITIONS,
 } from '../src/game/organizations';
@@ -52,12 +48,18 @@ import { birthOfFeDeLasJons } from '../src/game/events/birth_of_fe_de_las_jons';
 import { fijlFormation } from '../src/game/events/fijl_formation';
 import { azanaMilitaryReform } from '../src/game/events/azana_military_reform';
 import { mujeresLibresFormation } from '../src/game/events/mujeres_libres_formation';
+import { workersAllianceFormation } from '../src/game/events/workers_alliance_formation';
+import { coalitionDissolutionEvents } from '../src/game/events/coalition_dissolution';
+import { alianzaObreraJournal } from '../src/game/journal/alianza_obrera';
+import { COALITION_DEFS } from '../src/game/coalitions';
 import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
 import { MapFaction } from '../src/map/types_map';
 import type { Army, ArmyIdentity } from '../src/map/types_map';
 import { setupArmiesForCivilWar } from '../src/game/events/civil_war/civil_war_setup';
 import { organizationsCard } from '../src/game/action_affairs/organizations';
+import { cntFaiDisunityManagement } from '../src/game/action_affairs/cnt_fai_disunity_management';
 import { militaryPolicy } from '../src/game/government_affairs/military_policy';
+import { laborRights } from '../src/game/government_affairs/labor_rights';
 import {
   fiscalPolicy,
   fiscalPolicyEvent,
@@ -244,7 +246,13 @@ const withCntPool = (cntFai: number) => stateWith({
   armaments: 0,
   armedForces: {
     ...PRE_START_STATE.armedForces,
-    militias: { ...PRE_START_STATE.armedForces.militias, cntFai },
+    entityPools: {
+      ...PRE_START_STATE.armedForces.entityPools,
+      cnt_defense_committees: {
+        ...PRE_START_STATE.armedForces.entityPools.cnt_defense_committees,
+        manpower: cntFai,
+      },
+    },
   },
 });
 
@@ -279,7 +287,13 @@ const mobilizationState = {
   armaments: 0,
   armedForces: {
     ...start1931.armedForces,
-    militias: { ...start1931.armedForces.militias, cntFai: 50000 },
+    entityPools: {
+      ...start1931.armedForces.entityPools,
+      cnt_defense_committees: {
+        ...start1931.armedForces.entityPools.cnt_defense_committees,
+        manpower: 50000,
+      },
+    },
   },
 };
 const mobilisedWarStart = setupArmiesForCivilWar(mobilizationState, false, {});
@@ -675,13 +689,6 @@ assert(flagSynced.organizations.POUM?.established === true, 'A set party flag mu
 assert(flagSynced.organizations.FE?.established === true, 'A set Falange flag must establish its organization');
 assert(flagSynced.organizations.PS?.established === true, 'A set Syndicalist Party flag must establish its organization');
 assert(flagSynced.organizations.ML?.established !== true, 'An unset flag must never dissolve an organization');
-// Legacy saves kept the Rabassaire union under the `UR` id.
-const legacyUnion = normalizeOrganizationState(stateWith({
-  scenario: '1931',
-  organizations: { ...organizations1931, UR: { established: true, status: 'active' } },
-}));
-assert(legacyUnion.organizations.UNIO_RABASSAIRES?.established === true, 'A legacy UR union entry must move to its new id');
-assert(legacyUnion.organizations.UR?.established === true, 'The UR party organization must survive the legacy migration');
 
 // The two news events that fill the remaining gaps.
 assert(SCHEDULED_EVENT_REGISTRY.some((event) => event.id === maocFormation.id) && SCHEDULED_EVENT_REGISTRY.some((event) => event.id === consFormation.id), 'The MAOC and CONS formation events must be scheduled');
@@ -743,8 +750,35 @@ const sandboxWithOpposition = formCoalition(sandboxRulingCoalition, 'workers_all
 assert(sandboxWithOpposition.rulingCoalition === 'provisional_government', 'Sandbox opposition formation must preserve the ruling coalition');
 assert(sandboxWithOpposition.activeCoalitions.some(coalition => coalition.activeId === 'workers_alliance'), 'Sandbox must allow an opposition coalition alongside the ruling coalition');
 
-assert(POLICY_DEFINITIONS.length === 14, 'Every domestic policy must have one central definition');
-assert(POLICY_DEFINITIONS.every(definition => definition.levels.every(level => level.name.en && level.name.zh && level.description.en && level.description.zh && level.effect.en && level.effect.zh)), 'Policy levels must carry bilingual text');
+assert(!alianzaObreraJournal.onComplete, 'Journal completion must not silently form the Workers\' Alliance before its event option is chosen');
+const eventFormedWorkersAlliance = workersAllianceFormation.options[0].effect(sandboxRulingCoalition);
+assert(eventFormedWorkersAlliance.activeCoalitions?.some(coalition => coalition.activeId === 'workers_alliance'), 'The Workers\' Alliance formation event option must create the coalition');
+assert(coalitionDissolutionEvents.length === COALITION_DEFS.length, 'Every coalition definition must have a save-restorable dissolution notice');
+const replacementGovernment = formRulingCoalitionFromSandbox(sandboxRulingCoalition, 'republican_socialist');
+assert(replacementGovernment.pendingEvents[0]?.id === 'coalition_dissolved_provisional_government', 'Replacing a coalition must queue the replaced coalition\'s end event');
+
+const collapsingGovernment = {
+  ...sandboxRulingCoalition,
+  activeCoalitions: sandboxRulingCoalition.activeCoalitions.map(coalition => ({ ...coalition, cohesion: 0 })),
+  pendingEvents: [],
+};
+const dissolvedGovernment = checkCoalitionDissolve(collapsingGovernment);
+assert(dissolvedGovernment.activeCoalitions.length === 0, 'A coalition below its threshold must still dissolve mechanically');
+assert(dissolvedGovernment.pendingEvents[0]?.id === 'coalition_dissolved_provisional_government', 'A dissolved coalition must queue its visible end event');
+const presentedDissolution = applyPostReducerPipeline(collapsingGovernment, dissolvedGovernment);
+assert(presentedDissolution.currentEvent?.id === 'coalition_dissolved_provisional_government' && presentedDissolution.phase === 'event', 'A queued coalition end notice must open as the next visible event');
+
+const repeatedNoticeState = {
+  ...collapsingGovernment,
+  eventHistory: {
+    ...collapsingGovernment.eventHistory,
+    resolved: [...collapsingGovernment.eventHistory.resolved, 'coalition_dissolved_provisional_government'],
+  },
+};
+assert(checkCoalitionDissolve(repeatedNoticeState).pendingEvents[0]?.id === 'coalition_dissolved_provisional_government', 'A coalition end event must remain repeatable after a later re-formation');
+
+assert(LAW_DEFINITIONS.length === 14, 'Every domestic law must have one central definition');
+assert(LAW_DEFINITIONS.every(definition => definition.levels.every(level => level.name.en && level.name.zh && level.description.en && level.description.zh && level.effect.en && level.effect.zh)), 'Law levels must carry bilingual text');
 assert(getBaselineLawStanceScore('CNT_FAI', 'land_law', 2) === 6, 'Law stance scores must come from policy level definitions');
 const educationPreview = getPolicyEffectLines('education_institutions', 2, stateWith({ ateneos_established: 0 }), true);
 assert(educationPreview.some(line => line.includes('无阶层支持度影响')), 'Education preview should explain unmet Ateneos condition');
@@ -763,6 +797,11 @@ assert(tradeTaxChange.workingClassSupport === 3, 'Consumption-tax cuts should su
 const fiscalBase = stateWith({ cntStance: 'govern', ministers: { ...PRE_START_STATE.ministers, finance: 'CNT' } });
 const fiscalStarted = { ...fiscalBase, ...fiscalPolicy.effect(fiscalBase) } as GameState;
 assert(fiscalStarted.temp_tax_lower === fiscalBase.tax_lower_class && fiscalStarted.draft_tax_lower === fiscalBase.tax_lower_class, 'Starting a fiscal review should capture an immutable baseline and a separate draft');
+const routedDraft = gameReducer(fiscalStarted, {
+  type: 'UPDATE_TAX_DRAFT',
+  payload: { draft_tax_lower: fiscalStarted.draft_tax_lower! + 5 },
+});
+assert(routedDraft.draft_tax_lower === fiscalStarted.draft_tax_lower! + 5, 'Fiscal tax draft updates should route through the root reducer');
 const incomeDraft = { ...fiscalStarted, draft_tax_lower: fiscalStarted.draft_tax_lower! + 5 };
 const submittedPatch = fiscalPolicyIncomeTaxesEvent.options[0].effect(incomeDraft);
 const incomeSubmitted = { ...incomeDraft, ...submittedPatch } as GameState;
@@ -773,6 +812,32 @@ assert(fiscalPolicyEvent.options[0].condition?.(incomeSubmitted) === false, 'A s
 const concluded = { ...incomeSubmitted, ...fiscalPolicyEvent.options[2].effect(incomeSubmitted) } as GameState;
 assert(concluded.tax_lower_class === fiscalBase.tax_lower_class + 5, 'Concluding the review should enact the staged rate exactly once');
 assert(concluded.budget === fiscalBase.budget, 'Enacting a rate should still leave revenue for the next monthly settlement');
+
+const laborCardState = stateWith({
+  cntStance: 'govern',
+  ministers: { ...PRE_START_STATE.ministers, labor: 'CNT' },
+  labor_rights_timer: 0,
+});
+const laborEvent = laborRights.effect(laborCardState).currentEvent as GameEvent;
+const urbanFortyOption = laborEvent.options.find(option => option.text === 'Prioritize enforcement of the urban 40-hour workweek');
+const strictFortyOption = laborEvent.options.find(option => option.text === 'Guarantee a strict 40-hour workweek nationwide');
+assert(urbanFortyOption?.condition?.(stateWith({ domesticPolicy: { ...PRE_START_STATE.domesticPolicy, max_hours_law: 1 } })) === true, 'Urban 40-hour enforcement should require law level 1');
+assert(urbanFortyOption?.condition?.(stateWith({ domesticPolicy: { ...PRE_START_STATE.domesticPolicy, max_hours_law: 0 } })) === false, 'Urban 40-hour enforcement should not skip the level 1 prerequisite');
+assert(strictFortyOption?.condition?.(stateWith({ domesticPolicy: { ...PRE_START_STATE.domesticPolicy, max_hours_law: 2 } })) === true, 'Strict 40-hour enforcement should require law level 2');
+assert(strictFortyOption?.condition?.(stateWith({ domesticPolicy: { ...PRE_START_STATE.domesticPolicy, max_hours_law: 1 } })) === false, 'Strict 40-hour enforcement should not skip the level 2 prerequisite');
+
+const jabalState = stateWith({
+  factions: {
+    ...PRE_START_STATE.factions,
+    Jabalistas: { ...PRE_START_STATE.factions.Jabalistas, influence: 15, dissent: 40 },
+  },
+});
+const disunityEvent = cntFaiDisunityManagement.effect(jabalState).currentEvent as GameEvent;
+const jabalConcession = disunityEvent.options.find(option => option.text === 'Make concessions to the Jabalistas');
+assert(jabalConcession?.condition?.(jabalState) === true, 'Jabalistas concession should be available for an active faction with high dissent');
+const jabalPatch = jabalConcession?.effect(jabalState) as Partial<GameState>;
+assert(jabalPatch.factions?.Jabalistas.dissent === 33, 'Jabalistas concession should reduce Jabalistas dissent by 7');
+assert(jabalPatch.classes?.Obreros.support.CNT_FAI === jabalState.classes.Obreros.support.CNT_FAI - 5, 'Jabalistas concession should reduce worker support for CNT by 5');
 assert(concluded.draft_tax_lower === undefined && concluded.temp_tax_lower === undefined, 'Concluding the review should clear draft and baseline fields');
 
 const normalIntervention = gameReducer(stateWith({ difficulty: 'normal', sandboxSovereignInterventionsEnabled: true }), { type: 'SELL_GOLD_FOR_FX' });

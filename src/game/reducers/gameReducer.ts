@@ -33,6 +33,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = reducePolitical(state, action) || state;
       break;
     case 'UPDATE_TAXES':
+    case 'UPDATE_TAX_DRAFT':
     case 'SELL_GOLD_FOR_FX':
     case 'ISSUE_WAR_BONDS':
     case 'BUY_RESOURCES_URGENT':

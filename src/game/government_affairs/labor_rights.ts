@@ -32,10 +32,10 @@ export const laborRights: Card = {
             subtitle: 'Concentrate inspectors in industrial cities and establish the urban 40-hour workweek at level 2.',
             subtitleZh: '将劳工检查力量集中在工业城市，将最高工时法落实为 L2“城市40小时工作制”。',
             condition: (s: GameState) => {
-              return s.domesticPolicy.max_hours_law < 2;
+              return s.domesticPolicy.max_hours_law === 1;
             },
-            unavailableSubtitle: () => 'The urban 40-hour workweek is already in force or has been surpassed.',
-            unavailableSubtitleZh: () => '城市40小时工作制已经实施，或已被更严格的法律取代。',
+            unavailableSubtitle: () => 'Requires the non-strict 40-hour workweek at level 1.',
+            unavailableSubtitleZh: () => '需要最高工时法处于 L1“非严格40小时工作制”。',
             effect: (s: GameState): Partial<GameState> => {
               let factions = adjustFactionDissents(s.factions, {
                 Treintistas: -3,
@@ -67,10 +67,10 @@ export const laborRights: Card = {
             subtitle: 'Use national enforcement powers to establish the strict 40-hour workweek at level 3.',
             subtitleZh: '运用全国性执法权力，将最高工时法提升为 L3“严格40小时工作制”。',
             condition: (s: GameState) => {
-              return s.domesticPolicy.max_hours_law < 3;
+              return s.domesticPolicy.max_hours_law === 2;
             },
-            unavailableSubtitle: () => 'A strict 40-hour workweek is already in force or has been surpassed.',
-            unavailableSubtitleZh: () => '严格40小时工作制已经实施，或已被更短工时取代。',
+            unavailableSubtitle: () => 'Requires the urban 40-hour workweek at level 2.',
+            unavailableSubtitleZh: () => '需要最高工时法处于 L2“城市40小时工作制”。',
             effect: (s: GameState): Partial<GameState> => {
               let factions = adjustFactionDissents(s.factions, {
                 Treintistas: -5,

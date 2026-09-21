@@ -1,5 +1,5 @@
 import type { Advisor, Card, EventHistory, GameEvent } from '../types';
-import type { DomainReducer, GameAction } from './types';
+import type { DomainReducer } from './types';
 import { CARD_REGISTRY } from '../registries/cardRegistry';
 import { RESTORABLE_EVENT_REGISTRY } from '../registries/restorableEventRegistry';
 import { INITIAL_ADVISORS } from '../advisors';
@@ -197,10 +197,5 @@ export const reduceEvent: DomainReducer = (state, action) => {
       return null;
   }
 };
-
-export type EventAction = Extract<GameAction, {
-  type: 'PLAY_CARD' | 'DISMISS_SUPER_EVENT' | 'SELECT_EVENT' | 'RESOLVE_EVENT'
-    | 'ADD_ADVISOR' | 'REMOVE_ADVISOR' | 'DRAW_CARD' | 'DRAW_SPECIFIC_CARD' | 'CHECK_EVENT'
-}>;
 
 export { hydrateCards, hydrateAdvisors, hydrateEvents };

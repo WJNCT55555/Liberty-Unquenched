@@ -4,8 +4,8 @@ import { adjustClassSupport, type ClassPoliticalForce } from '../utils';
 /**
  * 经济困境 → 政治阵营重组的月度反馈。
  *
- * 设计参考 SDAAH `post_event` 中 `unemployed / inflation → pro_republic →
- * NSDAP` 的传导链，替换为西班牙语境：经济苦难一方面让工人阶级更激进
+ * 设计参考 SDAAH `post_event` 中经济困境推动选民转向的传导链，替换为
+ * 西班牙语境：经济苦难一方面让工人阶级更激进
  * （CNT-FAI 与 FE 同时受益），另一方面让恐惧混乱的小资产阶级抛弃改良派
  * 共和国、倒向威权右翼。
  *

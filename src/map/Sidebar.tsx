@@ -4,13 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Province, MapFaction as Faction, type MapRuntimeState, Army, type ArmedEntityId } from './types_map';
-import { FACTION_COLORS, UI_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
+import { MapFaction as Faction, type MapRuntimeState, type ArmedEntityId } from './types_map';
+import { FACTION_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from './rules/costs';
 import { getEffectiveFortressLevel } from './types_map';
 import type { RecruitmentPoolView } from '../game/rules/warSetup';
 import { getMapFactionName } from './rules/factions';
-import { Shield, Target, ScrollText, MapPin, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
+import { Shield, Target, ScrollText, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
@@ -345,7 +345,6 @@ interface SidebarProps {
   state: MapRuntimeState;
   /** Party militia pools the current camp may raise units from. */
   recruitmentPools: RecruitmentPoolView[];
-  onExecuteOffensive: (id: string) => void;
   onSelectProvince: (id: string | null) => void;
   onRecruitArmy: (provinceId: string, composition: { infantry: number; artillery: number; tanks: number }, sourceEntityId?: ArmedEntityId) => void;
   onReinforceArmy: (armyId: string) => void;
@@ -360,7 +359,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   state, 
   recruitmentPools,
-  onExecuteOffensive, 
   onSelectProvince, 
   onRecruitArmy, 
   onReinforceArmy,
@@ -789,8 +787,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       const maxArtRestored = maxRestored.artillery;
                       const maxTnkRestored = maxRestored.tanks;
 
-                      const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
-                      
                       let scale = 1.0;
                       const targetCost = reinforceCost(maxRestored);
                       const targetManpower = targetCost.manpower;
@@ -1195,13 +1191,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         const regionColor = regionObj?.color || '#1E1C1A';
 
                         const armiesInProvince = state.armies.filter(a => a.provinceId === selectedProvince.id);
-
-                        // Map owner faction label
-                        let factionLabel = 'NEUTRAL';
-                        if (selectedProvince.owner === Faction.IBERIAN_DEFENSE) factionLabel = 'IBERIAN DEFENSE';
-                        if (selectedProvince.owner === Faction.REPUBLICAN) factionLabel = 'REPUBLICAN';
-                        if (selectedProvince.owner === Faction.NATIONALIST) factionLabel = 'NATIONALIST';
-                        if (selectedProvince.owner === Faction.PORTUGAL) factionLabel = 'PORTUGAL';
 
                         return (
                           <div className="space-y-3.5 pt-1">

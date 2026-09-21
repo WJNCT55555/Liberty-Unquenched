@@ -16,7 +16,7 @@ export const PARTY_NAMES_MAPPING: Record<Party | 'CNT_FAI', { en: string; zh: st
   CT: { en: 'CT (Traditionalist Communion)', zh: '传统主义者合一会 (CT)' },
   RE: { en: 'RE (Spanish Renovation)', zh: '西班牙革新党 (RE)' },
   DLR: { en: 'DLR (Liberal Republican Right)', zh: '自由共和右翼 (DLR)' },
-  PRR: { en: 'PRR (Radical Republican Party)', zh: '共和激进党 (PRR)' },
+  PRR: { en: 'PRR (Radical Republican Party)', zh: '激进共和党 (PRR)' },
   ERC: { en: 'ERC (Republican Left of Catalonia)', zh: '加泰罗尼亚共和左翼 (ERC)' },
   PNV: { en: 'PNV (Basque Nationalist Party)', zh: '巴斯克民族主义党 (PNV)' },
   Other: { en: 'Other Parties / Independents', zh: '其他党派与独立人士' },

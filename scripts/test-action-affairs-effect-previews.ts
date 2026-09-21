@@ -2,8 +2,10 @@ import { deepStrictEqual, equal, ok } from 'node:assert/strict';
 import { media } from '../src/game/action_affairs/media';
 import { syndicateExpansion } from '../src/game/action_affairs/syndicate_expansion';
 import { organizationsCard } from '../src/game/action_affairs/organizations';
+import { landAndFreedom } from '../src/game/action_affairs/land_and_freedom';
 import { mujeresLibresCard } from '../src/game/action_affairs/mujeres_libres';
 import { fijlCard } from '../src/game/action_affairs/fijl';
+import { prrevsCampaigning } from '../src/game/action_affairs/prrevs_campaigning';
 import { propagandaByDeed } from '../src/game/action_affairs/propaganda_by_deed';
 import { getOptionEffectPreview } from '../src/game/effectPreview';
 import { PRE_START_STATE } from '../src/game/scenarios';
@@ -185,15 +187,33 @@ ok(
   !notEstablishedOrganizations.event.options.some((option) => optionText(option, notEstablishedOrganizations.state) === 'Turn our attention to our youth organization.'),
   'FIJL spotlight option must stay hidden before the organization is established'
 );
+const organizationRouteLabels = [
+  'Open Land and Freedom (-1 Resource)',
+  'Open Mujeres Libres',
+  'Open FIJL Youth',
+  'Open PRRevS Electoral Campaign'
+] as const;
+organizationRouteLabels.forEach((label) => {
+  ok(
+    !notEstablishedOrganizations.event.options.some((option) => optionText(option, notEstablishedOrganizations.state) === label),
+    `${label} must stay hidden before its organization is established`
+  );
+});
 
 const establishedOrganizations = openCardEvent(
   organizationsCard,
   buildState({
     organizations: {
       ...cloneData(getDefaultOrganizationState('1931')),
+      FNA: { established: true },
       FIJL: { established: true },
       ML: { established: true },
+      PRRevS: { established: true },
     },
+    resources: 2,
+    mujeres_libres_timer: 4,
+    fijl_timer: 4,
+    prrevs_campaign_timer: 4,
   })
 );
 ok(
@@ -212,6 +232,23 @@ ok(
   !establishedOrganizations.event.options.some((option) => optionText(option, establishedOrganizations.state) === 'Turn to the strength of Iberian women.'),
   'Mujeres Libres must not be nested in the Organizations card'
 );
+organizationRouteLabels.forEach((label) => {
+  const option = findOption(establishedOrganizations.event, establishedOrganizations.state, label);
+  equal(option.condition?.(establishedOrganizations.state), label === 'Open Land and Freedom (-1 Resource)' ? true : undefined, `${label} visibility route condition`);
+});
+const landRoute = findOption(establishedOrganizations.event, establishedOrganizations.state, 'Open Land and Freedom (-1 Resource)');
+const landRouteResult = landRoute.effect(establishedOrganizations.state);
+equal(landRouteResult.currentEvent?.id, landAndFreedom.effect(establishedOrganizations.state).currentEvent?.id, 'FNA route must open Land and Freedom');
+equal(landRouteResult.resources, 1, 'FNA route must pay Land and Freedom resource cost');
+const mujeresRouteResult = findOption(establishedOrganizations.event, establishedOrganizations.state, 'Open Mujeres Libres').effect(establishedOrganizations.state);
+equal(mujeresRouteResult.currentEvent?.id, 'mujeres_libres_event', 'ML route must open Mujeres Libres');
+equal(mujeresRouteResult.mujeres_libres_timer, 0, 'ML route must bypass the standalone card cooldown');
+const fijlRouteResult = findOption(establishedOrganizations.event, establishedOrganizations.state, 'Open FIJL Youth').effect(establishedOrganizations.state);
+equal(fijlRouteResult.currentEvent?.id, 'fijl_event', 'FIJL route must open the FIJL card');
+equal(fijlRouteResult.fijl_timer, 0, 'FIJL route must bypass the standalone card cooldown');
+const prrevsRouteResult = findOption(establishedOrganizations.event, establishedOrganizations.state, 'Open PRRevS Electoral Campaign').effect(establishedOrganizations.state);
+equal(prrevsRouteResult.currentEvent?.id, prrevsCampaigning.effect(establishedOrganizations.state).currentEvent?.id, 'PRRevS route must open the electoral campaign card');
+equal(prrevsRouteResult.prrevs_campaign_timer, 0, 'PRRevS route must bypass the campaign cooldown');
 
 const mujeresLibresOpened = openCardEvent(
   mujeresLibresCard,
@@ -351,7 +388,7 @@ equal(strikeSpotlight.effect(propagandaOpened.state).currentEvent?.id, 'strike_e
 const mediaBranch = mediaSpotlight.effect(propagandaOpened.state);
 equal(mediaBranch.currentEvent?.id, 'media_event', 'Propaganda by the Deed criticism branch must open the Media card');
 equal(mediaBranch.propaganda_timer, 0, 'Propaganda by the Deed criticism branch must bypass the Media cooldown');
-ok(fijlCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0 }), 'FIJL card should be playable after FIJL is established');
-ok(mujeresLibresCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0 }), 'Mujeres Libres card should be playable after it is established');
+ok(fijlCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0, fijl_timer: 0 }), 'FIJL card should be playable after FIJL is established');
+ok(mujeresLibresCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0, mujeres_libres_timer: 0 }), 'Mujeres Libres card should be playable after it is established');
 
 console.log('Action-affairs effect preview tests passed.');

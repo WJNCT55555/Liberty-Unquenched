@@ -309,8 +309,8 @@ export const SandboxMenu = () => {
                 </div>
                 <p className="font-mono text-xs text-ink/65 leading-relaxed">
                   {isZh
-                    ? '勾选即可立即启用组织，取消勾选即可关闭组织；组织的历史别名与能力状态会同步更新。'
-                    : 'Toggle each organization on or off immediately. Legacy aliases and organization capabilities stay synchronized.'}
+                    ? '勾选即可立即启用组织，取消勾选即可关闭组织；关联的武装实体状态会同步更新。'
+                    : 'Toggle each organization on or off immediately. Linked armed-entity state stays synchronized.'}
                 </p>
               </div>
 

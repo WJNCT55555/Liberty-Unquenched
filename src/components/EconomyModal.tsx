@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameState } from '../game/types';
 import { calculateMonthlyEconomy, ECONOMIC_RULES } from '../game/rules/economy';
-import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, ShieldCheck, HelpCircle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
+import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;

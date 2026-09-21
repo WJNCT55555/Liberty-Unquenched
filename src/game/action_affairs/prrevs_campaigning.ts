@@ -182,7 +182,6 @@ export const prrevsCampaigning: Card = {
       unavailableSubtitle: campaignResourceUnavailable,
       unavailableSubtitleZh: campaignResourceUnavailableZh,
       effect: (s: GameState): Partial<GameState> => {
-        const propagandaBonus = s.propaganda_timer <= 0 ? 1.3 : 1;
         const classes = adjustClassSupports(s.classes, [
           ['Intelectuales', 'CNT_FAI', 14 * dissentFactor]
         ]);
@@ -200,7 +199,6 @@ export const prrevsCampaigning: Card = {
             ...s.stats,
             bureaucratization: clampPercent(s.stats.bureaucratization + 1)
           },
-          pro_republic: clampPercent(s.pro_republic + 3 * dissentFactor * propagandaBonus),
           currentEvent: null
         };
       }

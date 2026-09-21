@@ -2,7 +2,12 @@ import type { GameState, CoalitionState, CoalitionId, CoalitionMember, Governmen
 import { COALITION_DEFS } from '../coalitions';
 import { getPartySupport, updatePartySupport } from '../parties';
 import { isRepublicanPartyEligible, isRepublicanPartyPresent, WARTIME_PARTY_STATUS } from '../politicalEligibility';
+import {
+  scheduleElectionAfterCompletedElection,
+  scheduleElectionAfterGovernmentCrisis,
+} from '../rules/electionSchedule';
 import { canFormDefenceCouncil, createWartimeCoalition, getWartimeCabinet, isSpanishCivilWarOngoing, isWartimeArrangementDue, monthIndex, updateWartimeCoalition, WARTIME_COALITION_ID, WARTIME_EVENT_ID } from '../rules/wartimeCoalition';
+import { queueCoalitionDissolutionEvents } from '../events/coalition_dissolution';
 
 export { getPartySupport, updatePartySupport };
 
@@ -116,7 +121,7 @@ function establishCoalition(state: GameState, id: CoalitionId, asRuling: boolean
   };
 
   newState.activeCoalitions = updateCoalitions(newState);
-  return newState;
+  return queueCoalitionDissolutionEvents(newState, replacedCoalitionIds);
 }
 
 /** Forms a non-governing political or labor alliance. */
@@ -162,7 +167,7 @@ export function formWartimeGovernment(state: GameState, route: WartimeGovernment
   next.activeCoalitions = next.activeCoalitions.filter(item => !inactiveCoalitions.includes(item));
   next.activeCoalitions = next.activeCoalitions.map(item => item.activeId === WARTIME_COALITION_ID ? coalition : item);
   next.activeCoalitions = updateCoalitions(next);
-  return next;
+  return queueCoalitionDissolutionEvents(next, inactiveCoalitions.map(item => item.activeId));
 }
 
 /** May Days may redistribute offices or exclude POUM, while retaining the wartime pact. */
@@ -223,6 +228,7 @@ export function formRulingCoalitionFromElection(state: GameState, id: CoalitionI
     ...nextState,
     governmentCrisis: null,
     earlyElectionInProgress: false,
+    generalElectionSchedule: scheduleElectionAfterCompletedElection(state),
   };
 }
 
@@ -237,27 +243,6 @@ export function formRulingCoalitionFromSandbox(state: GameState, id: CoalitionId
   };
 }
 
-export function adjustMemberContribution(state: GameState, party: CoalitionMember, amount: number, targetCoalitionId?: CoalitionId): GameState {
-  if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
-  
-  let targetId = targetCoalitionId;
-  if (!targetId) targetId = state.rulingCoalition || state.activeCoalitions[0].activeId;
-
-  const currentActive = state.activeCoalitions.map(c => {
-    if (c.activeId === targetId) {
-      const contributions = { ...c.memberContributions };
-      const oldVal = contributions[party] ?? 80;
-      contributions[party] = Math.min(100, Math.max(0, oldVal + amount));
-      return { ...c, memberContributions: contributions };
-    }
-    return c;
-  });
-
-  const newState = { ...state, activeCoalitions: currentActive };
-  newState.activeCoalitions = updateCoalitions(newState);
-  return newState;
-}
-
 export function checkCoalitionDissolve(state: GameState): GameState {
   if (!state.activeCoalitions || state.activeCoalitions.length === 0) return state;
 
@@ -265,10 +250,11 @@ export function checkCoalitionDissolve(state: GameState): GameState {
   const history = [...(state.coalitionHistory || [])];
   let isRepublicanSocialistDissolved = state.isRepublicanSocialistDissolved;
   let isCedaRadicalDissolved = state.isCedaRadicalDissolved;
-  let anyCoalitionDissolved = false;
+  const dissolvedCoalitionIds: CoalitionId[] = [];
   let newRulingCoalition = state.rulingCoalition;
   let governmentCrisis = state.governmentCrisis;
   let governmentCrisisSequence = state.governmentCrisisSequence;
+  let generalElectionSchedule = state.generalElectionSchedule;
 
   for (let i = currentActive.length - 1; i >= 0; i--) {
     const coalition = currentActive[i];
@@ -293,7 +279,7 @@ export function checkCoalitionDissolve(state: GameState): GameState {
       });
       if (coalition.activeId === 'republican_socialist') isRepublicanSocialistDissolved = true;
       if (coalition.activeId === 'ceda_radical') isCedaRadicalDissolved = true;
-      anyCoalitionDissolved = true;
+      dissolvedCoalitionIds.push(coalition.activeId);
       
       if (state.rulingCoalition === coalition.activeId) {
         newRulingCoalition = null;
@@ -304,14 +290,19 @@ export function checkCoalitionDissolve(state: GameState): GameState {
           cause: dissolutionCause,
           occurredAt: { year: state.year, month: state.month },
         };
+        generalElectionSchedule = scheduleElectionAfterGovernmentCrisis(
+          state,
+          coalition.activeId,
+          governmentCrisisSequence,
+        );
       }
       
       currentActive.splice(i, 1);
     }
   }
 
-  if (anyCoalitionDissolved) {
-    return {
+  if (dissolvedCoalitionIds.length > 0) {
+    return queueCoalitionDissolutionEvents({
       ...state,
       activeCoalitions: currentActive,
       coalitionHistory: history,
@@ -320,7 +311,8 @@ export function checkCoalitionDissolve(state: GameState): GameState {
       rulingCoalition: newRulingCoalition,
       governmentCrisis,
       governmentCrisisSequence,
-    };
+      generalElectionSchedule,
+    }, dissolvedCoalitionIds);
   }
 
   return state;

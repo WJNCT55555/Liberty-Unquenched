@@ -9,13 +9,9 @@ import {
   type SaveGameSnapshot,
 } from './saveGame';
 import type { GameAction } from './reducers/types';
-export type { GameAction } from './reducers/types';
 import { gameReducer } from './reducers/gameReducer';
-export { gameReducer } from './reducers/gameReducer';
 import { PRE_START_STATE } from './scenarios';
 import { selectMapRuntimeState } from './selectors';
-export { selectMapRuntimeState } from './selectors';
-export { getMonthlyArmamentIncome } from './rules/income';
 
 export interface GameActions {
   dispatch: (action: GameAction) => void;

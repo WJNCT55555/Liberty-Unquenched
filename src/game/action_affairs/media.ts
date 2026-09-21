@@ -37,11 +37,6 @@ const encourageIdeologicalDebate: MediaEffect = (state: GameState): Partial<Game
 
   return {
     factions,
-    socialism: state.socialism + 1,
-    nationalism: state.nationalism + 1,
-    pacifism: state.pacifism + 1,
-    democratization: state.democratization + 1,
-    pro_republic: state.pro_republic + 1,
     ideological_propaganda: state.ideological_propaganda + 1
   };
 };
@@ -58,14 +53,7 @@ const fundClandestineRadio: MediaEffect = (state: GameState): Partial<GameState>
     resources: state.resources - 2,
     classes,
     factions,
-    radio: 1,
-    socialism: state.socialism + 3 * dissentFactor,
-    nationalism: state.pacifism > 1
-      ? state.nationalism - 3 * dissentFactor
-      : state.nationalism,
-    pro_republic: state.democratization > 1
-      ? state.pro_republic + 3 * dissentFactor
-      : state.pro_republic
+    radio: 1
   };
 };
 
@@ -79,14 +67,7 @@ const expandRadioNetwork: MediaEffect = (state: GameState): Partial<GameState> =
   return {
     resources: state.resources - 1,
     classes,
-    radio: state.radio + 1,
-    socialism: state.socialism + 3 * dissentFactor,
-    nationalism: state.pacifism > 2
-      ? state.nationalism - 3 * dissentFactor * (state.pacifism - 2)
-      : state.nationalism,
-    pro_republic: state.democratization > 2
-      ? state.pro_republic + 3 * dissentFactor * (state.democratization - 2)
-      : state.pro_republic
+    radio: state.radio + 1
   };
 };
 
@@ -101,14 +82,7 @@ const expandSelfSufficientRadio: MediaEffect = (state: GameState): Partial<GameS
 
   return {
     classes,
-    radio: state.radio + 1,
-    socialism: state.socialism + 3 * dissentFactor,
-    nationalism: state.pacifism > 2
-      ? state.nationalism - 3 * dissentFactor * (state.pacifism - 2)
-      : state.nationalism,
-    pro_republic: state.democratization > 2
-      ? state.pro_republic + 3 * dissentFactor * (state.democratization - 2)
-      : state.pro_republic
+    radio: state.radio + 1
   };
 };
 
@@ -125,12 +99,7 @@ const fundAnarchistCinema: MediaEffect = (state: GameState): Partial<GameState> 
     resources: state.resources - 3,
     classes,
     factions,
-    cinema: 1,
-    socialism: state.socialism + 2 * dissentFactor,
-    nationalism: state.nationalism - dissentFactor,
-    pro_republic: state.democratization > 1
-      ? state.pro_republic + 2 * dissentFactor
-      : state.pro_republic
+    cinema: 1
   };
 };
 
@@ -259,4 +228,3 @@ export const media: Card = {
     };
   },
 };
-

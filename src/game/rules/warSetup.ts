@@ -134,16 +134,10 @@ export const spendMilitiaPoolManpower = (
   const pool = pools?.[entityId];
   if (!pools || !pool) return {};
   const remaining = Math.max(0, pool.manpower - manpower);
-  const organizationId = pool.organizationId;
-  const legacyKey = ({ cnt_defense_committees: 'cntFai', poum_militias: 'poum', ugt_socialist_militias: 'ugt',
-    maoc: 'maoc', fifth_regiment: 'maoc', requetes: 'requete', falange_first_line: 'falange' } as const)[entityId];
   return {
-    ...(organizationId && state.organizations[organizationId] ? { organizations: { ...state.organizations,
-      [organizationId]: { ...state.organizations[organizationId], militiaManpower: remaining } } } : {}),
     ...(entityId === 'international_brigades' ? { internationalBrigades: remaining } : {}),
     armedForces: {
       ...state.armedForces!,
-      militias: { ...state.armedForces.militias, ...(legacyKey ? { [legacyKey]: remaining } : {}) },
       entityPools: {
         ...pools,
         [entityId]: { ...pool, manpower: remaining },
@@ -160,15 +154,7 @@ export const spendMilitiaPoolManpower = (
     ),
     0,
   );
-  // `organizations.ts` keeps the legacy militia view in sync with the pools, so an
-  // old save may carry only one of the two; the larger figure is the truthful one.
-  const legacy: Partial<Record<ArmyIdentity, number>> = {
-    cnt: state.armedForces?.militias?.cntFai || 0,
-    pce: state.armedForces?.militias?.maoc || 0,
-    poum: state.armedForces?.militias?.poum || 0,
-    ugt: state.armedForces?.militias?.ugt || 0,
-  };
-  return Math.max(pooled, legacy[identity] || 0);
+  return pooled;
 };
 
 export interface PeacetimeMobilization {

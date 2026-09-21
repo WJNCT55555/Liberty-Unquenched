@@ -103,7 +103,25 @@ export const cntFaiDisunityManagement: Card = {
       }),
     });
 
-    // 6. Do nothing
+    // 6. Make concessions to the Jabalistas
+    options.push({
+      text: 'Make concessions to the Jabalistas',
+      textZh: '向野猪议员让步',
+      subtitle: 'Give the Jabalistas a place in the movement before their federalist line hardens into a separate power centre.',
+      subtitleZh: '在野猪议员的联邦主义路线固化为独立权力中心前，给他们在运动中保留位置。',
+      condition: (s) => isFactionActiveForDissent(s.factions, 'Jabalistas') && s.factions.Jabalistas.dissent > 30,
+      unavailableSubtitle: () => 'Requires the Jabalistas to be active with dissent above 30.',
+      unavailableSubtitleZh: () => '需要野猪议员处于活跃状态且分歧度高于 30。',
+      effect: (s: GameState) => {
+        const classes = adjustClassSupport(s.classes, 'Obreros', 'CNT_FAI', -5);
+        return {
+          classes,
+          factions: adjustFactionDissents(s.factions, { Jabalistas: -7 })
+        };
+      },
+    });
+
+    // 7. Do nothing
     options.push({
       text: 'Let them argue...',
       textZh: '让他们吵吧......',

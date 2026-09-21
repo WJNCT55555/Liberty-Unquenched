@@ -1,4 +1,4 @@
-import type { EventHistory, GameState } from '../types';
+import type { GameState } from '../types';
 import type { DomainReducer } from './types';
 import { hydrateAdvisors, hydrateCards, hydrateEvents } from './eventReducer';
 import { normalizeOrganizationState } from '../organizations';
@@ -30,17 +30,3 @@ export const reduceSave: DomainReducer = (state, action) => {
       return null;
   }
 };
-
-export type SaveState = Pick<GameState,
-  | 'screen'
-  | 'eventHistory'
-  | 'hand'
-  | 'actionDeck'
-  | 'governmentDeck'
-  | 'militaryDeck'
-  | 'discard'
-  | 'activeAdvisors'
-  | 'advisorPool'
-  | 'pendingEvents'
-  | 'currentEvent'
->;

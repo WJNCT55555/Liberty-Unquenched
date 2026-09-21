@@ -14,8 +14,17 @@
  * here; it lives in the neutral base.
  */
 import type { GameState } from '../types';
+import type { ArmedEntityId } from '../../map/types_map';
 
 export type ScenarioId = GameState['scenario'];
+type ScenarioMilitiaEntityId = Extract<ArmedEntityId,
+  | 'cnt_defense_committees'
+  | 'maoc'
+  | 'poum_militias'
+  | 'ugt_socialist_militias'
+  | 'requetes'
+  | 'falange_first_line'
+>;
 
 /** Economy scalars applied at the start of the scenario. */
 export interface ScenarioEconomy {
@@ -69,6 +78,9 @@ export interface ScenarioDefinition {
   /** 1936 opens mid-civil-war; the other two open in peace. */
   civilWarStatus: Extract<GameState['civilWarStatus'], 'not_started' | 'ongoing'>;
 
+  /** The election cycle already in force when the scenario opens. */
+  generalElectionSchedule: GameState['generalElectionSchedule'];
+
   government: GameState['government'];
   ministers: GameState['ministers'];
 
@@ -94,7 +106,7 @@ export interface ScenarioDefinition {
   economy: ScenarioEconomy;
   history: ScenarioHistoryFlags;
 
-  militias: GameState['armedForces']['militias'];
+  armedEntityManpower: Record<ScenarioMilitiaEntityId, number>;
   regionalStatuses: GameState['regionalStatuses'];
 
   superEvent: GameState['superEvent'];

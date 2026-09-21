@@ -1,4 +1,5 @@
 import type { GameEvent } from '../types';
+import { formCoalition } from '../utils';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,
@@ -19,7 +20,16 @@ export const workersAllianceFormation: GameEvent = {
     {
       text: 'Long live the Workers\' Alliance! Uníos Hermanos Proletarios!',
       textZh: '工人联盟万岁！联合无产阶级兄弟！',
-      effect: () => ({})
+      subtitle: 'Ratify the agreement and create the Workers\' Alliance as an active political coalition.',
+      subtitleZh: '正式批准协议，将工人联盟创建为当前有效的政治联盟。',
+      effect: (state) => {
+        const next = formCoalition(state, 'workers_alliance');
+        return {
+          activeCoalitions: next.activeCoalitions,
+          coalitionHistory: next.coalitionHistory,
+          pendingEvents: next.pendingEvents,
+        };
+      },
     }
   ]
 };

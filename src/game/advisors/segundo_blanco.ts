@@ -1,5 +1,4 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence } from '../utils';
 import { applyUnionShareDelta } from '../unions';
 import { isUhpJournalCompleted } from '../journal/uhp';
 

@@ -1,4 +1,4 @@
-import type { Advisor, Card, CardType, GameEvent, GameState } from '../types';
+import type { Advisor, Card, CardType, GameState } from '../types';
 import type { ArmedEntityId } from '../../map/types_map';
 
 /** All user and engine commands accepted by the game store. */

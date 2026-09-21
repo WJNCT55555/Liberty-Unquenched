@@ -1,5 +1,5 @@
 import type { GameState, LawId } from '../types';
-import { getPolicyLevelDefinition, POLICY_DEFINITION_BY_ID, type PolicyModifier } from './policyDefinitions';
+import { getPolicyLevelDefinition, LAW_DEFINITION_BY_ID, type PolicyModifier } from './policyDefinitions';
 
 export interface EconomyBreakdown {
   isCivilWar: boolean;
@@ -123,7 +123,7 @@ export const clampMilitarySpending = (value: number): number => {
 };
 
 const monthlyPolicyCost = (policyId: LawId, level: number): number =>
-  POLICY_DEFINITION_BY_ID[policyId]?.levels
+  LAW_DEFINITION_BY_ID[policyId]?.levels
     .find(policyLevel => policyLevel.level === level)?.cost?.monthlyBudget ?? 0;
 
 const monthlyPolicyModifier = (

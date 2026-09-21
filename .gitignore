@@ -10,6 +10,8 @@ coverage/
 /start_game.bat
 /docs/*
 !/docs/ARCHITECTURE_MIGRATION_PLAN.md
+!/docs/ARCHITECTURE.md
+!/docs/游戏设计文档.md
 /output/
 /tools/
 

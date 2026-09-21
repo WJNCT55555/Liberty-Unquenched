@@ -47,7 +47,6 @@ export const PRE_START_STATE: GameState = {
   mapCurrentPlayer: MapFaction.REPUBLICAN,
   mapResources: createDefaultMapResources(),
   mapHistory: [],
-  mapAiConfig: { enabled: true, aiFaction: MapFaction.NATIONALIST, difficulty: 'normal' },
   scenario: '1931',
   difficulty: 'normal',
   language: 'en',
@@ -137,14 +136,6 @@ export const PRE_START_STATE: GameState = {
     guardiaAsalto: { manpower: 0, loyalty: 0 },
     guardiaRepublicana: { manpower: 0, loyalty: 0 },
     patrullasObreras: { manpower: 0, loyalty: 0 },
-    militias: {
-      cntFai: 0,
-      maoc: 0,
-      poum: 0,
-      ugt: 0,
-      requete: 0,
-      falange: 0,
-    },
     entityPools: getDefaultArmedEntityPools(),
   },
   government: {
@@ -237,11 +228,6 @@ export const PRE_START_STATE: GameState = {
   zamoraStatus: 'alive',
   alfonsoXIIIStatus: 'alive',
   fe_leadership_crisis: false,
-  socialism: 0,
-  nationalism: 0,
-  pacifism: 0,
-  democratization: 0,
-  pro_republic: 0,
   francoStatus: 'alive',
   africaArmyStatus: 'neutral',
   cataloniaControl: 'republic',
@@ -331,6 +317,11 @@ export const PRE_START_STATE: GameState = {
   governmentCrisis: null,
   governmentCrisisSequence: 0,
   earlyElectionInProgress: false,
+  generalElectionSchedule: {
+    lastElectionAt: null,
+    nextElectionAt: { year: 1931, month: 6 },
+    reason: 'constituent',
+  },
   coalition_dissent: 0,
 };
 /**
@@ -346,6 +337,7 @@ export const SCENARIO_OWNED_KEYS = [
   'year',
   'month',
   'civilWarStatus',
+  'generalElectionSchedule',
   'government',
   'ministers',
   'cortes',
@@ -375,6 +367,7 @@ export const SCENARIO_OWNED_KEYS = [
   'isRepublicanSocialistDissolved',
   'isCedaRadicalDissolved',
   'dissolutionCount',
+  'governmentCrisisSequence',
   'impeachPresidentAvailable',
   'isPresidentImpeached',
   'presidentElectionSeen',
@@ -388,7 +381,7 @@ export type ScenarioOwnedKey = (typeof SCENARIO_OWNED_KEYS)[number];
 
 /**
  * The peacetime police corps. Not scenario-owned: every start uses the same
- * baseline roster and only `militias` differ.
+ * baseline roster; scenario militia manpower is applied to canonical entity pools.
  */
 export const NEUTRAL_ARMED_FORCES = PRE_START_STATE.armedForces;
 

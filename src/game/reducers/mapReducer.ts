@@ -1,7 +1,7 @@
 import type { DomainReducer, GameAction } from './types';
 import type { Army, Province } from '../../map/types_map';
 import { MapFaction, MAX_BUILT_FORTRESS } from '../../map/types_map';
-import { INITIAL_PROVINCES, PROVINCE_ADJACENCY, isPortugalProvince } from '../../map/map_constants';
+import { INITIAL_PROVINCES, PROVINCE_ADJACENCY } from '../../map/map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
 import { getMilitiaRecruitmentPool, spendMilitiaPoolManpower } from '../rules/warSetup';
 import type { GameState } from '../types';
@@ -57,10 +57,6 @@ export const reduceMap: DomainReducer = (state, action) => {
       return null;
   }
 };
-
-export type MapAction = Extract<GameAction, {
-  type: 'TOGGLE_MAP_VIEW' | 'SELECT_MAP_PROVINCE' | 'SELECT_MAP_ARMY'
-}>;
 
 export interface MapReducerHelpers {
   resolveBattle: (armies: Army[], provinces: Record<string, Province>, movedArmy: Army, targetProvinceId: string, isZh: boolean) => { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] };
@@ -257,8 +253,6 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const maxArtRestored = maxRestored.artillery;
       const maxTnkRestored = maxRestored.tanks;
 
-      const totalMaxRestored = maxInfRestored + maxArtRestored + maxTnkRestored;
-      
       let scale = 1.0;
       const targetCost = reinforceCost(maxRestored);
       const targetManpower = targetCost.manpower;

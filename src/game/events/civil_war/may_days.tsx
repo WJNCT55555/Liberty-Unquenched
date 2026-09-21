@@ -1,5 +1,5 @@
 import React from 'react';
-import type { EffectPreviewLine, GameEvent, GameState, MayDaysSettlement, MayDaysState } from '../../types';
+import type { EffectPreviewLine, GameEvent, GameState, MayDaysState } from '../../types';
 import { getPartyName } from '../../partyNames';
 import {
   beginMayDays, canAgreeMayDays, canBackMayDaysCommittees, canGuaranteePOUM, canPreserveMayDaysGovernment,

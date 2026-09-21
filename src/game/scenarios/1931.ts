@@ -13,6 +13,11 @@ export const SCENARIO_1931: ScenarioDefinition = {
   startYear: 1931,
   startMonth: 4,
   civilWarStatus: 'not_started',
+  generalElectionSchedule: {
+    lastElectionAt: null,
+    nextElectionAt: { year: 1931, month: 6 },
+    reason: 'constituent',
+  },
 
   government: {
     type: 'Provisional Government',
@@ -99,13 +104,13 @@ export const SCENARIO_1931: ScenarioDefinition = {
     coupSystemActive: false,
   },
 
-  militias: {
-    cntFai: 0,
+  armedEntityManpower: {
+    cnt_defense_committees: 0,
     maoc: 0,
-    poum: 0,
-    ugt: 0,
-    requete: 0,
-    falange: 0,
+    poum_militias: 0,
+    ugt_socialist_militias: 0,
+    requetes: 0,
+    falange_first_line: 0,
   },
 
   regionalStatuses: {

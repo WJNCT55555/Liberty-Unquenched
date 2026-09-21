@@ -28,8 +28,6 @@ export const BUILDING_COSTS = {
   },
 } as const;
 
-export type BuildingType = keyof typeof BUILDING_COSTS;
-
 const ZERO_BUILDING_COST: ResourceCost = { supplies: 0, ic: 0, manpower: 0 };
 
 /** Return the cost for the requested building type and next level. */

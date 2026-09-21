@@ -42,6 +42,7 @@ import { workersAllianceFormation } from '../events/workers_alliance_formation';
 import { crossroadsUprisingAlliance } from '../events/crossroads_uprising_alliance';
 import { elections1936 } from '../events/elections_1936';
 import { presidentialDissolutionOfCortes } from '../events/presidential_dissolution';
+import { generalElectionCampaign } from '../events/general_election';
 import { presidentialElectionDecision } from '../events/presidential_election_chain';
 import { asturiasRevolution } from '../events/asturias_revolution';
 import { andalusiaFireEvent } from '../events/andalusia_fire';
@@ -117,6 +118,7 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   workersAllianceFormation,
   crossroadsUprisingAlliance,
   elections1936,
+  generalElectionCampaign,
   presidentialDissolutionOfCortes,
   presidentialElectionDecision,
   asturiasRevolution,

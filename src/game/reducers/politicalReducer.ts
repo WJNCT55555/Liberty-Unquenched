@@ -1,4 +1,4 @@
-import type { DomainReducer, GameAction } from './types';
+import type { DomainReducer } from './types';
 
 /** Handles political/settings actions that do not belong to a card or event. */
 export const reducePolitical: DomainReducer = (state, action) => {
@@ -21,7 +21,3 @@ export const reducePolitical: DomainReducer = (state, action) => {
       return null;
   }
 };
-
-export type PoliticalAction = Extract<GameAction, {
-  type: 'SET_LANGUAGE' | 'DEBUG_TRIGGER_ENDING' | 'SANDBOX_EDIT' | 'SET_REGIONAL_STATUS'
-}>;
