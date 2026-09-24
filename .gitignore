@@ -12,6 +12,8 @@ coverage/
 !/docs/ARCHITECTURE_MIGRATION_PLAN.md
 !/docs/ARCHITECTURE.md
 !/docs/游戏设计文档.md
+!/docs/经济系统说明.md
+!/docs/顾问文档.md
 /output/
 /tools/
 

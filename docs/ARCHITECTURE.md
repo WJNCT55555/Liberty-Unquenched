@@ -622,7 +622,7 @@ map/types_map.ts
 
 大选日程与结果迁移已完成 P0–P3：`GameState.generalElectionSchedule` 是“下一次大选何时、为何举行、CNT/PRRevS 采取何种参选策略”的规范持久化状态；场景定义提供初值，`formRulingCoalitionFromElection` 和 `checkCoalitionDissolve` 是周期写入口，旧存档由 [`saveMigrations.ts`](../src/game/saveMigrations.ts) 推导补齐。所有 UI 必须经 [`selectGeneralElectionViewModel`](../src/game/selectors.ts) 读取，禁止再根据年份或 `is*Dissolved` 标志自行推算。
 
-运行时调度通过 [`electionSchedule.ts`](../src/game/rules/electionSchedule.ts) 选择唯一入口：第一次共和—社会党政府解散可进入1933历史事件，第二次激进党—CEDA政府解散可进入1936历史事件，其余到期选举进入可重复的通用大选事件。总统解散事件只确认解散并进入看守期，不得直接排入结果事件。1933、1936、普通任期和提前大选结果统一使用 [`general_election.tsx`](../src/game/events/general_election.tsx) 与 [`utils/election.ts`](../src/game/utils/election.ts) 的非重叠票块；AP 只能属于右翼票块一次。1931制宪选举仍保留独立内容链，这是有意的历史序章边界。
+运行时调度通过 [`electionSchedule.ts`](../src/game/rules/electionSchedule.ts) 选择唯一入口：第一次共和—社会党政府解散可进入1933历史事件，第二次激进党—CEDA政府解散可进入1936历史事件，其余到期选举进入可重复的通用大选事件。总统解散事件只确认解散并进入看守期，不得直接排入结果事件。1933、1936、普通任期和提前大选结果统一使用 [`general_election.tsx`](../src/game/events/general_election.tsx) 与 [`utils/election.ts`](../src/game/utils/election.ts) 的非重叠票块；AP 只能属于右翼票块一次。1931制宪选举是有意保留的历史序章边界：`generalElectionSchedule` 仍记录并展示其日期，但 `reason: 'constituent'` 不进入通用调度器；唯一运行时入口是 [`cnt_third_congress.ts`](../src/game/events/cnt_third_congress.ts) 的大会闭幕选项，随后排入 [`elections_1931_results.tsx`](../src/game/events/elections_1931_results.tsx)。
 
 CNT 的长期政治立场仍由 `cntStance` 表示；单次大选策略使用 `generalElectionSchedule.participation`，取值为弃权、战术支持左翼、PRRevS 独立参选或 PRRevS—左翼协定。不得再用一次性的 `cntStance` 改写来替代选票归属策略。PRRevS 独立参选遇到悬峙议会时，可以选择外部支持左翼或以多数条件要求工人联盟内阁。
 
@@ -632,7 +632,8 @@ CNT 的长期政治立场仍由 `cntStance` 表示；单次大选策略使用 `g
 
 ```mermaid
 flowchart TD
-    S31[1931 剧本开始<br/>临时政府为历史初始状态] --> E31[1931 制宪议会选举结果]
+    S31[1931 剧本开始<br/>临时政府为历史初始状态] --> CNT3[CNT第三次代表大会事件链]
+    CNT3 -->|大会闭幕选项：唯一入口| E31[1931 制宪议会选举结果]
     E31 -->|结果选项：共和—社会党多数| RS[共和—社会党联盟执政]
     E31 -->|结果选项：共和派多数<br/>需要超过235席| RC[共和派联盟执政]
 
