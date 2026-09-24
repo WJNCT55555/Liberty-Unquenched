@@ -112,7 +112,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 3000, artillery: 0, tanks: 0 },
             designedComposition: { infantry: 3000, artillery: 0, tanks: 0 },
             morale: 95,
-            militarization: 50
           },
           {
             id: 'asturias_miners_1',
@@ -125,7 +124,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 5000, artillery: 1000, tanks: 0 },
             designedComposition: { infantry: 5000, artillery: 1000, tanks: 0 },
             morale: 95,
-            militarization: 50
           },
           {
             id: 'asturias_miners_2',
@@ -138,7 +136,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 2500, artillery: 500, tanks: 0 },
             designedComposition: { infantry: 2500, artillery: 500, tanks: 0 },
             morale: 90,
-            militarization: 45
           },
           {
             id: 'gov_army_1',
@@ -151,7 +148,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 4000, artillery: 1000, tanks: 0 },
             designedComposition: { infantry: 4000, artillery: 1000, tanks: 0 },
             morale: 75,
-            militarization: 60
           },
           {
             id: 'gov_army_2',
@@ -164,7 +160,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 2500, artillery: 500, tanks: 0 },
             designedComposition: { infantry: 2500, artillery: 500, tanks: 0 },
             morale: 70,
-            militarization: 55
           },
           {
             id: 'gov_army_3',
@@ -177,7 +172,6 @@ export const asturiasRevolution: GameEvent = {
             composition: { infantry: 2500, artillery: 500, tanks: 0 },
             designedComposition: { infantry: 2500, artillery: 500, tanks: 0 },
             morale: 70,
-            militarization: 50
           },
           ...republicanArmies
         ];

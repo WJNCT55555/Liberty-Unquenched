@@ -1,4 +1,5 @@
 import { Advisor } from '../types';
+import { adjustMilitarization } from '../rules/militarization';
 
 export const buenaventuraDurruti: Advisor = {
   id: 'Buenaventura Durruti',
@@ -23,7 +24,10 @@ export const buenaventuraDurruti: Advisor = {
         stats: {
           ...state.stats,
           anarchistMilitia: state.stats.anarchistMilitia + 15,
-        }
+        },
+        // Arming more volunteers without drilling them: numbers up, organisation
+        // barely moves.
+        ...adjustMilitarization(state, 'cnt', 2)
       }),
       description: 'We have expanded the anarchist militias in Aragon and Catalonia. While this bolsters the fight against Franco, it creates friction with Republican government forces who demand centralized command.',
       descriptionZh: '我们在阿拉贡和加泰罗尼亚扩充了无政府主义民兵。虽然这加强了对抗佛朗哥的战斗，但也与要求中央集权的共和国政府军队产生了摩擦。',
@@ -43,7 +47,10 @@ export const buenaventuraDurruti: Advisor = {
           ...state.stats,
           armyLoyalty: Math.min(100, state.stats.armyLoyalty + 10),
           revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5),
-        }
+        },
+        // "Even if it means adopting traditional military discipline" — the
+        // single largest militia militarization step any advisor can take.
+        ...adjustMilitarization(state, 'cnt', 5)
       }),
       description: 'We must ensure our militias are an effective fighting force, even if it means adopting traditional military discipline.',
       descriptionZh: '我们必须确保我们的民兵是一支有效的战斗力量，即使这意味着采用传统的军事纪律。',

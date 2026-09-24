@@ -29,5 +29,5 @@ export const ACTION_AFFAIRS = [
   cntChooseEnemies,
   cntInterPartyRelationships,
   landAndFreedom,
-  propagandaByDeed
+  propagandaByDeed,
 ];

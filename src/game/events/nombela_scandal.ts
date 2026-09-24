@@ -11,7 +11,7 @@ export const nombelaScandal: GameEvent = {
   id: 'nombela_scandal',
   meta: governmentCrisisMeta,
   date: { year: 1935, month: 11 },
-  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1935, 11) && state.government.type === 'Radical-CEDA Government',
+  condition: (state) => state.scenario !== '1936' && isAtOrAfter(state, 1935, 11) && state.rulingCoalition === 'ceda_radical',
   title: 'The Nombela Scandal',
   titleZh: '隆贝拉丑闻事件',
   description: 'Hot on the heels of the notorious Straperla roulette scandal, a second, even more devastating corruption bombshell has rocked the Radical-CEDA coalition. Antonio Nombela, a high-ranking civil servant in the colonies department, has publicly denounced Prime Minister Alejandro Lerroux’s cabinet. Nombela claims he was summarily dismissed after refusing to sign off on a fraudulent government indemnity of over 2.2 million pesetas to a West African shipping company owned by Antonio Tayá—a payout actively championed by Lerroux’s close political associates.\n\nNow, Nombela has presented damning written evidence of bribery and corruption directly to the Cortes. The public is absolutely furious, and the moral authority of Lerroux’s Radicals is irreversibly shattered. CEDA, led by Gil-Robles, is desperately trying to distance itself, while President Alcalá-Zamora is under massive pressure from the left and moderate republicans to dissolve the corrupt parliament altogether. How does the National Committee of the CNT capitalize on this major crisis?',

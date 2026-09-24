@@ -4,6 +4,7 @@ import { ENDINGS } from './endings';
 import { LAW_LEVEL_LIMITS } from './lawStances';
 import { isOrganizationEstablished } from './organizations';
 import { getOverallFactionDissent } from './utils/factionEffects';
+import { ECONOMY_ROUTE_JOURNAL_IDS } from './rules/economyReforms';
 
 import { toast } from 'sonner';
 import { getImageUrl } from '../lib/assetUrl';
@@ -35,7 +36,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'A_SIN_PARTIDO', title: { en: 'El partido de los sin partido', zh: '无党之党' }, description: { en: 'Found the PRRevS — a party of anarcho-syndicalists who swore they would never have one.', zh: '成立 PRRevS——一个由发誓永不结党的人组成的政党。' }, icon: '🗳️' },
   { id: 'A_MOSQUETEROS', title: { en: 'Los tres mosqueteros', zh: '三个火枪手' }, description: { en: 'Have Ascaso, Durruti and García Oliver serving as advisors at the same time.', zh: '让阿斯卡索、杜鲁蒂与加西亚·奥利弗同时担任顾问。' }, icon: '⚔️' },
   { id: 'A_ESPERANTO', title: { en: 'Esperanto', zh: '世界语' }, description: { en: 'Raise the language law all the way to Esperanto.', zh: '将语言法律提升至世界语。' }, icon: 'img/Achievement Icon/esperanto.png' },
-  { id: 'A_OLIMPIADA', title: { en: 'Olimpíada Popular', zh: '人民奥林匹克' }, description: { en: 'Hold the People\'s Olympiad in Barcelona while the Republic is still at peace.', zh: '在共和国仍然和平时，让人民奥林匹克运动会在巴塞罗那举行。' }, icon: 'img/Achievement Icon/olimpiada_popular.png' }
+  { id: 'A_OLIMPIADA', title: { en: 'Olimpíada Popular', zh: '人民奥林匹克' }, description: { en: 'Hold the People\'s Olympiad in Barcelona while the Republic is still at peace.', zh: '在共和国仍然和平时，让人民奥林匹克运动会在巴塞罗那举行。' }, icon: 'img/Achievement Icon/olimpiada_popular.png' },
+  { id: 'A_MONEY_ENDS', title: { en: 'El fin del dinero', zh: '货币的终结' }, description: { en: 'Reach the third level of abolition and declare the peseta finished in the liberated districts.', zh: '把废除货币推进到第三级，并正式宣布比塞塔在解放区作废。' }, icon: '🪙' },
+  { id: 'A_SIX_ROADS', title: { en: 'Los seis caminos', zh: '六条路' }, description: { en: 'Complete all six economic routes in a single run.', zh: '在同一局内完成全部六条经济路线。' }, icon: '🧭' }
 ];
 
 /**
@@ -200,6 +203,11 @@ export const checkAchievements = (state: GameState): GameState => {
   // history only grows, so the achievement cannot be un-earned mid-run.
   const heldPeopleOlympiad = (state.eventHistory?.resolved || []).includes('olimpiada_popular');
   checkAndUnlock('A_OLIMPIADA', heldPeopleOlympiad);
+
+  // Economy reform (docs/经济改造方案.md §11 第 4 期). Both read counters rather than
+  // flags, so they cannot be lost after the fact.
+  checkAndUnlock('A_MONEY_ENDS', (state.currency_abolition ?? 0) >= 3 && state.currency_abolished_declared === true);
+  checkAndUnlock('A_SIX_ROADS', ECONOMY_ROUTE_JOURNAL_IDS.every(journalId => state.journal?.[journalId]?.status === 'completed'));
 
   if (changed) {
     return { ...state, unlockedAchievementsThisRun: Array.from(newUnlocked) };

@@ -11,8 +11,26 @@ import { FACTION_NAMES } from '../game/labels';
 import { getPartyName } from '../game/partyNames';
 import { getOrganizationsForOwner, isOrganizationEstablished, isOrganizationVisible, setOrganizationEstablished } from '../game/organizations';
 import type { OrganizationId } from '../game/types';
+import type { ArmyIdentity } from '../map/types_map';
+import { getMilitarization, MILITARIZATION_DISPLAY_ORDER, MILITARIZATION_GROUP_INFO } from '../game/rules/militarization';
+import {
+  OWNERSHIP_COLORS,
+  OWNERSHIP_LABELS,
+  getControlCeilings,
+  getPrivateShare,
+  getSocializedShare,
+  getWorkersShare,
+  transferControlShare,
+} from '../game/rules/controlShares';
+import type { OwnershipSector } from '../game/types';
 
 type CoalitionRole = 'ruling' | 'opposition';
+
+/** 沙盒里的两张饼，顺序与侧边栏、经济改造面板一致：土地在前。 */
+const OWNERSHIP_PIE_SECTORS: Array<{ key: OwnershipSector; label: string; labelZh: string }> = [
+  { key: 'land', label: 'Land', labelZh: '土地' },
+  { key: 'industry', label: 'Industry', labelZh: '生产资料' },
+];
 
 const ORGANIZATION_TYPE_LABELS = {
   union: { en: 'Union', zh: '工会' },
@@ -56,6 +74,18 @@ export const SandboxMenu = () => {
     dispatch({ type: 'SANDBOX_EDIT', payload: { factions: newFactions } });
   };
 
+  const handleMilitarizationEdit = (group: ArmyIdentity, value: number) => {
+    dispatch({
+      type: 'SANDBOX_EDIT',
+      payload: {
+        militarization: {
+          ...state.militarization,
+          [group]: Math.max(0, Math.min(100, value))
+        }
+      }
+    });
+  };
+
   const handleMapResourceEdit = (faction: MapFaction, key: string, value: number) => {
     if (!state.mapResources) return;
     const nextMapResources = { ...state.mapResources };
@@ -78,6 +108,18 @@ export const SandboxMenu = () => {
         }
       }
     });
+  };
+
+  /**
+   * 所有权滑杆：把某一个桶设成滑杆值，差额交给 `transferControlShare` 配平
+   * （进方全额、其余桶按比例出）。沙盒刻意**不走**上限检查，也不走
+   * `applyEconomicOption` 的计数器记账 —— 这里是调试工具，不是玩法入口。
+   */
+  const handleOwnershipEdit = (sector: OwnershipSector, key: string, value: number) => {
+    const current = (state.controlShares?.[sector] as Record<string, number> | undefined)?.[key] ?? 0;
+    const delta = value - current;
+    if (!delta) return;
+    dispatch({ type: 'SANDBOX_EDIT', payload: transferControlShare(state, sector, { [key]: delta }) });
   };
 
   const handleMinisterChange = (role: string, value: any) => {
@@ -431,18 +473,129 @@ export const SandboxMenu = () => {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1 border-t border-ink/10 pt-3">
+                  <div className="flex flex-col gap-2 border-t border-ink/10 pt-3">
                     <div className="flex justify-between text-sm font-typewriter">
-                      <span>{isZh ? '工人控制程度 (0-100)' : 'Control Obrero (0-100)'}</span>
-                      <span className="font-bold text-cnt-red">{state.stats.workerControl}%</span>
+                      <span>{isZh ? '生产资料归属（两张六分饼）' : 'Ownership of production (two six-part pies)'}</span>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" max="100" 
-                      value={state.stats.workerControl}
-                      onChange={(e) => handleStatEdit('workerControl', parseInt(e.target.value))}
-                      className="w-full accent-cnt-red"
-                    />
+                    <span className="text-[10px] font-mono text-ink/75 leading-snug">
+                      {isZh
+                        ? '12 个桶各自独立可调；每次改动由 transferControlShare 配平，六项之和恒为 100。这里不检查社会化上限，也不写计数器。'
+                        : 'All twelve buckets are independently adjustable; every change is balanced by transferControlShare so the six parts always sum to 100. Ceilings and counters are deliberately bypassed here.'}
+                    </span>
+                    {OWNERSHIP_PIE_SECTORS.map((sector) => {
+                      const shares = (state.controlShares?.[sector.key] ?? {}) as Record<string, number>;
+                      const ceilings = getControlCeilings(state);
+                      const workers = getWorkersShare(state, sector.key);
+                      return (
+                        <div key={sector.key} className="flex flex-col gap-1 border-t border-ink/10 pt-2 first:border-t-0 first:pt-0">
+                          <div className="flex justify-between text-[11px] font-typewriter font-bold uppercase">
+                            <span>{isZh ? sector.labelZh : sector.label}</span>
+                            <span className="tabular-nums">
+                              {isZh ? '劳动者' : 'Workers'} {workers}%
+                              {' · '}
+                              {isZh ? '社会化' : 'Socialized'} {getSocializedShare(state, sector.key)}%
+                              {' · '}
+                              {isZh ? '私人' : 'Private'} {getPrivateShare(state, sector.key)}%
+                              {' · '}
+                              {isZh ? '上限' : 'Ceiling'} {ceilings[sector.key]}%
+                            </span>
+                          </div>
+                          {OWNERSHIP_LABELS[sector.key].map((entry) => {
+                            const value = shares[entry.key] ?? 0;
+                            return (
+                              <div key={entry.key} className="flex flex-col gap-0.5">
+                                <div className="flex justify-between text-[10px] font-typewriter">
+                                  <span className="flex items-center gap-1.5">
+                                    <span
+                                      className="w-2 h-2 border border-ink/50 shrink-0"
+                                      style={{ backgroundColor: OWNERSHIP_COLORS[sector.key][entry.key] }}
+                                    />
+                                    {isZh ? entry.labelZh : entry.label}
+                                  </span>
+                                  <span className="font-bold text-cnt-red tabular-nums">{value}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0" max="100"
+                                  value={value}
+                                  onChange={(e) => handleOwnershipEdit(sector.key, entry.key, parseInt(e.target.value))}
+                                  className="w-full accent-cnt-red"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                    <span className="text-[10px] font-mono text-ink/60 leading-snug">
+                      {isZh
+                        ? '注意：工人控制程度不再是可写的标尺，它由这两张饼派生（国有制不计入劳动者份额），因此这里没有它的滑杆。'
+                        : 'Note: workers\' control is no longer a writable gauge — it is derived from these two pies (state ownership does not count as workers\' share), so it has no slider here.'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Militarization Sandbox Control */}
+              <div className="flex flex-col gap-4 border-t border-ink/10 pt-4">
+                <h3 className="font-typewriter text-lg uppercase tracking-widest border-b border-ink/20 pb-1">
+                  {isZh ? '调试: 军事化率' : 'Debug: Militarization'}
+                </h3>
+
+                <div className="flex flex-col gap-3 bg-ink/5 p-4 rounded-sm">
+                  <span className="text-[10px] font-mono text-ink/75 leading-snug">
+                    {isZh
+                      ? '军事化率 = 名义人力中真正能当兵的比例，同时也是线性战斗乘数。同派系全部队共享；此处直接改写，不走 adjustMilitarization。'
+                      : 'Militarization = the share of nominal manpower that functions as soldiers, and the linear combat multiplier. Shared by the whole force group; edited directly here, bypassing adjustMilitarization.'}
+                  </span>
+
+                  {MILITARIZATION_DISPLAY_ORDER.map((group) => {
+                    const info = MILITARIZATION_GROUP_INFO[group];
+                    const rate = getMilitarization(state, group);
+                    return (
+                      <div key={group} className="flex flex-col gap-1 border-t border-ink/10 pt-2 first:border-t-0 first:pt-0">
+                        <div className="flex justify-between text-sm font-typewriter">
+                          <span>{isZh ? info.zh : info.en}</span>
+                          <span className="font-bold text-cnt-red">{Math.round(rate)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0" max="100"
+                          step="1"
+                          value={Math.round(rate)}
+                          onChange={(e) => handleMilitarizationEdit(group, parseInt(e.target.value, 10))}
+                          className="w-full accent-cnt-red"
+                        />
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex flex-col gap-2 border-t border-ink/10 pt-3">
+                    <span className="text-[10px] font-bold text-ink-light uppercase">
+                      {isZh ? '军事化路线（正式流程由内战事件写入）' : 'Militarization route (normally written by the civil-war event)'}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        ['none', isZh ? '未选择' : 'Unchosen'],
+                        ['popular_army', isZh ? '人民军' : 'People\'s Army'],
+                        ['militia_autonomy', isZh ? '民兵自治' : 'Militia Autonomy']
+                      ] as const).map(([path, label]) => (
+                        <button
+                          key={path}
+                          onClick={() => handleEdit('militarizationPaths', {
+                            ...state.militarizationPaths,
+                            chosen: path
+                          })}
+                          className={`py-1 px-2.5 text-[10px] font-mono border transition-all ${
+                            state.militarizationPaths?.chosen === path
+                              ? 'border-cnt-red bg-cnt-red text-paper'
+                              : 'border-ink/40 hover:bg-ink hover:text-paper'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

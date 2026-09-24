@@ -14,6 +14,7 @@
  * here; it lives in the neutral base.
  */
 import type { GameState } from '../types';
+import type { EconomyOwnershipShares } from '../types';
 import type { ArmedEntityId } from '../../map/types_map';
 
 export type ScenarioId = GameState['scenario'];
@@ -105,6 +106,13 @@ export interface ScenarioDefinition {
 
   economy: ScenarioEconomy;
   history: ScenarioHistoryFlags;
+
+  /**
+   * 开局时两张所有权饼的状态（docs/工人控制度改造方案.md §2.4）。
+   * 与 `economy` / `history` 同级：它描述"世界已经发生了什么"，
+   * 因此必须由剧本显式声明，不能从 `NEUTRAL_STATE` 继承。
+   */
+  controlShares: EconomyOwnershipShares;
 
   armedEntityManpower: Record<ScenarioMilitiaEntityId, number>;
   regionalStatuses: GameState['regionalStatuses'];

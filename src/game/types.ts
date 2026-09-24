@@ -2,6 +2,7 @@ import React from 'react';
 import type {
   ArmedEntityId,
   ArmyFormation,
+  ArmyIdentity,
   MapRuntimeState,
 } from '../map/types_map';
 import { Party } from './parties';
@@ -325,7 +326,7 @@ export interface ElectionDate {
   month: number;
 }
 
-export type GeneralElectionReason = 'constituent' | 'term_expiry' | 'government_crisis';
+export type GeneralElectionReason = 'constituent' | 'term_expiry' | 'government_crisis' | 'failed_formation';
 export type GeneralElectionParticipation =
   | 'abstain'
   | 'support_left'
@@ -356,6 +357,13 @@ export interface CoalitionDef {
   name: string;
   nameZh: string;
   members: (Party | 'CNT_FAI')[];
+  /**
+   * `special` coalitions are installed only by their dedicated constitutional
+   * story paths. `event_formed` coalitions must exist in `activeCoalitions`
+   * before they can contest an ordinary post-1931 election. Wartime structures
+   * never contest a Cortes election.
+   */
+  electionRole: 'special' | 'event_formed' | 'ineligible';
   shouldDissolve?: (state: GameState, coalition: CoalitionState) => boolean;
   dissolveThreshold: number;
 }
@@ -438,6 +446,69 @@ export interface GameEvent {
   }[];
 }
 
+/**
+ * 各武装派系共享的军事化率。军事化率 = 「名义人力里，真正能当兵的那部分占多少」，
+ * 所以它同时是战斗乘数（见 `rules/militarization.ts`）。
+ *
+ * `gov` 同时服务政府军与警察：编制表部队的 `identity` 是 `gov`；警队人力开战时按忠诚
+ * 切分进阵营池，而自该池募兵产生的单位同样是 `gov`。
+ */
+export type MilitarizationState = Record<ArmyIdentity, number>;
+
+/** 军事化路线：内战爆发后由「人民军还是武装民兵」事件二选一，一经写入不可更改。 */
+export interface MilitarizationPaths {
+  chosen: 'none' | 'popular_army' | 'militia_autonomy';
+  /** 选择发生的月份。人民军日志的 24 个月失败期限以它为锚点。 */
+  chosenAt?: { year: number; month: number };
+}
+
+/**
+ * Global progress of the Prepare for Revolution programme. Each lever can be pulled
+ * three times over the whole game, so the menu spends one pull at a time and the card
+ * leaves the deck once all nine are gone.
+ */
+export interface PrepareRevolutionUses {
+  militiaUses: number;
+  armyUses: number;
+  sabotageUses: number;
+}
+
+/**
+ * 土地所有权的六种归属（docs/工人控制度改造方案.md §2.1）。
+ * 顺序即界面的显示顺序（私人三项 → 社会化三项）。
+ */
+export type LandOwnershipKey =
+  | 'church'        // 教会土地
+  | 'latifundia'    // 大庄园所有制
+  | 'smallholders'  // 中小地主与自耕农所有制
+  | 'cooperative'   // 农业合作社
+  | 'collective'    // 农业集体
+  | 'state';        // 国有土地
+
+/** 生产资料所有权的六种归属。 */
+export type IndustryOwnershipKey =
+  | 'foreign'       // 外资控制
+  | 'bigCapital'    // 大资本私有制
+  | 'smallBusiness' // 小业主私有制
+  | 'cooperative'   // 工业合作社
+  | 'union'         // 地方工会所有制
+  | 'state';        // 国有制
+
+export type LandOwnership = Record<LandOwnershipKey, number>;
+export type IndustryOwnership = Record<IndustryOwnershipKey, number>;
+
+/** 所有权饼的部门键。 */
+export type OwnershipSector = 'land' | 'industry';
+
+/**
+ * 两张所有权饼。每张六份，和恒为 100（整数百分比，与 `unionShare` 同一量纲）。
+ * 写入走 `transferControlShare()`（整张饼一次配平），不要逐个 bucket 手写增量。
+ */
+export interface EconomyOwnershipShares {
+  land: LandOwnership;
+  industry: IndustryOwnership;
+}
+
 export interface GameState extends MapRuntimeState {
   screen: 'start' | 'game';
   currentView?: 'standard' | 'map';
@@ -466,6 +537,17 @@ export interface GameState extends MapRuntimeState {
   labor_rights_timer: number;
   labor_affairs_timer: number;
   fiscal_policy_timer: number;
+  aragon_front_timer: number;
+  militia_reorg_timer: number;
+  anarchy_tanks_timer: number;
+  prepare_revolution_timer: number;
+  /** 经济改造卡牌冷却（方案 §6.1）。 */
+  industry_policy_timer: number;
+  trade_policy_timer: number;
+  fiscal_measures_timer: number;
+  land_and_freedom_timer: number;
+  /** Persistent progress of the Prepare for Revolution programme: three pulls per lever, nine in total. */
+  prepareRevolution: PrepareRevolutionUses;
   
   coupProgress: number;
 
@@ -489,6 +571,49 @@ export interface GameState extends MapRuntimeState {
   public_debt: number;
   has_issued_war_bonds: boolean;
   military_spending: number;
+
+  // ---- Economy Reform（经济改造）----
+  // 全局计数器：每条经济路线日志读它们，每个卡牌/顾问选项给它们加点（docs/经济改造方案.md §3）。
+  // 农业五项刻意无上限（[0,∞)），由选项逐次 +1，节奏交给卡牌冷却与 AP；其余见
+  // `ECONOMY_REFORM_CAPS`。唯一写入口是 `advanceEconomyCounter()`，不要手写 Math.min。
+  agricultural_cooperative: number;          // 农业合作社 [0,∞)
+  land_requisition: number;                  // 农村土地征用 [0,∞)
+  land_redemption: number;                   // 农村土地赎买 [0,∞)
+  land_voluntary_collectivization: number;   // 自愿集体化 [0,∞)
+  land_forced_collectivization: number;      // 强制集体化 [0,∞)
+  currency_abolition: number;                // 废除货币 [0,3]
+  private_bank_seizure: number;              // 没收私营银行储蓄 [0,1]
+  mutual_credit_network: number;             // 地方互助信贷 [0,5]
+  credit_exchange_committee: number;         // 信用与兑换委员会 [0,1]
+  rail_nationalization: number;              // 铁路系统国有化 [0,3]
+  coal_nationalization: number;              // 煤炭国有化 [0,2]
+  industrial_cooperative: number;            // 工业合作社 [0,5]
+  foreign_capital_seizure: number;           // 外资没收 [0,5]
+  supply_coordination_network: number;       // 工团物资调控网络 [0,3]
+  wartime_requisition: number;               // 战时农业强制征发 [0,1]
+  family_rationing: number;                  // 家庭口粮本配给制 [0,1]
+  war_industry_conversion: number;           // 军工紧急转产改组 [0,3]
+  wartime_trade_monopoly: number;            // 战时外贸垄断 [0,2]
+  /**
+   * 顾问推动方案的累计次数。顶层计数器表达"做到了什么"，这里表达"谁在推、推了几次"。
+   * 佩罗推 2 次开「合作社之路」，桑蒂利安推 3 次开「革命之后」（方案 §9.3）。
+   */
+  economy?: {
+    cooperativePushes: number;
+    organicPushes: number;
+  };
+  /**
+   * 「废除货币」事件的确认结果。计数器到 3 级只代表推进完成；**只有玩家在
+   * `currency_abolished` 事件里选择"正式宣布"**才会砍掉消费税税基（方案 §7.5）。
+   * 可选：旧存档读入时为 undefined，等价于"未宣布"。
+   */
+  currency_abolished_declared?: boolean;
+  /**
+   * 土地与生产资料所有权（两张六分饼，各张和恒为 100）。
+   * 取代 `stats.workerControl` 的单标尺；唯一写入口见 `rules/controlShares.ts`。
+   * 可选：旧存档由 `migrateControlShares` 按剧本初值补齐。
+   */
+  controlShares?: EconomyOwnershipShares;
 
   workersAllianceProgress: number;
   cntVotingRate: number;
@@ -522,7 +647,18 @@ export interface GameState extends MapRuntimeState {
   stats: {
     armyLoyalty: number;
     tension: number;
-    /** 工人对生产资料的实际控制程度（0–100）。 */
+    /**
+     * **派生值，只读**（工人控制度改造方案 §2.5）。
+     *
+     * 真相来源是 `controlShares` 的两张饼；本字段由 `reducers/postReducer.ts` 在每次
+     * reducer 之后重算，等于两个部门劳动者份额的平均值（**国有制不计入**）。
+     *
+     * 三条使用规则：
+     *  1. **任何判定逻辑都不得读它**——门槛读饼（`mayDays.ts` 读 CNT 工会份额与地方
+     *     工会所有制，经济路线读 `getWorkersShare` / `getSocializedShare`）；
+     *  2. 手写它的值没有意义，`postReducer` 会覆盖；
+     *  3. 它只是给效果预览与旧界面文案用的显示口径，随饼图逐步退出。
+     */
     workerControl: number;
     anarchistMilitia: number;
     republicanAuthority: number;
@@ -540,7 +676,7 @@ export interface GameState extends MapRuntimeState {
   governmentCrisisSequence: number;
   earlyElectionInProgress: boolean;
   generalElectionSchedule: GeneralElectionSchedule;
-  civilWarSetupCompletedAt?: { year: number; month: number; inferred?: boolean };
+  civilWarSetupCompletedAt?: { year: number; month: number };
   wartimePowerArrangement?: WartimePowerArrangement;
   mayDays?: MayDaysState;
   /** Republican political eligibility only; rebel organizations retain their assets. */
@@ -601,6 +737,13 @@ export interface GameState extends MapRuntimeState {
     /** Canonical source-owned manpower and equipment pools. */
     entityPools: Record<ArmedEntityId, ArmedEntityPool>;
   };
+
+  /**
+   * 各派系军事化率（0–100）。同派系全部队共享；单位不保存副本，结算时按 `identity` 查表。
+   */
+  militarization: MilitarizationState;
+  /** 军事化路线选择与两条日志进度。和平期恒为 `{ chosen: 'none' }`。 */
+  militarizationPaths: MilitarizationPaths;
   
   // Domestic Politics
   government: {
@@ -653,13 +796,9 @@ export interface GameState extends MapRuntimeState {
   internationalBrigadesFormed: boolean;
 
   // Civil War
-  militiaCombatPower: number;
   tankResearchProgress: number;
   tankResearchCompleted: boolean;
   aragonCouncilExists: boolean;
-  aragonTimer: number;
-  militiaReorgTimer: number;
-  tankTimer: number;
 
   warRuntime?: WarRuntime;
   asturiasWarTurns?: number;
@@ -709,11 +848,10 @@ export interface GameState extends MapRuntimeState {
   isAndalusiaFireTriggered?: boolean;
   uhp_attempt_triggered: boolean;
   /**
-   * 工人联盟日志的激活标志。UHP 已迁移到「开始事件直接写日志状态」
-   * （`journal.journal_uhp.status`），因此不再有 `uhp_journal_activated`；
-   * 工人联盟等待自己的开始事件落笔后再做同样的迁移。
+   * 日志激活一律走"开始事件写 `journal.*.status`"，不再有单独的激活标志：
+   * UHP 由「工人联盟的尝试？」开启，工人联盟由「十字路口」选项 A 开启
+   * （旧的 `uhp_journal_activated` / `alliance_obrera_activated` 已随迁移删除）。
    */
-  alliance_obrera_activated: boolean;
   crossroads_uprising_alliance_decided?: boolean;
   crossroads_choice?: 'uprising' | 'popular_front';
   isRepublicanSocialistDissolved: boolean;

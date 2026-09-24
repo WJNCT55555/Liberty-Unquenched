@@ -1,6 +1,62 @@
 import { PROVINCE_ADJACENCY, getCombatWidth } from '../../map/map_constants';
-import { getEffectiveFortressLevel, MapFaction, type Army } from '../../map/types_map';
+import { getEffectiveFortressLevel, MapFaction, type Army, type ArmyComposition, type ArmyIdentity, type Province } from '../../map/types_map';
 import { canEnterMapProvince, getMapFactionName } from '../../map/rules/factions';
+import { getMilitarization, getMilitarizationMultiplier } from './militarization';
+
+/**
+ * One battle is one resolution: a single line fights, casualties are taken, and
+ * the province either changes hands or it does not. The formula is
+ *
+ *   最终战力 = 基础战力
+ *            × 军事化系数   (该单位所属派系的 militarization，查表得到，不存单位)
+ *            × (1 + 士气/100)
+ *            × 防守系数     (仅防守方)
+ *            × 随机系数     ∈ [0.90, 1.10]
+ *
+ * and the terms that feed 基础战力 are covered by `deployToWidth` below.
+ */
+
+/** Per-man weight of artillery crews, on top of their own headcount. */
+export const ARTILLERY_WEIGHT = 0.35;
+/** Per-man weight of armour crews, on top of their own headcount. */
+export const ARMOUR_WEIGHT = 0.60;
+
+/**
+ * Inherited terrain defence coefficients. In the current defence formula only
+ * their **excess over 1.0** is used, so the plain is the neutral case.
+ */
+export const TERRAIN_DEFENSE_COEFFICIENT: Record<Province['terrain'], number> = {
+  plains: 1.00,
+  forest: 1.15,
+  urban: 1.20,
+  mountains: 1.30,
+};
+
+/**
+ * The constant term of the defence formula. At 1.2 an even fight still favours
+ * the defender (roughly 1.44 : 1 casualties, so about 1.4 : 1 odds to profit),
+ * without making attacks impossible.
+ */
+export const DEFENSE_BASE = 1.2;
+
+/**
+ * 防守系数 = 1.2 + (地形防御系数 − 1) + 工事等级.
+ *
+ * Additive, not multiplicative: fortification level is added directly, so a
+ * mountain fortress (1.2 + 0.30 + 2 = 3.50) is genuinely punishing while open
+ * plains (1.20) stays attackable.
+ */
+export const getDefenseCoefficient = (
+  terrain: Province['terrain'],
+  fortressLevel: number,
+): number => (
+  DEFENSE_BASE
+  + ((TERRAIN_DEFENSE_COEFFICIENT[terrain] ?? TERRAIN_DEFENSE_COEFFICIENT.plains) - 1)
+  + Math.max(0, Number.isFinite(fortressLevel) ? fortressLevel : 0)
+);
+
+/** Units at or below this many men are destroyed rather than left on the map. */
+export const UNIT_DESTRUCTION_THRESHOLD = 150;
 
 /**
  * Split one total loss across several units in proportion to the men each brought.
@@ -26,20 +82,160 @@ export function splitLossAcrossUnits(units: Army[], totalLosses: number): number
   return shares;
 }
 
+/**
+ * How much of a composition actually stands in the line.
+ *
+ * Deployment order is fixed: **tanks first, then infantry, then artillery** —
+ * which is also the order of per-man value (1.60 / 1.00 / 1.35), so the best
+ * troops claim the frontage. Artillery ignores combat width entirely.
+ */
+export interface Deployment {
+  infantry: number;
+  tanks: number;
+  /** Artillery is never withheld: it fires over the heads of the line. */
+  artillery: number;
+  reserveInfantry: number;
+  reserveTanks: number;
+}
+
+export const deployToWidth = (composition: ArmyComposition, width: number): Deployment => {
+  const tanks = Math.min(Math.max(0, composition.tanks), width);
+  const infantry = Math.min(Math.max(0, composition.infantry), Math.max(0, width - tanks));
+  return {
+    infantry,
+    tanks,
+    artillery: Math.max(0, composition.artillery),
+    reserveInfantry: Math.max(0, composition.infantry - infantry),
+    reserveTanks: Math.max(0, composition.tanks - tanks),
+  };
+};
+
+/** Men that actually stand in the line for this battle. */
+export const getDeployedManpower = (deployment: Deployment): number =>
+  deployment.infantry + deployment.tanks + deployment.artillery;
+
+/**
+ * 基础战力 on the thousand-man scale: each man counts for himself, and artillery
+ * and armour crews additionally carry their arm's weight.
+ */
+export const getBasePower = (deployment: Deployment): number => (
+  (
+    deployment.infantry
+    + deployment.tanks
+    + deployment.artillery
+    + deployment.artillery * ARTILLERY_WEIGHT
+    + deployment.tanks * ARMOUR_WEIGHT
+  ) / 1000
+);
+
+/** 军事化伤亡系数 = 1.10 − 0.20 × 军事化率 / 100. */
+export const getCasualtyFactor = (militarizationMultiplier: number): number =>
+  1.10 - 0.20 * militarizationMultiplier;
+
+export interface CombatPowerInputs {
+  deployment: Deployment;
+  militarizationMultiplier: number;
+  morale: number;
+  /** 1 for the attacker; the defender's terrain+fortress coefficient otherwise. */
+  defenseCoefficient?: number;
+  /**
+   * Omit to get the deterministic value the UI shows. Battles pass a roll in
+   * [0.90, 1.10] so that randomness can swing a close fight without overturning
+   * a decisive one.
+   */
+  randomMultiplier?: number;
+}
+
+/**
+ * 最终战力 = 基础战力 × 军事化系数 × (1 + 士气/100) × 防守系数 × 随机系数.
+ *
+ * The single definition of the formula: `resolveBattle` and every UI readout go
+ * through here, so a displayed strength can never drift from a resolved one.
+ */
+export const getCombatPower = (inputs: CombatPowerInputs): number => (
+  getBasePower(inputs.deployment)
+  * inputs.militarizationMultiplier
+  * (1 + inputs.morale / 100)
+  * (inputs.defenseCoefficient ?? 1)
+  * (inputs.randomMultiplier ?? 1)
+);
+
+const clampLossRate = (value: number): number => Math.max(0.02, Math.min(0.18, value));
+
+/**
+ * Applies a loss total to the part of a composition that was exposed, leaving
+ * reserves untouched, and returns the unit's full post-battle composition.
+ *
+ * 85% of the loss falls on the line (infantry and armour in proportion to their
+ * share), 15% on the guns behind it; any rounding remainder is spread over
+ * whoever is left.
+ */
+const distributeLosses = (composition: ArmyComposition, totalLosses: number): ArmyComposition => {
+  const totalUnits = composition.infantry + composition.artillery + composition.tanks;
+  if (totalUnits <= 0 || totalLosses <= 0) {
+    return { infantry: composition.infantry, artillery: composition.artillery, tanks: composition.tanks };
+  }
+
+  let infLoss = 0;
+  let artLoss = 0;
+  let tankLoss = 0;
+
+  const frontUnits = composition.infantry + composition.tanks;
+  if (frontUnits > 0) {
+    const infShare = composition.infantry / frontUnits;
+    const tankShare = composition.tanks / frontUnits;
+
+    const frontLosses = totalLosses * 0.85;
+    const backLosses = totalLosses * 0.15;
+
+    infLoss = Math.min(composition.infantry, Math.floor(frontLosses * infShare));
+    tankLoss = Math.min(composition.tanks, Math.floor(frontLosses * tankShare));
+    artLoss = Math.min(composition.artillery, Math.floor(backLosses));
+
+    const leftover = totalLosses - (infLoss + artLoss + tankLoss);
+    if (leftover > 0) {
+      const remInf = composition.infantry - infLoss;
+      const remArt = composition.artillery - artLoss;
+      const remTank = composition.tanks - tankLoss;
+      const remTotal = remInf + remArt + remTank;
+
+      if (remTotal > 0) {
+        infLoss += Math.min(remInf, Math.floor(leftover * (remInf / remTotal)));
+        artLoss += Math.min(remArt, Math.floor(leftover * (remArt / remTotal)));
+        tankLoss += Math.min(remTank, Math.floor(leftover * (remTank / remTotal)));
+      }
+    }
+  } else {
+    artLoss = Math.min(composition.artillery, totalLosses);
+  }
+
+  return {
+    infantry: Math.max(0, composition.infantry - infLoss),
+    artillery: Math.max(0, composition.artillery - artLoss),
+    tanks: Math.max(0, composition.tanks - tankLoss),
+  };
+};
+
+export type MilitarizationLookup = Record<ArmyIdentity, number> | undefined;
+
+const lookupMultiplier = (militarization: MilitarizationLookup, identity: ArmyIdentity | undefined): number =>
+  getMilitarizationMultiplier(getMilitarization({ militarization }, identity ?? 'gov'));
+
 export function resolveBattle(
   armies: Army[],
-  provinces: Record<string, any>,
+  provinces: Record<string, Province>,
   movedArmy: Army,
   targetProvinceId: string,
   isZh: boolean,
+  militarization?: MilitarizationLookup,
   random: () => number = Math.random,
-): { updatedArmies: Army[]; updatedProvinces: Record<string, any>; messages: string[] } {
+): { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] } {
   const targetProvince = provinces[targetProvinceId];
   if (!targetProvince || !canEnterMapProvince(movedArmy.faction, targetProvince.owner)) {
     return { updatedArmies: armies, updatedProvinces: provinces, messages: [] };
   }
   const defenders = armies.filter(a => a.provinceId === targetProvinceId && a.faction !== movedArmy.faction);
-  
+
   if (defenders.length === 0) {
     const updatedProvinces = {
       ...provinces,
@@ -49,7 +245,7 @@ export function resolveBattle(
       }
     };
     const updatedArmies = armies.map(a => a.id === movedArmy.id ? { ...a, provinceId: targetProvinceId, movesLeft: Math.max(0, a.movesLeft - 1) } : a);
-    const msg = isZh 
+    const msg = isZh
       ? `【移驻】${getMapFactionName(movedArmy.faction, true)}占领了未设防的省份 ${targetProvince.name}。`
       : `${movedArmy.faction} army captured undefended province ${targetProvince.name}.`;
     return { updatedArmies, updatedProvinces, messages: [msg] };
@@ -61,13 +257,16 @@ export function resolveBattle(
     return { updatedArmies: armies, updatedProvinces: provinces, messages: [] };
   }
 
-  const attackerRoll = Math.floor(random() * 9) + 1;
-  const defenderRoll = Math.floor(random() * 9) + 1;
+  const terrain = (targetProvince.terrain || 'plains') as Province['terrain'];
+  const width = getCombatWidth(terrain);
+  // The fortress level is inherent defence plus everything built on top of it, and
+  // it enters the defence coefficient exactly once, as its own additive term.
+  const defenseCoefficient = getDefenseCoefficient(terrain, getEffectiveFortressLevel(targetProvince));
 
   // Every defending unit in the province fights as one line: composition is summed
-  // and morale/training are manpower-weighted, then the whole line is filled to the
-  // terrain's combat width below.
-  const defComp = defenders.reduce(
+  // and deployed to the terrain's combat width as a whole.
+  const defenderManpower = defenders.reduce((total, army) => total + army.manpower, 0);
+  const mergedDefenderComposition = defenders.reduce<ArmyComposition>(
     (total, army) => ({
       infantry: total.infantry + army.composition.infantry,
       artillery: total.artillery + army.composition.artillery,
@@ -75,136 +274,74 @@ export function resolveBattle(
     }),
     { infantry: 0, artillery: 0, tanks: 0 },
   );
-  const defenderManpower = defenders.reduce((total, army) => total + army.manpower, 0);
   const weightedDefenderStat = (pick: (army: Army) => number) => (
     defenderManpower > 0
       ? defenders.reduce((total, army) => total + pick(army) * army.manpower, 0) / defenderManpower
       : 0
   );
   const defenderMorale = Math.round(weightedDefenderStat((army) => army.morale));
-  const defenderMilitarization = Math.round(weightedDefenderStat((army) => army.militarization));
+  const defenderMilitarization = weightedDefenderStat((army) => lookupMultiplier(militarization, army.identity));
 
-  const terrain = targetProvince.terrain || 'plains';
-  // The fortress level is inherent defence plus everything built on top of it, and
-  // it is applied exactly once, as its own multiplier below.
-  const effectiveFortress = getEffectiveFortressLevel(targetProvince);
+  // The attacker commits once: only what fits in the line fights, and its
+  // reserves are never exposed. The defender, by contrast, rotates reserves into
+  // the line for as long as it has men, so its casualties come out of the whole pool.
+  const attackerDeployment = deployToWidth(movedArmy.composition, width);
+  const attackerMilitarization = lookupMultiplier(militarization, movedArmy.identity);
+  const attackerExposed = getDeployedManpower(attackerDeployment);
 
-  let attackerTerrainMult = 1.0;
-  let defenderTerrainMult = 1.0;
-  let attackerTankMult = 1.0;
+  const attackerRoll = 0.90 + random() * 0.20;
+  const defenderRoll = 0.90 + random() * 0.20;
 
-  if (terrain === 'mountains') {
-    attackerTerrainMult -= 0.30;
-    attackerTankMult = 0.4;
-    defenderTerrainMult += 0.20;
-  } else if (terrain === 'urban') {
-    attackerTerrainMult -= 0.20;
-    attackerTankMult = 0.6;
-    defenderTerrainMult += 0.15;
-  } else if (terrain === 'forest') {
-    attackerTerrainMult -= 0.10;
-    attackerTankMult = 0.8;
-    defenderTerrainMult += 0.10;
-  } else if (terrain === 'plains') {
-    attackerTankMult = 1.35;
-  }
+  const attackerPower = getCombatPower({
+    deployment: attackerDeployment,
+    militarizationMultiplier: attackerMilitarization,
+    morale: movedArmy.morale,
+    randomMultiplier: attackerRoll,
+  });
 
-  const attComp = movedArmy.composition;
+  const defenderPower = getCombatPower({
+    deployment: deployToWidth(mergedDefenderComposition, width),
+    militarizationMultiplier: defenderMilitarization,
+    morale: defenderMorale,
+    defenseCoefficient,
+    randomMultiplier: defenderRoll,
+  });
 
-  const widthLimit = getCombatWidth(terrain as any || 'plains');
+  const attackerLossRate = clampLossRate(0.06 * defenderPower / Math.max(0.0001, attackerPower));
+  const defenderLossRate = clampLossRate(0.06 * attackerPower / Math.max(0.0001, defenderPower));
 
-  const attackerFrontline = attComp.infantry + attComp.tanks;
-  const attackerScale = attackerFrontline > widthLimit ? (widthLimit / attackerFrontline) : 1.0;
-  const effectiveAttInf = attComp.infantry * attackerScale;
-  const effectiveAttTank = attComp.tanks * attackerScale;
+  const finalAttackerLosses = Math.min(
+    attackerExposed,
+    Math.floor(attackerExposed * attackerLossRate * getCasualtyFactor(attackerMilitarization)),
+  );
+  const finalDefenderLosses = Math.min(
+    defenderManpower,
+    Math.floor(defenderManpower * defenderLossRate * getCasualtyFactor(defenderMilitarization)),
+  );
 
-  const defenderFrontline = defComp.infantry + defComp.tanks;
-  const defenderScale = defenderFrontline > widthLimit ? (widthLimit / defenderFrontline) : 1.0;
-  const effectiveDefInf = defComp.infantry * defenderScale;
-  const effectiveDefTank = defComp.tanks * defenderScale;
-
-  const attInfPower = effectiveAttInf * 1.0 * (terrain === 'urban' ? 1.25 : 1.0);
-  const attArtPower = attComp.artillery * 1.5;
-  const attTankPower = effectiveAttTank * 2.0 * attackerTankMult;
-
-  const defInfPower = effectiveDefInf * 1.0 * (terrain === 'urban' ? 1.3 : 1.15);
-  const defArtPower = defComp.artillery * 1.5;
-  const defTankPower = effectiveDefTank * 2.0 * (terrain === 'plains' ? 1.35 : terrain === 'mountains' ? 0.4 : 1.0);
-
-  const attTotalBaseSupport = attInfPower + attArtPower + attTankPower;
-  const defTotalBaseSupport = defInfPower + defArtPower + defTankPower;
-
-  const attackerPower = attTotalBaseSupport * (1 + movedArmy.morale / 100) * (1 + movedArmy.militarization / 100) * (attackerRoll + 3) * attackerTerrainMult;
-  const defenderPowerBase = defTotalBaseSupport * (1 + defenderMorale / 100) * (1 + defenderMilitarization / 100) * (defenderRoll + 3) * defenderTerrainMult;
-  const fortressCombatMult = 1.0 + (effectiveFortress * 0.10);
-  const defenderPower = defenderPowerBase * fortressCombatMult;
-
-  const totalBaseLossAttacker = Math.floor(defenderPower * 0.08);
-  const totalBaseLossDefender = Math.floor(attackerPower * 0.11);
-
-  const attArtRatio = attComp.artillery / Math.max(1, movedArmy.manpower);
-  const defArtRatio = defComp.artillery / Math.max(1, defenderManpower);
-
-  const attackerLossReduction = Math.min(0.25, attArtRatio * 0.8);
-  const defenderLossReduction = Math.min(0.25, defArtRatio * 0.8);
-
-  let finalAttackerLosses = Math.max(100, Math.floor(totalBaseLossAttacker * (1 - attackerLossReduction)));
-  let finalDefenderLosses = Math.max(100, Math.floor(totalBaseLossDefender * (1 - defenderLossReduction)));
-
-  finalAttackerLosses = Math.min(movedArmy.manpower, finalAttackerLosses);
-  finalDefenderLosses = Math.min(defenderManpower, finalDefenderLosses);
-
-  const distributeLosses = (comp: { infantry: number; artillery: number; tanks: number }, totalLosses: number) => {
-    const totalUnits = comp.infantry + comp.artillery + comp.tanks;
-    if (totalUnits <= 0) return { infantry: 0, artillery: 0, tanks: 0 };
-
-    let infLoss = 0;
-    let artLoss = 0;
-    let tankLoss = 0;
-
-    const frontUnits = comp.infantry + comp.tanks;
-    if (frontUnits > 0) {
-      const infShare = comp.infantry / frontUnits;
-      const tankShare = comp.tanks / frontUnits;
-
-      const frontLosses = totalLosses * 0.85;
-      const backLosses = totalLosses * 0.15;
-
-      infLoss = Math.min(comp.infantry, Math.floor(frontLosses * infShare));
-      tankLoss = Math.min(comp.tanks, Math.floor(frontLosses * tankShare));
-      artLoss = Math.min(comp.artillery, Math.floor(backLosses));
-
-      let leftover = totalLosses - (infLoss + artLoss + tankLoss);
-      if (leftover > 0) {
-        const remInf = comp.infantry - infLoss;
-        const remArt = comp.artillery - artLoss;
-        const remTank = comp.tanks - tankLoss;
-        const remTotal = remInf + remArt + remTank;
-
-        if (remTotal > 0) {
-          infLoss += Math.min(remInf, Math.floor(leftover * (remInf / remTotal)));
-          artLoss += Math.min(remArt, Math.floor(leftover * (remArt / remTotal)));
-          tankLoss += Math.min(remTank, Math.floor(leftover * (remTank / remTotal)));
-        }
-      }
-    } else {
-      artLoss = Math.min(comp.artillery, totalLosses);
-    }
-
-    return {
-      infantry: Math.max(0, comp.infantry - infLoss),
-      artillery: Math.max(0, comp.artillery - artLoss),
-      tanks: Math.max(0, comp.tanks - tankLoss),
-    };
+  // Casually applied to the deployed slice only; the reserves are added back intact.
+  const attackerDeployedComposition: ArmyComposition = {
+    infantry: attackerDeployment.infantry,
+    artillery: attackerDeployment.artillery,
+    tanks: attackerDeployment.tanks,
   };
+  const attackerLineSurvivors = distributeLosses(attackerDeployedComposition, finalAttackerLosses);
+  const attackerLineRemaining = attackerLineSurvivors.infantry + attackerLineSurvivors.artillery + attackerLineSurvivors.tanks;
+  const attackerLineBroken = attackerLineRemaining <= UNIT_DESTRUCTION_THRESHOLD;
 
-  const nextAttComp = distributeLosses(attComp, finalAttackerLosses);
+  const nextAttComp: ArmyComposition = attackerLineBroken
+    ? { infantry: attackerDeployment.reserveInfantry, artillery: 0, tanks: attackerDeployment.reserveTanks }
+    : {
+        infantry: attackerLineSurvivors.infantry + attackerDeployment.reserveInfantry,
+        artillery: attackerLineSurvivors.artillery,
+        tanks: attackerLineSurvivors.tanks + attackerDeployment.reserveTanks,
+      };
   const nextAttManpower = nextAttComp.infantry + nextAttComp.artillery + nextAttComp.tanks;
 
-  const attackerLostRatio = finalAttackerLosses / Math.max(1, movedArmy.manpower);
+  const attackerLostRatio = finalAttackerLosses / Math.max(1, attackerExposed);
   const defenderLostRatio = finalDefenderLosses / Math.max(1, defenderManpower);
 
-  const attMoraleLoss = Math.floor(10 + attackerLostRatio * 100 + Math.max(0, defenderRoll - attackerRoll) * 3);
+  const attMoraleLoss = Math.floor(10 + attackerLostRatio * 100 + Math.max(0, (defenderRoll - attackerRoll) * 20));
 
   let finalAttackerArmy: Army | null = {
     ...movedArmy,
@@ -213,7 +350,7 @@ export function resolveBattle(
     morale: Math.max(10, movedArmy.morale - attMoraleLoss),
     movesLeft: 0,
   };
-  if (finalAttackerArmy.manpower <= 150) {
+  if (finalAttackerArmy.manpower <= UNIT_DESTRUCTION_THRESHOLD) {
     finalAttackerArmy = null;
   }
 
@@ -225,20 +362,22 @@ export function resolveBattle(
     .map((army, index) => {
       const nextDefComp = distributeLosses(army.composition, defenderLossShares[index]);
       const manpower = nextDefComp.infantry + nextDefComp.artillery + nextDefComp.tanks;
-      if (manpower <= 150) return null;
+      if (manpower <= UNIT_DESTRUCTION_THRESHOLD) return null;
       const lostRatio = defenderLossShares[index] / Math.max(1, army.manpower);
       return {
         ...army,
         composition: nextDefComp,
         manpower,
-        morale: Math.max(10, army.morale - Math.floor(15 + lostRatio * 100 + Math.max(0, attackerRoll - defenderRoll) * 4)),
+        morale: Math.max(10, army.morale - Math.floor(15 + lostRatio * 100 + Math.max(0, (attackerRoll - defenderRoll) * 20))),
       } as Army;
     })
     .filter((army): army is Army => army !== null);
 
-  const isVictory = defenderLostRatio >= attackerLostRatio;
-  const resultText = isVictory 
-    ? (isZh ? '进攻方胜利' : 'Attacker Victory') 
+  // A broken attacker line forfeits the attack however the odds looked: the
+  // reserves disengage instead of feeding themselves into the same fight.
+  const isVictory = !attackerLineBroken && defenderLostRatio >= attackerLostRatio;
+  const resultText = isVictory
+    ? (isZh ? '进攻方胜利' : 'Attacker Victory')
     : (isZh ? '守军平局/获胜' : 'Defender Stalemate/Victory');
 
   const survivorsManpower = survivingDefenders.reduce((total, army) => total + army.manpower, 0);
@@ -272,30 +411,38 @@ export function resolveBattle(
   }
 
   const messages: string[] = [];
-  const terrainLabel = isZh 
+  const terrainLabel = isZh
     ? (terrain === 'mountains' ? '山地' : terrain === 'urban' ? '城市' : terrain === 'forest' ? '森林' : '平原')
     : terrain;
 
   messages.push(
-    isZh 
+    isZh
       ? `【交战：${targetProvince.name}（${terrainLabel}）】 ${resultText}！` +
-        `攻击方伤亡 ${finalAttackerLosses}人。` +
+        `攻击方伤亡 ${finalAttackerLosses}人（展开 ${attackerExposed}人）。` +
         `防守方伤亡 ${finalDefenderLosses}人。`
       : `BATTLE OF ${targetProvince.name.toUpperCase()} (${terrainLabel}): ${resultText}! ` +
-        `Attacker (rolled ${attackerRoll}) lost ${finalAttackerLosses}. ` +
-        `Defender (rolled ${defenderRoll}) lost ${finalDefenderLosses}.`
+        `Attacker lost ${finalAttackerLosses} of ${attackerExposed} committed. ` +
+        `Defender lost ${finalDefenderLosses}.`
   );
+
+  if (attackerLineBroken) {
+    messages.push(
+      isZh
+        ? `【前线崩溃】进攻方展开部队被击溃，预备队脱离接触，攻势失败。`
+        : `[Line Broken] The attacking line was destroyed; the reserves disengaged and the assault failed.`
+    );
+  }
 
   if (defenderRetreated) {
     const destName = provinces[retreatDestId]?.name || retreatDestId;
     messages.push(
-      isZh 
+      isZh
         ? `【退却】${survivingDefenders.length} 支防守部队撤退至 ${destName}。`
         : `[🛡️ Organized Retreat] ${survivingDefenders.length} defending formation(s) retreated to ${destName}.`
     );
   } else if (defenderAnnihilated) {
     messages.push(
-      isZh 
+      isZh
         ? `【歼灭】防守方 ${defenders.length} 支部队全军覆没！`
         : `[💥 Annihilation] All ${defenders.length} defending formation(s) were annihilated!`
     );
@@ -313,11 +460,11 @@ export function resolveBattle(
     .filter((army): army is Army => army !== null);
 
   const defenderStillInProvince = finalArmies.some(army => defenderIds.has(army.id) && army.provinceId === targetProvinceId);
-  if (!defenderStillInProvince && finalAttackerArmy) {
+  if (isVictory && defenderStillInProvince === false && finalAttackerArmy) {
     finalArmies = finalArmies.map(a => a.id === movedArmy.id ? { ...a, provinceId: targetProvinceId } : a);
     updatedProvinces[targetProvinceId] = { ...targetProvince, owner: movedArmy.faction };
     messages.push(
-      isZh 
+      isZh
         ? `【占领】突破成功，占领 ${targetProvince.name}！`
         : `${movedArmy.faction} forces achieved a decisive breakthrough and won ${targetProvince.name}.`
     );

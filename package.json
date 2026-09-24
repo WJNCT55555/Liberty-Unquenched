@@ -12,6 +12,8 @@
     "test:effect-previews": "tsx scripts/test-action-affairs-effect-previews.ts",
     "test:armament-income": "tsx scripts/test-armament-income.ts",
     "test:rules": "tsx scripts/test-rules.ts",
+    "test:economy-reforms": "tsx scripts/test-economy-reforms.ts",
+    "test:control-shares": "tsx scripts/test-control-shares.ts",
     "test:wartime": "tsx scripts/test-wartime-politics.tsx",
     "test:may-days": "tsx scripts/test-may-days.tsx",
     "test:union-share": "tsx scripts/test-union-share.ts",
@@ -24,7 +26,7 @@
     "test:election-schedule": "tsx scripts/test-election-schedule.ts",
     "verify:phase3": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:scenario-parity && npm run test:orchestration && npm run build",
     "verify:phase4": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:scenario-parity && npm run test:orchestration && npm run build",
-    "verify:phase5": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:registries && npm run test:election-schedule && npm run test:scenario-parity && npm run test:orchestration && npm run build",
+    "verify:phase5": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:economy-reforms && npm run test:control-shares && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:registries && npm run test:election-schedule && npm run test:scenario-parity && npm run test:orchestration && npm run build",
     "scenario-history-probe": "tsx scripts/scenario-history-probe.ts"
   },
   "dependencies": {

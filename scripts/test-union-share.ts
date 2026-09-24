@@ -11,6 +11,7 @@ import {
   normalizeUnionShare,
 } from '../src/game/unions';
 import { applyControlObreroDrift } from '../src/game/rules/controlObrero';
+import { getSocializedShare, getControlCeilings } from '../src/game/rules/controlShares';
 import { getDefaultOrganizationState } from '../src/game/organizations';
 import type { GameState } from '../src/game/types';
 
@@ -94,33 +95,69 @@ assert(fromRivals.UGT === baseShare.UGT - 4, 'UGT should lose the requested amou
 assert(fromRivals.unorganized === baseShare.unorganized - 4, 'unorganized should lose the requested amount');
 assert(Math.abs(UNION_SHARE_KEYS.reduce((sum, key) => sum + fromRivals[key], 0) - 100) < 0.01, 'explicit delta must keep the sum at 100');
 
-// 9) 工人控制程度月度漂移：无制度支撑则衰减，1936.7 前封顶 40
-const noSupport: GameState = {
+// 9) 生产资料所有权的月度漂移
+// 旧规则（缺制度支撑每月 −1、1936·7 前封顶 40）已被结构性上限取代，见
+// docs/工人控制度改造方案.md §4.2：社会化总量超过上限时按部门逐月回落 1 点，
+// 低于上限时不动。这里验证"不动"与"回落"两端，上限的具体数值在
+// `scripts/test-control-shares.ts` 里逐剧本断言。
+const underCeiling: GameState = {
   ...PRE_START_STATE,
   year: 1931,
   month: 6,
+  scenario: '1931',
   domesticPolicy: { ...PRE_START_STATE.domesticPolicy, union_status: 1, land_reform_progress: 0 },
-  stats: { ...PRE_START_STATE.stats, workerControl: 10 },
+  controlShares: {
+    land: { church: 2, latifundia: 48, smallholders: 44, cooperative: 2, collective: 0, state: 4 },
+    industry: { foreign: 18, bigCapital: 38, smallBusiness: 37, cooperative: 2, union: 0, state: 5 },
+  },
 };
-assert(applyControlObreroDrift(noSupport).stats.workerControl === 9, 'worker control should decay by 1 without institutional support');
+assert(
+  applyControlObreroDrift(underCeiling) === underCeiling,
+  'a pie below its ceiling must not drift on its own',
+);
 
-const withSupport: GameState = {
-  ...noSupport,
-  domesticPolicy: { ...noSupport.domesticPolicy, union_status: 2 },
+const overCeiling: GameState = {
+  ...underCeiling,
+  controlShares: {
+    land: { church: 2, latifundia: 30, smallholders: 20, cooperative: 20, collective: 20, state: 8 },
+    industry: { foreign: 5, bigCapital: 5, smallBusiness: 5, cooperative: 40, union: 40, state: 5 },
+  },
 };
-assert(applyControlObreroDrift(withSupport).stats.workerControl === 10, 'institutional support should stop the decay');
-
-const preWarCap: GameState = {
-  ...withSupport,
-  stats: { ...withSupport.stats, workerControl: 80 },
+const driftedOnce = applyControlObreroDrift(overCeiling);
+assert(
+  getSocializedShare(driftedOnce, 'land') === getSocializedShare(overCeiling, 'land') - 1,
+  'a pie above its ceiling should come down by one point per month',
+);
+assert(
+  getSocializedShare(driftedOnce, 'industry') === getSocializedShare(overCeiling, 'industry') - 1,
+  'each sector settles against its own ceiling',
+);
+const driftedTwice = applyControlObreroDrift(driftedOnce);
+assert(
+  getSocializedShare(driftedTwice, 'land') === getSocializedShare(driftedOnce, 'land') - 1,
+  'the drift must keep biting until the ceiling is reached',
+);
+// 战时上限更高：同一张饼在内战期间不再回落。这里把两个部门都放在
+// "高于各自战前上限、低于各自战时上限（土地 45 / 工业 55）"的区间里。
+const warPie: GameState = {
+  ...overCeiling,
+  controlShares: {
+    land: { church: 2, latifundia: 40, smallholders: 28, cooperative: 10, collective: 10, state: 10 },
+    industry: { foreign: 15, bigCapital: 15, smallBusiness: 20, cooperative: 25, union: 20, state: 5 },
+  },
 };
-assert(applyControlObreroDrift(preWarCap).stats.workerControl === 40, 'worker control should be capped at 40 before July 1936');
-
-const postWar: GameState = {
-  ...preWarCap,
-  year: 1936,
-  month: 7,
-};
-assert(applyControlObreroDrift(postWar).stats.workerControl === 80, 'the pre-war cap should lift from July 1936');
+const wartimeOverCeiling: GameState = { ...warPie, civilWarStatus: 'ongoing' };
+assert(
+  getSocializedShare(warPie, 'land') > getControlCeilings(warPie).land,
+  'the fixture must sit above the pre-war ceiling',
+);
+assert(
+  getSocializedShare(wartimeOverCeiling, 'land') <= getControlCeilings(wartimeOverCeiling).land,
+  'the same pie must sit below the wartime ceiling',
+);
+assert(
+  applyControlObreroDrift(wartimeOverCeiling) === wartimeOverCeiling,
+  'the wartime ceiling must stop the pre-war drift',
+);
 
 console.log('Union share tests passed.');

@@ -5,6 +5,7 @@ import { normalizeDomesticPolicyLawLevels } from '../lawStances';
 import { normalizeUnionShare } from '../unions';
 import { updateCoalitions, updatePartySupport } from '../utils';
 import { isRepublicCrisisSuspended } from '../rules/republicCrisis';
+import { getWorkerControlEquivalent } from '../rules/controlShares';
 import { applySecurityForcesDerivedState } from '../rules/securityForces';
 import {
   isSpanishCivilWarOngoing,
@@ -32,6 +33,13 @@ export const applyPostReducerPipeline = (
     // The Security Corps Law owns the Assault Guard establishment, so derived
     // security-force state is recomputed after law levels are normalized.
     newState = applySecurityForcesDerivedState(newState);
+    // `stats.workerControl` is a READ-ONLY derived value under the ownership model
+    // (docs/工人控制度改造方案.md §2.5): it is the mean of the two sectors' worker
+    // shares, so any direct write is overwritten here. Ownership itself lives in
+    // `controlShares` and only changes through `transferControlShare`.
+    if (newState.stats) {
+      newState.stats.workerControl = getWorkerControlEquivalent(newState);
+    }
     if (!newState.wars) {
       newState.wars = {
         spanish_civil_war: 'not_started',
@@ -119,9 +127,9 @@ export const applyPostReducerPipeline = (
     if (!newState.coupSystemActive) {
       newState.coupProgress = 0;
     } else if (!isRepublicCrisisSuspended(newState)) {
-      // The conspiracy's milestones feed the single officer-loyalty field. That is
-      // the only loyalty the Republic crisis panel shows and the only one that
-      // drives tension, so each milestone now advances the coup's own timetable.
+      // The conspiracy's milestones feed officer loyalty, the only loyalty that
+      // drives Republican tension. Police-corps loyalty belongs to the armed-forces
+      // model and instead determines the corps' alignment when war begins.
       const lowerArmyLoyalty = (delta: number) => {
         newState.stats = {
           ...newState.stats,

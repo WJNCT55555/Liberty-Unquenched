@@ -2,6 +2,7 @@ import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
 import { elections1931Results } from './elections_1931_results';
 import { setOrganizationEstablished } from '../organizations';
+import { activateJournal } from '../rules/journalEvents';
 
 const cntThirdCongressMeta = {
   category: 'cnt' as const,
@@ -273,6 +274,8 @@ export const cnt_third_congress_2: GameEvent = {
             bureaucratization: Math.min(100, state.stats.bureaucratization + 8)
           },
           factions: newFactions,
+          // 批准全国产业联合会 = 温和工团路线的开始事件（docs/经济改造方案.md §5.1）。
+          ...activateJournal(state, 'journal_economy_syndicalist'),
           currentEvent: cnt_third_congress_3
         };
       }

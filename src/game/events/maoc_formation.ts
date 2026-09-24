@@ -1,6 +1,7 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
 import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
+import { adjustMilitarization, MAOC_MILITARIZATION_GAIN } from '../rules/militarization';
 
 const newsMeta = {
   category: 'news' as const,
@@ -23,11 +24,12 @@ export const maocFormation: GameEvent = {
     {
       text: 'So the Communists are arming themselves too.',
       textZh: '共产党人也在武装自己了。',
-      subtitle: 'Founds the MAOC and raises PCE support among workers by 3.',
-      subtitleZh: '成立工农反法西斯民兵（MAOC），并提高产业工人对 PCE 的支持 3 点。',
+      subtitle: 'Founds the MAOC, raises PCE support among workers by 3, and lifts PCE militarization by 10 — the first party militia in Spain to be organised rather than improvised.',
+      subtitleZh: '成立工农反法西斯民兵（MAOC），产业工人对 PCE 的支持提高 3 点，PCE 军事化率 +10——这是西班牙第一支"组织起来"而非临时拼凑的党派民兵。',
       effect: (state) => ({
         classes: adjustClassSupport(state.classes, 'Obreros', 'PCE', 3),
         ...setOrganizationEstablished(state, 'MAOC'),
+        ...adjustMilitarization(state, 'pce', MAOC_MILITARIZATION_GAIN),
       }),
     },
   ],

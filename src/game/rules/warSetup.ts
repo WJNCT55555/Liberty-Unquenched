@@ -35,23 +35,42 @@ export const PREPARATION_BANDS: PreparationBand[] = [
 export const getPreparationBand = (ratio: number): PreparationBand =>
   PREPARATION_BANDS.find((band) => ratio >= band.minRatio) ?? PREPARATION_BANDS[PREPARATION_BANDS.length - 1];
 
-/** Militia combat readiness before the preparation band and training are applied. */
-export const MILITIA_BASE_READINESS = 20;
-/** Readiness gained per point of `militiaCombatPower` above its 100 baseline. */
-export const READINESS_PER_COMBAT_POWER = 0.5;
 /** Supplies granted per point of accumulated `armaments` (§6.5 equipment conversion). */
 export const SUPPLIES_PER_ARMAMENT = 250;
 /** Armoured reserve granted by completed tank research or armoured cars. */
 export const ARMOURED_RESEARCH_TANKS = 10;
 
-/** Peacetime militia pools, keyed by the map identity they mobilize as. */
-const POOL_IDENTITY: Array<[ArmedEntityId, ArmyIdentity]> = [
-  ['cnt_defense_committees', 'cnt'],
-  ['maoc', 'pce'],
-  ['fifth_regiment', 'pce'],
-  ['poum_militias', 'poum'],
-  ['ugt_socialist_militias', 'ugt'],
+/**
+ * 每个武装实体在战场上携带的政治身份。这是唯一的权威定义：它既是开战动员的
+ * 分池键，也是战斗解算时查军事化率的键——`combat.ts` 按 `Army.identity` 查表，
+ * 而 `identity` 在单位出生时就来自这里。
+ */
+export const ENTITY_IDENTITY: Record<ArmedEntityId, ArmyIdentity> = {
+  republican_state: 'gov',
+  cnt_defense_committees: 'cnt',
+  ugt_socialist_militias: 'ugt',
+  maoc: 'pce',
+  fifth_regiment: 'pce',
+  poum_militias: 'poum',
+  international_brigades: 'intl',
+  euzko_gudarostea: 'regional',
+  requetes: 'requetes',
+  falange_first_line: 'falange',
+  italian_ctv: 'falange',
+};
+
+/** 参与和平期民兵动员的实体；国家池与外国军团不在其中。 */
+const MOBILISED_MILITIA_ENTITIES: readonly ArmedEntityId[] = [
+  'cnt_defense_committees',
+  'maoc',
+  'fifth_regiment',
+  'poum_militias',
+  'ugt_socialist_militias',
 ];
+
+/** 某个武装实体对应的派系；UI 与战报用它查军事化率。 */
+export const getEntityIdentity = (entityId: ArmedEntityId): ArmyIdentity =>
+  ENTITY_IDENTITY[entityId] ?? 'gov';
 
 export interface MilitiaRecruitmentPool {
   entityId: ArmedEntityId;
@@ -148,13 +167,12 @@ export const spendMilitiaPoolManpower = (
 
 /** Total peacetime militia manpower a camp accumulated for one map identity. */export const getPeacetimeMilitiaManpower = (state: GameState, identity: ArmyIdentity): number => {
   const pools = state.armedForces?.entityPools || {};
-  const pooled = POOL_IDENTITY.reduce(
-    (total, [entityId, poolIdentity]) => (
-      poolIdentity === identity ? total + Math.max(0, pools[entityId]?.manpower || 0) : total
+  return MOBILISED_MILITIA_ENTITIES.reduce(
+    (total, entityId) => (
+      getEntityIdentity(entityId) === identity ? total + Math.max(0, pools[entityId]?.manpower || 0) : total
     ),
     0,
   );
-  return pooled;
 };
 
 export interface PeacetimeMobilization {
@@ -172,9 +190,13 @@ export interface PeacetimeMobilization {
  * *beyond* what is already on the map may be spent — counting the same men twice
  * is exactly what §6.4 forbids. The preparation band decides how far those units
  * may grow immediately; whatever is left over becomes reserve manpower.
+ *
+ * Only the **quantity** axis lives here. The **quality** axis is each force
+ * group's militarization rate (`rules/militarization.ts`), which units never
+ * store — combat resolves it from the unit's `identity` at resolution time. The two
+ * axes are deliberately orthogonal: a militia can be numerous but badly organised.
  */
 export const applyPeacetimeMobilization = (state: GameState, armies: Army[]): PeacetimeMobilization => {
-  const combatPower = Number(state.militiaCombatPower ?? 100);
   const nextArmies = armies.map((army) => ({
     ...army,
     composition: { ...army.composition },
@@ -192,11 +214,6 @@ export const applyPeacetimeMobilization = (state: GameState, armies: Army[]): Pe
     if (units.length === 0 || peacetime <= 0) return;
 
     const band = getPreparationBand(peacetime / reference);
-    const readiness = Math.max(5, Math.min(75, Math.round(
-      MILITIA_BASE_READINESS
-      + (combatPower - 100) * READINESS_PER_COMBAT_POWER
-      + band.readinessDelta,
-    )));
 
     const deployed = units.reduce((total, army) => total + army.manpower, 0);
     let remaining = Math.max(0, peacetime - deployed);
@@ -211,9 +228,6 @@ export const applyPeacetimeMobilization = (state: GameState, armies: Army[]): Pe
       army.composition.infantry += growth;
       army.designedComposition.infantry += growth;
       remaining -= growth;
-    });
-    units.forEach((army) => {
-      army.militarization = readiness;
     });
     reserveManpower += remaining;
   });

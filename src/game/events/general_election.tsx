@@ -14,6 +14,7 @@ import {
   adjustClassSupport,
   adjustFactionDissents,
   adjustFactionInfluence,
+  enterCaretakerAfterFailedElection,
   formRulingCoalitionFromElection,
   summarizeGeneralElection,
 } from '../utils';
@@ -24,6 +25,7 @@ import {
 import { isOrganizationEstablished } from '../organizations';
 import { applyUnionShareDelta } from '../unions';
 import { clampLawLevel } from '../lawStances';
+import { MINISTER_ALLOCATION_LEVERAGE, ministerAllocation } from './elections_1931_results';
 
 const generalElectionRootMeta = {
   category: 'politics' as const,
@@ -32,9 +34,9 @@ const generalElectionRootMeta = {
   tags: ['election', 'repeatable'],
 };
 
-export const generalElectionLeafMeta = {
+const generalElectionResultMeta = {
   ...generalElectionRootMeta,
-  flow: 'inline.leaf' as const,
+  flow: 'inline.node' as const,
 };
 
 const queueElectionResults = (
@@ -105,14 +107,15 @@ export const generalElectionCampaignOptions: GameEvent['options'] = [
     }),
   },
   {
-    text: 'Negotiate a joint electoral pact between PRRevS and the republican left.',
-    textZh: '谈判建立 PRRevS 与共和左翼的联合选举协定。',
-    subtitle: 'PRRevS retains its identity but pledges its deputies to a negotiated left majority.',
-    subtitleZh: 'PRRevS 保留独立身份，但承诺其议员支持谈判形成的左翼多数。',
+    text: 'Contest the election through the already-formed Workers’ Alliance.',
+    textZh: '通过已经成立的工人联盟参加选举。',
+    subtitle: 'PRRevS retains its identity while its seats count toward the formal Workers’ Alliance total.',
+    subtitleZh: 'PRRevS 保留独立身份，其议席计入正式工人联盟的总席位。',
     condition: (state) => isOrganizationEstablished(state, 'PRRevS')
+      && state.activeCoalitions.some(coalition => coalition.activeId === 'workers_alliance')
       && (state.partyRelations.PSOE >= 50 || state.partyRelations.IR >= 50),
-    unavailableSubtitle: () => 'Requires PRRevS and relations of at least 50 with PSOE or IR.',
-    unavailableSubtitleZh: () => '需要 PRRevS 已成立，且与 PSOE 或 IR 的关系至少达到 50。',
+    unavailableSubtitle: () => 'Requires PRRevS, a formally established Workers’ Alliance, and relations of at least 50 with PSOE or IR.',
+    unavailableSubtitleZh: () => '需要 PRRevS 与工人联盟均已正式成立，且与 PSOE 或 IR 的关系至少达到 50。',
     effect: (state) => queueElectionResults(state, 'prrevs_left_alliance', {
       cntStance: 'cooperate',
       cntVotingRate: Math.min(100, state.cntVotingRate + 15),
@@ -175,7 +178,7 @@ const getGovernmentProfile = (coalitionId: CoalitionId): {
 const installElectionGovernment = (
   state: GameState,
   coalitionId: CoalitionId,
-  formation: 'majority' | 'negotiated' | 'minority',
+  formation: 'majority' | 'minority',
   cntStanceOverride?: GameState['cntStance'],
 ): GameState => {
   const outcome = summarizeGeneralElection(state);
@@ -184,11 +187,6 @@ const installElectionGovernment = (
   for (const office of Object.keys(ministers)) {
     ministers[office as keyof typeof ministers] = profile.ministerParty;
   }
-  if (coalitionId === 'workers_alliance') {
-    ministers.labor = 'CNT';
-    ministers.agriculture = 'CNT';
-  }
-
   const isRightGovernment = coalitionId === 'ceda_radical' || coalitionId === 'national_front';
   const unionLoss = coalitionId === 'national_front' ? 15 : coalitionId === 'ceda_radical' ? 10 : 0;
   const participation = state.generalElectionSchedule.participation;
@@ -203,6 +201,13 @@ const installElectionGovernment = (
     cortes: outcome.cortes,
     cntStance,
     ministers,
+    ...(cntStance === 'govern' ? {
+      leverage: MINISTER_ALLOCATION_LEVERAGE,
+      pendingEvents: [
+        { ...ministerAllocation },
+        ...state.pendingEvents.filter((event) => event.id !== ministerAllocation.id),
+      ],
+    } : {}),
     government: {
       ...state.government,
       type: profile.type,
@@ -232,8 +237,8 @@ const installElectionGovernment = (
 };
 
 export const generalElectionResultDescription = {
-  en: 'The votes have been counted. Seats are compared through four non-overlapping blocs—left, center, right, and PRRevS—before parliamentary negotiations determine the government. If no bloc has 236 seats, Spain has a hung Cortes rather than an automatic victory for whichever historical coalition once won this date.',
-  zh: '选票已经清点完毕。议席首先按照互不重叠的左翼、中间派、右翼和 PRRevS 四个集团进行比较，再由议会谈判决定政府。如果没有任何集团达到236席，西班牙将出现悬峙议会，而不会因为历史上某个联盟曾在这一日期获胜就自动执政。',
+  en: 'The votes have been counted. Only political alliances that were publicly formed before the election may claim their member parties’ seats. An established alliance with 236 seats may form a majority government; otherwise the Cortes enters a separate government-formation crisis.',
+  zh: '选票已经清点完毕。只有在选举前已经公开成立的政党联盟，才能汇总其成员党的议席。已成立联盟达到236席即可组建多数政府；否则议会将进入独立的组阁危机。',
 };
 
 export const renderGeneralElectionResults: NonNullable<GameEvent['renderContent']> = (state) => {
@@ -245,102 +250,168 @@ export const renderGeneralElectionResults: NonNullable<GameEvent['renderContent'
     seats,
     color: PARTY_COLORS[party] || '#9ca3af',
   }));
-  const blocRows = [
-    { id: 'left', en: 'Left', zh: '左翼', seats: outcome.blocSeats.left },
-    { id: 'center', en: 'Center', zh: '中间派', seats: outcome.blocSeats.center },
-    { id: 'right', en: 'Right', zh: '右翼', seats: outcome.blocSeats.right },
-    { id: 'prrevs', en: 'PRRevS', zh: 'PRRevS', seats: outcome.blocSeats.prrevs },
-  ];
+  const coalitionRows = outcome.coalitionCandidates.map(candidate => ({
+    id: candidate.coalitionId,
+    label: COALITION_LABELS[candidate.coalitionId],
+    seats: candidate.seats,
+    hasMajority: candidate.hasMajority,
+  }));
 
   return React.createElement('div', { className: 'flex flex-col items-center w-full' },
     React.createElement(ParliamentChart, { data, width: 400, height: 200 }),
     React.createElement('div', { className: 'w-full mt-5 text-sm font-mono space-y-2' },
-      ...blocRows.map((bloc) => React.createElement('div', {
-        key: bloc.id,
+      ...coalitionRows.map((coalition) => React.createElement('div', {
+        key: coalition.id,
         className: 'flex justify-between border-b border-gray-800/50 pb-1',
       },
-      React.createElement('span', null, isZh ? bloc.zh : bloc.en),
-      React.createElement('span', { className: 'font-bold' }, `${bloc.seats} / ${outcome.majority}`))),
+      React.createElement('span', null, isZh ? coalition.label.zh : coalition.label.en),
+      React.createElement('span', { className: 'font-bold' }, `${coalition.seats} / ${outcome.majority}${coalition.hasMajority ? ' ✓' : ''}`))),
+      ...(coalitionRows.length === 0 ? [React.createElement('p', {
+        key: 'no-coalitions',
+        className: 'border-b border-gray-800/50 pb-2 italic',
+      }, isZh ? '没有已成立的选举联盟参加本届组阁。' : 'No established electoral alliance is available to form a government.')] : []),
       React.createElement('p', { className: 'pt-2 font-bold' }, outcome.formation === 'majority'
-        ? (isZh ? '单一集团达到绝对多数。' : 'One bloc has an absolute majority.')
-        : (isZh ? '悬峙议会：必须通过联盟谈判组阁。' : 'Hung Cortes: coalition negotiations are required.')),
+        ? (isZh ? '至少一个已成立联盟达到绝对多数。' : 'At least one established alliance has an absolute majority.')
+        : (isZh ? '无多数议会：必须进入组阁程序。' : 'Hung Cortes: a separate government-formation decision is required.')),
     ),
   );
 };
 
-export const generalElectionResultOptions: GameEvent['options'] = [
-  {
-    text: (state) => {
-      const outcome = summarizeGeneralElection(state);
-      const label = COALITION_LABELS[outcome.coalitionId].en;
-      if (outcome.formation === 'majority') return `${label} forms a majority government (${outcome.governingSeats} seats).`;
-      if (outcome.formation === 'negotiated') return `A hung Cortes produces a negotiated ${label} government (${outcome.governingSeats} supporting seats).`;
-      return `${label} attempts a minority government (${outcome.governingSeats} seats).`;
-    },
-    textZh: (state) => {
-      const outcome = summarizeGeneralElection(state);
-      const label = COALITION_LABELS[outcome.coalitionId].zh;
-      if (outcome.formation === 'majority') return `${label}组建多数政府（${outcome.governingSeats}席）。`;
-      if (outcome.formation === 'negotiated') return `悬峙议会通过谈判产生${label}政府（${outcome.governingSeats}席支持）。`;
-      return `${label}尝试组建少数政府（${outcome.governingSeats}席）。`;
-    },
-    subtitle: 'Accept the parliamentary result and install the default viable government.',
-    subtitleZh: '接受议会结果并组建默认的可行政府。',
-    effect: (state) => {
-      const outcome = summarizeGeneralElection(state);
-      return {
-        ...installElectionGovernment(state, outcome.coalitionId, outcome.formation),
-        currentEvent: null,
-      };
-    },
+const getElectionCandidate = (state: GameState, coalitionId: CoalitionId) => (
+  summarizeGeneralElection(state).coalitionCandidates.find(candidate => candidate.coalitionId === coalitionId)
+);
+
+const createMajorityCoalitionOption = (coalitionId: CoalitionId): GameEvent['options'][number] => ({
+  text: (state) => {
+    const candidate = getElectionCandidate(state, coalitionId);
+    return `${COALITION_LABELS[coalitionId].en} forms a majority government (${candidate?.seats ?? 0} seats).`;
   },
-  {
-    text: 'PRRevS offers confidence and supply to a left cabinet while remaining outside government.',
-    textZh: 'PRRevS 向左翼内阁提供信任与预算支持，但不加入政府。',
-    subtitle: 'Available after an independent PRRevS campaign when its deputies can complete a left majority.',
-    subtitleZh: 'PRRevS 独立参选且其议员足以补足左翼多数时可用。',
-    condition: (state) => {
-      const outcome = summarizeGeneralElection(state);
-      return outcome.formation !== 'majority'
-        && state.generalElectionSchedule.participation === 'prrevs_independent'
-        && outcome.prrevsConfidenceSupportPossible;
-    },
-    unavailableSubtitle: () => 'Requires a hung Cortes and enough PRRevS seats to support the left.',
-    unavailableSubtitleZh: () => '需要悬峙议会，且 PRRevS 议席足以支持左翼形成多数。',
-    effect: (state) => {
-      const leftCoalition: CoalitionId = state.year >= 1935 || state.crossroads_choice === 'popular_front'
-        ? 'popular_front'
-        : 'republican_socialist';
-      return {
-        ...installElectionGovernment(state, leftCoalition, 'negotiated', 'cooperate'),
-        currentEvent: null,
-      };
-    },
+  textZh: (state) => {
+    const candidate = getElectionCandidate(state, coalitionId);
+    return `${COALITION_LABELS[coalitionId].zh}组建多数政府（${candidate?.seats ?? 0}席）。`;
   },
-  {
-    text: 'Demand a Workers’ Alliance cabinet with CNT ministers as the price of a majority.',
-    textZh: '要求组建包含 CNT 部长的工人联盟内阁，以此作为多数支持的条件。',
-    subtitle: 'Available when PRRevS and the parliamentary labor left together hold a majority.',
-    subtitleZh: 'PRRevS 与议会工人左翼合计达到多数时可用。',
-    condition: (state) => {
-      const outcome = summarizeGeneralElection(state);
-      return outcome.formation !== 'majority'
-        && state.generalElectionSchedule.participation === 'prrevs_independent'
-        && outcome.prrevsCabinetPossible;
-    },
-    unavailableSubtitle: () => 'Requires a hung Cortes and a PRRevS-labor majority.',
-    unavailableSubtitleZh: () => '需要悬峙议会以及 PRRevS—工人左翼多数。',
-    effect: (state) => ({
-      ...installElectionGovernment(state, 'workers_alliance', 'negotiated', 'govern'),
-      factions: adjustFactionDissents(state.factions, { Faistas: 20, Puristas: 25 }),
+  subtitle: 'The alliance was formed before the election and now controls an absolute majority.',
+  subtitleZh: '该联盟已在选举前成立，并在本届议会取得绝对多数。',
+  condition: (state) => getElectionCandidate(state, coalitionId)?.hasMajority === true,
+  unavailableSubtitle: (state) => {
+    const candidate = getElectionCandidate(state, coalitionId);
+    return candidate
+      ? `The alliance has ${candidate.seats} seats; ${summarizeGeneralElection(state).majority} are required.`
+      : 'This alliance was not formally established before the election.';
+  },
+  unavailableSubtitleZh: (state) => {
+    const candidate = getElectionCandidate(state, coalitionId);
+    return candidate
+      ? `该联盟拥有${candidate.seats}席，需要${summarizeGeneralElection(state).majority}席。`
+      : '该联盟没有在选举前正式成立。';
+  },
+  effect: (state) => {
+    const elected = installElectionGovernment(
+      state,
+      coalitionId,
+      'majority',
+      coalitionId === 'workers_alliance' ? 'govern' : undefined,
+    );
+    return {
+      ...elected,
+      ...(coalitionId === 'workers_alliance'
+        ? { factions: adjustFactionDissents(elected.factions, { Faistas: 20, Puristas: 25 }) }
+        : {}),
       currentEvent: null,
-    }),
+    };
+  },
+});
+
+export const generalElectionResultOptions: GameEvent['options'] = [
+  createMajorityCoalitionOption('popular_front'),
+  createMajorityCoalitionOption('ceda_radical'),
+  createMajorityCoalitionOption('workers_alliance'),
+  createMajorityCoalitionOption('national_front'),
+  {
+    text: 'No established alliance has an absolute majority. Open government-formation talks.',
+    textZh: '没有已成立联盟取得绝对多数。进入组阁程序。',
+    subtitle: 'The largest alliance may attempt a minority cabinet only if it controls more than one third of the Cortes; otherwise a repeat election is required.',
+    subtitleZh: '只有最大联盟掌握超过三分之一议席时，才能尝试组建少数政府；否则必须重新大选。',
+    condition: (state) => summarizeGeneralElection(state).majorityCoalitionIds.length === 0,
+    unavailableSubtitle: () => 'At least one established alliance already has an absolute majority.',
+    unavailableSubtitleZh: () => '至少一个已成立联盟已经取得绝对多数。',
+    effect: (state) => {
+      const outcome = summarizeGeneralElection(state);
+      return {
+        cortes: outcome.cortes,
+        currentEvent: hungParliamentFormation,
+      };
+    },
   },
 ];
 
+const hungParliamentMeta = {
+  category: 'politics' as const,
+  flow: 'inline.leaf' as const,
+  series: ['elections', 'government_formation'],
+  tags: ['election'],
+};
+
+export const hungParliamentFormation: GameEvent = {
+  id: 'hung_parliament_formation',
+  meta: hungParliamentMeta,
+  condition: () => false,
+  title: 'No Majority in the Cortes',
+  titleZh: '议会无多数',
+  description: 'No established alliance controls an absolute majority. As a simulation rule—not a literal requirement of the 1931 Constitution—the President may invite the largest alliance to attempt a minority cabinet only if it holds more than one third of the Cortes. If that minimum is not met—or if no cabinet is accepted—the outgoing administration remains in a caretaker capacity and a repeat election is called for next month.',
+  descriptionZh: '没有已成立联盟掌握绝对多数。作为游戏中的可治理性规则——而不是1931年宪法的原文要求——只有当最大联盟控制超过三分之一议席时，总统才能邀请其尝试组建少数政府。如果达不到这一最低门槛，或者拒绝组阁，原行政班子将以看守身份留任，并于下月重新举行大选。',
+  options: [
+    {
+      text: (state) => {
+        const outcome = summarizeGeneralElection(state);
+        const coalitionId = outcome.leadingCoalitionId;
+        return coalitionId
+          ? `Allow the ${COALITION_LABELS[coalitionId].en} to form a minority government (${outcome.governingSeats} seats).`
+          : 'No alliance can be invited to form a minority government.';
+      },
+      textZh: (state) => {
+        const outcome = summarizeGeneralElection(state);
+        const coalitionId = outcome.leadingCoalitionId;
+        return coalitionId
+          ? `允许${COALITION_LABELS[coalitionId].zh}组建少数政府（${outcome.governingSeats}席）。`
+          : '没有联盟可以受邀组建少数政府。';
+      },
+      subtitle: 'Requires the largest established alliance to control strictly more than one third of all seats.',
+      subtitleZh: '要求最大的已成立联盟严格掌握超过全部议席的三分之一。',
+      condition: (state) => {
+        const outcome = summarizeGeneralElection(state);
+        return outcome.leadingCoalitionId !== null && outcome.governingSeats > outcome.totalSeats / 3;
+      },
+      unavailableSubtitle: (state) => `The largest established alliance has ${summarizeGeneralElection(state).governingSeats} seats; at least 157 are required.`,
+      unavailableSubtitleZh: (state) => `最大的已成立联盟拥有${summarizeGeneralElection(state).governingSeats}席；至少需要157席。`,
+      effect: (state) => {
+        const outcome = summarizeGeneralElection(state);
+        if (!outcome.leadingCoalitionId || outcome.governingSeats <= outcome.totalSeats / 3) return {};
+        return {
+          ...installElectionGovernment(state, outcome.leadingCoalitionId, 'minority'),
+          currentEvent: null,
+        };
+      },
+    },
+    {
+      text: 'No government can be formed. Call a repeat election next month.',
+      textZh: '无法组建政府。下月重新举行大选。',
+      subtitle: 'The outgoing ministers remain only as caretakers; no political alliance controls the cabinet.',
+      subtitleZh: '原部长仅以看守身份留任；没有政党联盟控制内阁。',
+      effect: (state) => {
+        const outcome = summarizeGeneralElection(state);
+        return {
+          ...enterCaretakerAfterFailedElection({ ...state, cortes: outcome.cortes }),
+          currentEvent: null,
+        };
+      },
+    },
+  ],
+};
+
 export const generalElectionResults: GameEvent = {
   id: 'general_election_results',
-  meta: generalElectionLeafMeta,
+  meta: generalElectionResultMeta,
   condition: () => false,
   title: (state) => `Results of the ${state.year} General Election`,
   titleZh: (state) => `${state.year}年大选结果`,

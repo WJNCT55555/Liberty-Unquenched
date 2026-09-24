@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useGameSelector } from '../game/GameContext';
 import { getJournalEntryDef } from '../game/journal';
-import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock, Wrench } from 'lucide-react';
 import { areJournalViewModelsEqual, selectJournalViewModel } from '../game/selectors';
+import { EconomyReformPanel } from './EconomyReformPanel';
 
 export const JournalPanel: React.FC = () => {
   const state = useGameSelector(selectJournalViewModel, areJournalViewModelsEqual);
@@ -10,6 +11,9 @@ export const JournalPanel: React.FC = () => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [order, setOrder] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  // The economy-reform panel is a tab inside this drawer rather than a separate overlay:
+  // it is read-only, and the journal is where the player already looks for route progress.
+  const [activeTab, setActiveTab] = useState<'journal' | 'economy'>('journal');
 
   const entryIds = Object.keys(state.journal || {});
 
@@ -251,13 +255,37 @@ export const JournalPanel: React.FC = () => {
           <div className="font-typewriter text-[10px] text-ink/60 uppercase tracking-widest mb-2 border-b border-ink/20 inline-block pb-1">
             {state.language === 'zh' ? '社会与政治议题' : 'Social & Political Issues'}
           </div>
-          <h3 className="font-bold text-3xl uppercase tracking-wider font-heading">
-            {state.language === 'zh' ? '局势纪要' : 'Situation Log'}
+          <h3 className="font-bold text-3xl uppercase tracking-wider font-heading mb-3">
+            {activeTab === 'journal'
+              ? (state.language === 'zh' ? '局势纪要' : 'Situation Log')
+              : (state.language === 'zh' ? '经济改造' : 'Economic Reform')}
           </h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab('journal')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 border-2 border-ink font-typewriter text-[10px] font-bold uppercase transition-colors ${
+                activeTab === 'journal' ? 'bg-ink text-paper' : 'bg-paper hover:bg-paper-dark'
+              }`}
+            >
+              <Bookmark size={11} />
+              {state.language === 'zh' ? '日志' : 'Journal'}
+            </button>
+            <button
+              onClick={() => setActiveTab('economy')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 border-2 border-ink font-typewriter text-[10px] font-bold uppercase transition-colors ${
+                activeTab === 'economy' ? 'bg-ink text-paper' : 'bg-paper hover:bg-paper-dark'
+              }`}
+            >
+              <Wrench size={11} />
+              {state.language === 'zh' ? '经济改造' : 'Economy'}
+            </button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 relative z-10">
-          {order.length === 0 ? (
+          {activeTab === 'economy' ? (
+            <EconomyReformPanel />
+          ) : order.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 opacity-40 border-2 border-dashed border-ink/30 p-6 bg-paper-dark m-2">
               <Bookmark size={32} className="mb-3 text-ink" />
               <p className="font-typewriter text-sm tracking-widest uppercase font-bold text-center">

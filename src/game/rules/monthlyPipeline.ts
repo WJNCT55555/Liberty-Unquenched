@@ -10,6 +10,8 @@ import { SCHEDULED_EVENT_REGISTRY } from '../registries/scheduledEventRegistry';
 import { applyMonthlyOrganizationEffects, isOrganizationEstablished } from '../organizations';
 import { isSpanishCivilWarOngoing, settleWartimeCoalition, WARTIME_EVENT_ID } from './wartimeCoalition';
 import { getMayDaysProductionFactor, isMayDaysEvent, settleMayDaysPressure } from './mayDays';
+import { isWartimeEconomyRouteDue } from './wartimeEconomy';
+import { applyPceMilitarizationMonthlyDrift } from './militarization';
 import { getPlayerMapFaction, isCivilWarFaction } from '../../map/rules/factions';
 
 export interface MonthlyPipelineResult {
@@ -89,11 +91,49 @@ export const applyMonthlyPoliticalMaintenance = (state: GameState): GameState =>
   }
   nextState.partySupport = updatePartySupport(nextState);
   if (nextState.activeCoalitions) nextState.activeCoalitions = updateCoalitions(nextState);
+  // PCE 的独立军事化路线（设计文档 §7）：它不受 CNT 的法律与路线影响，所以不进
+  // `policyDefinitions`，而是在这里按"内战进行中 + 与本党关系达标"自行增长。
+  nextState = { ...nextState, ...applyPceMilitarizationMonthlyDrift(nextState) };
   return settleMayDaysPressure(settleWartimeCoalition(checkCoalitionDissolve(nextState)));
 };
 
 const getEventTriggerMode = (difficulty: GameState['difficulty']) =>
   difficulty === 'historical' ? 'historical' : 'nonHistorical';
+
+/**
+ * 经济改造的两个强制入队规则（docs/经济改造方案.md §4.3）。
+ *
+ * 两个开始事件的 `condition` 都是 `() => false`——它们不属于事件板的普通筛选，
+ * 出现的时点由编排决定：
+ *
+ *  1. **自由公社路线开局自带**：三份剧本的第一个月就把开始事件推到队首；
+ *  2. **战时两条路线**：战时权力安排落定后的下一个月，由 `isWartimeEconomyRouteDue` 决定。
+ *
+ * 幂等由 `eventHistory.triggered` 保证：这个集合随存档保存，因此已经出现过的事件不会被
+ * 再次推入，也不会因为读档而重复弹窗。
+ */
+const queueForcedEconomyStart = (
+  pendingEvents: GameEvent[],
+  previousState: GameState,
+  nextState: GameState,
+): GameEvent[] => {
+  const freeCommuneInactive = (nextState.journal?.journal_economy_free_commune?.status ?? 'inactive') === 'inactive';
+  const forcedIds: string[] = [];
+  if (freeCommuneInactive) forcedIds.push('economy_free_commune_start');
+  if (isWartimeEconomyRouteDue(nextState)) forcedIds.push('economy_wartime_route_choice');
+
+  let next = pendingEvents;
+  forcedIds.forEach((eventId) => {
+    const alreadySeen = nextState.eventHistory?.triggered.includes(eventId)
+      || previousState.eventHistory?.triggered.includes(eventId);
+    if (alreadySeen) return;
+    if (next.some(event => event.id === eventId)) return;
+    if (previousState.currentEvent?.id === eventId) return;
+    const startEvent = SCHEDULED_EVENT_REGISTRY.find(event => event.id === eventId);
+    if (startEvent) next = [startEvent, ...next];
+  });
+  return next;
+};
 
 /** Queues date/condition-driven events after all monthly state changes settle. */
 export const calculateMonthlyEventQueue = (
@@ -119,6 +159,9 @@ export const calculateMonthlyEventQueue = (
     }
   }
   pendingEvents = [...pendingEvents, ...monthlyEvents];
+  // 经济改造的开始事件由编排层强制入队（见上）。放在这里而不是月度筛选里，是因为它们
+  // 既不能被 date/condition 筛选捞出，又必须在指定的月份出现。
+  pendingEvents = queueForcedEconomyStart(pendingEvents, previousState, nextState);
   if (nextState.iberianDefense) pendingEvents = pendingEvents.filter(event => !['nationalist_surrender', 'republican_surrender', 'asturias_revolution'].includes(event.id));
   if (isMayDaysEvent(nextState.currentEvent?.id) || pendingEvents.some(event => isMayDaysEvent(event.id))) {
     pendingEvents = pendingEvents.filter(event => event.id !== 'wartime_cabinet_coordination');
@@ -136,13 +179,11 @@ export const calculateMonthlyEventQueue = (
     'left_cabinet_excludes_cnt_1931',
     'minister_allocation',
     'elections_1933',
-    'elections_1933_results',
     'elections_1936',
-    'elections_1936_results',
     'general_election_campaign',
     'general_election_results',
+    'hung_parliament_formation',
     'presidential_dissolution_of_cortes',
-    'early_general_election_results',
     'presidential_election_decision',
   ]);
   if (isSpanishCivilWarOngoing(nextState)) {

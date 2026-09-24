@@ -13,6 +13,13 @@ import {
   selectEventModalViewModel,
 } from '../game/selectors';
 
+/** Each card family keeps one printed border colour: red for action, deep purple for government, ink for the military. */
+const CARD_PRINT_BORDERS: Record<CardType, string> = {
+  Action: 'border-print-red',
+  Government: 'border-print-purple',
+  Military: 'border-print',
+};
+
 export const MainArea = () => {
   const state = useGameSelector((gameState) => ({
     language: gameState.language,
@@ -236,10 +243,12 @@ const DeckView: React.FC<{ type: CardType; onSelectOpen: (type: CardType) => voi
     ? (type === 'Action' ? '行动卡牌' : type === 'Government' ? '政府卡牌' : '武装卡牌')
     : (type === 'Action' ? 'Action Deck' : type === 'Government' ? 'Gov Deck' : 'Mil Deck');
 
+  // Deck fills stay on the printed palette: red for action, republican purple for
+  // government, black for the military deck.
   const getBgColor = () => {
     if (type === 'Action') return "bg-cnt-red border-ink text-paper";
-    if (type === 'Government') return "bg-ink border-cnt-red text-paper";
-    return "bg-amber-900 border-ink text-paper"; // Military deck color
+    if (type === 'Government') return "bg-republic-purple border-republic-purple-dark text-paper";
+    return "bg-cnt-black border-ink text-paper";
   };
 
   const handleClick = () => {
@@ -282,7 +291,7 @@ const DeckView: React.FC<{ type: CardType; onSelectOpen: (type: CardType) => voi
         whileHover={isPlayable ? { y: -10, rotate: -2 } : {}}
         className={cn(
           "bg-paper p-6 flex flex-col w-48 aspect-[2/3] relative shadow-lg transition-opacity",
-          card.type === 'Action' ? "border-print-red" : "border-print",
+          CARD_PRINT_BORDERS[card.type],
           !isPlayable && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -426,7 +435,7 @@ const CardSelectorModal: React.FC<CardSelectorModalProps> = ({ deckType, onClose
                     key={card.id}
                     className={cn(
                       "bg-paper p-4 border flex flex-col justify-between aspect-[2/3] relative shadow-sm transition-all hover:shadow-md",
-                      card.type === 'Action' ? "border-print-red/60 hover:border-cnt-red" : "border-print/60 hover:border-ink",
+                      CARD_PRINT_BORDERS[card.type],
                       state.hand.length >= (state.difficulty === 'hard' ? 3 : 4) && "opacity-75"
                     )}
                   >

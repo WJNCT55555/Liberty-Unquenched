@@ -11,6 +11,8 @@ import {
 import { collectClassSupportAdjustments, collectFactionInfluenceAdjustments, getDissentMultiplier } from './utils';
 import type { ClassPoliticalForce, ClassSupportAdjustment, FactionInfluenceAdjustment } from './utils';
 import { UNION_SHARE_LABELS } from './unions';
+import { MILITARIZATION_GROUP_INFO } from './rules/militarization';
+import type { ArmyIdentity } from '../map/types_map';
 
 type Labels = { label: string; labelZh: string };
 type FieldConfig = Labels & { reverseTone?: boolean; suffix?: string; suffixZh?: string };
@@ -54,12 +56,12 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   labor_rights_timer: { label: 'Labor rights cooldown', labelZh: '劳工权利冷却', reverseTone: true },
   labor_affairs_timer: { label: 'Labor affairs cooldown', labelZh: '劳工事务冷却', reverseTone: true },
   fiscal_policy_timer: { label: 'Fiscal policy cooldown', labelZh: '财政政策冷却', reverseTone: true },
+  aragon_front_timer: { label: 'Aragon cooldown', labelZh: '阿拉贡冷却', reverseTone: true },
+  militia_reorg_timer: { label: 'Militia reorganization cooldown', labelZh: '民兵整编冷却', reverseTone: true },
+  anarchy_tanks_timer: { label: 'Tank program cooldown', labelZh: '坦克项目冷却', reverseTone: true },
+  prepare_revolution_timer: { label: 'Revolutionary preparation cooldown', labelZh: '革命准备冷却', reverseTone: true },
   internationalBrigades: { label: 'International Brigades', labelZh: '国际纵队' },
-  militiaCombatPower: { label: 'Militia combat power', labelZh: '民兵战斗力' },
   tankResearchProgress: { label: 'Tank research progress', labelZh: '坦克研发进度' },
-  aragonTimer: { label: 'Aragon cooldown', labelZh: '阿拉贡冷却', reverseTone: true },
-  militiaReorgTimer: { label: 'Militia reorganization cooldown', labelZh: '民兵整编冷却', reverseTone: true },
-  tankTimer: { label: 'Tank program cooldown', labelZh: '坦克项目冷却', reverseTone: true },
   covert_ops_france: { label: 'Covert operations in France', labelZh: '法国秘密行动' },
   covert_ops_portugal: { label: 'Covert operations in Portugal', labelZh: '葡萄牙秘密行动' },
   radio: { label: 'Radio network', labelZh: '广播网络' },
@@ -67,7 +69,50 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   commercialized_propaganda: { label: 'Commercial propaganda', labelZh: '商业化宣传' },
   campaign_propaganda: { label: 'Campaign propaganda', labelZh: '动员宣传' },
   ideological_propaganda: { label: 'Ideological propaganda', labelZh: '意识形态宣传' },
-  leverage: { label: 'Leverage', labelZh: '政治筹码' }
+  leverage: { label: 'Leverage', labelZh: '政治筹码' },
+  // ---- Economy Reform（经济改造，docs/经济改造方案.md §8.2）----
+  agricultural_cooperative: { label: 'Agricultural cooperatives', labelZh: '农业合作社' },
+  land_requisition: { label: 'Land requisition', labelZh: '土地征用' },
+  land_redemption: { label: 'Land redemption', labelZh: '土地赎买' },
+  land_voluntary_collectivization: { label: 'Voluntary collectivization', labelZh: '自愿集体化' },
+  land_forced_collectivization: { label: 'Forced collectivization', labelZh: '强制集体化', reverseTone: true },
+  currency_abolition: { label: 'Abolition of money', labelZh: '废除货币' },
+  private_bank_seizure: { label: 'Bank deposits seized', labelZh: '私营银行没收' },
+  mutual_credit_network: { label: 'Mutual credit', labelZh: '地方互助信贷' },
+  credit_exchange_committee: { label: 'Credit & Exchange Committee', labelZh: '信用与兑换委员会' },
+  rail_nationalization: { label: 'Railways nationalized', labelZh: '铁路国有化' },
+  coal_nationalization: { label: 'Coal nationalized', labelZh: '煤炭国有化' },
+  industrial_cooperative: { label: 'Industrial cooperatives', labelZh: '工业合作社' },
+  foreign_capital_seizure: { label: 'Foreign capital seized', labelZh: '外资没收' },
+  supply_coordination_network: { label: 'Supply coordination', labelZh: '物资调控网络' },
+  wartime_requisition: { label: 'Wartime requisition', labelZh: '战时农业征发' },
+  family_rationing: { label: 'Family rationing', labelZh: '家庭口粮本配给' },
+  war_industry_conversion: { label: 'War industry conversion', labelZh: '军工紧急转产' },
+  wartime_trade_monopoly: { label: 'Wartime trade monopoly', labelZh: '战时外贸垄断' },
+  industry_policy_timer: { label: 'Industry & commerce cooldown', labelZh: '工业与商业冷却', reverseTone: true },
+  trade_policy_timer: { label: 'Commerce & trade cooldown', labelZh: '商业与贸易冷却', reverseTone: true },
+  fiscal_measures_timer: { label: 'Fiscal instruments cooldown', labelZh: '财政手段冷却', reverseTone: true },
+  land_and_freedom_timer: { label: 'Land and freedom cooldown', labelZh: '土地与自由冷却', reverseTone: true }
+};
+
+/**
+ * 所有权饼的分项标签（docs/工人控制度改造方案.md §2.1）。
+ * 分项的增量以 `controlShares.land.church` 这样的嵌套路径出现在补丁里，
+ * 因此这里额外提供一组"嵌套字段路径"映射供 `addUnionShareDiffs` 式的比较使用。
+ */
+export const OWNERSHIP_FIELD_LABELS: Record<string, Labels> = {
+  'land.church': { label: 'Church land', labelZh: '教会土地' },
+  'land.latifundia': { label: 'Large estates', labelZh: '大庄园所有制' },
+  'land.smallholders': { label: 'Yeomen & smallholders', labelZh: '中小地主与自耕农' },
+  'land.cooperative': { label: 'Agricultural cooperatives', labelZh: '农业合作社' },
+  'land.collective': { label: 'Agricultural collectives', labelZh: '农业集体' },
+  'land.state': { label: 'State land', labelZh: '国有土地' },
+  'industry.foreign': { label: 'Foreign capital', labelZh: '外资控制' },
+  'industry.bigCapital': { label: 'Large private capital', labelZh: '大资本私有制' },
+  'industry.smallBusiness': { label: 'Small proprietors', labelZh: '小业主私有制' },
+  'industry.cooperative': { label: 'Industrial cooperatives', labelZh: '工业合作社' },
+  'industry.union': { label: 'Local union ownership', labelZh: '地方工会所有制' },
+  'industry.state': { label: 'State ownership', labelZh: '国有制' }
 };
 
 const BOOLEAN_FIELDS: Record<string, Labels> = {
@@ -590,6 +635,36 @@ const addUnionShareDiffs = (
   });
 };
 
+/**
+ * 所有权饼的差值预览（docs/工人控制度改造方案.md §2.3）。
+ *
+ * 补丁里的形式是 `controlShares: { land: {...}, industry: {...} }`，两组各六项。
+ * 只有真正变化的项才会产生预览行，因此"没收 4 点大庄园"只显示一行。
+ */
+const addOwnershipDiffs = (
+  lines: EffectPreviewLine[],
+  before: GameState['controlShares'],
+  after?: Partial<GameState['controlShares']>
+) => {
+  if (!after) return;
+  (['land', 'industry'] as const).forEach((sector) => {
+    const nextPie = after[sector];
+    if (!nextPie) return;
+    const currentPie = before?.[sector] as Record<string, number> | undefined;
+    Object.keys(nextPie).forEach((key) => {
+      const labels = OWNERSHIP_FIELD_LABELS[`${sector}.${key}`];
+      const afterValue = (nextPie as Record<string, number>)[key];
+      if (!labels || typeof afterValue !== 'number') return;
+      addNumericDelta(
+        lines,
+        { ...labels, suffix: '%', suffixZh: '%' },
+        currentPie?.[key] ?? 0,
+        afterValue,
+      );
+    });
+  });
+};
+
 const addArmedForcesDiffs = (
   lines: EffectPreviewLine[],
   before: GameState['armedForces'],
@@ -622,6 +697,48 @@ const addArmedForcesDiffs = (
       addNumericDelta(lines, humanizeKey(`${entityId} artillery`), previousPool.artillery, nextPool.artillery);
       addNumericDelta(lines, humanizeKey(`${entityId} tanks`), previousPool.tanks, nextPool.tanks);
     });
+  }
+};
+
+/** 军事化率按派系共享，所以预览要逐组显示而不是逐单位。 */
+const addMilitarizationDiffs = (
+  lines: EffectPreviewLine[],
+  before: GameState['militarization'],
+  after?: Partial<GameState['militarization']>
+) => {
+  if (!after) return;
+  Object.entries(after).forEach(([group, nextValue]) => {
+    if (nextValue === undefined) return;
+    const info = MILITARIZATION_GROUP_INFO[group as ArmyIdentity];
+    const fallback = humanizeKey(group);
+    const label = info ? info.en : fallback.label;
+    const labelZh = info ? info.zh : fallback.labelZh;
+    addNumericDelta(
+      lines,
+      { label: `${label} militarization`, labelZh: `${labelZh}军事化率` },
+      before?.[group as keyof GameState['militarization']] ?? 0,
+      nextValue,
+    );
+  });
+};
+
+/**
+ * 路线抉择只有一个可见变化：选中的是哪条路。完成条件把进度条做成了派生值
+ * （见两条日志的 `getProgress`），所以这里不再有进度字段可显示。
+ */
+const addMilitarizationPathDiffs = (
+  lines: EffectPreviewLine[],
+  before: GameState['militarizationPaths'],
+  after?: Partial<GameState['militarizationPaths']>
+) => {
+  if (!after) return;
+  if (after.chosen && after.chosen !== before?.chosen) {
+    const chosenLabel: Record<string, Labels> = {
+      popular_army: { label: 'Building the People\'s Army', labelZh: '组建人民军' },
+      militia_autonomy: { label: 'Arming the militia columns', labelZh: '武装民兵纵队' },
+    };
+    const labels = chosenLabel[after.chosen];
+    if (labels) lines.push(textPreview(labels.label, labels.labelZh));
   }
 };
 
@@ -682,6 +799,7 @@ const buildFallbackPreview = (
   addTopLevelDiffs(lines, state, partial);
   addStatsDiffs(lines, state.stats, partial.stats);
   addUnionShareDiffs(lines, state.unionShare, partial.unionShare);
+  addOwnershipDiffs(lines, state.controlShares, partial.controlShares);
   addDomesticPolicyDiffs(lines, state.domesticPolicy, partial.domesticPolicy);
   addFactionsDiffs(lines, state.factions, partial.factions, factionInfluenceAdjustments);
   if (classSupportAdjustments.length > 0) {
@@ -693,6 +811,8 @@ const buildFallbackPreview = (
   addPartySupportDiffs(lines, state, state.partySupport, partial.partySupport);
   addRelationsDiffs(lines, state.relations, partial.relations);
   addArmedForcesDiffs(lines, state.armedForces, partial.armedForces);
+  addMilitarizationDiffs(lines, state.militarization, partial.militarization);
+  addMilitarizationPathDiffs(lines, state.militarizationPaths, partial.militarizationPaths);
   addGovernmentDiffs(lines, state.government, partial.government);
 
   addCurrentEventLine(lines, state, partial);

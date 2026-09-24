@@ -2,7 +2,6 @@ import type { Advisor, Card, GameEvent, GameState } from './types';
 import { addEasyUndoOption, createEasyConfirmationEvent } from './easyMode';
 import { activateCivilWarOrganizations, normalizeOrganizationState } from './organizations';
 import { normalizeUnionShare } from './unions';
-import { migrateWartimePolitics } from './rules/wartimeCoalition';
 import { updateCoalitions } from './utils/coalition';
 import { migrateSaveState } from './saveMigrations';
 
@@ -353,10 +352,9 @@ export const deserializeGameState = (
   const activated = normalized.civilWarStatus !== 'not_started'
     ? { ...normalized, ...activateCivilWarOrganizations(normalized) }
     : normalized;
-  const migrated = migrateWartimePolitics(activated);
-  return migrated.wartimePowerArrangement
-    ? { ...migrated, activeCoalitions: updateCoalitions(migrated) }
-    : migrated;
+  return activated.wartimePowerArrangement
+    ? { ...activated, activeCoalitions: updateCoalitions(activated) }
+    : activated;
 };
 
 const createManualSlots = (): ManualSaveSlot[] => Array.from(

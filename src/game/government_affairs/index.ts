@@ -6,6 +6,9 @@ import { laborAffairs } from './labor_affairs';
 import { fiscalPolicy } from './fiscal_policy';
 import { foreignPolicy } from './foreign_policy';
 import { impeachPresident } from './impeach_president';
+import { industryPolicy } from './industry_policy';
+import { tradePolicy } from './trade_policy';
+import { fiscalMeasures } from './fiscal_measures';
 
 export const GOVERNMENT_AFFAIRS = [
   militaryPolicy,
@@ -15,5 +18,9 @@ export const GOVERNMENT_AFFAIRS = [
   laborAffairs,
   fiscalPolicy,
   foreignPolicy,
-  impeachPresident
+  impeachPresident,
+  // 经济改造的三张政府卡（docs/经济改造方案.md §6）：工业与商业、商业与贸易、财政手段。
+  industryPolicy,
+  tradePolicy,
+  fiscalMeasures
 ];

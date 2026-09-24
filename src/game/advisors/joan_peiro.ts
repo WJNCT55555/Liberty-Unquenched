@@ -1,5 +1,27 @@
-import { Advisor } from '../types';
-import { applyUnionShareDelta } from '../unions';
+﻿import { Advisor, GameState } from '../types';
+import { adjustFactionInfluence } from '../utils';
+import { advanceEconomyPush } from '../rules/economyReforms';
+import { applyControlInfluence, applyEconomicOption } from '../rules/controlShares';
+import { economyCooperativePath } from '../events/economy/cooperative_path';
+
+/**
+ * The cooperative programme needs this many advisor pushes to open the route
+ * (docs/经济改造方案.md §9.3). Mirrors `ECONOMY_PUSH_LIMITS.cooperativePushes`.
+ */
+export const COOPERATIVE_ROUTE_PUSH_LIMIT = 2;
+
+/** The cooperative journal is already open (the advisor action then has nothing left to do). */
+const isCooperativeRouteOpen = (state: Pick<GameState, 'journal'>): boolean =>
+  state.journal?.['journal_economy_cooperative']?.status === 'active';
+
+const cooperativePushUnavailable = (state: GameState, isZh: boolean): string => {
+  if ((state.economy?.cooperativePushes ?? 0) >= COOPERATIVE_ROUTE_PUSH_LIMIT || isCooperativeRouteOpen(state)) {
+    return isZh ? '合作社方案已经推动完毕。' : 'The cooperative programme is already under way.';
+  }
+  return isZh
+    ? `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`
+    : `${state.advisorActionTimer} months before next advisor action.`;
+};
 
 export const joanPeiro: Advisor = {
   id: 'Joan Peiró',
@@ -21,53 +43,56 @@ export const joanPeiro: Advisor = {
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => ({
         advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          workerControl: Math.min(100, state.stats.workerControl + 5),
-        }
+        ...applyControlInfluence(state, 5, { land: 0, industry: 1 })
       }),
       description: 'We have reorganized factories under direct worker management. Production is stabilizing, and the workers feel empowered.',
       descriptionZh: '我们在工人直接管理下重组了工厂。生产正在稳定，工人们感到了力量。',
     },
     {
-      id: 'cooperative_factories',
-      title: 'Cooperative Factories',
-      titleZh: '合作社工厂',
-      subtitle: 'Promote cooperatives over forced collectivization.',
-      subtitleZh: '提倡合作社而非强制集体化。',
+      id: 'emergency_union_fundraising',
+      title: 'Emergency Union Fundraising',
+      titleZh: '工会紧急筹款',
+      subtitle: 'Levy an emergency fund on the syndicates to cover the movement\'s immediate needs.',
+      subtitleZh: '向各工团征收特别会费，筹措运动急需的资金。',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
       effect: (state) => ({
         advisorActionTimer: 6,
-        resources: state.resources + 5,
+        resources: state.resources + 3,
       }),
-      description: 'Voluntary cooperatives are more efficient and less alienating to the middle classes than forced expropriation.',
-      descriptionZh: '自愿的合作社比强制征用更有效率，也更不容易疏远中产阶级。',
+      description: 'An emergency levy on the syndicates has filled the movement\'s coffers without disturbing the workshops.',
+      descriptionZh: '向各工团征收的特别会费充实了运动的金库，且没有打扰车间的生产秩序。',
     },
     {
-      id: 'syndicalist_education',
-      title: 'Syndicalist Education',
-      titleZh: '工团主义教育',
-      subtitle: 'Educate the workers in the principles of anarcho-syndicalism.',
-      subtitleZh: '向工人传授无政府工团主义的原则。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => {
-        const newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions.Treintistas.dissent = Math.max(0, newFactions.Treintistas.dissent - 5);
-        newFactions.Cenetistas.dissent = Math.max(0, newFactions.Cenetistas.dissent - 5);
+      // The cooperative route's deterministic entry point: card draws decide when
+      // cooperatives appear, Peiró decides whether the movement commits to them.
+      id: 'peiro_promote_cooperative_route',
+      title: 'Promote the Cooperative Programme',
+      titleZh: '推动合作社方案',
+      subtitle: 'Push the federations of purchasing and credit societies as the movement\'s answer to the agrarian question. Two rounds of work open the Cooperative Road.',
+      subtitleZh: '把采购与信用合作社的联邦推为运动对农业问题的回答。两轮工作后开启「合作社之路」。',
+      unavailableSubtitle: (state) => cooperativePushUnavailable(state, false),
+      unavailableSubtitleZh: (state) => cooperativePushUnavailable(state, true),
+      condition: (state) => state.advisorActionTimer <= 0
+        && (state.economy?.cooperativePushes ?? 0) < COOPERATIVE_ROUTE_PUSH_LIMIT
+        && !isCooperativeRouteOpen(state),
+      effect: (state: GameState) => {
+        const opensRoute = (state.economy?.cooperativePushes ?? 0) + 1 >= COOPERATIVE_ROUTE_PUSH_LIMIT;
         return {
           advisorActionTimer: 6,
-          factions: newFactions,
-          // 解耦：教育属工会组织建设，计入 CNT 占比而非生产资料控制。
-          ...applyUnionShareDelta(state, { CNT: 5, unorganized: -5 }),
-          stats: { ...state.stats }
+          ...advanceEconomyPush(state, 'cooperativePushes'),
+          // One round of work advances both ladders, ownership included.
+          ...applyEconomicOption(state, 'agricultural_cooperative'),
+          ...applyEconomicOption(state, 'mutual_credit_network'),
+          factions: adjustFactionInfluence(state.factions, 'Treintistas', 3),
+          // The second round of work is the route's start event: it carries the narrative
+          // confirmation, and its option is what activates the journal (方案 §5.3).
+          currentEvent: opensRoute ? economyCooperativePath : null
         };
       },
-      description: 'A revolution requires educated workers capable of managing their own affairs.',
-      descriptionZh: '革命需要受过教育、能够管理自己事务的工人。',
+      description: 'Peiró has spent the year in the villages, and the balance sheets are beginning to mean more than the pamphlets. If the confederation commits to this programme, the countryside gets an institution it can defend.',
+      descriptionZh: '佩罗在村子里待了整整一年，而资产负债表开始比传单更有说服力。如果联合会承诺这条路，乡村就得到了一所它愿意保卫的机构。',
     }
   ]
 };

@@ -1,7 +1,8 @@
-import type { CoalitionId, GameState, Party, SocialClass } from '../types';
+import type { CoalitionId, CoalitionMember, GameState, Party, SocialClass } from '../types';
 import { CLASS_INFO } from '../constants';
+import { COALITION_DEFS } from '../coalitions';
 import { isOrganizationEstablished } from '../organizations';
-import { getEffectiveCortes } from '../politicalEligibility';
+import { getEffectiveCortes, isRepublicanPartyPresent } from '../politicalEligibility';
 
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
@@ -130,35 +131,61 @@ export interface GeneralElectionOutcome {
   majority: number;
   leadingBloc: GeneralElectionBloc;
   majorityBloc: GeneralElectionBloc | null;
-  formation: 'majority' | 'negotiated' | 'minority';
-  coalitionId: CoalitionId;
+  coalitionCandidates: GeneralElectionCoalitionCandidate[];
+  majorityCoalitionIds: CoalitionId[];
+  leadingCoalitionId: CoalitionId | null;
+  formation: 'majority' | 'hung';
+  coalitionId: CoalitionId | null;
   governingSeats: number;
-  prrevsConfidenceSupportPossible: boolean;
-  prrevsCabinetPossible: boolean;
+}
+
+export interface GeneralElectionCoalitionCandidate {
+  coalitionId: CoalitionId;
+  members: CoalitionMember[];
+  seats: number;
+  hasMajority: boolean;
 }
 
 const sumPartySeats = (cortes: Record<Party, number>, parties: readonly Party[]): number => (
   parties.reduce((sum, party) => sum + (cortes[party] || 0), 0)
 );
 
-const coalitionForBloc = (
-  state: Pick<GameState, 'year' | 'crossroads_choice'>,
-  bloc: GeneralElectionBloc,
-): CoalitionId => {
-  if (bloc === 'left') {
-    return state.year >= 1935 || state.crossroads_choice === 'popular_front'
-      ? 'popular_front'
-      : 'republican_socialist';
-  }
-  if (bloc === 'center') return 'republican_coalition';
-  if (bloc === 'prrevs') return 'workers_alliance';
-  return state.year >= 1935 ? 'national_front' : 'ceda_radical';
+const coalitionMemberSeatParty = (member: CoalitionMember): Party | null => (
+  member === 'CNT_FAI' ? 'PRRevS' : member
+);
+
+/**
+ * Only alliances previously created by a political event may contest ordinary
+ * post-1931 elections. The three constitutional coalitions remain on their
+ * dedicated story paths and the wartime pact is never an electoral contestant.
+ */
+export const getGeneralElectionCoalitionCandidates = (
+  state: GameState,
+  cortes: Record<Party, number> = calculateElectionResults(state),
+): GeneralElectionCoalitionCandidate[] => {
+  const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0);
+  const majority = Math.floor(totalSeats / 2) + 1;
+
+  return state.activeCoalitions
+    .flatMap((coalition): GeneralElectionCoalitionCandidate[] => {
+      const definition = COALITION_DEFS.find(candidate => candidate.id === coalition.activeId);
+      if (definition?.electionRole !== 'event_formed') return [];
+
+      const members = coalition.members ?? definition.members;
+      const seatParties = [...new Set(members
+        .filter(member => isRepublicanPartyPresent(state, member))
+        .map(coalitionMemberSeatParty)
+        .filter((party): party is Party => Boolean(party)))];
+      const seats = sumPartySeats(cortes, seatParties);
+      return [{ coalitionId: coalition.activeId, members, seats, hasMajority: seats >= majority }];
+    })
+    .sort((left, right) => right.seats - left.seats);
 };
 
 /**
- * Resolve one Cortes into non-overlapping blocs and a viable government route.
- * AP belongs only to the right bloc; coalition negotiation may add the center,
- * but the same seats are never counted twice when comparing election strength.
+ * Resolve one Cortes into diagnostic blocs and event-formed electoral alliances.
+ * Blocs remain useful for presenting the balance of parliament, but they no
+ * longer invent a coalition from the year or silently negotiate a government.
  */
 export const summarizeGeneralElection = (
   state: GameState,
@@ -174,113 +201,12 @@ export const summarizeGeneralElection = (
     .sort((left, right) => blocSeats[right] - blocSeats[left]);
   const leadingBloc = orderedBlocs[0];
   const majorityBloc = orderedBlocs.find((bloc) => blocSeats[bloc] >= majority) || null;
-  const laborLeftSeats = sumPartySeats(cortes, ['PSOE', 'PCE', 'POUM', 'PS']);
-  const prrevsConfidenceSupportPossible = blocSeats.prrevs > 0
-    && blocSeats.left + blocSeats.prrevs >= majority;
-  const prrevsCabinetPossible = blocSeats.prrevs > 0
-    && laborLeftSeats + blocSeats.prrevs >= majority;
-
-  if (majorityBloc) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc,
-      formation: 'majority',
-      coalitionId: coalitionForBloc(state, majorityBloc),
-      governingSeats: blocSeats[majorityBloc],
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
-
-  const participation = state.generalElectionSchedule.participation;
-  if (participation === 'prrevs_left_alliance' && prrevsCabinetPossible) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc: null,
-      formation: 'negotiated',
-      coalitionId: 'workers_alliance',
-      governingSeats: laborLeftSeats + blocSeats.prrevs,
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
-
-  if (participation === 'prrevs_left_alliance' && prrevsConfidenceSupportPossible) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc: null,
-      formation: 'negotiated',
-      coalitionId: coalitionForBloc(state, 'left'),
-      governingSeats: blocSeats.left + blocSeats.prrevs,
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
-
-  if (
-    participation !== 'abstain'
-    && blocSeats.left >= blocSeats.right
-    && blocSeats.left + blocSeats.center >= majority
-  ) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc: null,
-      formation: 'negotiated',
-      coalitionId: coalitionForBloc(state, 'left'),
-      governingSeats: blocSeats.left + blocSeats.center,
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
-
-  if (blocSeats.right + blocSeats.center >= majority) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc: null,
-      formation: 'negotiated',
-      coalitionId: coalitionForBloc(state, 'right'),
-      governingSeats: blocSeats.right + blocSeats.center,
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
-
-
-  if (blocSeats.left + blocSeats.center >= majority) {
-    return {
-      cortes,
-      blocSeats,
-      totalSeats,
-      majority,
-      leadingBloc,
-      majorityBloc: null,
-      formation: 'negotiated',
-      coalitionId: coalitionForBloc(state, 'left'),
-      governingSeats: blocSeats.left + blocSeats.center,
-      prrevsConfidenceSupportPossible,
-      prrevsCabinetPossible,
-    };
-  }
+  const coalitionCandidates = getGeneralElectionCoalitionCandidates(state, cortes);
+  const majorityCoalitionIds = coalitionCandidates
+    .filter(candidate => candidate.hasMajority)
+    .map(candidate => candidate.coalitionId);
+  const leadingCoalition = coalitionCandidates[0] ?? null;
+  const leadingMajorityCoalition = coalitionCandidates.find(candidate => candidate.hasMajority) ?? null;
 
   return {
     cortes,
@@ -288,12 +214,13 @@ export const summarizeGeneralElection = (
     totalSeats,
     majority,
     leadingBloc,
-    majorityBloc: null,
-    formation: 'minority',
-    coalitionId: coalitionForBloc(state, leadingBloc),
-    governingSeats: blocSeats[leadingBloc],
-    prrevsConfidenceSupportPossible,
-    prrevsCabinetPossible,
+    majorityBloc,
+    coalitionCandidates,
+    majorityCoalitionIds,
+    leadingCoalitionId: leadingCoalition?.coalitionId ?? null,
+    formation: leadingMajorityCoalition ? 'majority' : 'hung',
+    coalitionId: leadingMajorityCoalition?.coalitionId ?? leadingCoalition?.coalitionId ?? null,
+    governingSeats: leadingMajorityCoalition?.seats ?? leadingCoalition?.seats ?? 0,
   };
 };
 

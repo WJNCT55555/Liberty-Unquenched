@@ -10,14 +10,16 @@ import { COALITION_DEFS } from '../game/coalitions';
 import { updateCoalitions } from '../game/utils';
 import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
 import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
+import { OwnershipPies } from './OwnershipPies';
 import { MapFaction, ArmyFormation } from '../map/types_map';
 import { getPlayerMapFaction, getMapFactionName, CIVIL_WAR_FACTIONS } from '../map/rules/factions';
 import { INITIAL_PROVINCES, getProvinceName } from '../map/map_constants';
 import { getPeacetimeArmyPool } from '../game/rules/warSetup';
 import { SECURITY_CORPS_IDS, SECURITY_CORPS_INFO } from '../game/rules/securityForces';
+import { getMilitarization, MILITARIZATION_GROUP_INFO } from '../game/rules/militarization';
 import { FACTION_NAMES } from '../game/labels';
 import { getOverallFactionDissent } from '../game/utils/factionEffects';
-import { getOrganizationsForOwner, isOrganizationActive, isOrganizationEstablished } from '../game/organizations';
+import { getOrganizationsForOwner, isOrganizationEstablished } from '../game/organizations';
 import {
   UNION_SHARE_COLORS,
   UNION_SHARE_KEYS,
@@ -31,6 +33,7 @@ import {
   areSidePanelStatesEqual,
   formatGeneralElectionViewModel,
   selectGeneralElectionViewModel,
+  selectMilitiaOrganizationViewModels,
   selectSidePanelState,
 } from '../game/selectors';
 
@@ -212,6 +215,12 @@ export const SidePanel = () => {
     PRRevS: { en: 'Our revolutionary syndicalist party representing the CNT in the Cortes.', zh: '我们在议会中代表 CNT 的革命共和工团党。' }
   };
 
+  // 民兵组织的军事化横条挂在**组织自己**下面（见 selectMilitiaOrganizationViewModels）：
+  // 未成立的组织整行都不出现，它的横条自然也不出现。
+  const militiaOrganizations = selectMilitiaOrganizationViewModels(state);
+  // 国民方固定在顺序末尾，前面加一条分隔线。
+  const firstEnemyIndex = militiaOrganizations.findIndex((entry) => entry.camp === 'nationalist');
+
   return (
     <div className="w-72 shrink-0 min-w-0 box-border border-r-2 border-ink bg-paper p-6 flex flex-col gap-2 overflow-x-hidden overflow-y-auto">
       
@@ -359,15 +368,6 @@ export const SidePanel = () => {
           />
           <StatBar name={isZh ? '共和国权威' : 'Rep. Authority'} value={state.stats.republicanAuthority} color="bg-blue-600" tooltip={isZh ? '政府的控制力' : 'Government Control'} />
           <StatBar name={isZh ? '军官忠诚' : 'Army Loyalty'} value={state.stats.armyLoyalty} color="bg-green-600" tooltip={isZh ? '军队对共和国的忠诚度' : 'Army Loyalty to Republic'} />
-          {SECURITY_CORPS_IDS.filter((id) => state.armedForces[id]?.manpower > 0).map((id) => (
-            <StatBar
-              key={`police-loyalty-${id}`}
-              name={`${isZh ? SECURITY_CORPS_INFO[id].zh : SECURITY_CORPS_INFO[id].en} ${isZh ? '忠诚度' : 'Loyalty'}`}
-              value={state.armedForces[id].loyalty}
-              color={SECURITY_CORPS_INFO[id].color}
-              tooltip={isZh ? '治安部队对共和国的忠诚度' : 'Security corps loyalty to the Republic'}
-            />
-          ))}
           <StatBar name={isZh ? '革命热情' : 'Revolutionary Fervor'} value={state.stats.revolutionaryFervor} color="bg-cnt-red" tooltip={isZh ? '社会革命的进展' : 'Progress of Social Revolution'} />
         </div>
       </AccordionSection>
@@ -440,15 +440,20 @@ export const SidePanel = () => {
             </div>
           </div>
 
-          {/* 工人控制程度：生产资料控制 */}
-          <StatBar
-            name={isZh ? '生产资料控制' : 'Control Obrero'}
-            value={state.stats.workerControl}
-            color="bg-orange-600"
-            tooltip={isZh
-              ? '工人对生产资料的实际控制程度（1936 年 7 月之前上限 40）'
-              : 'Worker control over the means of production (capped at 40 before July 1936)'}
-          />
+          {/* 生产资料所有权：两张六分饼，上下依次排列（docs/工人控制度改造方案.md §6.2）。
+              取代旧的单一"生产资料控制"进度条——它把城乡、工会与国家、私人与社会化
+              全挤进了一个数字。 */}
+          <div className="mt-1">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                {isZh ? '生产资料所有权' : 'Ownership of production'}
+              </span>
+              <span className="text-[8px] font-typewriter opacity-60">
+                {isZh ? '生产关系的真相来源' : 'source of truth'}
+              </span>
+            </div>
+            <OwnershipPies state={state} isZh={isZh} />
+          </div>
         </div>
       </AccordionSection>
 
@@ -1009,7 +1014,7 @@ export const SidePanel = () => {
                 this panel renders the formation roster, not `state.armies`. */}
             {(state.armyFormations || [])
               .map((formation) => (
-                <ArmyItem key={formation.id} formation={formation} isZh={isZh} provinces={state.provinces} />
+                <ArmyItem key={formation.id} formation={formation} isZh={isZh} provinces={state.provinces} militarization={state.militarization} />
               ))}
           </div>
         </div>
@@ -1022,6 +1027,16 @@ export const SidePanel = () => {
             manpower={getPeacetimeArmyPool(state)}
             color="bg-republic-purple"
           />
+          {/* 政府军与警察共用一个军事化率，所以这条横条同时代表两者（见 militarization.ts §8）。 */}
+          <MilitarizationBar
+            isZh={isZh}
+            rate={getMilitarization(state, 'gov')}
+            color={MILITARIZATION_GROUP_INFO.gov.color}
+            name={isZh ? '政府军与警察' : 'Government forces & police'}
+            title={isZh
+              ? '政府军与警察共用一个军事化率：名义人力中真正能当兵的比例，同时就是战斗乘数。练警察会连带提升正规军的战力。'
+              : 'Government forces and the police share one rate: the share of nominal manpower that functions as soldiers, and the combat multiplier itself. Training the police also strengthens the regular army.'}
+          />
         </div>
 
         <div className="mb-4">
@@ -1032,28 +1047,46 @@ export const SidePanel = () => {
               key={id}
               name={isZh ? SECURITY_CORPS_INFO[id].zh : SECURITY_CORPS_INFO[id].en}
               manpower={state.armedForces[id].manpower}
+              loyalty={state.armedForces[id].loyalty}
               color={SECURITY_CORPS_INFO[id].color}
             />
           ))}
         </div>
 
         <div>
-          <h3 className="font-typewriter text-sm font-bold mb-2 opacity-80">{isZh ? '准军事组织' : 'Paramilitary'}</h3>
+          <h3 className="font-typewriter text-sm font-bold mb-1 opacity-80">{isZh ? '准军事组织' : 'Paramilitary'}</h3>
+          <p className="font-typewriter text-[9px] tracking-wider text-ink-light pb-2 normal-case leading-snug">
+            {isZh
+              ? '每个已成立的民兵组织下方是它所属派系的军事化率——名义人力中真正能当兵的比例，同时就是战斗乘数。同派系全部队共享，且不会自动衰减；尚未成立的组织整行都不显示。灰色行是敌方组织。'
+              : 'Beneath each militia organisation that exists sits the militarization rate of its force group — the share of nominal manpower that functions as soldiers, and the combat multiplier itself. Shared by every unit of the group, never decaying on its own; organisations that do not exist yet are not listed at all. Greyed rows are enemy organisations.'}
+          </p>
           <div className="flex flex-col gap-1">
-            {getOrganizationsForOwner('CNT_FAI')
-              .filter((definition) => definition.type === 'militia' && isOrganizationActive(state, definition.id))
-              .map((definition) => (
-                <MilitiaItem
-                  isZh={isZh}
-                  key={definition.id}
-                  name={isZh
-                    ? (definition.militiaDisplayNameZh || definition.nameZh)
-                    : (definition.militiaDisplayName || definition.name)}
-                  manpower={definition.armedEntityId ? state.armedForces.entityPools[definition.armedEntityId]?.manpower || 0 : 0}
-                  color="bg-cnt-red"
-                  isHighlighted={definition.id === 'DC'}
-                />
-              ))}
+            {militiaOrganizations.map((entry, index) => {
+              const info = MILITARIZATION_GROUP_INFO[entry.identity];
+              const enemy = entry.camp === 'nationalist';
+              return (
+                <div
+                  key={entry.organizationId}
+                  className={`${enemy ? 'opacity-60' : ''} ${index === firstEnemyIndex ? 'border-t border-ink/20 pt-1 mt-1' : ''}`}
+                >
+                  <MilitiaItem
+                    isZh={isZh}
+                    name={isZh ? entry.nameZh : entry.nameEn}
+                    manpower={entry.manpower}
+                    color={info.color}
+                    isHighlighted={entry.highlighted}
+                  />
+                  <MilitarizationBar
+                    isZh={isZh}
+                    rate={entry.militarization}
+                    color={info.color}
+                    title={isZh
+                      ? `${info.zh}的军事化率；同时是战斗乘数。`
+                      : `The ${info.en} force group's militarization rate; it is also the combat multiplier.`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -1290,28 +1323,48 @@ const AllianceBar: React.FC<{ isZh: boolean; name: string; value: number; color:
   </div>
 )};
 
-const ArmyItem: React.FC<{ formation: ArmyFormation; isZh: boolean; provinces: GameState['provinces'] }> = ({ formation, isZh, provinces }) => {
+const ArmyItem: React.FC<{
+  formation: ArmyFormation;
+  isZh: boolean;
+  provinces: GameState['provinces'];
+  militarization: GameState['militarization'];
+}> = ({ formation, isZh, provinces, militarization }) => {
   const province = (provinces || INITIAL_PROVINCES)[formation.provinceId];
   const station = getProvinceName(province, isZh ? 'zh' : 'en');
   const label = (isZh ? formation.nameZh : formation.name) || formation.name || formation.id;
+  // 编制表部队全部是政府军，所以它们的军事化率就是共享的 `gov` 值。
+  const rate = getMilitarization({ militarization }, 'gov');
 
   return (
     <div
       className="flex justify-between items-center font-typewriter text-[10px] uppercase tracking-wider py-1 border-b border-dotted border-ink/30 cursor-help"
-      title={`${isZh ? '士气' : 'Morale'} ${Math.round(formation.morale)} · ${isZh ? '训练度' : 'Training'} ${Math.round(formation.militarization)} · ${station}`}
+      title={`${isZh ? '士气' : 'Morale'} ${Math.round(formation.morale)} · ${isZh ? '军事化率（政府军共享）' : 'Militarization (shared by gov)'} ${Math.round(rate)}% · ${station}`}
     >
       <div className="flex items-center gap-1.5 overflow-hidden">
         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-republic-purple"></div>
         <span className="truncate" title={label}>{label}</span>
       </div>
-      <span className="flex-shrink-0 pl-1 tabular-nums">
-        {formation.manpower.toLocaleString()} · {formation.composition.artillery.toLocaleString()} · {formation.composition.tanks.toLocaleString()}
-      </span>
+      <div className="flex flex-shrink-0 flex-col items-end pl-1 tabular-nums">
+        <span>
+          {formation.manpower.toLocaleString()} · {formation.composition.artillery.toLocaleString()} · {formation.composition.tanks.toLocaleString()}
+        </span>
+        <span className="normal-case tracking-normal text-ink-light">
+          {isZh ? '士气' : 'Morale'} {Math.round(formation.morale)} · {isZh ? '军事化' : 'Mil.'} {Math.round(rate)}%
+        </span>
+      </div>
     </div>
   );
 };
 
-const MilitiaItem: React.FC<{ isZh: boolean; name: string; manpower: number; color: string; isAfrica?: boolean; isHighlighted?: boolean }> = ({ isZh, name, manpower, color, isAfrica, isHighlighted }) => {
+const MilitiaItem: React.FC<{
+  isZh: boolean;
+  name: string;
+  manpower: number;
+  color: string;
+  loyalty?: number;
+  isAfrica?: boolean;
+  isHighlighted?: boolean;
+}> = ({ isZh, name, manpower, color, loyalty, isAfrica, isHighlighted }) => {
   let extraClasses = '';
   if (isAfrica) {
     extraClasses = 'text-yellow-800 font-bold bg-yellow-500/20 px-1 border-yellow-800/50';
@@ -1325,10 +1378,51 @@ const MilitiaItem: React.FC<{ isZh: boolean; name: string; manpower: number; col
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></div>
         <span className="truncate" title={name}>{name}</span>
       </div>
-      <span className="flex-shrink-0 pl-1">{manpower.toLocaleString()} {isZh ? '人' : ''}</span>
+      <div className="flex flex-shrink-0 flex-col items-end pl-1 tabular-nums">
+        <span>{manpower.toLocaleString()} {isZh ? '人' : ''}</span>
+        {loyalty !== undefined && (
+          <span
+            className="normal-case tracking-normal text-ink-light"
+            title={isZh
+              ? '决定战争爆发时该部队的阵营归属；不参与共和国紧张度计算。'
+              : 'Determines the corps alignment when war begins; it does not contribute to Republican tension.'}
+          >
+            {isZh ? '忠诚度' : 'Loyalty'} {Math.round(loyalty)}%
+          </span>
+        )}
+      </div>
     </div>
   );
 };
+
+/**
+ * 军事化率横条。它是本系统的核心量：既是"名义人力里有多少真能当兵"，也是战斗乘数。
+ *
+ * 它挂在**所属组织**下面（正规军挂在军队人力池下、民兵挂在各自的准军事组织下），
+ * 而不是集中成一个总表——因为一个率描述的是一个武装集团的组织形态，玩家看到
+ * "这是谁的部队"和"这支部队有多像个军队"时才看得懂这个数字。
+ */
+const MilitarizationBar: React.FC<{
+  isZh: boolean;
+  rate: number;
+  color: string;
+  /** 省略时只显示「军事化」标签——挂在组织行下方时组织名已经在上方了。 */
+  name?: string;
+  title?: string;
+}> = ({ isZh, rate, color, name, title }) => (
+  <div className="mt-0.5 mb-1 pl-3.5 flex flex-col gap-0.5">
+    <div className="flex justify-between font-typewriter text-[9px] uppercase tracking-wider text-ink-light">
+      <span>{name ?? (isZh ? '军事化率' : 'Militarization')}</span>
+      <span className="tabular-nums flex-shrink-0 pl-1">{Math.round(rate)}%</span>
+    </div>
+    <div className="h-1.5 w-full border border-ink bg-paper-dark relative overflow-hidden" title={title}>
+      <div
+        className={`h-full ${color} transition-all duration-500 bg-halftone`}
+        style={{ width: `${Math.max(0, Math.min(100, rate))}%` }}
+      />
+    </div>
+  </div>
+);
 
 const StatBar: React.FC<{ name: string; value: number; color: string; tooltip?: string }> = ({ name, value, color, tooltip }) => (
   <div className="flex flex-col gap-1 group relative">

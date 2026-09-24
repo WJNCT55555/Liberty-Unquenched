@@ -1,6 +1,6 @@
 import { Advisor } from '../types';
 import { applyUnionShareDelta } from '../unions';
-import { isUhpJournalCompleted } from '../journal/uhp';
+import { isAlianzaObreraJournalActive } from '../journal/alianza_obrera';
 
 export const segundoBlanco: Advisor = {
   id: 'Segundo Blanco',
@@ -17,13 +17,13 @@ export const segundoBlanco: Advisor = {
       titleZh: '推动工人联盟',
       subtitle: 'Only a united working class can crush the reactionary plots.',
       subtitleZh: '只有团结一致的工人阶级，才能粉碎反动派的阴谋。',
-      unavailableSubtitle: (state) => isUhpJournalCompleted(state)
+      unavailableSubtitle: (state) => isAlianzaObreraJournalActive(state)
         ? `${state.advisorActionTimer} months before next advisor action.`
-        : 'Requires the UHP journal to be completed first.',
-      unavailableSubtitleZh: (state) => isUhpJournalCompleted(state)
+        : 'Requires the Alianza Obrera journal to be open (complete UHP, then choose the proletarian uprising at the crossroads).',
+      unavailableSubtitleZh: (state) => isAlianzaObreraJournalActive(state)
         ? `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`
-        : '需要先完成「联合无产阶级兄弟（UHP）」日志。',
-      condition: (state) => state.advisorActionTimer <= 0 && isUhpJournalCompleted(state),
+        : '需要先开启「工人联盟」日志（完成 UHP 日志，并在十字路口选择「无产阶级起义」）。',
+      condition: (state) => state.advisorActionTimer <= 0 && isAlianzaObreraJournalActive(state),
       effect: (state) => ({
         advisorActionTimer: 6,
         workersAllianceProgress: (state.workersAllianceProgress || 0) + 1
@@ -50,25 +50,7 @@ export const segundoBlanco: Advisor = {
         }
       }),
       description: 'Our literacy schools have turned thousands of factories into hubs of civic and scientific dialogue, preparing workers for direct self-governance.',
-      descriptionZh: '我们大办识字与工人学校，促进了理性启迪和劳动尊严的觉醒，将大批车间与作坊转变为科学论辩的熔炉，为自主接管社会打牢根基。',
-    },
-    {
-      id: 'blanco_sanitary_coordination',
-      title: 'Sanitary & Health Leagues',
-      titleZh: '统筹卫生与防疫联盟',
-      subtitle: 'Create unified public health and hospital networks for civilian and combatant relief.',
-      subtitleZh: '统筹各省防区的公共卫生防范工作，编织野战救护与市镇医院网络。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats
-        }
-      }),
-      description: 'By organizing medical personnel, field hospital units, and sanitation drives, we have dramatically lessened local suffering and established safe treatment zones.',
-      descriptionZh: '由于有力地团结了各地医护工作者，开辟野战急救掩体和改善市镇卫生，我们极大遏制了瘟疫并拯救了成百上千战友。',
+      descriptionZh: '我们大办识字与工人学校，促进了理性启迪和劳动尊严的觉醒，将大批车间与作坊转变为科学论辩的熔炉，为自主接管社会打牢根基。'
     }
   ]
 };

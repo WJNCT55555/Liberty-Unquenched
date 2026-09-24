@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionDissent, adjustFactionInfluence } from '../utils';
 
 export const josePeirats: Advisor = {
   id: 'jose_peirats',
@@ -11,25 +11,29 @@ export const josePeirats: Advisor = {
   image: 'img/Advisors/Jose_Peirats.png',
   actions: [
     {
-      id: 'return_to_roots',
-      title: 'Return to the Roots',
-      titleZh: '回归本源',
-      subtitle: 'Purge reformist tendencies and rearm the workers ideologically.',
-      subtitleZh: '清洗改良主义倾向，在思想上重新武装工人。',
-      description: '',
+      id: 'promote_afinidad_groups',
+      title: 'Promote the Afinidad Groups',
+      titleZh: '推动Afinidad小组',
+      subtitle: 'Revolutionary fervor +3, Puristas influence +3, and one more Ateneo Libertario.',
+      subtitleZh: '革命热情 +3，纯粹派影响力 +3，自由雅典学苑 +1。',
+      description: 'Affinity groups now meet in every district, and a new Ateneo Libertario gives their debates a permanent home.',
+      descriptionZh: 'Afinidad 小组在各街区落地，新落成的自由雅典学苑为他们的辩论提供了固定场所。',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        ...state,
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          // 解耦：思想清洗属政治路线，不是生产资料控制。
-          revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10)
-        },
-        factions: adjustFactionInfluence(state.factions, 'Puristas', 10)
-      })
+      effect: (state) => {
+        const factions = adjustFactionInfluence(state.factions, 'Puristas', 3);
+
+        return {
+          advisorActionTimer: 6,
+          ateneos_established: (state.ateneos_established || 0) + 1,
+          factions,
+          stats: {
+            ...state.stats,
+            revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 3)
+          }
+        };
+      }
     },
     {
       id: 'denounce_bureaucracy',
@@ -41,16 +45,18 @@ export const josePeirats: Advisor = {
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        ...state,
-        advisorActionTimer: 6,
-        factions: {
-          ...state.factions,
-          Treintistas: { ...state.factions.Treintistas, dissent: Math.max(0, state.factions.Treintistas.dissent - 5) },
-          Cenetistas: { ...state.factions.Cenetistas, dissent: Math.max(0, state.factions.Cenetistas.dissent - 5) },
-          Faistas: { ...state.factions.Faistas, dissent: Math.max(0, state.factions.Faistas.dissent - 5) }
-        }
-      })
+      effect: (state) => {
+        const factions = adjustFactionDissent(state.factions, 'Puristas', -5);
+
+        return {
+          advisorActionTimer: 6,
+          factions,
+          stats: {
+            ...state.stats,
+            bureaucratization: Math.max(0, state.stats.bureaucratization - 3)
+          }
+        };
+      }
     }
   ]
 };

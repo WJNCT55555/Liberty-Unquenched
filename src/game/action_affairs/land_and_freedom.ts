@@ -1,5 +1,7 @@
-import { Card } from '../types';
-import { adjustFactionInfluence, getDissentMultiplier } from '../utils';
+import { Card, GameState } from '../types';
+import { adjustClassSupport, adjustFactionDissent, adjustFactionInfluence, getDissentMultiplier } from '../utils';
+import { getEconomyCounter } from '../rules/economyReforms';
+import { applyEconomicOption } from '../rules/controlShares';
 
 export const landAndFreedom: Card = {
   id: 'land_and_freedom',
@@ -10,6 +12,10 @@ export const landAndFreedom: Card = {
   descriptionZh: '土地问题是我们革命的核心。我们必须决定如何在我们控制的地区重组土地和农业经济。',
   cost: 1,
   resourceCost: 1,
+  // Economy reform turns this card from a one-shot three-way choice into the recurring
+  // lever of the agrarian route, so it needs its own cooldown — otherwise a single month
+  // could max out land requisition (docs/经济改造方案.md §6.6).
+  condition: (state: GameState) => (state.land_and_freedom_timer || 0) <= 0,
   effect: (state) => ({
     currentEvent: {
       id: 'land_and_freedom_event',
@@ -27,9 +33,12 @@ export const landAndFreedom: Card = {
           effect: (s) => {
             const multiplier = getDissentMultiplier(s.factions);
             return {
+              // The rural collectives are the voluntary-collectivization counter: the
+              // ownership transfer is declared on the counter itself, never here
+              // (docs/工人控制度改造方案.md §4.4).
+              ...applyEconomicOption(s, 'land_voluntary_collectivization'),
               stats: {
                 ...s.stats,
-                workerControl: Math.min(100, s.stats.workerControl + 5),
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5 * multiplier),
               },
               factions: adjustFactionInfluence(s.factions, 'Cenetistas', 5),
@@ -66,6 +75,7 @@ export const landAndFreedom: Card = {
           effect: (s) => {
             return {
               armaments: Math.max(0, s.armaments - 1),
+              land_and_freedom_timer: 3,
               stats: {
                 ...s.stats,
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5),
@@ -75,6 +85,77 @@ export const landAndFreedom: Card = {
                 ...s.domesticPolicy,
                 land_reform_progress: Math.min(100, s.domesticPolicy.land_reform_progress + 10)
               }
+            };
+          }
+        },
+        // Economy reform: rural land requisition and forced collectivization
+        // (docs/经济改造方案.md §6.6, 工人控制度改造方案 §4.6). Every economic option reads
+        // as **counter +1 for the ledger, plus the ownership transfer that is the effect**.
+        {
+          text: 'Requisition the estates by force.',
+          textZh: '武装征用大庄园',
+          subtitle: 'Armed detachments move onto the estates and the deeds are burned in the yard. Costs 1 armament; the yeomanry will not forget it.',
+          subtitleZh: '武装队开进庄园，地契在院子里烧掉。消耗 1 军备；自耕农不会忘记这件事。',
+          condition: (s) => s.armaments >= 1,
+          unavailableSubtitle: () => 'Need at least 1 armament.',
+          unavailableSubtitleZh: () => '需要至少 1 军备。',
+          effect: (s) => {
+            let classes = adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 6);
+            classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', -4);
+            classes = adjustClassSupport(classes, 'Latifundistas', 'CNT_FAI', -8);
+            return {
+              armaments: Math.max(0, s.armaments - 1),
+              land_and_freedom_timer: 3,
+              // The estates pass to the collectives; some land becomes state property
+              // because a requisition needs a legal owner to register it.
+              ...applyEconomicOption(s, 'land_requisition'),
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 3),
+              },
+              factions: adjustFactionInfluence(s.factions, 'Faistas', 3),
+              domesticPolicy: {
+                ...s.domesticPolicy,
+                land_reform_progress: Math.min(100, s.domesticPolicy.land_reform_progress + 8)
+              },
+              classes
+            };
+          }
+        },
+        {
+          text: 'Collectivize by force.',
+          textZh: '强制集体化',
+          subtitle: 'The village is told to pool its land. Yields will fall before they rise, and the Church will preach against it. Costs 2 armaments and 1 resource.',
+          subtitleZh: '村庄被要求把土地合并。产量会先跌后涨，教会会公开反对。消耗 2 军备与 1 资源。',
+          condition: (s) => s.armaments >= 2 && s.resources >= 1,
+          unavailableSubtitle: () => 'Need at least 2 armaments and 1 resource.',
+          unavailableSubtitleZh: () => '需要至少 2 军备与 1 资源。',
+          effect: (s) => {
+            const next = { ...s, ...applyEconomicOption(s, 'land_forced_collectivization') } as GameState;
+            const uses = getEconomyCounter(next, 'land_forced_collectivization');
+            let classes = adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 8);
+            classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', -8);
+            classes = adjustClassSupport(classes, 'Clero', 'CNT_FAI', -4);
+            return {
+              armaments: Math.max(0, s.armaments - 2),
+              resources: s.resources - 1,
+              land_and_freedom_timer: 3,
+              // Forced pooling takes from every private holder at once — the estates, the
+              // Church and the yeomanry — and needs the state to enforce it.
+              ...applyEconomicOption(s, 'land_forced_collectivization'),
+              stats: {
+                ...s.stats,
+                revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 6),
+              },
+              // The FAI only turns on the movement once coercion becomes routine.
+              factions: uses >= 3
+                ? adjustFactionDissent(s.factions, 'Faistas', 6)
+                : s.factions,
+              domesticPolicy: {
+                ...s.domesticPolicy,
+                land_reform_progress: Math.min(100, s.domesticPolicy.land_reform_progress + 10)
+              },
+              classes
             };
           }
         }

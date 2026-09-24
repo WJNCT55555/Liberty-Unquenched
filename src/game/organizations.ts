@@ -449,6 +449,32 @@ export const getOrganizationsForOwner = (owner: OrganizationOwner) =>
   ORGANIZATION_DEFINITIONS.filter((definition) => definition.owner === owner && definition.uiVisibility === 'visible');
 
 /**
+ * 民兵组织的显示顺序：CNT 自己的联合民兵在最前，然后是共和国其他党派与地区军，
+ * 最后是国民方（敌方）。
+ *
+ * 这份顺序只服务 UI，但它必须和"哪个武装实体属于哪个派系"对齐——军事化率是按
+ * `ENTITY_IDENTITY` 查表的，一个组织只能挂一条横条。有三处映射值得记住：
+ *
+ * - **MAOC 与第五团共用 `pce`**：第五团由 MAOC 升格而来，升格时 MAOC 转为
+ *   `integrated`（`isOrganizationActive` 视为不成立），所以任何时刻只会出现一个；
+ * - **意大利 CTV 与长枪党第一线共用 `falange`**：两者都是长枪党系的武装；
+ * - **PSOE 民兵是 `ugt` 的载体**：`PSOE_MILITIA` 与工会 `UGT` 指向同一个池
+ *   `ugt_socialist_militias`，这里取民兵组织而不是工会。
+ */
+export const MILITIA_ORGANIZATION_DISPLAY_ORDER: readonly OrganizationId[] = [
+  'DC',
+  'PSOE_MILITIA',
+  'MAOC',
+  'FIFTH_REGIMENT',
+  'POUM_MILITIA',
+  'INTERNATIONAL_BRIGADES',
+  'EUZKO_GUDAROSTEA',
+  'REQUETE_MILITIA',
+  'FALANGE_MILITIA',
+  'ITALIAN_CTV',
+] as const;
+
+/**
  * Move one organization along its lifecycle without touching its assets. Used when
  * an organization is absorbed by a successor: the old entry is marked `integrated`,
  * which `isOrganizationActive` treats as no longer active.

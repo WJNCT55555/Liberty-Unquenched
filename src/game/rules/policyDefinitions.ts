@@ -1,4 +1,5 @@
 import type { GameState, LawId, Party, PoliticalActor, SocialClass } from '../types';
+import type { ArmyIdentity } from '../../map/types_map';
 
 /**
  * Canonical domestic-policy catalog. Gameplay calculators, legal-stance views,
@@ -42,6 +43,11 @@ export type PolicyModifier = (
     }
   | { kind: 'coupProgress'; delta: number }
   | { kind: 'landProgress'; delta: number }
+  /**
+   * 月度军事化率修正。军事化率的长期演化**只由法律承载**——两条军事化日志完成时把
+   * `army_reform_law` 跳到 L3/L4，效果就写在对应等级上，而不是塞进日志的 `onComplete`。
+   */
+  | { kind: 'militarization'; group: ArmyIdentity; delta: number }
 ) & { conditions?: readonly PolicyCondition[] };
 
 interface PolicyLevelDefinition {
@@ -198,17 +204,17 @@ const BASE_LAW_DEFINITIONS: readonly PolicyDefinition[] = [
       level(0, 'Maintain Old Officer Corps', '维持旧军官团', 'The conservative African officer corps remains.', '保留保守的非洲军官团。', 'Authority -0.5/month; army loyalty -0.05/month.', '共和国权威-0.5/月；军官忠诚度-0.05/月。', { monthlyModifiers: [{ kind: 'stat', target: 'republicanAuthority', delta: -0.5 }, { kind: 'stat', target: 'armyLoyalty', delta: -0.05 }] }),
       level(1, 'Azaña Military Reforms', '阿萨尼亚军事改革', 'Redundant officers are dismissed.', '裁撤冗余军官。', 'Authority +0.5/month; army loyalty -0.1/month.', '共和国权威+0.5/月；军官忠诚度-0.1/月。', { monthlyModifiers: [{ kind: 'stat', target: 'republicanAuthority', delta: 0.5 }, { kind: 'stat', target: 'armyLoyalty', delta: -0.1 }] }),
       level(2, 'Republican Armed Forces Reform', '共和国武装改革', 'A high-risk republican reorganization.', '高风险的共和国军队重组。', 'Authority +1/month; army loyalty +0.1/month.', '共和国权威+1/月；军官忠诚度+0.1/月。', { monthlyModifiers: [{ kind: 'stat', target: 'republicanAuthority', delta: 1 }, { kind: 'stat', target: 'armyLoyalty', delta: 0.1 }] }),
-      level(3, "People's Republican Army", '共和国人民军', 'A later military reorganization route.', '后续军队重组路线。', 'No monthly effects.', '无月度效果。'),
-      level(4, 'Militia Column System', '民兵纵队体系', 'A representative militia route.', '代表制民兵路线。', 'No monthly effects.', '无月度效果。'),
+      level(3, "People's Republican Army", '共和国人民军', 'The party columns are absorbed into a single establishment with one staff and one chain of command.', '各党派纵队并入统一建制，共用一套参谋体系与指挥链。', 'Government militarization +0.5/month; authority +0.5/month.', '政府军军事化率 +0.5/月；共和国权威 +0.5/月。', { monthlyModifiers: [{ kind: 'militarization', group: 'gov', delta: 0.5 }, { kind: 'stat', target: 'republicanAuthority', delta: 0.5 }] }),
+      level(4, 'Militia Column System', '民兵纵队体系', 'The parties keep their own armed forces; there is no unified establishment.', '各党派保有独立武装，不设统一建制。', 'Militia militarization +0.5/month; government militarization −0.3/month; fervor +0.5/month; authority −0.5/month.', '民兵军事化率 +0.5/月；政府军军事化率 −0.3/月；革命热情 +0.5/月；共和国权威 −0.5/月。', { monthlyModifiers: [{ kind: 'militarization', group: 'cnt', delta: 0.5 }, { kind: 'militarization', group: 'ugt', delta: 0.5 }, { kind: 'militarization', group: 'poum', delta: 0.5 }, { kind: 'militarization', group: 'gov', delta: -0.3 }, { kind: 'stat', target: 'revolutionaryFervor', delta: 0.5 }, { kind: 'stat', target: 'republicanAuthority', delta: -0.5 }] }),
     ],
   },
   {
     id: 'militia_legality_law', category: 'security', name: text('Militia Legality Law', '民兵合法性法'), levels: [
       level(0, 'Paramilitaries Illegal', '准军事组织非法', 'Paramilitary groups are officially banned.', '官方禁止准军事组织。', 'No monthly effects.', '无月度效果。'),
       level(1, 'Tolerate Local Militias', '默许地方民兵', 'Local party militias are tolerated.', '默许地方党派民兵。', 'No monthly effects.', '无月度效果。'),
-      level(2, 'Armed Unions Decree', '武装工会法令', 'Unions may be armed during the crisis.', '危机期间允许工会武装。', 'No monthly effects.', '无月度效果。'),
-      level(3, 'Rearguard Militia Integration', '后方民兵治安统合', 'Militias take over rear security checkpoints.', '民兵接管后方治安检查站。', 'No monthly effects.', '无月度效果。'),
-      level(4, 'Anti-Fascist Militia Committee', '反法西斯民兵委员会', 'A syndicalist parallel security authority.', '工团主义平行治安机构。', 'No monthly effects.', '无月度效果。'),
+      level(2, 'Armed Unions Decree', '武装工会法令', 'Unions may be armed during the crisis.', '危机期间允许工会武装。', 'Militia militarization +0.2/month.', '民兵军事化率 +0.2/月。', { monthlyModifiers: [{ kind: 'militarization', group: 'cnt', delta: 0.2 }, { kind: 'militarization', group: 'ugt', delta: 0.2 }, { kind: 'militarization', group: 'poum', delta: 0.2 }] }),
+      level(3, 'Rearguard Militia Integration', '后方民兵治安统合', 'Militias take over rear security checkpoints.', '民兵接管后方治安检查站。', 'Militia militarization +0.3/month; authority −0.3/month.', '民兵军事化率 +0.3/月；共和国权威 −0.3/月。', { monthlyModifiers: [{ kind: 'militarization', group: 'cnt', delta: 0.3 }, { kind: 'militarization', group: 'ugt', delta: 0.3 }, { kind: 'militarization', group: 'poum', delta: 0.3 }, { kind: 'stat', target: 'republicanAuthority', delta: -0.3 }] }),
+      level(4, 'Anti-Fascist Militia Committee', '反法西斯民兵委员会', 'A syndicalist parallel security authority.', '工团主义平行治安机构。', 'Militia militarization +0.4/month; fervor +0.5/month; authority −0.5/month.', '民兵军事化率 +0.4/月；革命热情 +0.5/月；共和国权威 −0.5/月。', { monthlyModifiers: [{ kind: 'militarization', group: 'cnt', delta: 0.4 }, { kind: 'militarization', group: 'ugt', delta: 0.4 }, { kind: 'militarization', group: 'poum', delta: 0.4 }, { kind: 'stat', target: 'revolutionaryFervor', delta: 0.5 }, { kind: 'stat', target: 'republicanAuthority', delta: -0.5 }] }),
     ],
   },
 ];

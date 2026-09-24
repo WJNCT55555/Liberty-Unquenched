@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { INITIAL_PROVINCES } from '../src/map/map_constants';
 import { MapFaction, type Army, type IberianDefenseState } from '../src/map/types_map';
-import { resolveBattle, splitLossAcrossUnits } from '../src/game/rules/combat';
+import { deployToWidth, getBasePower, getDefenseCoefficient, resolveBattle, splitLossAcrossUnits } from '../src/game/rules/combat';
+import { createDefaultMilitarization, getMilitarizationMultiplier } from '../src/game/rules/militarization';
 import {
   DEFAULT_MAP_AI_TURN_DEPENDENCIES,
   executeAiTurn,
@@ -30,7 +31,6 @@ const makeArmy = (
   composition: { infantry, artillery: 0, tanks: 0 },
   designedComposition: { infantry, artillery: 0, tanks: 0 },
   morale: 60,
-  militarization: 10,
 });
 
 const lossUnits = [
@@ -53,10 +53,53 @@ const battleProvinces = {
 const originalArmies = [attacker, defender];
 const originalSnapshot = structuredClone(originalArmies);
 const fixedRoll = () => 0.25;
-const firstBattle = resolveBattle(originalArmies, battleProvinces, attacker, 'madrid', false, fixedRoll);
-const secondBattle = resolveBattle(originalArmies, battleProvinces, attacker, 'madrid', false, fixedRoll);
+const battleMilitarization = createDefaultMilitarization();
+const firstBattle = resolveBattle(originalArmies, battleProvinces, attacker, 'madrid', false, battleMilitarization, fixedRoll);
+const secondBattle = resolveBattle(originalArmies, battleProvinces, attacker, 'madrid', false, battleMilitarization, fixedRoll);
 assert.deepEqual(firstBattle, secondBattle, 'Injected combat randomness must make battle resolution repeatable.');
 assert.deepEqual(originalArmies, originalSnapshot, 'Battle resolution must not mutate its army input.');
+
+// Deployment order is fixed: tanks claim the frontage first, infantry fills what is
+// left, and artillery is exempt from the width cap entirely.
+const widthDeployment = deployToWidth({ infantry: 5_000, artillery: 1_500, tanks: 500 }, 2_000);
+assert.equal(widthDeployment.tanks, 500, 'Tanks must claim combat width before infantry');
+assert.equal(widthDeployment.infantry, 1_500, 'Infantry fills only what the tanks left behind');
+assert.equal(widthDeployment.artillery, 1_500, 'Artillery must ignore combat width');
+assert.equal(widthDeployment.reserveInfantry, 3_500, 'Infantry beyond the width waits in reserve');
+assert.equal(widthDeployment.reserveTanks, 0, 'Deployed armour leaves no armoured reserve');
+assert.equal(
+  getBasePower(widthDeployment),
+  (1_500 + 500 + 1_500 + 1_500 * 0.35 + 500 * 0.60) / 1_000,
+  'Base power must weight artillery at 1.35 and armour at 1.60 per man',
+);
+
+// Defence is additive: 1.2 + (terrain coefficient − 1) + fortification level.
+assert.equal(getDefenseCoefficient('plains', 0), 1.2, 'Open plains defence is the 1.2 base');
+assert.equal(getDefenseCoefficient('mountains', 2), 3.5, 'A mountain fortress stacks terrain and both fortification levels');
+
+// The rate *is* the combat multiplier, so the force-group gap survives into battle.
+assert.equal(getMilitarizationMultiplier(85), 0.85, 'Government forces use their rate directly');
+assert.equal(getMilitarizationMultiplier(17), 0.17, 'The CNT militia rate carries the 1 : 0.2 design ratio');
+assert.equal(getMilitarizationMultiplier(0), 0.1, 'The floor keeps completely unorganised men from being worthless');
+
+// The attacker commits once: losses can never exceed the men who fit in the line,
+// because the reserves disengage rather than feeding into the same fight.
+const reserveHeavy = makeArmy('reserve-heavy', MapFaction.REPUBLICAN, 'toledo', 12_000);
+const reserveBattle = resolveBattle(
+  [reserveHeavy, defender],
+  battleProvinces,
+  reserveHeavy,
+  'madrid',
+  false,
+  battleMilitarization,
+  () => 0.5,
+);
+const reserveSurvivor = reserveBattle.updatedArmies.find(army => army.id === 'reserve-heavy');
+assert.ok(reserveSurvivor, 'An attacker holding reserves must never be destroyed outright');
+assert.ok(
+  reserveSurvivor!.manpower >= 12_000 - 6_000,
+  'Attacker losses are capped at the troops that fit in the plains combat width',
+);
 
 const richRepublicanResources = {
   ...PRE_START_STATE.mapResources!,

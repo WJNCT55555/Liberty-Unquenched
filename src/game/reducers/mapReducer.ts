@@ -1,5 +1,5 @@
 import type { DomainReducer, GameAction } from './types';
-import type { Army, Province } from '../../map/types_map';
+import type { Army, ArmyIdentity, Province } from '../../map/types_map';
 import { MapFaction, MAX_BUILT_FORTRESS } from '../../map/types_map';
 import { INITIAL_PROVINCES, PROVINCE_ADJACENCY } from '../../map/map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
@@ -59,7 +59,7 @@ export const reduceMap: DomainReducer = (state, action) => {
 };
 
 export interface MapReducerHelpers {
-  resolveBattle: (armies: Army[], provinces: Record<string, Province>, movedArmy: Army, targetProvinceId: string, isZh: boolean) => { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] };
+  resolveBattle: (armies: Army[], provinces: Record<string, Province>, movedArmy: Army, targetProvinceId: string, isZh: boolean, militarization?: Record<ArmyIdentity, number>) => { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] };
   executeAiTurn: (state: GameState, aiFaction: MapFaction, isZh: boolean) => GameState;
   checkWarStatus: (state: GameState, isZh: boolean) => GameState;
 }
@@ -121,7 +121,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       // Resolve movement/combat
       const isZh = state.language === 'zh';
       const nextProvinces = { ...(state.provinces || INITIAL_PROVINCES) };
-      const res = helpers.resolveBattle(armies, nextProvinces, movedArmy, targetProvinceId, isZh);
+      const res = helpers.resolveBattle(armies, nextProvinces, movedArmy, targetProvinceId, isZh, state.militarization);
 
       let nextHistory = [...(state.mapHistory || [])];
       if (res.messages && res.messages.length > 0) {
@@ -223,7 +223,6 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         composition: { infantry, artillery, tanks },
         designedComposition: { infantry, artillery, tanks },
         morale: 60,
-        militarization: 10,
       };
 
       newState = {
@@ -343,7 +342,6 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       let totalMaxTnk = (primary.designedComposition || primary.composition).tanks;
 
       let weightedMoraleSum = primary.morale * primary.manpower;
-      let weightedMilSum = primary.militarization * primary.manpower;
       let totalManpower = primary.manpower;
 
       others.forEach(a => {
@@ -357,13 +355,12 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         totalMaxTnk += designed.tanks;
 
         weightedMoraleSum += a.morale * a.manpower;
-        weightedMilSum += a.militarization * a.manpower;
         totalManpower += a.manpower;
       });
 
-      // Preserve the weighted values so repeated splitting/merging cannot manufacture political power.
+      // Preserve the weighted value so repeated splitting/merging cannot manufacture fighting spirit.
+      // Militarization is NOT merged: it belongs to the force group and is resolved at combat time.
       const avgMorale = totalManpower > 0 ? weightedMoraleSum / totalManpower : primary.morale;
-      const avgMilitarization = totalManpower > 0 ? weightedMilSum / totalManpower : primary.militarization;
 
       const mergedArmy: Army = {
         ...primary,
@@ -373,7 +370,6 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         composition: { infantry: totalInf, artillery: totalArt, tanks: totalTnk },
         designedComposition: { infantry: totalMaxInf, artillery: totalMaxArt, tanks: totalMaxTnk },
         morale: Math.min(100, Math.max(0, avgMorale)),
-        militarization: Math.min(100, Math.max(0, avgMilitarization)),
       };
 
       const updatedArmies = armies
@@ -484,7 +480,6 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         composition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
         designedComposition: { infantry: splitInf, artillery: splitArt, tanks: splitTnk },
         morale: parent.morale,
-        militarization: parent.militarization,
       };
 
       newState = {

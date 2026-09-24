@@ -42,10 +42,10 @@ export const WartimeCoalitionDetails = ({ state, coalition, isZh }: {
     <details>
       <summary className="cursor-pointer">{isZh ? '军事来源与统计口径' : 'Military sources and calculation'}</summary>
       <p className="my-2 opacity-75">{isZh ? '只计算已部署有效兵力；国家部队计入总量，预备兵员不重复计入。国际纵队按组织协调归 PCE。' : 'Only deployed effective manpower counts. State troops enter the total; reserves are excluded. International Brigades count toward PCE organizational coordination.'}</p>
-      <p className="my-2 opacity-75">{isZh ? '有效兵力 = 当前兵力 × [0.5 +（士气 + 军事化）÷ 400]；军事指数 = 100 × 成员有效兵力 ÷ max（共和国总有效兵力，50,000）。' : 'Effective manpower = manpower × [0.5 + (morale + militarization) / 400]. Military index = 100 × member effective manpower / max(Republican effective manpower, 50,000).'}</p>
+      <p className="my-2 opacity-75">{isZh ? '有效兵力 = 当前兵力 × [0.5 +（士气 + 所属派系军事化率）÷ 400]；军事化率由派系共享，单位不保存副本。军事指数 = 100 × 成员有效兵力 ÷ max（共和国总有效兵力，50,000）。' : 'Effective manpower = manpower × [0.5 + (morale + the unit\'s force-group militarization) / 400]. Militarization is shared by the force group; units never store a copy. Military index = 100 × member effective manpower / max(Republican effective manpower, 50,000).'}</p>
       <ul className="space-y-1">{(state.armies || []).filter(army => army.faction === MapFaction.REPUBLICAN).map(army => {
         const member = getArmyPoliticalMember(army);
-        return <li key={army.id}>{isZh ? army.nameZh || army.name || army.id : army.name || army.id}: {Math.round(getArmyEffectiveManpower(army)).toLocaleString()} · {member ? getPartyName(state, member, isZh, true) : (isZh ? '国家／未归属' : 'State / unassigned')}</li>;
+        return <li key={army.id}>{isZh ? army.nameZh || army.name || army.id : army.name || army.id}: {Math.round(getArmyEffectiveManpower(state, army)).toLocaleString()} · {member ? getPartyName(state, member, isZh, true) : (isZh ? '国家／未归属' : 'State / unassigned')}</li>;
       })}</ul>
     </details>
   </section>;

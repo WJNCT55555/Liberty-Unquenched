@@ -1,4 +1,4 @@
-import type { Army } from '../../map/types_map';
+import type { Army, ArmyIdentity } from '../../map/types_map';
 import { MapFaction } from '../../map/types_map';
 import type { CoalitionMember, CoalitionState, GameState, MinisterParty, Party, WartimeGovernmentRoute } from '../types';
 import { getPartySupport } from '../parties';
@@ -6,6 +6,7 @@ import { getPartyLawSatisfaction } from '../lawStances';
 import { isRepublicanPartyPresent } from '../politicalEligibility';
 import { getUnionShare, UNION_SHARE_ORGANIZATION } from '../unions';
 import { isOrganizationActive } from '../organizations';
+import { getMilitarization } from './militarization';
 
 export const WARTIME_COALITION_ID = 'popular_front_wartime' as const;
 export const WARTIME_EVENT_ID = 'wartime_power_arrangement';
@@ -30,6 +31,51 @@ export const isWartimeArrangementDue = (state: GameState): boolean => Boolean(
   && !state.wartimePowerArrangement
   && !state.eventHistory?.resolved.includes(WARTIME_EVENT_ID),
 );
+
+/**
+ * 军事化路线抉择「人民军还是武装民兵」：**战时人民阵线成立后的下一个月**弹出，一次性。
+ *
+ * 三个额外子句的用意：
+ * - `rulingCoalition === WARTIME_COALITION_ID`：`wartime_power_arrangement` 只是选项，
+ *   若玩家选的那条没组阁成功，就不该问这个问题。
+ * - `!state.iberianDefense`：五月危机若已分裂出第三阵营，CNT 已脱离共和国，
+ *   再问"要不要组建人民军"是荒谬的。
+ * - 幂等守卫：事件一次性。
+ */
+export const isMilitarizationCrossroadsDue = (state: GameState): boolean => Boolean(
+  (state.militarizationPaths?.chosen ?? 'none') === 'none'
+  && state.wartimePowerArrangement
+  && state.rulingCoalition === WARTIME_COALITION_ID
+  && monthIndex(state) > monthIndex(state.wartimePowerArrangement.formedAt)
+  && !state.iberianDefense
+  && !state.eventHistory?.resolved.includes('militarization_crossroads'),
+);
+
+/**
+ * 承诺度（`memberContributions`）的唯一写入口。
+ *
+ * 缺失时以 80 为基准——与 `getWartimeCoalitionPower` 等读取处的 `?? 80` 一致，
+ * 否则第一次写入会把默认值凭空变成 0。
+ */
+export const adjustMemberContribution = (
+  state: Pick<GameState, 'activeCoalitions'>,
+  member: CoalitionMember,
+  delta: number,
+): Partial<GameState> => {
+  const coalitions = state.activeCoalitions || [];
+  const index = coalitions.findIndex(coalition => coalition.activeId === WARTIME_COALITION_ID);
+  if (index < 0 || !delta) return {};
+  const coalition = coalitions[index];
+  const current = clamp(coalition.memberContributions?.[member] ?? 80);
+  const next = clamp(current + delta);
+  if (next === current) return {};
+  const nextCoalitions = [...coalitions];
+  nextCoalitions[index] = {
+    ...coalition,
+    memberContributions: { ...coalition.memberContributions, [member]: next },
+  };
+  return { activeCoalitions: nextCoalitions };
+};
 
 export const getWartimeMembers = (state: GameState): CoalitionMember[] =>
   WARTIME_MEMBERS.filter(member => isRepublicanPartyPresent(state, member));
@@ -86,9 +132,14 @@ export const getArmyPoliticalMember = (army: Army): CoalitionMember | null => {
   return owners[army.identity ?? 'gov'] ?? null;
 };
 
-export const getArmyEffectiveManpower = (army: Army): number =>
-  Math.max(0, Number.isFinite(army.manpower) ? army.manpower : 0)
-  * (0.5 + (clamp(army.morale) + clamp(army.militarization)) / 400);
+export const getArmyEffectiveManpower = (
+  state: { militarization?: Record<ArmyIdentity, number> },
+  army: Army,
+): number => {
+  const rate = getMilitarization(state, army.identity ?? 'gov');
+  return Math.max(0, Number.isFinite(army.manpower) ? army.manpower : 0)
+    * (0.5 + (clamp(army.morale) + clamp(rate)) / 400);
+};
 
 export interface CoalitionPowerRow {
   member: CoalitionMember;
@@ -109,7 +160,7 @@ export interface CoalitionPowerRow {
 export const getWartimeCoalitionPower = (state: GameState, coalition: CoalitionState): CoalitionPowerRow[] => {
   const members = (coalition.members ?? getWartimeMembers(state)).filter(member => WARTIME_MEMBERS.includes(member) && isRepublicanPartyPresent(state, member));
   const armies = (state.armies || []).filter(army => army.faction === MapFaction.REPUBLICAN);
-  const totalMilitary = Math.max(50_000, armies.reduce((sum, army) => sum + getArmyEffectiveManpower(army), 0));
+  const totalMilitary = Math.max(50_000, armies.reduce((sum, army) => sum + getArmyEffectiveManpower(state, army), 0));
   const unionShare = getUnionShare(state);
   const unionKeys = { CNT_FAI: 'CNT', PSOE: 'UGT', ERC: 'UR', PNV: 'ELA' } as const;
   const rows = [...new Set(members)].map(member => {
@@ -117,7 +168,7 @@ export const getWartimeCoalitionPower = (state: GameState, coalition: CoalitionS
     const organization = key ? UNION_SHARE_ORGANIZATION[key] : undefined;
     const share = key && organization && isOrganizationActive(state, organization) ? clamp(unionShare[key]) : 0;
     const effectiveManpower = armies.filter(army => getArmyPoliticalMember(army) === member)
-      .reduce((sum, army) => sum + getArmyEffectiveManpower(army), 0);
+      .reduce((sum, army) => sum + getArmyEffectiveManpower(state, army), 0);
     const militaryIndex = 100 * effectiveManpower / totalMilitary;
     const support = clamp(getPartySupport(state, member));
     const baseCommitment = clamp(coalition.memberContributions[member] ?? 80);
@@ -181,16 +232,3 @@ export const isWartimeCrisisDue = (state: GameState): boolean => Boolean(
   && state.wartimePowerArrangement && state.wartimePowerArrangement.lowCohesionMonths >= 2
   && monthIndex(state) >= state.wartimePowerArrangement.crisisCooldownUntil,
 ) && state.activeCoalitions.some(coalition => coalition.activeId === WARTIME_COALITION_ID && updateWartimeCoalition(state, coalition).cohesion < 25);
-
-/** Only infer a timestamp when an old save has actually left the setup chain. */
-export const migrateWartimePolitics = (state: GameState): GameState => {
-  if (state.civilWarSetupCompletedAt || state.wartimePowerArrangement || state.civilWarStatus !== 'ongoing'
-    || state.activeWar === 'asturias_war') return state;
-  const events = [...state.pendingEvents, ...(state.currentEvent ? [state.currentEvent] : [])];
-  if (events.some(event => event.id === 'civil_war_setup' || /^cw_step\d+/.test(event.id)) || state.superEvent) return state;
-  return {
-    ...state,
-    activeWar: state.activeWar ?? 'spanish_civil_war',
-    civilWarSetupCompletedAt: { year: state.year, month: state.month, inferred: true },
-  };
-};

@@ -1,4 +1,5 @@
 import type { GameEvent } from '../../types';
+import { applyControlInfluence } from '../../rules/controlShares';
 
 const civilWarMeta = {
   category: 'war' as const,
@@ -21,7 +22,7 @@ export const cataloniaDefense: GameEvent = {
       textZh: '无政府主义者夺取政权！',
       effect: (state) => ({
         cataloniaControl: 'cnt_fai',
-        stats: { ...state.stats, workerControl: Math.min(100, state.stats.workerControl + 10) }
+        ...applyControlInfluence(state, 10, { land: 0.2, industry: 0.8 })
       })
     },
     {

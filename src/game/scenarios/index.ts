@@ -140,6 +140,11 @@ export const createScenarioState = (
     public_debt: definition.economy.publicDebt,
     has_issued_war_bonds: definition.economy.hasIssuedWarBonds,
     military_spending: definition.economy.militarySpending,
+    // 深拷贝：剧本描述里的饼是共享常量，绝不能让一局游戏改到它。
+    controlShares: {
+      land: { ...definition.controlShares.land },
+      industry: { ...definition.controlShares.industry },
+    },
     ps_founded: definition.history.psFounded,
     fe_founded: definition.history.feFounded,
     poum_founded: definition.history.poumFounded,

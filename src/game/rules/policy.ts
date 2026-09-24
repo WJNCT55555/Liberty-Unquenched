@@ -2,12 +2,15 @@ import type { GameState, LawId } from '../types';
 import { adjustClassSupport } from '../utils';
 import { LAW_DEFINITION_BY_ID, type PolicyCondition, type PolicyModifier } from './policyDefinitions';
 import { isRepublicCrisisSuspended } from './republicCrisis';
+import { adjustMilitarization, createDefaultMilitarization } from './militarization';
 
 export interface MonthlyPolicyEffects {
   stats: GameState['stats'];
   classes: GameState['classes'];
   relations: GameState['relations'];
   domesticPolicy: GameState['domesticPolicy'];
+  /** 法律带来的月度军事化率变化。军事化率的长期演化只由法律承载（见 §6.7）。 */
+  militarization: GameState['militarization'];
   coupProgress: number;
 }
 
@@ -41,6 +44,7 @@ export const calculateMonthlyPolicyEffects = (
   let classes = state.classes;
   let relations = { ...state.relations };
   let domesticPolicy = { ...state.domesticPolicy };
+  let militarization = state.militarization ?? createDefaultMilitarization();
   let coupProgress = state.coupProgress;
   const aggregatedStatDeltas: Partial<Record<StatKey, number>> = {};
 
@@ -80,6 +84,10 @@ export const calculateMonthlyPolicyEffects = (
         ...domesticPolicy,
         land_reform_progress: roundTo(Math.min(100, domesticPolicy.land_reform_progress + modifier.delta), 2),
       };
+    } else if (modifier.kind === 'militarization') {
+      // 走唯一写入口，保持"谁改了什么"可审计。
+      const patch = adjustMilitarization({ militarization }, modifier.group, modifier.delta);
+      if (patch.militarization) militarization = patch.militarization;
     }
   };
 
@@ -137,5 +145,5 @@ export const calculateMonthlyPolicyEffects = (
   applyPolicyModifiers('security_corps_law', domesticPolicy.security_corps_law);
   applyPolicyModifiers('army_reform_law', domesticPolicy.army_reform_law);
 
-  return { stats, classes, relations, domesticPolicy, coupProgress };
+  return { stats, classes, relations, domesticPolicy, militarization, coupProgress };
 };

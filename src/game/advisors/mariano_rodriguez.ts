@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { adjustFactionInfluence } from '../utils';
+import { adjustFactionDissents, adjustFactionInfluence } from '../utils';
 
 export const marianoRodriguez: Advisor = {
   id: 'mariano_rodriguez',
@@ -61,27 +61,28 @@ export const marianoRodriguez: Advisor = {
       id: 'maintain_unity',
       title: 'Maintain Unity',
       titleZh: '维护团结',
-      subtitle: 'Mediate between factions to keep the confederation together.',
-      subtitleZh: '在各派系之间进行调解，以保持联盟的团结。',
+      subtitle: 'Reduce friction between the internal factions.',
+      subtitleZh: '降低内部派系矛盾。',
       description: '',
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        ...state,
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          bureaucratization: Math.min(100, state.stats.bureaucratization + 6)
-        },
-        factions: {
-          ...state.factions,
-          Treintistas: { ...state.factions.Treintistas, dissent: Math.max(0, state.factions.Treintistas.dissent - 2) },
-          Cenetistas: { ...state.factions.Cenetistas, dissent: Math.max(0, state.factions.Cenetistas.dissent - 2) },
-          Faistas: { ...state.factions.Faistas, dissent: Math.max(0, state.factions.Faistas.dissent - 2) },
-          Puristas: { ...state.factions.Puristas, dissent: Math.max(0, state.factions.Puristas.dissent - 2) }
-        }
-      })
+      effect: (state) => {
+        const factions = adjustFactionDissents(state.factions, {
+          Treintistas: -6,
+          Cenetistas: -6,
+          Faistas: -6
+        });
+
+        return {
+          advisorActionTimer: 6,
+          stats: {
+            ...state.stats,
+            bureaucratization: Math.min(100, state.stats.bureaucratization + 6)
+          },
+          factions
+        };
+      }
     }
   ]
 };

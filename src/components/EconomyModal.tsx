@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameState } from '../game/types';
 import { calculateMonthlyEconomy, ECONOMIC_RULES } from '../game/rules/economy';
+import { EconomyReformPanel } from './EconomyReformPanel';
 import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
 
 interface Props {
@@ -934,6 +935,20 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Economy Reform: production relations (docs/经济改造方案.md §8.3).
+                It sits on the tax side, below the revenue and expenditure blocks: the
+                reform counters are the other half of the same "who pays / who owns"
+                question, and the macro column stays a read-only status column.
+                Read-only and self-subscribing, so this modal does not need to widen its
+                own state selector to carry the 18 reform counters. */}
+            <div className="bg-paper border border-ink/20 p-3 rounded-xs shadow-xs">
+              <h4 className="font-bold border-b border-ink/10 pb-1 mb-2 text-ink uppercase tracking-wide text-[10px] flex justify-between">
+                <span>{isZh ? '经济改造（生产关系）' : 'Economic Reform (production relations)'}</span>
+                <span className="text-ink-light font-normal">{isZh ? '月度修正' : 'monthly modifiers'}</span>
+              </h4>
+              <EconomyReformPanel dense />
             </div>
 
           </div>

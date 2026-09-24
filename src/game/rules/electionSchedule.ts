@@ -53,6 +53,7 @@ const ELECTION_REASONS = new Set<GeneralElectionReason>([
   'constituent',
   'term_expiry',
   'government_crisis',
+  'failed_formation',
 ]);
 const ELECTION_PARTICIPATION = new Set<GeneralElectionParticipation>([
   'abstain',
@@ -152,6 +153,18 @@ export const scheduleElectionAfterCompletedElection = (
   };
 };
 
+/** A failed investiture returns the new Cortes to the voters one month later. */
+export const scheduleElectionAfterFailedFormation = (
+  state: Pick<GameState, 'year' | 'month'>,
+): GeneralElectionSchedule => {
+  const electionDate = { year: state.year, month: state.month };
+  return {
+    lastElectionAt: electionDate,
+    nextElectionAt: addElectionMonths(electionDate, 1),
+    reason: 'failed_formation',
+  };
+};
+
 /**
  * Preserve the historical election dates for the first two constitutional
  * crises. Other crises receive a one-month caretaker interval before voting.
@@ -188,6 +201,14 @@ export const getDueGeneralElectionKind = (
 ): ScheduledGeneralElectionKind | null => {
   if (state.civilWarStatus !== 'not_started') return null;
   const schedule = normalizeGeneralElectionSchedule(state);
+
+  // The 1931 constituent election is the narrative conclusion of the Third
+  // CNT Congress chain. Its result is enqueued by that chain, so allowing the
+  // generic scheduler to enter here would create a second election root in
+  // the same month. The schedule remains canonical state for presentation and
+  // is advanced normally when the dedicated 1931 result is resolved.
+  if (schedule.reason === 'constituent') return null;
+
   if (compareDates({ year: state.year, month: state.month }, schedule.nextElectionAt) < 0) return null;
 
   if (

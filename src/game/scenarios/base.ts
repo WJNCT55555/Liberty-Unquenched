@@ -22,6 +22,7 @@ import { MapFaction } from '../../map/types_map';
 import { createDefaultMapResources, INITIAL_PROVINCES, getDefaultArmyFormations } from '../../map/map_constants';
 import { INITIAL_CLASSES, INITIAL_PARTY_RELATIONS } from '../parties';
 import { getDefaultOrganizationState, getDefaultArmedEntityPools } from '../organizations';
+import { createDefaultMilitarization, createDefaultMilitarizationPaths } from '../rules/militarization';
 import { getDefaultUnionShare } from '../unions';
 const initialJournalState = JOURNAL_ENTRIES.reduce((acc, entry) => {
   acc[entry.id] = { 
@@ -74,6 +75,15 @@ export const PRE_START_STATE: GameState = {
   labor_rights_timer: 0,
   labor_affairs_timer: 0,
   fiscal_policy_timer: 0,
+  aragon_front_timer: 0,
+  militia_reorg_timer: 0,
+  anarchy_tanks_timer: 0,
+  prepare_revolution_timer: 0,
+  industry_policy_timer: 0,
+  trade_policy_timer: 0,
+  fiscal_measures_timer: 0,
+  land_and_freedom_timer: 0,
+  prepareRevolution: { militiaUses: 0, armyUses: 0, sabotageUses: 0 },
   coupProgress: 0,
   economy_growth: ECONOMIC_RULES.defaults.growth,
   inflation_rate: ECONOMIC_RULES.defaults.inflation,
@@ -99,6 +109,28 @@ export const PRE_START_STATE: GameState = {
   public_debt: ECONOMIC_RULES.defaults.debt,
   has_issued_war_bonds: false,
   military_spending: ECONOMIC_RULES.defaults.militarySpending,
+  // ---- Economy Reform（经济改造）----
+  // 全部从 0 起：经济增长不预设任何已完成的生产关系改造，三份剧本共用同一基线。
+  // 农业五项无上限，其余上限见 rules/economyReforms.ts 的 ECONOMY_REFORM_CAPS。
+  agricultural_cooperative: 0,
+  land_requisition: 0,
+  land_redemption: 0,
+  land_voluntary_collectivization: 0,
+  land_forced_collectivization: 0,
+  currency_abolition: 0,
+  private_bank_seizure: 0,
+  mutual_credit_network: 0,
+  credit_exchange_committee: 0,
+  rail_nationalization: 0,
+  coal_nationalization: 0,
+  industrial_cooperative: 0,
+  foreign_capital_seizure: 0,
+  supply_coordination_network: 0,
+  wartime_requisition: 0,
+  family_rationing: 0,
+  war_industry_conversion: 0,
+  wartime_trade_monopoly: 0,
+  economy: { cooperativePushes: 0, organicPushes: 0 },
   workersAllianceProgress: 0,
   cntVotingRate: 15,
   prrevs_formed_months: 0,
@@ -138,6 +170,9 @@ export const PRE_START_STATE: GameState = {
     patrullasObreras: { manpower: 0, loyalty: 0 },
     entityPools: getDefaultArmedEntityPools(),
   },
+  // 各派系军事化率与军事化路线。路线在内战爆发后才由事件选择，和平期恒为 `none`。
+  militarization: createDefaultMilitarization(),
+  militarizationPaths: createDefaultMilitarizationPaths(),
   government: {
     type: 'Provisional Government',
     typeZh: '临时政府',
@@ -180,13 +215,9 @@ export const PRE_START_STATE: GameState = {
   },
   internationalBrigades: 0,
   internationalBrigadesFormed: false,
-  militiaCombatPower: 100,
   tankResearchProgress: 0,
   tankResearchCompleted: false,
   aragonCouncilExists: false,
-  aragonTimer: 0,
-  militiaReorgTimer: 0,
-  tankTimer: 0,
   civilWarStatus: 'not_started',
   activeWar: null,
   wars: {
@@ -245,7 +276,6 @@ export const PRE_START_STATE: GameState = {
   isJabaliTriggered: false,
   isAndalusiaFireTriggered: false,
   uhp_attempt_triggered: false,
-  alliance_obrera_activated: false,
   crossroads_uprising_alliance_decided: false,
   crossroads_choice: undefined,
   isRepublicanSocialistDissolved: false,
@@ -375,6 +405,9 @@ export const SCENARIO_OWNED_KEYS = [
   'superEvent',
   'regionalStatuses',
   'armedForces',
+  // 两张所有权饼按剧本给出（docs/工人控制度改造方案.md §2.4）：
+  // 1936 的乡村与城市起点与 1931 完全不同，绝不能从模板继承。
+  'controlShares',
 ] as const;
 
 export type ScenarioOwnedKey = (typeof SCENARIO_OWNED_KEYS)[number];

@@ -18,6 +18,7 @@ import {
 } from './journalEvents';
 import { hasMandatoryMayDaysEvent, isMayDaysEvent } from './mayDays';
 import { WARTIME_EVENT_ID } from './wartimeCoalition';
+import { adjustMilitarization, INTERNATIONAL_BRIGADES_MILITARIZATION_GAIN } from './militarization';
 import { MAP_RUNTIME_HELPERS } from './mapRuntime';
 import { checkWarStatus } from './warStatus';
 
@@ -125,6 +126,15 @@ export const advancePhase = (
       ...tempState,
       ...activateCivilWarOrganizations(tempState),
     };
+
+    // PCE 独立路线的一次性跃升（设计文档 §7）：国际纵队正式成军的那一个月，
+    // `intl` 军事化率 +8。判的是**跃迁**而不是布尔值本身，所以只会发生一次。
+    if (!state.internationalBrigadesFormed && newIntBrigadesFormed) {
+      tempState = {
+        ...tempState,
+        ...adjustMilitarization(tempState, 'intl', INTERNATIONAL_BRIGADES_MILITARIZATION_GAIN),
+      };
+    }
 
     // National accounting is a pure, shared pipeline. Journal effects and
     // phase/timer orchestration remain in this reducer.
@@ -235,10 +245,16 @@ export const advancePhase = (
       labor_rights_timer: Math.max(0, (state.labor_rights_timer || 0) - 1),
       labor_affairs_timer: Math.max(0, (state.labor_affairs_timer || 0) - 1),
       fiscal_policy_timer: Math.max(0, (state.fiscal_policy_timer || 0) - 1),
+      aragon_front_timer: Math.max(0, (state.aragon_front_timer || 0) - 1),
+      militia_reorg_timer: Math.max(0, (state.militia_reorg_timer || 0) - 1),
+      anarchy_tanks_timer: Math.max(0, (state.anarchy_tanks_timer || 0) - 1),
+      prepare_revolution_timer: Math.max(0, (state.prepare_revolution_timer || 0) - 1),
+      // 经济改造卡牌冷却（docs/经济改造方案.md §6.1）
+      industry_policy_timer: Math.max(0, (state.industry_policy_timer || 0) - 1),
+      trade_policy_timer: Math.max(0, (state.trade_policy_timer || 0) - 1),
+      fiscal_measures_timer: Math.max(0, (state.fiscal_measures_timer || 0) - 1),
+      land_and_freedom_timer: Math.max(0, (state.land_and_freedom_timer || 0) - 1),
       advisorActionTimer: Math.max(0, state.advisorActionTimer - 1),
-      aragonTimer: Math.max(0, state.aragonTimer - 1),
-      militiaReorgTimer: Math.max(0, state.militiaReorgTimer - 1),
-      tankTimer: Math.max(0, state.tankTimer - 1),
       propaganda_timer: Math.max(0, state.propaganda_timer - 1),
       propaganda_by_deed_timer: Math.max(0, state.propaganda_by_deed_timer - 1),
       internationalBrigades: newIntBrigades,

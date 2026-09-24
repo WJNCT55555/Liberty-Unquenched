@@ -18,6 +18,7 @@ const sandboxAuthorityFiles = new Set([
 ]);
 const ordinaryCoalitionAuthorityFiles = new Set([
   'src/game/events/crossroads_uprising_alliance.ts',
+  'src/game/events/electoral_coalition_formations.ts',
   'src/game/events/workers_alliance_formation.ts',
   ...sandboxAuthorityFiles,
 ]);

@@ -7,6 +7,7 @@ import { SCENARIO_1933_CLASSES } from '../parties';
 import { getDefaultOrganizationState } from '../organizations';
 import { getDefaultUnionShare } from '../unions';
 import type { ScenarioDefinition } from './types';
+import { INITIAL_CONTROL_SHARES } from './controlShares';
 
 export const SCENARIO_1933: ScenarioDefinition = {
   id: '1933',
@@ -61,8 +62,10 @@ export const SCENARIO_1933: ScenarioDefinition = {
    *   1933-07  Public Order Law          public_order_law 0->1 (repeals the 1931 Defense Act)
    *   1933-11  CEDA/Radical rollback     max_hours_law 1->0
    *
-   * `militia_legality_law` is 1 from the 1931 start onward: no event writes that
-   * ladder, so the start value is what every scenario carries.
+   * `militia_legality_law` is 1 through the whole peacetime replay: the ladder is
+   * pushed only by the three wartime events in `events/civil_war/militia_legality.ts`,
+   * which need an ongoing civil war, so every scenario opens on level 1
+   * ("Tolerate Local Militias") and none of the rungs can fire before July 1936.
    *
    * `land_reform_progress` stays at 0 on purpose: it tracks the land-reform
    * journal, which is inactive when a scenario opens, so the simulated monthly
@@ -90,6 +93,8 @@ export const SCENARIO_1933: ScenarioDefinition = {
 
   organizations: () => getDefaultOrganizationState('1933'),
   unionShare: () => getDefaultUnionShare('1933'),
+
+  controlShares: INITIAL_CONTROL_SHARES['1933'],
 
   economy: {
     growth: 2.1,

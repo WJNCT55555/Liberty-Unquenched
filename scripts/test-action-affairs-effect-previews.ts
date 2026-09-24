@@ -7,6 +7,11 @@ import { mujeresLibresCard } from '../src/game/action_affairs/mujeres_libres';
 import { fijlCard } from '../src/game/action_affairs/fijl';
 import { prrevsCampaigning } from '../src/game/action_affairs/prrevs_campaigning';
 import { propagandaByDeed } from '../src/game/action_affairs/propaganda_by_deed';
+import { aragonFront } from '../src/game/military_affairs/aragon_front';
+import { militiaReorg } from '../src/game/military_affairs/militia_reorg';
+import { anarchyTanks } from '../src/game/military_affairs/anarchy_tanks';
+import { prepareForRevolution } from '../src/game/military_affairs/prepare_for_revolution';
+import { INITIAL_MILITARIZATION } from '../src/game/rules/militarization';
 import { getOptionEffectPreview } from '../src/game/effectPreview';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import { INITIAL_CLASSES } from '../src/game/parties';
@@ -47,9 +52,22 @@ const optionText = (option: GameEvent['options'][number], state: GameState): str
   typeof option.text === 'function' ? option.text(state) : option.text
 );
 
+const optionTextZh = (option: GameEvent['options'][number], state: GameState): string | undefined => {
+  const value = option.textZh;
+  if (value === undefined) return undefined;
+  return typeof value === 'function' ? value(state) : value;
+};
+
 const findOption = (event: GameEvent, state: GameState, text: string) => {
   const option = event.options.find((candidate) => optionText(candidate, state) === text);
   ok(option, `missing option: ${text}`);
+  return option;
+};
+
+/** Options whose title carries live state (remaining uses) are matched by prefix. */
+const findOptionStartingWith = (event: GameEvent, state: GameState, prefix: string) => {
+  const option = event.options.find((candidate) => optionText(candidate, state).startsWith(prefix));
+  ok(option, `missing option starting with: ${prefix}`);
   return option;
 };
 
@@ -390,5 +408,380 @@ equal(mediaBranch.currentEvent?.id, 'media_event', 'Propaganda by the Deed criti
 equal(mediaBranch.propaganda_timer, 0, 'Propaganda by the Deed criticism branch must bypass the Media cooldown');
 ok(fijlCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0, fijl_timer: 0 }), 'FIJL card should be playable after FIJL is established');
 ok(mujeresLibresCard.condition?.({ ...establishedOrganizations.state, organizations_timer: 0, mujeres_libres_timer: 0 }), 'Mujeres Libres card should be playable after it is established');
+
+// Military affairs cards follow the same preview contract as action affairs: every
+// visible option owns an explicit preview derived from the callback it executes, and
+// the Chinese option text stays parallel to the English one instead of merging the
+// description into the title line.
+const militaryState = buildState({
+  year: 1936,
+  month: 7,
+  civilWarStatus: 'ongoing',
+  aragonCouncilExists: true,
+  armaments: 3,
+  resources: 3,
+  tankResearchProgress: 50,
+  organizations: cloneData(getDefaultOrganizationState('1936')),
+});
+
+const aragonOpened = openCardEvent(aragonFront, militaryState);
+const aragonOptionTitles = [
+  'Militia Recruitment (+500 Militia)',
+  'Restore Discipline',
+  'Negotiate with Church',
+  'We will not do anything in Aragon for now',
+] as const;
+equal(aragonOpened.event.options.length, aragonOptionTitles.length, 'Aragon Front must expose four decision options');
+aragonOptionTitles.forEach((title) => {
+  const option = findOption(aragonOpened.event, aragonOpened.state, title);
+  const textZh = optionTextZh(option, aragonOpened.state);
+  ok(textZh, `Aragon Front / ${title} must have Chinese text`);
+  ok(
+    !textZh?.includes('：'),
+    `Aragon Front / ${title} must keep its Chinese option title parallel to the English one`
+  );
+  ok(option.subtitle && option.subtitleZh, `Aragon Front / ${title} must have bilingual subtitles`);
+  assertExplicitPreviewMatchesEffect(aragonOpened.state, option, `Aragon Front / ${title}`);
+});
+equal(
+  aragonFront.effect({ ...militaryState, aragon_front_timer: 0 }).aragon_front_timer,
+  3,
+  'Playing the Aragon Front must set its own three-month cooldown'
+);
+const disciplineResult = findOption(aragonOpened.event, aragonOpened.state, 'Restore Discipline').effect(aragonOpened.state);
+equal(
+  disciplineResult.factions?.Puristas.dissent,
+  aragonOpened.state.factions.Puristas.dissent + 5,
+  'Restoring discipline must raise Puristas dissent by 5'
+);
+equal(
+  disciplineResult.factions?.Faistas.dissent,
+  aragonOpened.state.factions.Faistas.dissent + 3,
+  'Restoring discipline must raise Faistas dissent by 3'
+);
+equal(
+  disciplineResult.militarization?.cnt,
+  INITIAL_MILITARIZATION.cnt + 5,
+  'Restoring discipline must raise the CNT force group rate by 5'
+);
+const aragonRecruitment = findOption(
+  aragonOpened.event,
+  aragonOpened.state,
+  'Militia Recruitment (+500 Militia)'
+).effect(aragonOpened.state);
+equal(
+  aragonRecruitment.armedForces?.entityPools.cnt_defense_committees?.manpower,
+  500,
+  'Militia Recruitment must add 500 defence-committee manpower'
+);
+equal(
+  findOption(aragonOpened.event, aragonOpened.state, 'We will not do anything in Aragon for now')
+    .effect(aragonOpened.state).currentEvent,
+  null,
+  'Declining to act in Aragon must still close the event'
+);
+
+const militiaReorgOpened = openCardEvent(militiaReorg, militaryState);
+const militiaReorgOptionTitles = [
+  'Regular Training (-1 Armament)',
+  'Recruit Militia (-1 Armament)',
+  'Establish Assault Battalions (-1 Armament)',
+  // 军事训练卡已并入本卡：这两条选项原来属于独立的 `military_training`。
+  'Drill the Confederal Militia',
+  'Leave the militia to their own devices',
+  'We do not intend to intervene in militia affairs',
+] as const;
+equal(
+  militiaReorgOpened.event.options.length,
+  militiaReorgOptionTitles.length,
+  'Militia Reorganization must expose six decision options'
+);
+militiaReorgOptionTitles.forEach((title) => {
+  const option = findOption(militiaReorgOpened.event, militiaReorgOpened.state, title);
+  const textZh = optionTextZh(option, militiaReorgOpened.state);
+  ok(textZh, `Militia Reorganization / ${title} must have Chinese text`);
+  ok(
+    !textZh?.includes('：'),
+    `Militia Reorganization / ${title} must keep its Chinese option title parallel to the English one`
+  );
+  ok(option.subtitle && option.subtitleZh, `Militia Reorganization / ${title} must have bilingual subtitles`);
+  assertExplicitPreviewMatchesEffect(militiaReorgOpened.state, option, `Militia Reorganization / ${title}`);
+});
+equal(
+  militiaReorg.effect(militaryState).militia_reorg_timer,
+  1,
+  'Playing Militia Reorganization must set its own cooldown'
+);
+const recruitMilitiaResult = findOption(
+  militiaReorgOpened.event,
+  militiaReorgOpened.state,
+  'Recruit Militia (-1 Armament)'
+).effect(militiaReorgOpened.state);
+equal(recruitMilitiaResult.armaments, militaryState.armaments - 1, 'Recruiting militia must spend 1 armament');
+equal(
+  recruitMilitiaResult.armedForces?.entityPools.cnt_defense_committees?.manpower,
+  1000,
+  'Recruiting militia must add 1000 defence-committee manpower'
+);
+equal(
+  findOption(militiaReorgOpened.event, militiaReorgOpened.state, 'Recruit Militia (-1 Armament)')
+    .condition?.(buildState({ armaments: 0 })),
+  false,
+  'Recruiting militia must be unavailable without armaments'
+);
+
+const anarchyTanksOpened = openCardEvent(anarchyTanks, militaryState);
+const anarchyTanksOptionTitles = [
+  'Tank R&D (Cost: 1 Armament, +25 Progress)',
+  'Accelerate R&D (Cost: 2 Armaments, RNG Progress)',
+  'Combat Test (Cost: 1 Resource, RNG based on difficulty)',
+  'We will postpone the tank program for now',
+] as const;
+equal(anarchyTanksOpened.event.options.length, anarchyTanksOptionTitles.length, 'Anarchy? Tanks?! must expose four decision options');
+anarchyTanksOptionTitles.forEach((title) => {
+  const option = findOption(anarchyTanksOpened.event, anarchyTanksOpened.state, title);
+  const textZh = optionTextZh(option, anarchyTanksOpened.state);
+  ok(textZh, `Anarchy? Tanks?! / ${title} must have Chinese text`);
+  ok(
+    !textZh?.includes('：'),
+    `Anarchy? Tanks?! / ${title} must keep its Chinese option title parallel to the English one`
+  );
+  ok(option.subtitle && option.subtitleZh, `Anarchy? Tanks?! / ${title} must have bilingual subtitles`);
+  ok(option.effectPreview, `Anarchy? Tanks?! / ${title} must define effectPreview`);
+  assertBilingual(option.effectPreview(militaryState), `Anarchy? Tanks?! / ${title}`);
+});
+// Only the deterministic options may be compared against their derived preview; the
+// two RNG options deliberately preview both outcomes instead of one roll.
+['Tank R&D (Cost: 1 Armament, +25 Progress)', 'We will postpone the tank program for now'].forEach((title) => {
+  assertExplicitPreviewMatchesEffect(
+    anarchyTanksOpened.state,
+    findOption(anarchyTanksOpened.event, anarchyTanksOpened.state, title),
+    `Anarchy? Tanks?! / ${title}`
+  );
+});
+equal(
+  anarchyTanks.effect(militaryState).anarchy_tanks_timer,
+  6,
+  'Playing Anarchy? Tanks?! must set its own six-month cooldown'
+);
+const tankResearchResult = findOption(
+  anarchyTanksOpened.event,
+  anarchyTanksOpened.state,
+  'Tank R&D (Cost: 1 Armament, +25 Progress)'
+).effect(anarchyTanksOpened.state);
+equal(tankResearchResult.armaments, militaryState.armaments - 1, 'Tank R&D must spend 1 armament');
+equal(tankResearchResult.tankResearchProgress, 75, 'Tank R&D must add 25 research progress');
+equal(tankResearchResult.currentEvent?.id, 'tank_rd_report', 'Tank R&D must open the research report');
+
+// Prepare for Revolution is a peacetime military menu card: the same event re-opens
+// after every lever pull and the three-pull limit is a global programme counter, so
+// the war gate, the armament cost and the nine-pull budget are all exercised here.
+const revolutionState = buildState({
+  civilWarStatus: 'not_started',
+  armaments: 5,
+  organizations: {
+    ...cloneData(getDefaultOrganizationState('1931')),
+    DC: { established: true, status: 'active' as const },
+  },
+});
+const applyOption = (state: GameState, option: GameEvent['options'][number]): GameState => (
+  { ...state, ...option.effect(state) } as GameState
+);
+
+const prepareOpened = openCardEvent(prepareForRevolution, revolutionState);
+const prepareOptionTitles = [
+  'Arm the Militias',
+  'Win Over the Armed Forces',
+  'Sabotage the Reactionaries',
+  'Conclude the Preparation',
+] as const;
+equal(
+  prepareOpened.event.options.length,
+  prepareOptionTitles.length,
+  'Prepare for Revolution must expose three levers and a conclusion'
+);
+prepareOptionTitles.forEach((title) => {
+  const option = findOptionStartingWith(prepareOpened.event, prepareOpened.state, title);
+  ok(optionTextZh(option, prepareOpened.state), `Prepare for Revolution / ${title} must have Chinese text`);
+  ok(option.subtitle && option.subtitleZh, `Prepare for Revolution / ${title} must have bilingual subtitles`);
+  assertExplicitPreviewMatchesEffect(prepareOpened.state, option, `Prepare for Revolution / ${title}`);
+});
+ok(
+  optionText(
+    findOptionStartingWith(prepareOpened.event, prepareOpened.state, 'Arm the Militias'),
+    prepareOpened.state
+  ).includes('3/3 left'),
+  'The militia lever must show how many global pulls are left'
+);
+
+const armTheMilitias = findOptionStartingWith(prepareOpened.event, prepareOpened.state, 'Arm the Militias');
+const armTheMilitiasResult = armTheMilitias.effect(revolutionState);
+equal(armTheMilitiasResult.armaments, 4, 'Arming the militias must spend 1 armament');
+equal(
+  armTheMilitiasResult.militarization?.cnt,
+  INITIAL_MILITARIZATION.cnt + 2,
+  'Arming the militias must raise the CNT force group rate by 2'
+);
+equal(armTheMilitiasResult.prepareRevolution?.militiaUses, 1, 'Arming the militias must count one pull');
+equal(
+  armTheMilitiasResult.currentEvent?.id,
+  'prepare_revolution_event',
+  'Every lever must return to the preparation menu'
+);
+equal(
+  armTheMilitias.condition?.(buildState({ armaments: 0, organizations: cloneData(getDefaultOrganizationState('1931')) })),
+  false,
+  'Arming the militias must be unavailable without armaments'
+);
+equal(
+  armTheMilitias.condition?.({
+    ...revolutionState,
+    militarization: { ...INITIAL_MILITARIZATION, cnt: 40 },
+  }),
+  false,
+  'Arming the militias must be unavailable once the CNT rate reaches 40'
+);
+equal(
+  armTheMilitias.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 3, armyUses: 0, sabotageUses: 0 } }),
+  false,
+  'Arming the militias must stop after three pulls in the whole programme'
+);
+
+const cappedMilitarization = armTheMilitias.effect({
+  ...revolutionState,
+  militarization: { ...INITIAL_MILITARIZATION, cnt: 39 },
+});
+equal(
+  cappedMilitarization.militarization?.cnt,
+  40,
+  'Peacetime drilling must stop the militia rate at 40'
+);
+equal(
+  prepareForRevolution.condition?.({ ...revolutionState, civilWarStatus: 'ongoing' }),
+  false,
+  'Prepare for Revolution must be unplayable once the country is at war'
+);
+equal(
+  prepareForRevolution.condition?.({
+    ...revolutionState,
+    organizations: {
+      ...cloneData(getDefaultOrganizationState('1931')),
+      DC: { established: false, status: 'unformed' as const },
+    },
+  }),
+  false,
+  'Prepare for Revolution must require the defence committees'
+);
+
+const threePulls = [0, 1, 2].reduce<GameState>(
+  (state) => applyOption(state, armTheMilitias),
+  revolutionState
+);
+equal(threePulls.prepareRevolution?.militiaUses, 3, 'Three pulls must be counted');
+equal(threePulls.armaments, 2, 'Three pulls must spend three armaments');
+equal(
+  armTheMilitias.condition?.(threePulls),
+  false,
+  'A fourth pull of the same lever must be unavailable'
+);
+equal(
+  prepareForRevolution.effect(threePulls).prepareRevolution,
+  undefined,
+  'Playing the card must not reset the global programme counters'
+);
+equal(
+  prepareForRevolution.condition?.(threePulls),
+  true,
+  'The card must stay playable while other levers still have pulls left'
+);
+equal(
+  prepareForRevolution.condition?.({
+    ...threePulls,
+    prepareRevolution: { militiaUses: 3, armyUses: 3, sabotageUses: 3 },
+  }),
+  false,
+  'The card must leave the deck once all nine pulls are spent'
+);
+
+const winOverTheArmedForces = findOptionStartingWith(
+  prepareOpened.event,
+  prepareOpened.state,
+  'Win Over the Armed Forces'
+);
+const officerResult = winOverTheArmedForces.effect(revolutionState);
+equal(officerResult.armaments, 4, 'Winning over the armed forces must spend 1 armament');
+equal(
+  officerResult.stats?.armyLoyalty,
+  revolutionState.stats.armyLoyalty + 3,
+  'Winning over the armed forces must raise officer loyalty by 3'
+);
+equal(officerResult.prepareRevolution?.armyUses, 1, 'Winning over the armed forces must count one pull');
+equal(
+  winOverTheArmedForces.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 0, armyUses: 3, sabotageUses: 0 } }),
+  false,
+  'Winning over the armed forces must stop after three pulls in the whole programme'
+);
+
+const sabotage = findOptionStartingWith(prepareOpened.event, prepareOpened.state, 'Sabotage the Reactionaries');
+const requeteOnly = sabotage.effect(revolutionState);
+equal(requeteOnly.armaments, 4, 'Sabotage must spend 1 armament');
+equal(
+  requeteOnly.militarization?.requetes,
+  INITIAL_MILITARIZATION.requetes - 2,
+  'The Carlist militia must lose 2 militarization'
+);
+equal(
+  requeteOnly.militarization?.falange,
+  INITIAL_MILITARIZATION.falange,
+  'The Falange must keep its rate while its first line does not exist'
+);
+equal(requeteOnly.prepareRevolution?.sabotageUses, 1, 'Sabotage must count one pull');
+const falangeRaised = {
+  ...revolutionState,
+  organizations: {
+    ...cloneData(getDefaultOrganizationState('1931')),
+    FALANGE_MILITIA: { established: true, status: 'active' as const },
+  },
+};
+equal(sabotage.condition?.(falangeRaised), true, 'Sabotage must be available while a right-wing militia exists');
+const bothMilitias = sabotage.effect(falangeRaised);
+equal(
+  bothMilitias.militarization?.falange,
+  INITIAL_MILITARIZATION.falange - 2,
+  'The Falange first line must lose 2 militarization once it exists'
+);
+equal(
+  sabotage.condition?.({
+    ...revolutionState,
+    organizations: {
+      ...cloneData(getDefaultOrganizationState('1931')),
+      REQUETE_MILITIA: { established: false, status: 'unformed' as const },
+      FALANGE_MILITIA: { established: false, status: 'unformed' as const },
+    },
+  }),
+  false,
+  'Sabotage must be unavailable when no right-wing militia has been raised'
+);
+
+const conclude = findOption(prepareOpened.event, prepareOpened.state, 'Conclude the Preparation');
+const concluded = conclude.effect(revolutionState);
+equal(concluded.prepare_revolution_timer, 4, 'Concluding must set the four-month cooldown');
+equal(
+  concluded.prepareRevolution,
+  undefined,
+  'Concluding must leave the global programme counters alone'
+);
+equal(concluded.currentEvent, null, 'Concluding must close the event');
+equal(
+  prepareForRevolution.condition?.({ ...revolutionState, prepare_revolution_timer: 0 }),
+  true,
+  'Prepare for Revolution must be playable at peace, with the defence committees, off cooldown'
+);
+equal(
+  prepareForRevolution.condition?.({ ...revolutionState, prepare_revolution_timer: 4 }),
+  false,
+  'Prepare for Revolution must observe its own cooldown'
+);
+equal(prepareForRevolution.type, 'Military', 'Prepare for Revolution must be a military card');
 
 console.log('Action-affairs effect preview tests passed.');

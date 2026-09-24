@@ -1,5 +1,5 @@
 import { Advisor } from '../types';
-import { isUhpJournalCompleted } from '../journal/uhp';
+import { isAlianzaObreraJournalActive } from '../journal/alianza_obrera';
 
 export const orobonFernandez: Advisor = {
   id: 'orobon_fernandez',
@@ -40,13 +40,13 @@ export const orobonFernandez: Advisor = {
       subtitle: 'Only a united working class can crush the reactionary plots.',
       subtitleZh: '只有团结一致的工人阶级，才能粉碎反动派的阴谋。',
       description: '',
-      unavailableSubtitle: (state) => isUhpJournalCompleted(state)
+      unavailableSubtitle: (state) => isAlianzaObreraJournalActive(state)
         ? `${state.advisorActionTimer} months before next advisor action.`
-        : 'Requires the UHP journal to be completed first.',
-      unavailableSubtitleZh: (state) => isUhpJournalCompleted(state)
+        : 'Requires the Alianza Obrera journal to be open (complete UHP, then choose the proletarian uprising at the crossroads).',
+      unavailableSubtitleZh: (state) => isAlianzaObreraJournalActive(state)
         ? `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`
-        : '需要先完成「联合无产阶级兄弟（UHP）」日志。',
-      condition: (state) => state.advisorActionTimer <= 0 && isUhpJournalCompleted(state),
+        : '需要先开启「工人联盟」日志（完成 UHP 日志，并在十字路口选择「无产阶级起义」）。',
+      condition: (state) => state.advisorActionTimer <= 0 && isAlianzaObreraJournalActive(state),
       effect: (state) => ({
         advisorActionTimer: 6,
         workersAllianceProgress: (state.workersAllianceProgress || 0) + 1

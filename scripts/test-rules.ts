@@ -1,10 +1,21 @@
 import { gameReducer } from '../src/game/reducers/gameReducer';
 import { applyPostReducerPipeline } from '../src/game/reducers/postReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
+import { SCENARIO_OWNED_KEYS } from '../src/game/scenarios/base';
 import { getDefaultUnionShare } from '../src/game/unions';
 import { INITIAL_CLASSES } from '../src/game/parties';
 import { calculateIncomeTaxAdjustment, calculateTariffConsumptionAdjustment } from '../src/game/rules/fiscalPolicy';
 import { calculateMonthlyEconomy, clampMilitarySpending, adjustUnemploymentRate } from '../src/game/rules/economy';
+import {
+  ECONOMY_COUNTERS,
+  ECONOMY_COUNTER_DEFAULTS,
+  ECONOMY_REFORM_CAPS,
+  EMPTY_ECONOMY_REFORM_GRAPHS,
+  UNCAPPED_ECONOMY_COUNTERS,
+  advanceEconomyCounter,
+  advanceEconomyPush,
+  calculateEconomyReformGraphs,
+} from '../src/game/rules/economyReforms';
 import { calculateMonthlyIncome } from '../src/game/rules/income';
 import { calculateMonthlyPolicyEffects } from '../src/game/rules/policy';
 import { calculateMonthlyPipeline, calculateMonthlyMapStage, applyMonthlyPoliticalMaintenance } from '../src/game/rules/monthlyPipeline';
@@ -172,6 +183,24 @@ const start1931 = startScenario('1931');
 assert(start1931.domesticPolicy.security_corps_law === 0, 'The 1931 start must not have passed the Security Corps Law');
 assert(start1931.armedForces.guardiaAsalto.manpower === 0, 'The 1931 start must not field the Assault Guard');
 
+const tensionAtPoliceLoyalty = (loyalty: number) => {
+  const state = startScenario('1931');
+  return applyPostReducerPipeline(state, {
+    ...state,
+    armedForces: {
+      ...state.armedForces,
+      guardiaNacional: {
+        ...state.armedForces.guardiaNacional,
+        loyalty,
+      },
+    },
+  }).stats.tension;
+};
+assert(
+  tensionAtPoliceLoyalty(0) === tensionAtPoliceLoyalty(100),
+  'Police-corps loyalty must not contribute to Republican tension.',
+);
+
 const start1933 = startScenario('1933');
 assert(start1933.domesticPolicy.security_corps_law === 1, 'The 1933 start must hydrate the Security Corps Law');
 assert(start1933.armedForces.guardiaAsalto.manpower === GUARDIA_ASALTO_ESTABLISHMENT, 'The 1933 start must field the Assault Guard');
@@ -239,7 +268,6 @@ const militiaArmy = (id: string, identity: ArmyIdentity, manpower: number): Army
   composition: { infantry: manpower, artillery: 0, tanks: 0 },
   designedComposition: { infantry: manpower, artillery: 0, tanks: 0 },
   morale: 80,
-  militarization: 20,
 });
 
 const withCntPool = (cntFai: number) => stateWith({
@@ -259,14 +287,16 @@ const withCntPool = (cntFai: number) => stateWith({
 const starvedPrep = applyPeacetimeMobilization(withCntPool(7500), [militiaArmy('cnt_a', 'cnt', 7500)]);
 assert(starvedPrep.armies[0].manpower === 7500, 'A pool equal to the deployed force must not grow it');
 assert(starvedPrep.reserveManpower === 0, 'A pool fully deployed must leave no reserve');
-assert(starvedPrep.armies[0].militarization === 10, 'Below the 0.60 band must reduce militia readiness');
+// Quality belongs to the force group and is resolved at combat time. Mobilisation
+// owns only the quantity axis, so it must not stamp a per-unit copy of the rate.
+assert(!('militarization' in starvedPrep.armies[0]), 'Mobilisation must not write militarization onto units');
 
 const historicalPrep = applyPeacetimeMobilization(withCntPool(50000), [militiaArmy('cnt_a', 'cnt', 7500)]);
 assert(historicalPrep.armies[0].manpower === 11250, 'The 1.00 band must let a deployed unit grow by half');
 assert(historicalPrep.reserveManpower === 38750, 'Manpower beyond the unit ceiling must become reserve');
 assert(historicalPrep.armies[0].manpower === historicalPrep.armies[0].composition.infantry, 'Growth must keep manpower equal to the composition sum');
 assert(historicalPrep.armies[0].maxManpower === historicalPrep.armies[0].designedComposition.infantry, 'Growth must keep maxManpower equal to the designed sum');
-assert(historicalPrep.armies[0].militarization === 25, 'The 1.00 band must add a small readiness bonus');
+assert(!('militarization' in historicalPrep.armies[0]), 'Mobilisation must not write militarization onto units');
 assert(historicalPrep.reserveTanks === 0, 'Tank research that never completed must grant no armour');
 assert(applyPeacetimeMobilization(stateWith({ armaments: 8 }), []).reserveSupplies === 2000, 'Accumulated armaments must convert into supplies');
 assert(applyPeacetimeMobilization(stateWith({ armaments: 0, tankResearchCompleted: true }), []).reserveTanks === 10, 'Completed tank research must grant an armoured reserve');
@@ -373,7 +403,7 @@ const mergeArmy = (id: string, provinceId: string, identity: Army['identity']): 
   manpower: 1000, maxManpower: 1000,
   composition: { infantry: 1000, artillery: 0, tanks: 0 },
   designedComposition: { infantry: 1000, artillery: 0, tanks: 0 },
-  morale: 70, militarization: 30,
+  morale: 70,
 });
 const mergeTwo = (armies: Army[]) => reduceMapWarAction(
   warStateWith({ armies, mapSelectedArmyIds: armies.map(army => army.id) }),
@@ -846,5 +876,101 @@ const hiddenSandboxIntervention = gameReducer(stateWith({ difficulty: 'sandbox',
 assert(hiddenSandboxIntervention.gold_reserves === PRE_START_STATE.gold_reserves, 'Emergency sovereign interventions must be blocked until the sandbox toggle is enabled');
 const enabledSandboxIntervention = gameReducer(stateWith({ difficulty: 'sandbox', sandboxSovereignInterventionsEnabled: true }), { type: 'SELL_GOLD_FOR_FX' });
 assert(enabledSandboxIntervention.gold_reserves === PRE_START_STATE.gold_reserves - 100, 'The sandbox toggle should enable emergency sovereign interventions');
+
+// ---- Economy Reform counters (docs/经济改造方案.md §3) ----
+// The five agricultural counters are deliberately uncapped: they are a ledger of how
+// many times the movement acted, not an upgrade tree. A stray Math.min(5, …) here is
+// the exact regression this test exists to catch.
+for (const key of UNCAPPED_ECONOMY_COUNTERS) {
+  let ledger = stateWith({});
+  for (let step = 0; step < 8; step += 1) {
+    ledger = { ...ledger, ...advanceEconomyCounter(ledger, key, 1) } as GameState;
+  }
+  assert(ledger[key] === 8, `${key} must be uncapped and reach 8, got ${ledger[key]}`);
+}
+
+// Capped counters clamp at their declared ceiling and never go below zero.
+let rail = stateWith({});
+for (let step = 0; step < 6; step += 1) {
+  rail = { ...rail, ...advanceEconomyCounter(rail, 'rail_nationalization', 1) } as GameState;
+}
+assert(rail.rail_nationalization === ECONOMY_REFORM_CAPS.rail_nationalization, 'Capped counters must clamp at their cap');
+assert(advanceEconomyCounter(rail, 'rail_nationalization', -99).rail_nationalization === 0, 'Counters must never go negative');
+
+// The defaults table, the caps table and the counter list must stay in sync: a counter
+// missing from either table would silently skip its migration backfill.
+for (const key of ECONOMY_COUNTERS) {
+  const isUncapped = (UNCAPPED_ECONOMY_COUNTERS as readonly string[]).includes(key);
+  const isCapped = key in ECONOMY_REFORM_CAPS;
+  assert(isUncapped !== isCapped, `${key} must appear in exactly one of the two tables`);
+  assert(ECONOMY_COUNTER_DEFAULTS[key] === 0, `${key} must default to 0`);
+}
+
+// The 18 new fields must exist in every scenario start, and must never become
+// scenario-owned (they share one baseline across 1931 / 1933 / 1936).
+for (const key of ECONOMY_COUNTERS) {
+  assert(typeof PRE_START_STATE[key] === 'number', `${key} must be seeded in PRE_START_STATE`);
+  assert(!(SCENARIO_OWNED_KEYS as readonly string[]).includes(key), `${key} must not be scenario-owned`);
+}
+assert(!(SCENARIO_OWNED_KEYS as readonly string[]).includes('economy'), 'The advisor push counters must not be scenario-owned');
+assert(
+  PRE_START_STATE.economy?.cooperativePushes === 0 && PRE_START_STATE.economy?.organicPushes === 0,
+  'Both advisor push counters must start at 0',
+);
+for (const timer of ['industry_policy_timer', 'trade_policy_timer', 'fiscal_measures_timer', 'land_and_freedom_timer'] as const) {
+  assert(PRE_START_STATE[timer] === 0, `${timer} must start at 0`);
+  assert(!(SCENARIO_OWNED_KEYS as readonly string[]).includes(timer), `${timer} must not be scenario-owned`);
+}
+
+// Advisor push counters clamp at their thresholds (Peiró 2, Santillán 3).
+let pushes = stateWith({});
+for (let step = 0; step < 5; step += 1) {
+  pushes = { ...pushes, ...advanceEconomyPush(pushes, 'organicPushes') } as GameState;
+}
+assert(pushes.economy?.organicPushes === 3, 'Organic pushes must clamp at 3');
+assert(pushes.economy?.cooperativePushes === 0, 'Advancing one push counter must not touch the other');
+
+// Economic reform must not open a second monthly resource channel: the ledger only
+// reaches income through CNT union share, so a maxed-out reform still pays base + share bands.
+// `currency_abolished_declared` stands in for the player answering the `currency_abolished`
+// event with "declare it" — a fully reformed run is expected to have done so.
+const maxedReform = stateWith({
+  ...Object.fromEntries(ECONOMY_COUNTERS.map((key) => [key, 10])),
+  unionShare: { CNT: 20 },
+  currency_abolished_declared: true,
+} as StatePatch);
+assert(calculateMonthlyIncome(maxedReform, 2).resources === 2, 'Reform counters must not add monthly resources');
+
+// Currency reform progress and its declaration cannot change the tax base while
+// automatic counter effects are paused.
+const undeclaredAbolition = stateWith({
+  currency_abolition: 3,
+  currency_abolished_declared: false,
+});
+assert(
+  calculateEconomyReformGraphs(undeclaredAbolition).consumptionTaxBaseFactor === 1,
+  'Reaching level 3 without declaring the abolition must leave the tax base intact',
+);
+
+// Counter effects are paused even at the highest levels; the existing monthly
+// economy formulas must receive empty reform graphs.
+const baselineGraphs = calculateEconomyReformGraphs(PRE_START_STATE);
+assert(
+  baselineGraphs.growthGraph === EMPTY_ECONOMY_REFORM_GRAPHS.growthGraph
+  && baselineGraphs.inflationGraph === EMPTY_ECONOMY_REFORM_GRAPHS.inflationGraph
+  && baselineGraphs.foreignExchangeGraph === EMPTY_ECONOMY_REFORM_GRAPHS.foreignExchangeGraph
+  && baselineGraphs.budgetGraph === EMPTY_ECONOMY_REFORM_GRAPHS.budgetGraph
+  && baselineGraphs.consumptionTaxBaseFactor === EMPTY_ECONOMY_REFORM_GRAPHS.consumptionTaxBaseFactor,
+  'An untouched scenario must produce empty reform graphs',
+);
+const maxedGraphs = calculateEconomyReformGraphs(maxedReform);
+assert(JSON.stringify(maxedGraphs) === JSON.stringify(EMPTY_ECONOMY_REFORM_GRAPHS), 'Finished reform counters must add no automatic macro modifiers');
+const seizureOnly = calculateEconomyReformGraphs(stateWith({ foreign_capital_seizure: 3 }));
+assert(JSON.stringify(seizureOnly) === JSON.stringify(EMPTY_ECONOMY_REFORM_GRAPHS), 'One reform counter must also add no macro modifier');
+
+const peaceEconomy = calculateMonthlyEconomy(stateWith({ unionShare: { CNT: 20 } }));
+const reformedEconomy = calculateMonthlyEconomy(maxedReform);
+assert(JSON.stringify(peaceEconomy) === JSON.stringify(reformedEconomy), 'Counter progress alone must leave every monthly economy result unchanged');
+assert(peaceEconomy.nextGrowth === calculateMonthlyEconomy(stateWith({})).nextGrowth, 'Monthly economy must stay deterministic');
 
 console.log('Pure rules calculator tests passed.');

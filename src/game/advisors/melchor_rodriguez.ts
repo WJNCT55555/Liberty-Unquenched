@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { adjustMilitarization } from '../rules/militarization';
 
 export const melchorRodriguez: Advisor = {
   id: 'Melchor Rodríguez García',
@@ -24,7 +25,10 @@ export const melchorRodriguez: Advisor = {
         stats: {
           ...state.stats,
           armyLoyalty: Math.min(100, state.stats.armyLoyalty + 6)
-        }
+        },
+        // The one anarchist who makes the state's own coercive services behave
+        // like institutions rather than vendettas. Police share `gov`.
+        ...adjustMilitarization(state, 'gov', 2)
       }),
       description: 'By standing in front of prison gates and risking our own lives to forbid illegal firing squads, we proved that anarchism values life and justice above blind hatred.',
       descriptionZh: '坚忍执守看守所大门，哪怕亲冒飞弹，也一怒挡阻狂热法外队。此举不仅止息了野蛮残杀，也向世人证明了真正的无政府主义珍视尊严，进而化解了部分军官对工会的绝对敌意。',

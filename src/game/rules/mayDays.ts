@@ -4,8 +4,38 @@ import { isOrganizationActive, setOrganizationStatus } from '../organizations';
 import { isRepublicanPartyPresent } from '../politicalEligibility';
 import { adjustClassSupport, adjustFactionDissents, reshapeWartimeCabinet, updateCoalitions } from '../utils';
 import { getWartimeCoalitionPower, isSpanishCivilWarOngoing, monthIndex, WARTIME_COALITION_ID, WARTIME_CRISIS_ID } from './wartimeCoalition';
+import { applyControlInfluence, getControlShares } from './controlShares';
+import { getUnionShare } from '../unions';
 
 export const MAY_DAYS_ID = 'may_days';
+/**
+ * 支持地方委员会所需的两道门槛（docs/工人控制度改造方案.md §5.2）。
+ *
+ * 旧口径是一根 `stats.workerControl >= 60`。新口径要同时满足**组织**与**所有权**两件事，
+ * 因为五月事件打的是巴塞罗那电话局——那既是一场工会的罢工，也是一场关于谁拥有电话公司的
+ * 争夺，光有会员人数或光有集体化都不够：
+ *
+ *  1. `MAY_DAYS_UNION_SHARE_GATE`：CNT 在工会格局里的占比（组织能力，`unionShare.CNT`）；
+ *  2. `MAY_DAYS_UNION_OWNERSHIP_GATE`：工业饼里的**地方工会所有制**（实际掌握的生产资料）。
+ *
+ * 1936·7 开局两项分别是 27 与 1，合计 28——玩家必须真的把工会做大**并且**把工厂拿到手。
+ * 数值留待实测调：反馈"几乎必输"时先调这两个数，别动其他公式。
+ */
+export const MAY_DAYS_UNION_SHARE_GATE = 30;
+export const MAY_DAYS_UNION_OWNERSHIP_GATE = 25;
+/** @deprecated 合并门槛的旧名字；改用上面两个常量，见 `getMayDaysCommitteeControl`。 */
+export const MAY_DAYS_COMMITTEE_CONTROL_GATE = MAY_DAYS_UNION_SHARE_GATE + MAY_DAYS_UNION_OWNERSHIP_GATE;
+
+/** 五月事件的两项读数与它们的和，供门槛判定、预览与测试共用。 */
+export const getMayDaysCommitteeControl = (state: GameState): {
+  cntUnionShare: number;
+  localUnionOwnership: number;
+  total: number;
+} => {
+  const cntUnionShare = getUnionShare(state).CNT;
+  const localUnionOwnership = getControlShares(state).industry.union;
+  return { cntUnionShare, localUnionOwnership, total: cntUnionShare + localUnionOwnership };
+};
 export const MAY_DAYS_POUM_ID = 'may_days_poum_case';
 export const MAY_DAYS_EVENT_IDS = ['may_days', 'may_days_ceasefire', 'may_days_government_crisis', 'may_days_result', 'may_days_poum_case', 'may_days_poum_result', 'may_days_split_alignment', 'may_days_split_result'] as const;
 export const isMayDaysEvent = (id?: string | null) => MAY_DAYS_EVENT_IDS.some(value => value === id);
@@ -70,8 +100,25 @@ export const canAgreeMayDays = (state: GameState) => getMayDaysSupportWeight(sta
   && getMayDaysSupport(state).some(row => row.member === getMayDaysRequiredPartner(state) && row.supports);
 const workerWeight = (state: GameState, partner: CoalitionMember) => getMayDaysPower(state)
   .filter(row => row.member === 'CNT_FAI' || row.member === partner).reduce((sum, row) => sum + row.weight, 0);
-export const canBackMayDaysCommittees = (state: GameState) => (state.cataloniaControl === 'cnt_fai' || state.stats.workerControl >= 60)
-  && workerWeight(state, 'POUM') + 1e-9 >= 0.4;
+/**
+ * 五月事件的**组织与所有权**条件的纯判定，与联盟权重无关。
+ *
+ * 单独抽出来有两个用处：① 预览与界面可以直接显示"两道门槛各差多少"；
+ * ② 测试可以在没有战时联盟的合成状态上验证它。
+ */
+export const holdsMayDaysCommitteeControl = (state: GameState): boolean => {
+  const { cntUnionShare, localUnionOwnership } = getMayDaysCommitteeControl(state);
+  return cntUnionShare >= MAY_DAYS_UNION_SHARE_GATE
+    && localUnionOwnership >= MAY_DAYS_UNION_OWNERSHIP_GATE;
+};
+
+export const canBackMayDaysCommittees = (state: GameState) => {
+  // Both gates must hold: the unions strong enough to call the action, and the unions
+  // actually holding the plant. Read from `unionShare` and the ownership pie — never
+  // from the cached derived bar (docs/工人控制度改造方案.md §5.2).
+  return (state.cataloniaControl === 'cnt_fai' || holdsMayDaysCommitteeControl(state))
+    && workerWeight(state, 'POUM') + 1e-9 >= 0.4;
+};
 export const canWinMayDaysCommitteeAgreement = (state: GameState) => canAgreeMayDays(state) && workerWeight(state, 'POUM') + 1e-9 >= 0.45;
 export const canPreserveMayDaysGovernment = (state: GameState) => state.mayDays?.settlement === 'joint' || state.mayDays?.settlement === 'committee'
   || (workerWeight(state, 'PSOE') + 1e-9 >= 0.55 && state.partyRelations.PSOE >= 55
@@ -80,14 +127,20 @@ export const canPreserveMayDaysGovernment = (state: GameState) => state.mayDays?
 interface PoliticalEffect {
   resources?: number;
   stats: Partial<GameState['stats']>;
+  /**
+   * 所有权影响力（旧口径的 `workerControl` 增量）。第 5A 期加：结算时经
+   * `applyControlInfluence` 落到两张饼上，不再直接写 `stats.workerControl`
+   * （docs/工人控制度改造方案.md §4.5 #14）。
+   */
+  controlPoints?: number;
   dissent: Partial<Record<Faction, number>>;
   commitments: Partial<Record<CoalitionMember, number>>;
 }
 export const MAY_DAYS_SETTLEMENT_EFFECTS: Record<MayDaysSettlement, PoliticalEffect> = {
-  withdrawal: { stats: { republicanAuthority: 6, workerControl: -8, revolutionaryFervor: -5 }, dissent: { Faistas: 6, Puristas: 10 }, commitments: { CNT_FAI: -10, POUM: -10, PCE: 8, PSOE: 5, ERC: 3 } },
+  withdrawal: { stats: { republicanAuthority: 6, revolutionaryFervor: -5 }, controlPoints: -8, dissent: { Faistas: 6, Puristas: 10 }, commitments: { CNT_FAI: -10, POUM: -10, PCE: 8, PSOE: 5, ERC: 3 } },
   joint: { resources: -2, stats: { republicanAuthority: 3, bureaucratization: 2 }, dissent: { Faistas: 2, Puristas: 4 }, commitments: { CNT_FAI: 5, PSOE: 5, ERC: 5, POUM: 3, PCE: -5 } },
-  committee: { resources: -3, stats: { workerControl: 5, revolutionaryFervor: 5 }, dissent: { Faistas: -4, Treintistas: 6 }, commitments: { CNT_FAI: 8, POUM: 8, PCE: -15, IR: -8, UR: -8, PSOE: -5 } },
-  defeat: { stats: { republicanAuthority: 3, workerControl: -12, revolutionaryFervor: -8 }, dissent: { Faistas: 10, Puristas: 15 }, commitments: { CNT_FAI: -18, POUM: -15, PCE: 5, PSOE: -5, ERC: -5 } },
+  committee: { resources: -3, stats: { revolutionaryFervor: 5 }, controlPoints: 5, dissent: { Faistas: -4, Treintistas: 6 }, commitments: { CNT_FAI: 8, POUM: 8, PCE: -15, IR: -8, UR: -8, PSOE: -5 } },
+  defeat: { stats: { republicanAuthority: 3, revolutionaryFervor: -8 }, controlPoints: -12, dissent: { Faistas: 10, Puristas: 15 }, commitments: { CNT_FAI: -18, POUM: -15, PCE: 5, PSOE: -5, ERC: -5 } },
 };
 const applyPolitics = (state: GameState, effect: PoliticalEffect): GameState => {
   const stats = { ...state.stats };
@@ -97,7 +150,10 @@ const applyPolitics = (state: GameState, effect: PoliticalEffect): GameState => 
   }
   const members = getMayDaysPower(state).map(row => row.member);
   const next = {
-    ...state, stats, resources: state.resources + (effect.resources ?? 0), factions: adjustFactionDissents(state.factions, effect.dissent),
+    ...state,
+    stats,
+    resources: state.resources + (effect.resources ?? 0),
+    factions: adjustFactionDissents(state.factions, effect.dissent),
     activeCoalitions: state.activeCoalitions.map(coalition => coalition.activeId !== WARTIME_COALITION_ID ? coalition : {
       ...coalition, memberContributions: {
         ...coalition.memberContributions,
@@ -105,7 +161,12 @@ const applyPolitics = (state: GameState, effect: PoliticalEffect): GameState => 
       },
     }),
   };
-  return { ...next, activeCoalitions: updateCoalitions(next) };
+  // May Days decides who ends up holding the factories in Barcelona: the unions, the
+  // Republic, or the owners. The transfer must land on the ownership pies.
+  const withControl = effect.controlPoints
+    ? { ...next, ...applyControlInfluence(next, effect.controlPoints, { land: 0.2, industry: 0.8 }) }
+    : next;
+  return { ...withControl, activeCoalitions: updateCoalitions(withControl) };
 };
 
 export const beginMayDays = (state: GameState, intention: NonNullable<MayDaysState['intention']>): GameState => {

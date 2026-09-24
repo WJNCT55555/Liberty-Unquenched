@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustFactionInfluence, formCoalition } from '../utils';
+import { activateJournal } from '../rules/journalEvents';
 
 const uhpAsturiasMeta = {
   category: 'politics' as const,
@@ -11,11 +12,15 @@ const uhpAsturiasMeta = {
 export const crossroadsUprisingAlliance: GameEvent = {
   id: 'crossroads_uprising_alliance',
   meta: uhpAsturiasMeta,
+  /**
+   * 这条事件是 UHP 日志的**结果事件**（`journal_uhp.completionEventId`），
+   * 由月结管线在 UHP 完成的那一刻自动排队。这里的条件只是兜底：
+   * 若旧档或异常路径漏掉了那次排队，月度调度仍会在 UHP 已完成时把它补上；
+   * `uhp_attempt_triggered` 不再作为门槛（UHP 完成必然意味着尝试过）。
+   */
   condition: (state) => {
-    // Triggers once UHP has been attempted, and we are in 1934 or 1935, and have not yet decided this crossroads
-    const isReady = state.uhp_attempt_triggered && !state.crossroads_uprising_alliance_decided;
-    const isYearMatch = state.year >= 1934;
-    return isReady && isYearMatch;
+    const uhpCompleted = state.journal?.['journal_uhp']?.status === 'completed';
+    return uhpCompleted && !state.crossroads_uprising_alliance_decided && state.year >= 1934;
   },
   title: 'Crossroads: Proletarian Uprising or Anti-Fascist Alliance?',
   titleZh: '十字路口：无产阶级起义还是反法西斯同盟？',
@@ -39,8 +44,10 @@ export const crossroadsUprisingAlliance: GameEvent = {
             ...state.partyRelations,
             PSOE: Math.min(100, (state.partyRelations?.PSOE ?? 0) + 15)
           },
-          workersAllianceProgress: Math.min(3, (state.workersAllianceProgress || 0) + 2),
-          factions: newFactions
+          workersAllianceProgress: Math.min(3, (state.workersAllianceProgress || 0) + 1),
+          factions: newFactions,
+          // 选项 A 是工人联盟日志的开始事件：唯独这里能把该日志置为 active。
+          ...activateJournal(state, 'journal_alianza_obrera')
         };
       }
     },
@@ -56,10 +63,12 @@ export const crossroadsUprisingAlliance: GameEvent = {
         // Faistas influence must NOT decrease (let's increase it by 5).
         const newFactions = adjustFactionInfluence(nextState.factions, 'Faistas', 5);
         
-        // Deactivate/fail the Workers' Alliance/UHP journals since we've chosen the Popular Front
+        // 关闭革命路线：工人联盟日志置为 failed。UHP 此时通常已经完成
+        // ——契约里"完成态不可逆"，绝不把已完成的日志降级。
         const updatedJournal = { ...nextState.journal };
-        if (updatedJournal['journal_uhp']) {
-          updatedJournal['journal_uhp'] = { ...updatedJournal['journal_uhp'], status: 'failed' };
+        const uhpEntry = updatedJournal['journal_uhp'];
+        if (uhpEntry && uhpEntry.status !== 'completed') {
+          updatedJournal['journal_uhp'] = { ...uhpEntry, status: 'failed' };
         }
         if (updatedJournal['journal_alianza_obrera']) {
           updatedJournal['journal_alianza_obrera'] = { ...updatedJournal['journal_alianza_obrera'], status: 'failed' };

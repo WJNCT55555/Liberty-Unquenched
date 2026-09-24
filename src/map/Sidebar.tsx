@@ -10,6 +10,8 @@ import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from
 import { getEffectiveFortressLevel } from './types_map';
 import type { RecruitmentPoolView } from '../game/rules/warSetup';
 import { getMapFactionName } from './rules/factions';
+import { getMilitarization } from '../game/rules/militarization';
+import { ArmyPowerBoxes, DetailBox } from './ArmyDetail';
 import { Shield, Target, ScrollText, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -559,9 +561,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ? Math.round(selectedArmies.reduce((sum, a) => sum + a.morale * a.manpower, 0) / totalManpower)
                       : Math.round(selectedArmies.reduce((sum, a) => sum + a.morale, 0) / selectedArmies.length);
                     
+                    // 军事化率属于派系而非单位，所以按每个单位的 identity 查表后再加权平均。
+                    const armyMilitarization = (a: typeof selectedArmies[number]) =>
+                      getMilitarization(state, a.identity ?? 'gov');
                     const avgMilitarization = totalManpower > 0 
-                      ? Math.round(selectedArmies.reduce((sum, a) => sum + a.militarization * a.manpower, 0) / totalManpower)
-                      : Math.round(selectedArmies.reduce((sum, a) => sum + a.militarization, 0) / selectedArmies.length);
+                      ? Math.round(selectedArmies.reduce((sum, a) => sum + armyMilitarization(a) * a.manpower, 0) / totalManpower)
+                      : Math.round(selectedArmies.reduce((sum, a) => sum + armyMilitarization(a), 0) / selectedArmies.length);
                     
                     const minMoves = Math.min(...selectedArmies.map(a => a.movesLeft));
                     const sameFaction = selectedArmies.every(a => a.faction === state.mapCurrentPlayer);
@@ -723,7 +728,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <DetailBox label={lang === 'zh' ? '控制阵营' : 'Control'} value={getFactionName(selectedArmy.faction)} color={FACTION_COLORS[selectedArmy.faction]} />
                     <DetailBox label={lang === 'zh' ? '可动用步数' : 'Action Moves'} value={`${selectedArmy.movesLeft}/2`} />
                     <DetailBox label={lang === 'zh' ? '士气精神' : 'Morale Spirit'} value={`${selectedArmy.morale}%`} />
-                    <DetailBox label={lang === 'zh' ? '军事化度' : 'Militarization'} value={`${selectedArmy.militarization}%`} />
+                    <DetailBox label={lang === 'zh' ? '军事化率（派系共享）' : 'Militarization (force group)'} value={`${getMilitarization(state, selectedArmy.identity ?? 'gov')}%`} />
+                    <ArmyPowerBoxes state={state} army={selectedArmy} isZh={lang === 'zh'} />
                   </div>
 
                   {/* Composition Segment Card */}
@@ -2039,12 +2045,3 @@ const MobilizeAdjuster: React.FC<MobilizeAdjusterProps> = ({
     </div>
   );
 };
-
-const DetailBox = ({ label, value, color }: { label: string, value: string, color?: string }) => (
-  <div className="bg-[#FAF6EC]/90 p-1.5 rounded-sm border border-[#8B7355]/40 text-center relative overflow-hidden flex flex-col justify-between h-14 shadow-sm">
-    <div className="absolute top-1 left-1"><span className="w-1 h-1 rounded-full bg-[#A87E43]/40" /></div>
-    <div className="absolute top-1 right-1"><span className="w-1 h-1 rounded-full bg-[#A87E43]/40" /></div>
-    <div className="text-[9px] font-serif text-[#6B5A49] uppercase tracking-wider font-bold leading-none">{label}</div>
-    <div className="text-xs font-serif font-extrabold uppercase truncate tracking-tight pb-0.5" style={{ color: color || '#2C241E' }}>{value}</div>
-  </div>
-);

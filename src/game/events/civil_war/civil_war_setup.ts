@@ -42,7 +42,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
           manpower: 6000,
           maxManpower: 6000,
           morale: 90,
-          militarization: 65
         };
       } else {
         if (africaStatus === 'nationalist') {
@@ -53,7 +52,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
             provinceId: province,
             manpower: 6000,
             morale: 90,
-            militarization: 65
           };
         } else if (africaStatus === 'delayed') {
           return {
@@ -61,7 +59,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
             faction: MapFaction.NATIONALIST,
             manpower: 3000,
             morale: 70,
-            militarization: 50
           };
         } else { // chaos
           return {
@@ -69,7 +66,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
             faction: MapFaction.NATIONALIST,
             manpower: 1500,
             morale: 60,
-            militarization: 45
           };
         }
       }
@@ -148,7 +144,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
       composition: { infantry: 2500, artillery: 500, tanks: 0 },
       designedComposition: { infantry: 2500, artillery: 500, tanks: 0 },
       morale: 80,
-      militarization: 30
     });
   }
 
@@ -168,7 +163,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
       composition: { infantry: 3000, artillery: 500, tanks: 0 },
       designedComposition: { infantry: 3000, artillery: 500, tanks: 0 },
       morale: 95,
-      militarization: 25
     });
   }
 
@@ -187,7 +181,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
       composition: { infantry: 3500, artillery: 500, tanks: 0 },
       designedComposition: { infantry: 3500, artillery: 500, tanks: 0 },
       morale: 90,
-      militarization: 20
     });
   }
 
@@ -205,7 +198,6 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
       composition: { infantry: 3000, artillery: 1000, tanks: 0 },
       designedComposition: { infantry: 3000, artillery: 1000, tanks: 0 },
       morale: 80,
-      militarization: 35
     });
   }
 

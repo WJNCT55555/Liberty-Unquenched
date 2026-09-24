@@ -205,7 +205,6 @@ export function executeAiTurn<State extends MapRuntimeState>(
           composition: { infantry, artillery, tanks },
           designedComposition: { infantry, artillery, tanks },
           morale: 60,
-          militarization: 10,
         };
         armies.push(newArmy);
 
@@ -231,7 +230,7 @@ export function executeAiTurn<State extends MapRuntimeState>(
           commandPoints: Math.max(0, playerRes.commandPoints - 1),
         };
 
-        const res = dependencies.resolveBattle(armies, provinces, movedArmy, targetProvinceId, isZh, dependencies.random);
+        const res = dependencies.resolveBattle(armies, provinces, movedArmy, targetProvinceId, isZh, tempState.militarization, dependencies.random);
         armies = res.updatedArmies;
         provinces = res.updatedProvinces;
         if (res.messages && res.messages.length > 0) {

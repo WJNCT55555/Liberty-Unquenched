@@ -1,6 +1,8 @@
 import { Card, GameState, GameEvent } from '../types';
 import { adjustFactionDissents, getDissentMultiplier } from '../utils';
 import { isRepublicanPartyEligible } from '../politicalEligibility';
+import { adjustMilitarizations } from '../rules/militarization';
+import { isSpanishCivilWarOngoing } from '../rules/wartimeCoalition';
 
 export const cntInterPartyRelationships: Card = {
   id: 'inter_party_relationships',
@@ -140,6 +142,38 @@ export const cntInterPartyRelationships: Card = {
         },
       });
     }
+
+    // Option 7/8: take a stance on the Communists' own militarization (design doc §7).
+    // Only asked while the war is on, because that is when the question has teeth.
+    if (isSpanishCivilWarOngoing(state)) options.push({
+      text: 'The Communists are building a real army. Say so, and mean it as praise.',
+      textZh: '共产党人正在建一支真正的军队。把这话说出来，并且当成称赞。',
+      subtitle: 'Endorsing the Fifth Regiment\'s methods: PCE militarization +5, International Brigades +3, PCE relations +5 — and our own purists, who did not spend the summer being told to salute, take +3 dissent.',
+      subtitleZh: '公开认可第五团的做法：PCE 军事化率 +5、国际纵队 +3、PCE 关系 +5——而我们自己的纯粹派，那些整个夏天都没被要求敬礼的人，异议 +3。',
+      condition: (s: GameState) => isSpanishCivilWarOngoing(s),
+      unavailableSubtitle: () => 'Only once the war is under way.',
+      unavailableSubtitleZh: () => '只有开战之后才能提出。',
+      effect: (s: GameState) => ({
+        ...adjustMilitarizations(s, { pce: 5, intl: 3 }),
+        factions: adjustFactionDissents(s.factions, { Faistas: 3 }),
+        partyRelations: { ...s.partyRelations, PCE: Math.min(100, Math.max(-100, (s.partyRelations.PCE || 0) + 5)) },
+      }),
+    });
+
+    if (isSpanishCivilWarOngoing(state)) options.push({
+      text: 'The Communists are building a real army. Say so, and mean it as a warning.',
+      textZh: '共产党人正在建一支真正的军队。把这话说出来，并且当成警告。',
+      subtitle: 'Refusing to bless the Fifth Regiment: PCE militarization −5 and PCE relations −10, but the revolution is enthused (+3 fervor) by a confederation that still will not salute.',
+      subtitleZh: '拒绝为第五团祝福：PCE 军事化率 −5、PCE 关系 −10，但一个仍然拒绝敬礼的联合会会让革命热情 +3。',
+      condition: (s: GameState) => isSpanishCivilWarOngoing(s),
+      unavailableSubtitle: () => 'Only once the war is under way.',
+      unavailableSubtitleZh: () => '只有开战之后才能提出。',
+      effect: (s: GameState) => ({
+        ...adjustMilitarizations(s, { pce: -5 }),
+        partyRelations: { ...s.partyRelations, PCE: Math.max(-100, (s.partyRelations.PCE || 0) - 10) },
+        stats: { ...s.stats, revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 3) },
+      }),
+    });
 
     // Option 6: Discuss this later
     options.push({

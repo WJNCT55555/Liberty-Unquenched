@@ -55,7 +55,6 @@ export const andalusiaFireEvent: GameEvent = {
           composition: { infantry: 2000, artillery: 0, tanks: 0 },
           designedComposition: { infantry: 2000, artillery: 0, tanks: 0 },
           morale: 90,
-          militarization: 40
         });
 
         // Add 2000 infantry in Malaga
@@ -70,7 +69,6 @@ export const andalusiaFireEvent: GameEvent = {
           composition: { infantry: 2000, artillery: 0, tanks: 0 },
           designedComposition: { infantry: 2000, artillery: 0, tanks: 0 },
           morale: 90,
-          militarization: 40
         });
 
         return {

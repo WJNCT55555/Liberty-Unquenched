@@ -1,4 +1,5 @@
-import { JournalEntryDef } from '../types';
+﻿import { JournalEntryDef } from '../types';
+import { applyControlInfluence } from '../rules/controlShares';
 
 export const landReformJournal: JournalEntryDef = {
   id: 'journal_land_reform',
@@ -38,18 +39,17 @@ export const landReformJournal: JournalEntryDef = {
   },
 
   onComplete: (state) => ({
+    // The single largest one-off ownership transfer in the game: the estates pass to the
+    // collectives (docs/工人控制度改造方案.md §4.5 #2).
+    ...applyControlInfluence(state, 10, { land: 1, industry: 0 }),
     stats: {
       ...state.stats,
-      workerControl: Math.min(100, state.stats.workerControl + 10),
       revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10)
     }
   }),
   
   onFail: (state) => ({
-    stats: {
-      ...state.stats,
-      workerControl: Math.max(0, state.stats.workerControl - 10)
-    }
+    ...applyControlInfluence(state, -10, { land: 1, industry: 0 })
   }),
 
   activeEffect: {

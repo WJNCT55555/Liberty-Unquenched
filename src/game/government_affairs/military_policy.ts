@@ -1,6 +1,7 @@
 import { Card, GameState } from '../types';
 import { adjustFactionDissent } from '../utils';
 import { ECONOMIC_RULES, clampMilitarySpending } from '../rules/economy';
+import { adjustMilitarization } from '../rules/militarization';
 
 export const militaryPolicy: Card = {
   id: 'military_policy',
@@ -76,6 +77,18 @@ export const militaryPolicy: Card = {
                 ...s.stats,
                 armyLoyalty: Math.max(0, s.stats.armyLoyalty - 5)
               }
+            })
+          },
+          {
+            text: 'Holding Manoeuvres and Training Drills',
+            textZh: '整军演习',
+            subtitle: 'Government militarization +3 and route progress +4. A better-drilled officer corps is also a more dangerous one.',
+            subtitleZh: '政府军军事化率 +3，路线进度 +4。军官团练得越好，也就越危险。',
+            effect: (s: GameState): Partial<GameState> => ({
+              military_policy_timer: 6,
+              coupProgress: (s.coupProgress || 0) + 1,
+              factions: adjustFactionDissent(s.factions, 'Faistas', 3),
+              ...adjustMilitarization(s, 'gov', 3),
             })
           },
           {

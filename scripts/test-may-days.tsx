@@ -44,7 +44,7 @@ const restore = (state: GameState) => deserializeGameState(serializeGameState(st
 const troop = (id: string, identity: Army['identity'], manpower: number): Army => ({
   id, identity, faction: MapFaction.REPUBLICAN, provinceId: 'barcelona', manpower, maxManpower: manpower,
   composition: { infantry: manpower, artillery: 0, tanks: 0 }, designedComposition: { infantry: manpower, artillery: 0, tanks: 0 },
-  movesLeft: 2, morale: 70, militarization: 50,
+  movesLeft: 2, morale: 70,
 });
 const seed = (route: WartimeGovernmentRoute = 'cabinet', difficulty: GameState['difficulty'] = 'historical', scenario: GameState['scenario'] = '1936'): GameState => {
   let state = gameReducer(copy(PRE_START_STATE), { type: 'START_GAME', payload: { scenario, difficulty } });
@@ -63,7 +63,15 @@ const seed = (route: WartimeGovernmentRoute = 'cabinet', difficulty: GameState['
   state.provinces = { ...state.provinces, barcelona: { ...state.provinces!.barcelona, owner: MapFaction.REPUBLICAN } };
   state.regionalStatuses = { ...state.regionalStatuses, catalonia: 'autonomy' };
   state.cataloniaControl = 'committee';
-  state.stats = { ...state.stats, workerControl: 75, republicanAuthority: 55, revolutionaryFervor: 50 };
+  state.stats = { ...state.stats, republicanAuthority: 55, revolutionaryFervor: 50 };
+  // `stats.workerControl` is a derived cache (docs/工人控制度改造方案.md §2.5), so this
+  // fixture sets the two things the May Days gate actually reads: the CNT's share of the
+  // union movement, and how much industry the local unions own.
+  state.unionShare = { ...(state.unionShare ?? { CNT: 27, UGT: 14, UR: 2, ELA: 2, CNCA: 5, CONS: 1, other: 3, unorganized: 46 }), CNT: 40 };
+  state.controlShares = {
+    land: { church: 2, latifundia: 20, smallholders: 33, cooperative: 20, collective: 25, state: 0 },
+    industry: { foreign: 4, bigCapital: 8, smallBusiness: 8, cooperative: 25, union: 50, state: 5 },
+  };
   state = { ...state, ...activateCivilWarOrganizations(state) };
   return { ...state, activeCoalitions: updateCoalitions(state) };
 };

@@ -35,6 +35,12 @@ import { cataloniaAutonomy1932 } from '../events/catalonia_autonomy_1932';
 import { nombelaScandal } from '../events/nombela_scandal';
 import { naziPower1933 } from '../events/nazi_power_1933';
 import { wartimePowerArrangement, wartimeCabinetCoordination } from '../events/civil_war/wartime_power_arrangement';
+import { militarizationCrossroads } from '../events/civil_war/militarization_crossroads';
+import {
+  militiaLegalityArmedUnions,
+  militiaLegalityRearSecurity,
+  militiaLegalityCommittee,
+} from '../events/civil_war/militia_legality';
 import { mayDays, mayDaysPOUMCase } from '../events/civil_war/may_days';
 import { defenseCommitteeFormation } from '../events/defense_committee_formation';
 import { workersAllianceAttempt } from '../events/workers_alliance_attempt';
@@ -48,6 +54,14 @@ import { asturiasRevolution } from '../events/asturias_revolution';
 import { andalusiaFireEvent } from '../events/andalusia_fire';
 import { cnt_fourth_congress_0 } from '../events/cnt_fourth_congress';
 import { formationOfIzquierdaRepublicana, formationOfUnionRepublicana } from '../events/republican_party_mergers';
+import { cedaRadicalUnderstanding, nationalCounterrevolutionaryFront } from '../events/electoral_coalition_formations';
+import {
+  economyAfterTheRevolution,
+  landCollectivizationStart,
+  economyCooperativePath,
+  economyFreeCommuneStart,
+  economyWartimeRouteChoice,
+} from '../events/economy';
 import { defineUniqueRegistry } from './registryUtils';
 
 export type ScheduledEventDefinition = GameEvent & (
@@ -67,6 +81,13 @@ const defineScheduledEventRegistry = (events: readonly GameEvent[]): ScheduledEv
 /** Events discoverable by start/month scheduling or its explicit forced-entry rules. */
 export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   wartimePowerArrangement,
+  militarizationCrossroads,
+  // 民兵合法性法的三级阶梯（`docs/militarization-system-design.md` §6.5 问题 1）：
+  // 这条法律此前零写入者，而两条军事化日志都要求它到 4 级。三个事件各自一次性，
+  // 并且随时可以走死——拒绝某一级就再也上不去。
+  militiaLegalityArmedUnions,
+  militiaLegalityRearSecurity,
+  militiaLegalityCommittee,
   mayDays,
   mayDaysPOUMCase,
   wartimeCabinetCoordination,
@@ -79,6 +100,7 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   constitution1931,
   foundingSyndicalistParty,
   cedaFormation,
+  cedaRadicalUnderstanding,
   accionNacionalFormation,
   jonsFormation,
   seuFormation,
@@ -117,6 +139,7 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   workersAllianceAttempt,
   workersAllianceFormation,
   crossroadsUprisingAlliance,
+  nationalCounterrevolutionaryFront,
   elections1936,
   generalElectionCampaign,
   presidentialDissolutionOfCortes,
@@ -124,4 +147,11 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   asturiasRevolution,
   andalusiaFireEvent,
   cnt_fourth_congress_0,
+  // 经济改造的开始事件（docs/经济改造方案.md §7.2）。它们虽然都带 condition，
+  // 但实际入队由编排层强制（开局 / 战时权力安排后），这里的登记是"可被调度器识别"的声明。
+  economyFreeCommuneStart,
+  economyCooperativePath,
+  economyAfterTheRevolution,
+  economyWartimeRouteChoice,
+  landCollectivizationStart,
 ]);

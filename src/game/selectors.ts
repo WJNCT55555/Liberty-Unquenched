@@ -1,12 +1,37 @@
 import { getOptionEffectPreview } from './effectPreview';
 import { getJournalEntryDef } from './journal';
 import { getPlayerMapFaction } from '../map/rules/factions';
-import type { MapRuntimeState } from '../map/types_map';
+import type { ArmedEntityId, ArmyIdentity, MapRuntimeState } from '../map/types_map';
 import {
+  getEntityIdentity,
   getMilitiaRecruitmentPools,
   type RecruitmentPoolView,
 } from './rules/warSetup';
+import { getMilitarization, MILITARIZATION_GROUP_INFO } from './rules/militarization';
+import {
+  MILITIA_ORGANIZATION_DISPLAY_ORDER,
+  getOrganizationDefinition,
+  isOrganizationActive,
+} from './organizations';
 import { normalizeGeneralElectionSchedule } from './rules/electionSchedule';
+import {
+  ECONOMY_COUNTERS,
+  ECONOMY_PUSH_LIMITS,
+  ECONOMY_ROUTE_JOURNAL_IDS,
+  calculateEconomyReformGraphs,
+  getEconomyCounter,
+  type EconomyCounter,
+  type EconomyReformGraphs,
+} from './rules/economyReforms';
+import {
+  getControlCeilings,
+  getControlShares,
+  getPrivateShare,
+  getSocializedShare,
+  getWorkerControlEquivalent,
+  getWorkersShare,
+} from './rules/controlShares';
+import type { EconomyOwnershipShares } from './types';
 import type {
   Advisor,
   AdvisorAction,
@@ -14,6 +39,7 @@ import type {
   EffectPreviewLine,
   GameEvent,
   GameState,
+  OrganizationId,
 } from './types';
 
 /** Pure read models for React consumers. Keep store and React concerns out of this module. */
@@ -106,6 +132,9 @@ export const formatGeneralElectionViewModel = (
   }
   if (reason === 'term_expiry') {
     return `${date} (${isZh ? '四年期满' : '4-Year Term'})`;
+  }
+  if (reason === 'failed_formation') {
+    return `${date} (${isZh ? '组阁失败重新大选' : 'Repeat Election after Failed Government Formation'})`;
   }
   if (crisis?.coalitionId === 'ceda_radical') {
     return `${date} (${isZh ? '因丑闻与联盟瓦解提前大选' : 'Early Election due to Scandal & Collapse'})`;
@@ -507,3 +536,132 @@ export const areJournalViewModelsEqual = (left: JournalViewModel, right: Journal
   return leftIds.length === rightIds.length
     && leftIds.every((id) => left.progressById[id] === right.progressById[id]);
 };
+
+/**
+ * 经济改造面板的读模型（docs/经济改造方案.md §8.3）。
+ *
+ * 只做两件事：把 18 个计数器的当前值摊平成一张表，把六条路线的进度算出来。
+ * 与 `journal` 一样，面板只读这些字段；`workerControl` 之类会在第 5 期换掉的
+ * 标尺不进读模型，避免界面提前绑死在旧字段上。
+ */
+export interface EconomyReformViewModel {
+  language: GameState['language'];
+  journal: GameState['journal'];
+  counters: Record<EconomyCounter, number>;
+  /** 顾问配方案的推动进度（佩罗 2 次、桑蒂利安 3 次）。 */
+  pushes: { cooperative: number; organic: number };
+  pushLimits: { cooperative: number; organic: number };
+  /** 六条路线日志 id，按方案 §0.3 的顺序。 */
+  routeJournalIds: readonly string[];
+  progressById: Record<string, number>;
+  /** 月度宏观修正，来自 `calculateEconomyReformGraphs`。 */
+  graphs: EconomyReformGraphs;
+  /** 两张所有权饼与派生值（docs/工人控制度改造方案.md §2.5）。 */
+  ownership: EconomyOwnershipShares;
+  ownershipSummary: {
+    land: { workers: number; socialized: number; private: number; ceiling: number };
+    industry: { workers: number; socialized: number; private: number; ceiling: number };
+    workerControl: number;
+  };
+}
+
+export const selectEconomyReformViewModel = (state: GameState): EconomyReformViewModel => {
+  const ceilings = getControlCeilings(state);
+  const summary = (sector: 'land' | 'industry') => ({
+    workers: getWorkersShare(state, sector),
+    socialized: getSocializedShare(state, sector),
+    private: getPrivateShare(state, sector),
+    ceiling: ceilings[sector],
+  });
+  return {
+    language: state.language,
+    journal: state.journal,
+    counters: Object.fromEntries(
+      ECONOMY_COUNTERS.map((key) => [key, getEconomyCounter(state, key)]),
+    ) as Record<EconomyCounter, number>,
+    pushes: {
+      cooperative: state.economy?.cooperativePushes ?? 0,
+      organic: state.economy?.organicPushes ?? 0,
+    },
+    pushLimits: {
+      cooperative: ECONOMY_PUSH_LIMITS.cooperativePushes,
+      organic: ECONOMY_PUSH_LIMITS.organicPushes,
+    },
+    routeJournalIds: ECONOMY_ROUTE_JOURNAL_IDS,
+    progressById: Object.fromEntries(ECONOMY_ROUTE_JOURNAL_IDS.map((id) => {
+      const entryState = state.journal?.[id];
+      const definition = getJournalEntryDef(id);
+      return [id, entryState && definition?.getProgress ? definition.getProgress(state, entryState) : 0];
+    })),
+    graphs: calculateEconomyReformGraphs(state),
+    ownership: getControlShares(state),
+    ownershipSummary: {
+      land: summary('land'),
+      industry: summary('industry'),
+      workerControl: getWorkerControlEquivalent(state),
+    },
+  };
+};
+
+export const areEconomyReformViewModelsEqual = (
+  left: EconomyReformViewModel,
+  right: EconomyReformViewModel,
+): boolean => {
+  if (left.language !== right.language || left.journal !== right.journal) return false;
+  if (left.pushes.cooperative !== right.pushes.cooperative || left.pushes.organic !== right.pushes.organic) return false;
+  if (left.ownership !== right.ownership) return false;
+  if (left.ownershipSummary.workerControl !== right.ownershipSummary.workerControl) return false;
+  if (left.ownershipSummary.land.ceiling !== right.ownershipSummary.land.ceiling
+    || left.ownershipSummary.industry.ceiling !== right.ownershipSummary.industry.ceiling) return false;
+  if (left.graphs.growthGraph !== right.graphs.growthGraph
+    || left.graphs.inflationGraph !== right.graphs.inflationGraph
+    || left.graphs.foreignExchangeGraph !== right.graphs.foreignExchangeGraph
+    || left.graphs.budgetGraph !== right.graphs.budgetGraph
+    || left.graphs.consumptionTaxBaseFactor !== right.graphs.consumptionTaxBaseFactor) return false;
+  return ECONOMY_COUNTERS.every((key) => left.counters[key] === right.counters[key])
+    && ECONOMY_ROUTE_JOURNAL_IDS.every((id) => left.progressById[id] === right.progressById[id]);
+};
+
+/**
+ * 「准军事组织」面板的读模型。
+ *
+ * 一条规则决定了这份列表：**只有已经成立的民兵组织才出现**，因为军事化率横条挂在
+ * 组织行下面——组织没成立就没有地方挂它（`DC` 是唯一一个 `uiVisibility: 'visible'`
+ * 的民兵组织，其余全是 `internal`，所以这里用的是显式的
+ * `MILITIA_ORGANIZATION_DISPLAY_ORDER`，而不是"我能看见的组织"）。
+ *
+ * 派系用 `ENTITY_IDENTITY` 查表，因此一个组织只对应一条横条：MAOC 与第五团共用
+ * `pce`（升格时 MAOC 转为 `integrated`，不再成立），意大利 CTV 与长枪党第一线
+ * 共用 `falange`。
+ */
+export interface MilitiaOrganizationViewModel {
+  organizationId: OrganizationId;
+  entityId: ArmedEntityId;
+  identity: ArmyIdentity;
+  nameEn: string;
+  nameZh: string;
+  manpower: number;
+  militarization: number;
+  camp: 'republic' | 'nationalist';
+  highlighted: boolean;
+}
+
+export const selectMilitiaOrganizationViewModels = (state: GameState): MilitiaOrganizationViewModel[] => (
+  MILITIA_ORGANIZATION_DISPLAY_ORDER.flatMap((organizationId) => {
+    const definition = getOrganizationDefinition(organizationId);
+    const entityId = definition?.armedEntityId;
+    if (!definition || !entityId || !isOrganizationActive(state, organizationId)) return [];
+    const identity = getEntityIdentity(entityId);
+    return [{
+      organizationId,
+      entityId,
+      identity,
+      nameEn: definition.militiaDisplayName || definition.name,
+      nameZh: definition.militiaDisplayNameZh || definition.nameZh,
+      manpower: state.armedForces.entityPools[entityId]?.manpower || 0,
+      militarization: getMilitarization(state, identity),
+      camp: MILITARIZATION_GROUP_INFO[identity].camp,
+      highlighted: organizationId === 'DC',
+    }];
+  })
+);

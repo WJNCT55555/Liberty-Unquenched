@@ -6,8 +6,6 @@ import { getPartyName } from '../partyNames';
 import { getParliamentSeatEntries } from '../parliamentOrder';
 import { cn } from '../../lib/utils';
 import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
-import { applyUnionShareDelta } from '../unions';
-import type { UnionShareKey } from '../types';
 
 const election1931Meta = {
   category: 'politics' as const,
@@ -25,6 +23,15 @@ const election1931LeafMeta = {
   ...election1931Meta,
   flow: 'inline.leaf' as const,
 };
+
+const ministerAllocationMeta = {
+  category: 'politics' as const,
+  flow: 'inline.leaf' as const,
+  series: ['elections', 'cabinet_formation'],
+  tags: ['election'],
+};
+
+export const MINISTER_ALLOCATION_LEVERAGE = 15;
 
 export const elections1931Results: GameEvent = {
   id: 'elections_1931_results',
@@ -303,7 +310,7 @@ export const cabinetFormation1931: GameEvent = {
         return {
           cntStance: 'govern' as const,
           factions: newFactions,
-          leverage: 15, // Starting leverage for ministries
+          leverage: MINISTER_ALLOCATION_LEVERAGE,
           stats: {
             ...state.stats,
             bureaucratization: Math.min(100, state.stats.bureaucratization + 20)
@@ -317,7 +324,7 @@ export const cabinetFormation1931: GameEvent = {
 
 const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEventDispatch }> = ({ state, dispatch }) => {
   const isZh = state.language === 'zh';
-  const initialLeverage = state.leverage ?? 15;
+  const initialLeverage = state.leverage ?? MINISTER_ALLOCATION_LEVERAGE;
 
   const ministriesList = [
     {
@@ -325,64 +332,64 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       name: 'Ministry of Labor',
       nameZh: '劳工部',
       cost: 5,
-      description: 'Significantly increases Worker Control (+15)',
-      descriptionZh: '显著提高工人控制量 (+15)',
+      description: 'Assigns the Labor portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管劳工部。',
     },
     {
       id: 'agriculture',
       name: 'Ministry of Agriculture',
       nameZh: '农业部',
       cost: 5,
-      description: 'Increases Worker Control (+5)',
-      descriptionZh: '提高工人控制量 (+5)',
+      description: 'Assigns the Agriculture portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管农业部。',
     },
     {
       id: 'health',
       name: 'Ministry of Health & Social Assistance',
       nameZh: '卫生与社会援助部',
       cost: 5,
-      description: 'Increases Revolutionary Fervor (+10)',
-      descriptionZh: '提升革命热情 (+10)',
+      description: 'Assigns the Health and Social Assistance portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管卫生与社会援助部。',
     },
     {
       id: 'finance',
       name: 'Ministry of Finance',
       nameZh: '财政部',
       cost: 10,
-      description: 'Increases Worker Control (+5)',
-      descriptionZh: '提高工人控制量 (+5)',
+      description: 'Assigns the Finance portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管财政部。',
     },
     {
       id: 'justice',
       name: 'Ministry of Justice',
       nameZh: '司法部',
       cost: 10,
-      description: 'Secures anarchist influence in judiciary branch',
-      descriptionZh: '掌控司法体系统领权',
+      description: 'Assigns the Justice portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管司法部。',
     },
     {
       id: 'industry',
       name: 'Ministry of Industry',
       nameZh: '工业部',
       cost: 10,
-      description: 'Greatly increases Worker Control (+20)',
-      descriptionZh: '极大提高工人控制量 (+20)',
+      description: 'Assigns the Industry portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管工业部。',
     },
     {
       id: 'interior',
       name: 'Ministry of Interior',
       nameZh: '内政部',
       cost: 15,
-      description: 'Controls state security, but lowers Army Loyalty (-10)',
-      descriptionZh: '掌管安全防务，但会削减军官忠诚度 (-10)',
+      description: 'Assigns the Interior portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管内政部。',
     },
     {
       id: 'estado',
       name: 'Ministry of State',
       nameZh: '国务部',
       cost: 5,
-      description: 'Allows playing Foreign Policy cards. (+5 Revolutionary Fervor)',
-      descriptionZh: '可全盘掌控我国外交政策。提升革命热情 (+5)',
+      description: 'Assigns the State portfolio to a CNT minister.',
+      descriptionZh: '由 CNT 阁员掌管国务部。',
     },
   ];
 
@@ -409,61 +416,35 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       type: 'RESOLVE_EVENT',
       payload: (currentState) => {
         const newMinisters = { ...currentState.ministers };
-        // 入阁分配：组织成果计入 unionShare，制度成果计入 workerControl。
-        const unionDeltas: Partial<Record<UnionShareKey, number>> = {};
-        const addUnion = (key: UnionShareKey, value: number) => {
-          unionDeltas[key] = (unionDeltas[key] || 0) + value;
-        };
-        let workerControlDelta = 0;
-        let revFervorDelta = 0;
-        let armyLoyaltyDelta = 0;
 
-        // Apply selected ministries
         if (selected.labor) {
           newMinisters.labor = 'CNT';
-          addUnion('CNT', 8);
-          addUnion('unorganized', -8);
         }
         if (selected.industry) {
           newMinisters.industry = 'CNT';
-          workerControlDelta += 5;
         }
         if (selected.agriculture) {
           newMinisters.agriculture = 'CNT';
-          addUnion('CNT', 4);
-          addUnion('CNCA', -4);
         }
         if (selected.finance) {
           newMinisters.finance = 'CNT';
-          addUnion('CNT', 2);
-          addUnion('unorganized', -2);
         }
         if (selected.health) {
           newMinisters.health = 'CNT';
-          revFervorDelta += 10;
         }
         if (selected.justice) {
           newMinisters.justice = 'CNT';
         }
         if (selected.interior) {
           newMinisters.interior = 'CNT';
-          armyLoyaltyDelta -= 10;
         }
         if (selected.estado) {
           newMinisters.estado = 'CNT';
-          revFervorDelta += 5;
         }
 
         return {
           leverage: currentState.leverage - totalCost,
           ministers: newMinisters,
-          ...applyUnionShareDelta(currentState, unionDeltas),
-          stats: {
-            ...currentState.stats,
-            workerControl: Math.min(100, currentState.stats.workerControl + workerControlDelta),
-            revolutionaryFervor: Math.min(100, currentState.stats.revolutionaryFervor + revFervorDelta),
-            armyLoyalty: Math.max(0, currentState.stats.armyLoyalty + armyLoyaltyDelta),
-          },
           currentEvent: null,
         };
       }
@@ -547,7 +528,7 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
 
 export const ministerAllocation: GameEvent = {
   id: 'minister_allocation',
-  meta: election1931LeafMeta,
+  meta: ministerAllocationMeta,
   title: 'Ministerial Allocation',
   titleZh: '部长分配',
   description: 'We have agreed to join the cabinet. We now have political leverage to demand specific ministries. The more powerful the ministry, the more leverage it requires. What shall we demand?',

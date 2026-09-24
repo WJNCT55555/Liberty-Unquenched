@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types';
 import { raiseSecurityCorpsLoyalty } from '../rules/securityForces';
+import { adjustMilitarization } from '../rules/militarization';
 
 /**
  * Police Affairs lets the CNT, holding the Interior Ministry, make the state's
@@ -61,6 +62,20 @@ export const policeAffairs: Card = {
         loyaltyOption('guardiaNacional', 'Raise Civil Guard loyalty', '提高国民警卫队忠诚', 'Guardia Civil', '国民警卫队'),
         loyaltyOption('guardiaAsalto', 'Raise Assault Guard loyalty', '提高突击卫队忠诚', 'Guardia de Asalto', '突击卫队'),
         loyaltyOption('guardiaRepublicana', 'Raise Republican Guard loyalty', '提高共和国警卫队忠诚', 'Guardia Republicana', '共和国警卫队'),
+        {
+          text: 'Put the corps through real training (-1 Armament)',
+          textZh: '让警队接受真正的训练（-1 军备）',
+          subtitle: 'Government militarization +4 and route progress +3. The police share the army\'s rate, so better-drilled police also mean a stronger field army.',
+          subtitleZh: '政府军军事化率 +4，路线进度 +3。警察与政府军共用同一军事化率，所以警队练得更好，也意味着野战军更强。',
+          condition: (s: GameState) => s.armaments >= 1,
+          unavailableSubtitle: () => 'Requires 1 armament.',
+          unavailableSubtitleZh: () => '需要 1 点军备。',
+          effect: (s: GameState): Partial<GameState> => ({
+            armaments: s.armaments - 1,
+            police_affairs_timer: 6,
+            ...adjustMilitarization(s, 'gov', 4),
+          })
+        },
         {
           text: 'The Civil Guard is too rotten; we must raise a new Assault Guard to defend the Republic.',
           textZh: '国民警卫队过于腐朽，我们需要新建一支突击卫队保卫共和国。',

@@ -4,6 +4,7 @@ import { getPartySupport, updatePartySupport } from '../parties';
 import { isRepublicanPartyEligible, isRepublicanPartyPresent, WARTIME_PARTY_STATUS } from '../politicalEligibility';
 import {
   scheduleElectionAfterCompletedElection,
+  scheduleElectionAfterFailedFormation,
   scheduleElectionAfterGovernmentCrisis,
 } from '../rules/electionSchedule';
 import { canFormDefenceCouncil, createWartimeCoalition, getWartimeCabinet, isSpanishCivilWarOngoing, isWartimeArrangementDue, monthIndex, updateWartimeCoalition, WARTIME_COALITION_ID, WARTIME_EVENT_ID } from '../rules/wartimeCoalition';
@@ -68,24 +69,33 @@ function establishCoalition(state: GameState, id: CoalitionId, asRuling: boolean
   if (!def) return state;
 
   const existingCoalitions = [...(state.activeCoalitions || [])];
+  const existingTarget = existingCoalitions.find(coalition => coalition.activeId === id);
   if (!asRuling && existingCoalitions.some(coalition => coalition.activeId === id)) {
     return state;
   }
+
+  const targetMembers = existingTarget?.members ?? def.members;
 
   // Ordinary alliances may overlap with the elected government, but never
   // replace or promote themselves into the ruling-coalition slot. An election
   // result replaces the previous government and conflicting alliances.
   const replacedCoalitionIds = existingCoalitions
     .filter(c => {
+      // Winning an election promotes the already-formed alliance; it does not
+      // dissolve and recreate that same alliance or emit a false end notice.
+      if (asRuling && c.activeId === id) return false;
       if (!asRuling && c.activeId === state.rulingCoalition) return false;
       if (asRuling && c.activeId === state.rulingCoalition) return true;
 
       const cDef = COALITION_DEFS.find(d => d.id === c.activeId);
-      return c.activeId === id || Boolean(cDef?.members.some(member => def.members.includes(member)));
+      const coalitionMembers = c.members ?? cDef?.members ?? [];
+      return coalitionMembers.some(member => targetMembers.includes(member));
     })
     .map(c => c.activeId);
 
-  const currentActive = existingCoalitions.filter(c => !replacedCoalitionIds.includes(c.activeId));
+  const currentActive = existingCoalitions.filter(c => (
+    c.activeId !== id && !replacedCoalitionIds.includes(c.activeId)
+  ));
 
   const history = [...(state.coalitionHistory || [])];
   replacedCoalitionIds.forEach(replacedId => {
@@ -105,10 +115,12 @@ function establishCoalition(state: GameState, id: CoalitionId, asRuling: boolean
 
   const coalition: CoalitionState = {
     activeId: id,
-    memberContributions: contributions as Record<Party, number>,
-    cohesion: 80,
-    cntAttitude: 0,
-    formedAt: { year: state.year, month: state.month }
+    memberContributions: existingTarget?.memberContributions ?? contributions as Record<Party, number>,
+    ...(existingTarget?.members ? { members: existingTarget.members } : {}),
+    ...(existingTarget?.participation ? { participation: existingTarget.participation } : {}),
+    cohesion: existingTarget?.cohesion ?? 80,
+    cntAttitude: existingTarget?.cntAttitude ?? 0,
+    formedAt: existingTarget?.formedAt ?? { year: state.year, month: state.month }
   };
 
   const nextActive = [...currentActive, coalition];
@@ -223,12 +235,33 @@ export function secedeWartimeGovernment(state: GameState): GameState {
 /** The only public runtime API allowed to install an elected government. */
 export function formRulingCoalitionFromElection(state: GameState, id: CoalitionId): GameState {
   if (state.wartimePowerArrangement || id === WARTIME_COALITION_ID) return state;
+  const definition = COALITION_DEFS.find(candidate => candidate.id === id);
+  if (
+    definition?.electionRole === 'event_formed'
+    && !state.activeCoalitions.some(coalition => coalition.activeId === id)
+  ) return state;
   const nextState = establishCoalition(state, id, true);
   return {
     ...nextState,
     governmentCrisis: null,
     earlyElectionInProgress: false,
     generalElectionSchedule: scheduleElectionAfterCompletedElection(state),
+  };
+}
+
+/** Keep ministers as caretakers while a failed investiture returns to the polls. */
+export function enterCaretakerAfterFailedElection(state: GameState): GameState {
+  return {
+    ...state,
+    rulingCoalition: null,
+    governmentCrisis: null,
+    earlyElectionInProgress: true,
+    generalElectionSchedule: scheduleElectionAfterFailedFormation(state),
+    government: {
+      ...state.government,
+      type: 'Caretaker Administration',
+      typeZh: '看守政府',
+    },
   };
 }
 

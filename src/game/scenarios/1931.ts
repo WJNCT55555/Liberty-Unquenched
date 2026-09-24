@@ -1,4 +1,4 @@
-/**
+﻿/**
  * April 1931 — the Second Republic is proclaimed. The Provisional Government
  * holds office, the Cortes has not been elected yet, and the CNT is a hostile
  * outsider.
@@ -7,6 +7,7 @@ import { INITIAL_CLASSES } from '../parties';
 import { getDefaultOrganizationState } from '../organizations';
 import { getDefaultUnionShare } from '../unions';
 import type { ScenarioDefinition } from './types';
+import { INITIAL_CONTROL_SHARES } from './controlShares';
 
 export const SCENARIO_1931: ScenarioDefinition = {
   id: '1931',
@@ -69,6 +70,8 @@ export const SCENARIO_1931: ScenarioDefinition = {
 
   organizations: () => getDefaultOrganizationState('1931'),
   unionShare: () => getDefaultUnionShare('1931'),
+
+  controlShares: INITIAL_CONTROL_SHARES['1931'],
 
   economy: {
     growth: 1.2,

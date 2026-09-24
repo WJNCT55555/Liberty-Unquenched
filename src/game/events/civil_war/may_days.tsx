@@ -3,8 +3,9 @@ import type { EffectPreviewLine, GameEvent, GameState, MayDaysState } from '../.
 import { getPartyName } from '../../partyNames';
 import {
   beginMayDays, canAgreeMayDays, canBackMayDaysCommittees, canGuaranteePOUM, canPreserveMayDaysGovernment,
-  canProtectPOUMByInquiry, canWinMayDaysCommitteeAgreement, getMayDaysCohesion, getMayDaysPower,
-  isMayDaysDue, isMayDaysPOUMDue, resolveMayDaysGovernment, resolveMayDaysPOUM, settleMayDaysCeasefire,
+  canProtectPOUMByInquiry, canWinMayDaysCommitteeAgreement, getMayDaysCohesion, getMayDaysCommitteeControl,
+  getMayDaysPower, holdsMayDaysCommitteeControl, isMayDaysDue, isMayDaysPOUMDue, resolveMayDaysGovernment,
+  resolveMayDaysPOUM, settleMayDaysCeasefire, MAY_DAYS_UNION_OWNERSHIP_GATE, MAY_DAYS_UNION_SHARE_GATE,
 } from '../../rules/mayDays';
 import { getSecurityForces, SECURITY_CORPS_INFO } from '../../rules/securityForces';
 import { MayDaysNegotiators, MayDaysResultDetails, MAY_SETTLEMENT_NAMES } from '../../../components/MayDaysDetails';
@@ -118,9 +119,25 @@ export const mayDaysCeasefire: GameEvent = {
   title: 'CNT Leadership: Negotiations at the Barricades', titleZh: 'CNT 高层的态度：街垒上的停火谈判',
   description: 'The national CNT leadership must choose its position. Ministers and union leaders appeal for antifascist unity; district committees demand guarantees against arrests and disarmament. We can authorize a ceasefire, negotiate safeguards, or endorse an insurrection against Madrid. The last choice opens an alternative course: the Iberian Defense Committee will fight both Madrid and the Nationalists. PSOE delegates and UGT members do not form a single bloc.',
   descriptionZh: 'CNT 全国领导层必须作出表态。部长与工会领袖呼吁维护反法西斯团结，各区委员会则要求防止任意逮捕与解除武装的保障。我们可以授权停火、争取有保障的协议，也可以支持起义，公开与马德里决裂。最后一项将开启另一条历史道路：伊比利亚防御委员会同时对抗马德里政府与国民军。PSOE 代表和 UGT 会员并不拥有统一立场。',
-  renderContent: state => <div className="space-y-3"><p className="font-bold text-sm">{state.language === 'zh'
-    ? `当前局势：${['行政通牒，尚未交火', '局部对峙', '街头冲突', '地方委员会动员'][state.mayDays?.escalation ?? 0]}`
-    : `Situation: ${['An administrative demand; no fighting', 'A local standoff', 'Street fighting', 'Defence committee mobilization'][state.mayDays?.escalation ?? 0]}`}</p><MayDaysNegotiators state={state} /></div>,
+  renderContent: state => {
+    const isZh = state.language === 'zh';
+    // The committee gate has two halves — an organized base and ownership of the plants —
+    // so it shows both readings rather than a single "control" number
+    // (docs/工人控制度改造方案.md §5.2).
+    const control = getMayDaysCommitteeControl(state);
+    const gateOpen = holdsMayDaysCommitteeControl(state);
+    return <div className="space-y-3">
+      <p className="font-bold text-sm">{isZh
+        ? `当前局势：${['行政通牒，尚未交火', '局部对峙', '街头冲突', '地方委员会动员'][state.mayDays?.escalation ?? 0]}`
+        : `Situation: ${['An administrative demand; no fighting', 'A local standoff', 'Street fighting', 'Defence committee mobilization'][state.mayDays?.escalation ?? 0]}`}</p>
+      <p className={`text-xs font-typewriter border-l-2 pl-2 ${gateOpen ? 'border-green-700' : 'border-cnt-red'}`}>
+        {isZh
+          ? `支持地方委员会的条件：CNT 工会占比 ${control.cntUnionShare.toFixed(0)}/${MAY_DAYS_UNION_SHARE_GATE}、地方工会所有制 ${control.localUnionOwnership.toFixed(0)}/${MAY_DAYS_UNION_OWNERSHIP_GATE}`
+          : `To back the committees: CNT union share ${control.cntUnionShare.toFixed(0)}/${MAY_DAYS_UNION_SHARE_GATE}, local union ownership ${control.localUnionOwnership.toFixed(0)}/${MAY_DAYS_UNION_OWNERSHIP_GATE}`}
+      </p>
+      <MayDaysNegotiators state={state} />
+    </div>;
+  },
   options: [
     {
       text: 'Stop resistance and accept government control.', textZh: '停止抵抗，接受政府接管',

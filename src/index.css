@@ -12,6 +12,7 @@
   --color-cnt-red: #c1272d;
   --color-cnt-black: #1a1a1a;
   --color-republic-purple: #6c1d45;
+  --color-republic-purple-dark: #3f0f27;
   --color-republic-yellow: #e8b01e;
 
   /* Radio specific colors */
@@ -54,6 +55,11 @@ body {
 .border-print-red {
   border: 2px solid var(--color-cnt-red);
   box-shadow: 3px 3px 0px var(--color-cnt-red);
+}
+
+.border-print-purple {
+  border: 2px solid var(--color-republic-purple);
+  box-shadow: 3px 3px 0px var(--color-republic-purple);
 }
 
 .bg-halftone {

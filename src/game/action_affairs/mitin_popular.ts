@@ -1,4 +1,4 @@
-import { Card, Faction, GameEvent, GameState, SocialClass } from '../types';
+﻿import { Card, Faction, GameEvent, GameState, SocialClass } from '../types';
 import {
   adjustAllActiveFactionDissent,
   adjustClassSupport,
@@ -22,6 +22,7 @@ import {
   textPreview
 } from '../effectPreview';
 import { clampLawLevel } from '../lawStances';
+import { applyControlInfluence, getWorkersShare } from '../rules/controlShares';
 import { applyUnionShareDelta, getCntDominance, getUnionShare } from '../unions';
 
 const MITIN_POPULAR_COOLDOWN = 6;
@@ -72,7 +73,9 @@ export const mitinPopular: Card = {
     let buildMainAssemblyEvent: (df: number) => GameEvent;
 
     const resolveFE = (s: GameState, df: number): Partial<GameState> => {
-      const cntMilitancy = s.stats.anarchistMilitia * 1.2 + s.stats.workerControl * 0.8;
+      // Street strength reads the industrial worker share off the ownership pie: a rally in a city
+      // is about who holds the workshops, not about a cached aggregate (docs/工人控制度改造方案.md §5.3).
+      const cntMilitancy = s.stats.anarchistMilitia * 1.2 + getWorkersShare(s, 'industry') * 0.8;
       const falangeMilitancy = s.partySupport.FE * 1.8;
       const success = cntMilitancy >= falangeMilitancy;
 
@@ -206,7 +209,7 @@ export const mitinPopular: Card = {
         subtitleZh: '安那其青年和工会硬汉们在人群前排起了人墙。',
         effectPreview: (s2: GameState) => {
           const guardStrength = s2.stats.tension * 0.5;
-          const cntDefense = s2.stats.anarchistMilitia * 1.5 + s2.stats.workerControl;
+          const cntDefense = s2.stats.anarchistMilitia * 1.5 + getWorkersShare(s2, 'industry');
           const success = cntDefense >= guardStrength;
 
           return success
@@ -227,7 +230,7 @@ export const mitinPopular: Card = {
         },
         effect: (s2: GameState): Partial<GameState> => {
           const guardStrength = s2.stats.tension * 0.5;
-          const cntDefense = s2.stats.anarchistMilitia * 1.5 + s2.stats.workerControl;
+          const cntDefense = s2.stats.anarchistMilitia * 1.5 + getWorkersShare(s2, 'industry');
           const success = cntDefense >= guardStrength;
           const factions = success
             ? influenceThenDissent(s2.factions, 'Faistas', 3, { Faistas: -3 })
@@ -295,7 +298,7 @@ export const mitinPopular: Card = {
           subtitle: 'Our militants form a battle line. We will not yield the plaza to fascist thugs.',
           subtitleZh: '我们的战士排成战线。我们不会把广场让给法西斯暴徒。',
           effectPreview: (s2: GameState) => {
-            const cntMilitancy = s2.stats.anarchistMilitia * 1.2 + s2.stats.workerControl * 0.8;
+            const cntMilitancy = s2.stats.anarchistMilitia * 1.2 + getWorkersShare(s2, 'industry') * 0.8;
             const falangeMilitancy = s2.partySupport.FE * 1.8;
             const feSuccess = cntMilitancy >= falangeMilitancy;
 
@@ -319,7 +322,7 @@ export const mitinPopular: Card = {
                 ];
           },
           effect: (s2: GameState): Partial<GameState> => {
-            const cntMilitancy = s2.stats.anarchistMilitia * 1.2 + s2.stats.workerControl * 0.8;
+            const cntMilitancy = s2.stats.anarchistMilitia * 1.2 + getWorkersShare(s2, 'industry') * 0.8;
             const falangeMilitancy = s2.partySupport.FE * 1.8;
             const feSuccess = cntMilitancy >= falangeMilitancy;
 
@@ -589,9 +592,11 @@ export const mitinPopular: Card = {
           resources: s.resources + 1,
           classes,
           factions,
+          // Cooperative commonwealth: the movement's own cooperatives take ownership in
+          // both sectors (docs/工人控制度改造方案.md §4.5 #6).
+          ...applyControlInfluence(s, 5 * dissentFactor * coopBonus, { land: 0.5, industry: 0.5 }),
           stats: {
             ...s.stats,
-            workerControl: clampPercent(s.stats.workerControl + 5 * dissentFactor * coopBonus),
             bureaucratization: clampPercent(s.stats.bureaucratization + 1)
           },
           unemployment_rate: adjustUnemploymentRate(s, -0.5 * dissentFactor),
@@ -674,10 +679,12 @@ export const mitinPopular: Card = {
             ...s.domesticPolicy,
             land_reform_progress: clampPercent(s.domesticPolicy.land_reform_progress + 1)
           },
+          // Rural mobilization: mostly land, a little industry
+          // (docs/工人控制度改造方案.md §4.5 #7).
+          ...applyControlInfluence(s, 3 * dissentFactor, { land: 1, industry: 0 }),
           stats: {
             ...s.stats,
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 6 * dissentFactor),
-            workerControl: clampPercent(s.stats.workerControl + 3 * dissentFactor)
           },
           currentEvent: null
         };

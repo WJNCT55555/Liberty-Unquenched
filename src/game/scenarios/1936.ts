@@ -1,4 +1,4 @@
-/**
+﻿/**
  * July 1936 — the Popular Front governs, Azaña has replaced Alcalá-Zamora as
  * president after the impeachment, and the civil war is already running. The
  * start opens directly into the mobilization chain.
@@ -7,6 +7,7 @@ import { SCENARIO_1936_CLASSES } from '../parties';
 import { getDefaultOrganizationState } from '../organizations';
 import { getDefaultUnionShare } from '../unions';
 import type { ScenarioDefinition } from './types';
+import { INITIAL_CONTROL_SHARES } from './controlShares';
 
 export const SCENARIO_1936: ScenarioDefinition = {
   id: '1936',
@@ -81,6 +82,8 @@ export const SCENARIO_1936: ScenarioDefinition = {
 
   organizations: () => getDefaultOrganizationState('1936'),
   unionShare: () => getDefaultUnionShare('1936'),
+
+  controlShares: INITIAL_CONTROL_SHARES['1936'],
 
   economy: {
     growth: 3.5,

@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionInfluence } from '../utils';
+import { adjustMilitarization } from '../rules/militarization';
 
 export const aurelioFernandez: Advisor = {
   id: 'Aurelio Fernández Sánchez',
@@ -19,19 +20,18 @@ export const aurelioFernandez: Advisor = {
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => {
-        let newFactions = JSON.parse(JSON.stringify(state.factions));
-        newFactions = adjustFactionInfluence(newFactions, 'Faistas', 6);
-        return {
-          advisorActionTimer: 6,
-          factions: newFactions,
-          stats: {
-            ...state.stats,
-            anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 8),
-            armyLoyalty: Math.min(100, state.stats.armyLoyalty + 3)
-          }
-        };
-      },
+      effect: (state) => ({
+        advisorActionTimer: 6,
+        factions: adjustFactionInfluence(state.factions, 'Faistas', 6),
+        stats: {
+          ...state.stats,
+          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 8),
+          armyLoyalty: Math.min(100, state.stats.armyLoyalty + 3)
+        },
+        // Organising a central intelligence service gives the confederal militia
+        // a command structure it did not have, without turning it into an army.
+        ...adjustMilitarization(state, 'cnt', 3)
+      }),
       description: 'By organizing a central command of intelligence under the defense committees, we have intercepted several conspiratorial letters among anti-republican garrisons.',
       descriptionZh: '通过在防御委员会下设立集中的调查科网络，我们截获了若干反动军官的密信，提前挫败了部分国民卫队的密谋破坏行为。',
     },

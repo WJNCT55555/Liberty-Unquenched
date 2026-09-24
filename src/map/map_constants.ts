@@ -465,15 +465,15 @@ export const PROVINCE_ADJACENCY: { [key: string]: string[] } = {
 // and 6th Burgos, plus the Army of Africa and the Navarra garrison. The civil war
 // instantiated these into map units through `createArmiesFromFormations`.
 export const SPANISH_ARMY_FORMATIONS: ArmyFormation[] = [
-  { id: 'rep_1', name: '1st Organic Division (Madrid)', nameZh: '第1师（马德里）', provinceId: 'madrid', manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80, militarization: 40 },
-  { id: 'rep_2', name: '4th Organic Division (Barcelona)', nameZh: '第4师（巴塞罗那）', provinceId: 'barcelona', manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85, militarization: 35 },
-  { id: 'rep_3', name: '3rd Organic Division (Valencia)', nameZh: '第3师（巴伦西亚）', provinceId: 'valencia', manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75, militarization: 30 },
-  { id: 'rep_4', name: '2nd Organic Division (Seville)', nameZh: '第2师（塞维利亚）', provinceId: 'sevilla', manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70, militarization: 35 },
-  { id: 'rep_5', name: '5th Organic Division (Zaragoza)', nameZh: '第5师（萨拉戈萨）', provinceId: 'zaragoza', manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70, militarization: 30 },
+  { id: 'rep_1', name: '1st Organic Division (Madrid)', nameZh: '第1师（马德里）', provinceId: 'madrid', manpower: 5000, maxManpower: 5000, composition: { infantry: 3000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1500, tanks: 500 }, morale: 80 },
+  { id: 'rep_2', name: '4th Organic Division (Barcelona)', nameZh: '第4师（巴塞罗那）', provinceId: 'barcelona', manpower: 4500, maxManpower: 4500, composition: { infantry: 3000, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 3000, artillery: 1000, tanks: 500 }, morale: 85 },
+  { id: 'rep_3', name: '3rd Organic Division (Valencia)', nameZh: '第3师（巴伦西亚）', provinceId: 'valencia', manpower: 3000, maxManpower: 3000, composition: { infantry: 2000, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 1000, tanks: 0 }, morale: 75 },
+  { id: 'rep_4', name: '2nd Organic Division (Seville)', nameZh: '第2师（塞维利亚）', provinceId: 'sevilla', manpower: 4000, maxManpower: 4000, composition: { infantry: 2500, artillery: 1000, tanks: 500 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 500 }, morale: 70 },
+  { id: 'rep_5', name: '5th Organic Division (Zaragoza)', nameZh: '第5师（萨拉戈萨）', provinceId: 'zaragoza', manpower: 3500, maxManpower: 3500, composition: { infantry: 2500, artillery: 1000, tanks: 0 }, designedComposition: { infantry: 2500, artillery: 1000, tanks: 0 }, morale: 70 },
   // Army of Africa: elite colonial force, still under Republican command in 1931
-  { id: 'rep_africa', name: 'Army of Africa (Tetuán)', nameZh: '非洲军团（得土安）', provinceId: 'tetouan', manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85, militarization: 65 },
-  { id: 'rep_navarra_garrison', name: 'Navarra Garrison (Pamplona)', nameZh: '纳瓦拉守备队（潘普洛纳）', provinceId: 'navarra', manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60, militarization: 25 },
-  { id: 'rep_burgos_garrison', name: '6th Organic Division (Burgos)', nameZh: '第6师（布尔戈斯）', provinceId: 'burgos', manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55, militarization: 20 },
+  { id: 'rep_africa', name: 'Army of Africa (Tetuán)', nameZh: '非洲军团（得土安）', provinceId: 'tetouan', manpower: 6000, maxManpower: 6000, composition: { infantry: 4000, artillery: 1500, tanks: 500 }, designedComposition: { infantry: 4000, artillery: 1500, tanks: 500 }, morale: 85 },
+  { id: 'rep_navarra_garrison', name: 'Navarra Garrison (Pamplona)', nameZh: '纳瓦拉守备队（潘普洛纳）', provinceId: 'navarra', manpower: 2500, maxManpower: 2500, composition: { infantry: 2000, artillery: 500, tanks: 0 }, designedComposition: { infantry: 2000, artillery: 500, tanks: 0 }, morale: 60 },
+  { id: 'rep_burgos_garrison', name: '6th Organic Division (Burgos)', nameZh: '第6师（布尔戈斯）', provinceId: 'burgos', manpower: 2000, maxManpower: 2000, composition: { infantry: 1500, artillery: 500, tanks: 0 }, designedComposition: { infantry: 1500, artillery: 500, tanks: 0 }, morale: 55 },
 ];
 
 /** Places one peacetime formation on the map as a real unit. */
@@ -491,7 +491,6 @@ export function formationToArmy(formation: ArmyFormation, faction: Faction = Fac
     composition: { ...formation.composition },
     designedComposition: { ...formation.designedComposition },
     morale: formation.morale,
-    militarization: formation.militarization,
   };
 }
 

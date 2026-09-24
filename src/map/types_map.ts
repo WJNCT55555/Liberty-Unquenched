@@ -89,7 +89,6 @@ export interface Army {
   composition: ArmyComposition; // Current composition
   designedComposition: ArmyComposition; // Designed composition
   morale: number;    // Fighting spirit (0-100)
-  militarization: number; // Experience/Efficiency (0-100)
 }
 
 /**
@@ -108,8 +107,15 @@ export interface ArmyFormation {
   maxManpower: number;
   composition: ArmyComposition;
   designedComposition: ArmyComposition;
+  /**
+   * Spawn morale the formation hands to its map unit. It is NOT a peacetime
+   * stat: peace has no map units, so peace has no morale either.
+   *
+   * Militarization deliberately does not live here. It belongs to the force
+   * group (`GameState.militarization`, keyed by `ArmyIdentity`) and is resolved
+   * at combat time, so every `gov` formation shares one rate.
+   */
   morale: number;
-  militarization: number;
 }
 
 export interface ResourceSet {
@@ -155,6 +161,11 @@ export interface MapRuntimeState {
   };
   provinces: Record<string, Province>;
   armies: Army[];
+  /**
+   * 各派系军事化率，战斗解算的必需输入（`rules/militarization.ts` 是唯一写入者）。
+   * 结构上与 `GameState['militarization']` 相同；此处内联声明以避免 game/types 的循环依赖。
+   */
+  militarization?: Record<ArmyIdentity, number>;
   mapSelectedProvinceId: string | null;
   mapSelectedArmyId: string | null;
   mapSelectedArmyIds: string[];

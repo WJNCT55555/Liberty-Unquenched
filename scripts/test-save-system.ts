@@ -12,6 +12,8 @@ import {
   writeManualSave,
 } from '../src/game/saveGame';
 import { addEasyUndoOption } from '../src/game/easyMode';
+import { ECONOMY_COUNTERS } from '../src/game/rules/economyReforms';
+import { JOURNAL_ENTRIES } from '../src/game/journal';
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -146,6 +148,17 @@ assert.deepEqual(restored.generalElectionSchedule, state.generalElectionSchedule
 assert.equal(typeof restored.currentEvent?.options[0].effect, 'function');
 assert.equal(restored.currentEvent?.options[0].effect(restored).resources, 10);
 
+// Economy-reform migration (docs/经济改造方案.md §10): a save written before the
+// production-relations counters existed must come back with every counter at 0,
+// both advisor push counters present, and every registered journal entry created
+// — otherwise activateJournal() silently no-ops on the new routes.
+for (const counter of ECONOMY_COUNTERS) {
+  assert.equal(restored[counter], 0, `Legacy saves must backfill ${counter} with 0`);
+}
+assert.deepEqual(restored.economy, { cooperativePushes: 0, organicPushes: 0 }, 'Legacy saves must receive the advisor push counters');
+JOURNAL_ENTRIES.forEach((entry) => {
+  assert.equal(restored.journal[entry.id]?.status, 'inactive', `Legacy saves must create ${entry.id} as inactive`);
+});
 const legacyOrganizationSnapshot = JSON.parse(serializedText);
 legacyOrganizationSnapshot.state.civilWarStatus = 'not_started';
 legacyOrganizationSnapshot.state.uhp_journal_activated = true;
