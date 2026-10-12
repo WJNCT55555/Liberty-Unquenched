@@ -39,6 +39,7 @@ import type {
   EffectPreviewLine,
   GameEvent,
   GameState,
+  JournalGoalLine,
   OrganizationId,
 } from './types';
 
@@ -215,7 +216,10 @@ export const arePoliticalModalStatesEqual = equalStateKeys([
 ] as const);
 
 export const selectDomesticPolicyModalState = (state: GameState): GameState => state;
-export const areDomesticPolicyModalStatesEqual = equalStateKeys(['domesticPolicy'] as const);
+export const areDomesticPolicyModalStatesEqual = equalStateKeys([
+  'domesticPolicy', 'laborPressure', 'cortes', 'ministers', 'lawStanceModifiers',
+  'governmentCrisis', 'earlyElectionInProgress', 'civilWarStatus',
+] as const);
 
 export const selectLawStanceModalState = (state: GameState): GameState => state;
 export const areLawStanceModalStatesEqual = equalStateKeys([
@@ -518,6 +522,7 @@ export interface JournalViewModel {
   language: GameState['language'];
   journal: GameState['journal'];
   progressById: Record<string, number>;
+  goalLinesById: Record<string, JournalGoalLine[]>;
 }
 
 export const selectJournalViewModel = (state: GameState): JournalViewModel => ({
@@ -527,6 +532,10 @@ export const selectJournalViewModel = (state: GameState): JournalViewModel => ({
     const definition = getJournalEntryDef(entryState.id);
     return [id, definition?.getProgress ? definition.getProgress(state, entryState) : entryState.progress];
   })),
+  goalLinesById: Object.fromEntries(Object.entries(state.journal).map(([id, entryState]) => {
+    const definition = getJournalEntryDef(entryState.id);
+    return [id, definition?.getGoalLines ? definition.getGoalLines(state) : []];
+  })),
 });
 
 export const areJournalViewModelsEqual = (left: JournalViewModel, right: JournalViewModel): boolean => {
@@ -534,7 +543,13 @@ export const areJournalViewModelsEqual = (left: JournalViewModel, right: Journal
   const leftIds = Object.keys(left.progressById);
   const rightIds = Object.keys(right.progressById);
   return leftIds.length === rightIds.length
-    && leftIds.every((id) => left.progressById[id] === right.progressById[id]);
+    && leftIds.every((id) => left.progressById[id] === right.progressById[id])
+    && leftIds.every((id) => {
+      const a = left.goalLinesById[id] || [];
+      const b = right.goalLinesById[id] || [];
+      return a.length === b.length && a.every((line, index) =>
+        line.text === b[index].text && line.textZh === b[index].textZh && line.met === b[index].met);
+    });
 };
 
 /**

@@ -35,14 +35,16 @@ export function collectClassSupportAdjustments<T>(callback: () => T): {
  * @param support The original political support Record for this social class.
  * @param targetForce The political force to adjust (e.g. 'CNT_FAI' or a specific Party).
  * @param delta The value to adjust by (positive or negative).
+ * @param donors Optional source forces for positive gains; other forces keep their support.
  * @returns The new adjusted and normalized support Record.
  */
 export function adjustSingleClassSupport(
   support: Record<ClassPoliticalForce, number>,
   targetForce: ClassPoliticalForce,
-  delta: number
+  delta: number,
+  donors?: readonly ClassPoliticalForce[],
 ): Record<ClassPoliticalForce, number> {
-  return adjustZeroSumShare(support, targetForce, delta, 100);
+  return adjustZeroSumShare(support, targetForce, delta, 100, donors);
 }
 
 /**
@@ -53,13 +55,15 @@ export function adjustSingleClassSupport(
  * @param targetClass The social class to adjust (e.g. 'Obreros').
  * @param targetForce The political force to adjust (e.g. 'CNT_FAI' or a specific Party).
  * @param delta The value to adjust by (positive or negative).
+ * @param donors Optional source forces for positive gains, capped by their remaining support.
  * @returns The updated new classes Record.
  */
 export function adjustClassSupport(
   classes: Record<SocialClass, { support: Record<ClassPoliticalForce, number> }>,
   targetClass: SocialClass,
   targetForce: ClassPoliticalForce,
-  delta: number
+  delta: number,
+  donors?: readonly ClassPoliticalForce[],
 ): Record<SocialClass, { support: Record<ClassPoliticalForce, number> }> {
   const newClasses = JSON.parse(JSON.stringify(classes)) as Record<SocialClass, { support: Record<ClassPoliticalForce, number> }>;
   
@@ -68,7 +72,8 @@ export function adjustClassSupport(
     const adjustedSupport = adjustSingleClassSupport(
       newClasses[targetClass].support,
       targetForce,
-      delta
+      delta,
+      donors,
     );
     const actualDelta = (adjustedSupport[targetForce] || 0) - beforeTargetSupport;
     newClasses[targetClass].support = adjustedSupport;

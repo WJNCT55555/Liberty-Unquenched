@@ -55,10 +55,10 @@ const tradePolicyEvent = (state: GameState): GameEvent => ({
         ? '对外贸易已经完成垄断。'
         : '仅在内战进行中可用。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'wartime_trade_monopoly') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'wartime_trade_monopoly', { industry: { foreign: -3, state: 3 } }) } as GameState;
         const completed = getEconomyCounter(next, 'wartime_trade_monopoly') >= 2;
         return {
-          ...applyEconomicOption(s, 'wartime_trade_monopoly'),
+          ...applyEconomicOption(s, 'wartime_trade_monopoly', { industry: { foreign: -3, state: 3 } }),
           foreign_exchange: Math.min(2500, (s.foreign_exchange ?? 0) + 8),
           relations: {
             ...s.relations,

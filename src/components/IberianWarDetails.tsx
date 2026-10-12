@@ -12,7 +12,7 @@ export const IberianWarDetails = ({ state }: { state: Pick<GameState, 'iberianDe
     <p>{zh ? '委员会成员：CNT' : 'Committee members: CNT'}{war.allies.poum ? ' + POUM' : ''}{war.allies.psoeLeft ? (zh ? ' + PSOE 左翼' : ' + PSOE left') : ''}</p>
     <p>{zh ? '成立时带入兵力' : 'Troops contributed at formation'}：CNT {war.contributions.cnt} · POUM {war.contributions.poum} · {zh ? 'PSOE 左翼' : 'PSOE left'} {war.contributions.psoeLeft}</p>
     <p>{zh ? '每月顺序：委员会 → 马德里政府 → 国民军；各 2 CP，出局方跳过。首都失守且 SV 严格低于阈值才出局。' : 'Monthly order: Committee → Madrid → Nationalists; 2 CP each, eliminated camps skipped. Capitulation requires capital loss AND SV strictly below the threshold.'}</p>
-    {war.playerDefeated && !war.winner && <p className="font-bold">{zh ? '委员会已出局。继续推进月份可观察剩余两方争夺最终胜利。' : 'The Committee is eliminated. Advance months to observe the remaining factions fight for final victory.'}</p>}
+    {war.playerDefeated && <p className="font-bold">{zh ? '防御委员会失败。委员会出局后立即结束本局。' : 'The Defense Committee is defeated. Its capitulation immediately ends this game.'}</p>}
     <div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead><tr>{(zh ? ['阵营', '首都归属', 'SV / 出局线', '省份', '兵力', '状态'] : ['Faction', 'Capital owner', 'SV / limit', 'Provinces', 'Troops', 'Status']).map(label => <th key={label} className="p-1 border-b border-ink/30">{label}</th>)}</tr></thead><tbody>
       {CIVIL_WAR_FACTIONS.map(faction => {
         const capital = IBERIAN_CAPITALS[faction], owner = state.provinces?.[capital]?.owner;

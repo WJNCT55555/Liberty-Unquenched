@@ -1,6 +1,7 @@
 import type { GameState, LawId } from '../types';
 import { getPolicyLevelDefinition, LAW_DEFINITION_BY_ID, type PolicyModifier } from './policyDefinitions';
 import { calculateEconomyReformGraphs, EMPTY_ECONOMY_REFORM_GRAPHS, type EconomyReformGraphs } from './economyReforms';
+import { readAnnualEconomicImpulse } from './annualEconomicImpulse';
 
 export interface EconomyBreakdown {
   isCivilWar: boolean;
@@ -152,6 +153,9 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
   const isCivilWar = state.civilWarStatus === 'ongoing';
   // 保留四个宏观入口与税基乘数；计数器的自动换算当前返回零修正。
   const reformGraphs = calculateEconomyReformGraphs(state) ?? EMPTY_ECONOMY_REFORM_GRAPHS;
+  // 年度冲量：每年 1 月静默换表的外部环境（大萧条／复苏／战时封锁），作为目标修正进入
+  // 下面三个目标公式与外汇流量。它记在目标上而不是当前值上，因为三个指标是惯性收敛的。
+  const impulse = readAnnualEconomicImpulse(state);
   const currentOutputIndex = state.economic_output_index ?? ECONOMIC_RULES.defaults.outputIndex;
   const currentInflation = state.inflation_rate ?? ECONOMIC_RULES.defaults.inflation;
   const currentUnemployment = state.unemployment_rate ?? ECONOMIC_RULES.defaults.unemployment;
@@ -273,7 +277,8 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
     + taxRates.tariff * 4
     + (tradeVolume - 1) * 2
     - (isCivilWar ? 2.5 : 0)
-    + reformGraphs.foreignExchangeGraph;
+    + reformGraphs.foreignExchangeGraph
+    + impulse.foreignExchangeMonthly;
   const nextForeignExchange = roundTo(clamp((state.foreign_exchange ?? ECONOMIC_RULES.defaults.foreignExchange) + tradeFxYield, 0, 2500), 2);
   const armyLoyaltyFactor = ((state.military_spending ?? ECONOMIC_RULES.defaults.militarySpending) - ECONOMIC_RULES.defaults.militarySpending) * 0.12;
   const nextArmyLoyalty = clamp((state.stats.armyLoyalty ?? ECONOMIC_RULES.defaults.armyLoyalty) + armyLoyaltyFactor, 0, 100);
@@ -287,7 +292,8 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
     3.5 - taxRates.lower * 1.5 - taxRates.middle * 2 - taxRates.upper * 2.5
       - taxRates.tariff * 3 - taxRates.consumption * 3.5 - debtGrowthDrag
       - arrearsGrowthDrag - (isCivilWar ? 6 : 0)
-      + reformGraphs.growthGraph,
+      + reformGraphs.growthGraph
+      + impulse.growth,
     minGrowth,
     maxGrowth,
   );
@@ -299,7 +305,8 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
     2.5 - taxRates.lower - taxRates.middle * 1.5 - taxRates.upper * 2
       + taxRates.tariff * 8 + taxRates.consumption * 6 + financingInflation
       + goldLossConfidence + (isCivilWar ? 8 : 0)
-      + reformGraphs.inflationGraph,
+      + reformGraphs.inflationGraph
+      + impulse.inflation,
     ECONOMIC_RULES.inflationBounds.min,
     ECONOMIC_RULES.inflationBounds.max,
   );
@@ -318,7 +325,8 @@ export const calculateMonthlyEconomy = (state: GameState): EconomyBreakdown => {
     12 - (nextGrowth - 2.5) * 0.4 + taxRates.lower + taxRates.middle * 1.5
       + taxRates.upper * 3 - taxRates.tariff * 1.5 + laborReformReduction
       + highDebtUnemploymentFactor + arrearsUnemploymentFactor
-      + deflationUnemployment + (isCivilWar ? 4 : 0),
+      + deflationUnemployment + (isCivilWar ? 4 : 0)
+      + impulse.unemployment,
     0,
     100,
   );

@@ -14,8 +14,8 @@ export const economyCooperativeJournal: JournalEntryDef = {
   titleZh: '自治合作社路线',
   description: 'Not every peasant wants to be a collective farmer, and not every workshop wants a committee. The cooperative road takes the smallholder, the tenant and the artisan as they are: voluntary association, mutual credit instead of the usurer, and a federation of societies that buys and sells on their behalf. It is slower than expropriation. It is also the only road that does not make enemies of the countryside.',
   descriptionZh: '不是每个农民都想当集体农庄的庄员，也不是每个作坊都想要委员会。合作社路线接受小农、佃农与手工业者本来的样子：自愿联合、用互助信贷取代高利贷、用合作社的联邦替他们买卖。它比没收慢，也是唯一一条不在乡村制造敌人的路。',
-  successCondition: 'Rural cooperatives and industrial cooperatives at full strength, land reform completed, and the local mutual credit network complete',
-  successConditionZh: '农业合作社与工业合作社达到满额、土地改革完成、地方互助信贷网络建成',
+  successCondition: 'Agricultural cooperatives advanced 5 times, mutual credit 5 times and industrial cooperatives 5 times, with the Land Reform journal completed. Note: once the Collectivization journal is completed this route stops accumulating and can no longer be completed.',
+  successConditionZh: '农业合作社推进 5 次、地方互助信贷推进 5 次、工业合作社推进 5 次，且「土地改革」日志完成。注意：一旦「土地集体化」日志完成，本路线停止累计，无法再完成。',
   successEffectDesc: 'The cooperative federation is recognized: the peasantry and the petty bourgeoisie move toward the CNT, and the movement\'s organization grows in the countryside.',
   successEffectDescZh: '合作社联邦获得承认：农民与小资产阶级转向 CNT，运动在乡村的组织规模扩大。',
   hasProgress: true,
@@ -61,16 +61,5 @@ export const economyCooperativeJournal: JournalEntryDef = {
     };
   },
 
-  activeEffect: {
-    description: 'Cooperative nurseries and credit subsidies cost the treasury every month, but the smallholders and the shopkeepers are beginning to see the CNT as their own institution.',
-    descriptionZh: '合作社保育与信贷补贴每月都在吃国库，但自耕农与店主开始把 CNT 看作自己的机构。',
-    apply: (state) => ({
-      classes: adjustClassSupport(
-        adjustClassSupport(state.classes, 'PequenaBurguesia', 'CNT_FAI', 2 / 12),
-        'Labradores',
-        'CNT_FAI',
-        2 / 12,
-      ),
-    }),
-  },
+  // 经济路线日志**不提供月度效果**（用户定稿）。
 };

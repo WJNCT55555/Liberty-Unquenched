@@ -17,8 +17,8 @@ export const economyOrganicJournal: JournalEntryDef = {
   titleZh: '有机工团路线',
   description: 'Santillán\'s answer to the economists: do not nationalize and do not merely collectivize — federate. Let the syndicates settle between themselves what each produces and what each receives, in kind, on credit, without a bank in the middle and without a foreign shareholder at the end of the chain. A whole economy held together by nothing but the confederation\'s own accounts.',
   descriptionZh: '桑蒂利安对经济学家的回答：不要国有化，也不要仅仅集体化——要结成联邦。让各工团彼此清算谁生产了什么、谁该得到什么：以实物、以信用，中间没有银行，链条末端没有外国股东。一整个经济体，只靠联合会自己的账本维系。',
-  successCondition: 'Collectivization completed, money abolished, private bank deposits seized, the Credit and Exchange Committee founded, foreign capital seized, and the supply network built',
-  successConditionZh: '土地集体化完成、货币废除、私营银行储蓄没收、信用与兑换委员会成立、外资没收、物资调控网络建成',
+  successCondition: 'The Collectivization journal completed, money abolished x3, private bank deposits seized x1, the Credit and Exchange Committee founded x1, foreign capital seized x3, and the supply coordination network x3.',
+  successConditionZh: '「土地集体化」日志完成、废除货币推进 3 次、没收私营银行储蓄 1 次、信用与兑换委员会成立 1 次、外资没收推进 3 次、工团物资调控网络推进 3 次。',
   successEffectDesc: 'Iberia becomes the cradle of a new era: the movement\'s intellectuals rally to the CNT, and the confederation runs an economy without money.',
   successEffectDescZh: '伊比利亚成为新时代的摇篮：知识分子向 CNT 靠拢，联合会经营着一个没有货币的经济体。',
   hasProgress: true,
@@ -59,15 +59,5 @@ export const economyOrganicJournal: JournalEntryDef = {
     classes: adjustClassSupport(state.classes, 'Intelectuales', 'CNT_FAI', 10),
   }),
 
-  activeEffect: {
-    description: 'Self-sufficiency has a price: the confederation earns less abroad every month, and the intellectuals are the only class still gaining faith in the experiment.',
-    descriptionZh: '自给自足是有代价的：联合会每月从国外挣得更少，而知识分子是唯一对这个实验越来越有信心的阶层。',
-    apply: (state) => ({
-      stats: {
-        ...state.stats,
-        revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 0.3),
-      },
-      classes: adjustClassSupport(state.classes, 'Intelectuales', 'CNT_FAI', 1 / 12),
-    }),
-  },
+  // 经济路线日志**不提供月度效果**（用户定稿）。
 };

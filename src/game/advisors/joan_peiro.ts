@@ -83,8 +83,8 @@ export const joanPeiro: Advisor = {
           advisorActionTimer: 6,
           ...advanceEconomyPush(state, 'cooperativePushes'),
           // One round of work advances both ladders, ownership included.
-          ...applyEconomicOption(state, 'agricultural_cooperative'),
-          ...applyEconomicOption(state, 'mutual_credit_network'),
+          ...applyEconomicOption(state, 'agricultural_cooperative', { land: { smallholders: -1.5, cooperative: 1.5 } }),
+          ...applyEconomicOption(state, 'mutual_credit_network', { land: { smallholders: -2, cooperative: 2 } }),
           factions: adjustFactionInfluence(state.factions, 'Treintistas', 3),
           // The second round of work is the route's start event: it carries the narrative
           // confirmation, and its option is what activates the journal (方案 §5.3).

@@ -1,5 +1,6 @@
 import type { GameEvent, GameState } from '../types';
-import { calculateMonthlyEconomy, type EconomyBreakdown } from './economy';
+import { calculateMonthlyEconomy, ECONOMIC_RULES, type EconomyBreakdown } from './economy';
+import { readAnnualEconomicImpulse } from './annualEconomicImpulse';
 import { calculateMonthlyPolicyEffects, type MonthlyPolicyEffects } from './policy';
 import { calculateEconomicPoliticalFeedback } from './economicFeedback';
 import { applyControlObreroDrift } from './controlObrero';
@@ -231,6 +232,8 @@ export const calculateMonthlyPipeline = (state: GameState): MonthlyPipelineResul
     public_debt: economy.nextDebt,
     fiscal_arrears: economy.nextFiscalArrears,
     foreign_exchange: economy.nextForeignExchange,
+    // 年度冲量里的黄金流量（资本外逃年才非零）：它是存量，每月按冲量扣一次。
+    gold_reserves: Math.max(0, (state.gold_reserves ?? ECONOMIC_RULES.defaults.goldReserves) + readAnnualEconomicImpulse(state).goldMonthly),
     economy_growth: economy.nextGrowth,
     inflation_rate: economy.nextInflation,
     unemployment_rate: economy.nextUnemployment,

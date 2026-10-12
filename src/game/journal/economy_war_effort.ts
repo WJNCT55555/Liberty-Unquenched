@@ -1,4 +1,4 @@
-﻿import type { GameState, JournalEntryDef } from '../types';
+import type { GameState, JournalEntryDef } from '../types';
 import { adjustClassSupport } from '../utils';
 import { isJournalCompleted } from '../rules/economyReforms';
 
@@ -14,12 +14,12 @@ export const economyWarEffortJournal: JournalEntryDef = {
   titleZh: '战时统筹路线',
   description: 'A war economy is not a market with soldiers in it. The unions take the distribution: grain is requisitioned at a fixed price, bread is rationed by the family book, foreign trade passes through a single office, and the banks are emptied into the Republic\'s account. It feeds the front. It also makes the state, for the first time since July, capable of giving an order that is obeyed.',
   descriptionZh: '战时经济不是"加了士兵的市场"。工会接管分配：粮食按定价征发、面包按家庭口粮本配给、对外贸易只走一个衙门、银行里的存款被倒进共和国的账户。它养活了前线，也让国家自七月以来第一次有能力下达一条会被执行的命令。',
-  successCondition: 'Bank deposits seized, agricultural requisition enforced, family ration books issued, and foreign trade monopolized',
-  successConditionZh: '私营银行储蓄已没收、农业强制征发已实行、家庭口粮本已发行、对外贸易已垄断',
+  successCondition: 'Bank deposits seized x1, wartime agricultural requisition x1, family ration books x1, and the wartime trade monopoly x2.',
+  successConditionZh: '没收私营银行储蓄 1 次、战时农业强制征发 1 次、家庭口粮本配给 1 次、战时外贸垄断推进 2 次。',
   successEffectDesc: 'The coordination committees hold: the Republic regains executive capacity and the war economy holds together.',
   successEffectDescZh: '统筹委员会站稳了：共和国重新获得执行力，战时经济得以维系。',
-  failureCondition: 'The militarization route completes first',
-  failureConditionZh: '革命军事化路线先完成',
+  failureCondition: 'The Revolutionary War route completes first (the two wartime routes exclude each other)',
+  failureConditionZh: '「革命军事化」路线先完成（战时两条路线互斥）',
   failureEffectDesc: 'The coordination committees are absorbed into the military apparatus.',
   failureEffectDescZh: '统筹委员会被并入军事机构。',
   hasProgress: true,
@@ -61,11 +61,5 @@ export const economyWarEffortJournal: JournalEntryDef = {
   /** 输掉内部竞争本身就是代价（持续收益归零），失败事件只叙事，不再额外扣分。 */
   onFail: () => ({}),
 
-  activeEffect: {
-    description: 'Requisition and rationing put labour back into production and steady the budget, at the cost of the shopkeepers and the small traders.',
-    descriptionZh: '征发与配给把劳动力压回生产、稳住预算，代价是店主与小商贩的不满。',
-    apply: (state) => ({
-      classes: adjustClassSupport(state.classes, 'PequenaBurguesia', 'CNT_FAI', -1 / 12),
-    }),
-  },
+  // 经济路线日志**不提供月度效果**（用户定稿）。
 };

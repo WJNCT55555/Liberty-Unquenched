@@ -2,7 +2,11 @@ import { GameState } from './types';
 import { getOverallFactionDissent } from './utils/factionEffects';
 import { MapFaction } from '../map/types_map';
 
+/** National population-weighted support; both ending checks use strict >. */
+export const PCE_ENDING_THRESHOLDS = { greatPurge: 75, russianSpain: 70 } as const;
+
 export const ENDINGS = {
+  IBERIAN_COMMITTEE_DEFEAT: 'IBERIAN_COMMITTEE_DEFEAT',
   CHILDREN_OF_THE_PEOPLE: 'CHILDREN_OF_THE_PEOPLE',
   POPULAR_FRONT: 'POPULAR_FRONT',
   RUSSIAN_SPAIN: 'RUSSIAN_SPAIN',
@@ -19,10 +23,10 @@ export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; de
     description: 'The Iberian Defense Committee is the last surviving camp. Both Madrid and the Nationalists have capitulated after losing their capitals and strategic bases. The Committee and its chosen allies now face the work of rebuilding the territory they hold.',
     descriptionZh: '伊比利亚防御委员会成为最后存续的阵营。马德里政府与国民军先后在失去首都和战略基础后投降。委员会及其选择的盟友，现在必须承担重建所辖领土的工作。',
   },
-  IBERIAN_MADRID_VICTORY: {
-    title: 'Madrid Prevails', titleZh: '马德里政府获胜',
-    description: 'Madrid is the last surviving camp. The Nationalists and the Iberian Defense Committee have both capitulated. The Committee’s attempt to establish an independent revolutionary command has ended in defeat.',
-    descriptionZh: '马德里政府成为最后存续的阵营。国民军和伊比利亚防御委员会均已投降。委员会建立独立革命指挥体系的尝试，以失败告终。',
+  [ENDINGS.IBERIAN_COMMITTEE_DEFEAT]: {
+    title: 'Defeat of the Defense Committee', titleZh: '防御委员会失败',
+    description: 'The Iberian Defense Committee has lost Barcelona and its remaining strategic bases can no longer sustain resistance. Its forces have capitulated, ending the Committee’s struggle regardless of the outcome of the war between Madrid and the Nationalists.',
+    descriptionZh: '伊比利亚防御委员会失去了巴塞罗那，剩余战略基础已不足以支撑抵抗。委员会部队投降，其斗争就此结束，无论马德里政府与国民军之间的战争将如何发展。',
   },
   [ENDINGS.CHILDREN_OF_THE_PEOPLE]: {
     title: 'Children of the People',
@@ -81,13 +85,20 @@ export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; de
 };
 
 export const checkEndings = (state: GameState): GameState => {
+  // Migrate completed legacy campaigns as well as stop a newly defeated player.
+  const campaign = state.iberianDefense;
+  if (state.ending === 'IBERIAN_MADRID_VICTORY' || (campaign && (campaign.playerDefeated
+    || campaign.eliminated.includes(MapFaction.IBERIAN_DEFENSE)
+    || (campaign.winner && campaign.winner !== MapFaction.IBERIAN_DEFENSE)))) {
+    return state.isGameOver && state.ending === ENDINGS.IBERIAN_COMMITTEE_DEFEAT ? state
+      : { ...state, isGameOver: true, ending: ENDINGS.IBERIAN_COMMITTEE_DEFEAT };
+  }
   if (state.isGameOver) return state;
   // The three-sided campaign has no calendar cutoff or premature two-camp ending.
   if (state.iberianDefense) {
     const winner = state.iberianDefense.winner;
     if (!winner) return state;
-    return { ...state, isGameOver: true, ending: winner === MapFaction.IBERIAN_DEFENSE ? 'IBERIAN_COMMITTEE_VICTORY'
-      : winner === MapFaction.REPUBLICAN ? 'IBERIAN_MADRID_VICTORY' : ENDINGS.WE_HAVE_PASSED };
+    return { ...state, isGameOver: true, ending: 'IBERIAN_COMMITTEE_VICTORY' };
   }
 
   let triggeredEnding: string | null = null;
@@ -95,7 +106,7 @@ export const checkEndings = (state: GameState): GameState => {
   const overallDissent = getOverallFactionDissent(state.factions);
 
   // 1. The Great Purge
-  if (state.partySupport['PCE'] > 80 && state.cntStance === 'govern') {
+  if (state.partySupport['PCE'] > PCE_ENDING_THRESHOLDS.greatPurge && state.cntStance === 'govern') {
     triggeredEnding = ENDINGS.THE_GREAT_PURGE;
   }
   else if (state.wars?.asturias_war === 'lost') {
@@ -106,7 +117,7 @@ export const checkEndings = (state: GameState): GameState => {
     triggeredEnding = ENDINGS.WE_HAVE_PASSED;
   }
   // 3. Russian Spain
-  else if (state.civilWarStatus === 'won' && state.moscowGoldTransferred && state.partySupport['PCE'] > 80 && state.pceInPower && state.pceAcceptsComintern) {
+  else if (state.civilWarStatus === 'won' && state.moscowGoldTransferred && state.partySupport['PCE'] > PCE_ENDING_THRESHOLDS.russianSpain && state.pceInPower && state.pceAcceptsComintern) {
     triggeredEnding = ENDINGS.RUSSIAN_SPAIN;
   }
   // 4. Children of the People

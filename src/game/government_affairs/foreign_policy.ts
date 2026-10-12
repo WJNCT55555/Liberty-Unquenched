@@ -1,6 +1,7 @@
 import { Card, GameState, GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, withCurrentDate } from '../utils';
 import { adjustCntMilitiaManpower, isOrganizationActive } from '../organizations';
+import { canTransferMoscowGold, transferMoscowGold } from '../rules/moscowGold';
 
 const concludeForeignPolicy = (changes: Partial<GameState>): Partial<GameState> => ({
   ...changes,
@@ -408,28 +409,15 @@ export const negotiateSovietEvent: GameEvent = {
       textZh: '动用"共和国黄金储备"购买苏联重装备',
       subtitle: '-3 Budget, -150 Gold -- Transfer bullion to Moscow as down-payment for advanced aircrafts and ammunition.',
       subtitleZh: '-3 预算 -150 黄金 -- 将黄金运往莫斯科（首期付款），换取飞机与急需的弹药',
-      condition: (state) => state.budget >= 3 && state.gold_reserves >= 150 && !state.moscowGoldTransferred,
+      condition: (state) => state.budget >= 3 && canTransferMoscowGold(state),
       unavailableSubtitle: () => 'Requires: 3 Budget, 150 Gold, and Moscow gold transfer not yet completed.',
       unavailableSubtitleZh: () => '预算不足（需要3）、黄金储备低于150M、或莫斯科黄金已转移',
       effect: (state) => {
-        const newFactions = adjustFactionDissents(state.factions, {
-          Faistas: 6,
-          Puristas: 5
-        });
-        let newClasses = state.classes;
-        newClasses = adjustClassSupport(newClasses, 'Obreros', 'PCE', 5);
+        const transfer = transferMoscowGold(state);
+        if (state.budget < 3 || !transfer.moscowGoldTransferred) return {};
         return concludeForeignPolicy({
+          ...transfer,
           budget: Math.max(0, state.budget - 3),
-          gold_reserves: Math.max(0, state.gold_reserves - 150),
-          moscowGoldTransferred: true,
-          tankResearchProgress: Math.min(100, state.tankResearchProgress + 25),
-          armaments: state.armaments + 4,
-          factions: newFactions,
-          relations: {
-            ...state.relations,
-            ussr: Math.min(100, state.relations.ussr + 5)
-          },
-          classes: newClasses
         });
       }
     },

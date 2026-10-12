@@ -152,7 +152,7 @@ export const TopBar = () => {
           <TabButton 
             onClick={() => setIsPoliticsModalOpen(true)}
             isActive={isPoliticsModalOpen}
-            label={isZh ? '政府' : 'GOVERNMENT'} 
+            label={isZh ? '政治' : 'POLITICS'}
           />
           <TabButton 
             onClick={() => setIsPolicyModalOpen(true)}

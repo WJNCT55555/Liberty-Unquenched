@@ -10,7 +10,10 @@ export function adjustZeroSumShare<K extends string>(
   target: K,
   delta: number,
   total = 100,
+  donors?: readonly K[],
 ): Record<K, number> {
+  // An explicit donor pool limits positive transfers to displaced affiliations.
+  // Omitting it retains the existing proportional adjustment for all callers.
   const next = JSON.parse(JSON.stringify(share)) as Record<K, number>;
   const keys = Object.keys(next) as K[];
 
@@ -30,7 +33,7 @@ export function adjustZeroSumShare<K extends string>(
 
     // 从其他键按比例扣除
     while (remainingDelta > 0.001) {
-      const otherKeys = keys.filter(key => key !== target && (next[key] || 0) > 0);
+      const otherKeys = keys.filter(key => key !== target && (!donors || donors.includes(key)) && (next[key] || 0) > 0);
 
       let pool = 0;
       for (const key of otherKeys) {

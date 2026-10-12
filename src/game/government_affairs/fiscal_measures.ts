@@ -58,7 +58,7 @@ const fiscalMeasuresEvent = (state: GameState): GameEvent => ({
         ? '货币已经废除。'
         : '需要 1 资源。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'currency_abolition') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'currency_abolition', { industry: { smallBusiness: -2, cooperative: 2 } }) } as GameState;
         const level = getEconomyCounter(next, 'currency_abolition');
         // Level 1–2 buys the FAI's enthusiasm at the price of the purists' patience;
         // level 3 is total, so the purists come round and the shopkeepers do not.
@@ -73,7 +73,7 @@ const fiscalMeasuresEvent = (state: GameState): GameEvent => ({
         }
         return {
           resources: s.resources - 1,
-          ...applyEconomicOption(s, 'currency_abolition'),
+          ...applyEconomicOption(s, 'currency_abolition', { industry: { smallBusiness: -2, cooperative: 2 } }),
           factions,
           classes: level === 1
             ? adjustClassSupport(s.classes, 'PequenaBurguesia', 'CNT_FAI', -3)
@@ -95,7 +95,7 @@ const fiscalMeasuresEvent = (state: GameState): GameEvent => ({
       unavailableSubtitle: () => 'The private banks have already been emptied.',
       unavailableSubtitleZh: () => '私营银行的钱已经被取空了。',
       effect: (s: GameState): Partial<GameState> => ({
-        ...applyEconomicOption(s, 'private_bank_seizure'),
+        ...applyEconomicOption(s, 'private_bank_seizure', { industry: { bigCapital: -4, state: 4 } }),
         budget: Math.min(5000, s.budget + 8),
         inflation_rate: Math.min(100, s.inflation_rate + 0.5),
         relations: {
@@ -123,11 +123,11 @@ const fiscalMeasuresEvent = (state: GameState): GameEvent => ({
         ? '地方互助信贷网络已经建成。'
         : '需要 1 资源。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'mutual_credit_network') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'mutual_credit_network', { land: { smallholders: -2, cooperative: 2 } }) } as GameState;
         const completed = getEconomyCounter(next, 'mutual_credit_network') >= 5;
         return {
           resources: s.resources - 1,
-          ...applyEconomicOption(s, 'mutual_credit_network'),
+          ...applyEconomicOption(s, 'mutual_credit_network', { land: { smallholders: -2, cooperative: 2 } }),
           ...(completed ? applyUnionShareDelta(s, { CNT: 2, other: -2 }) : {}),
           classes: adjustClassSupport(
             adjustClassSupport(s.classes, 'Labradores', 'CNT_FAI', 3),

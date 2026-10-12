@@ -10,6 +10,7 @@ import {
   ECONOMY_COUNTERS,
   ECONOMY_COUNTER_DEFAULTS,
   ECONOMY_REFORM_CAPS,
+  CURRENCY_ABOLITION_CONSUMPTION_FACTOR,
   EMPTY_ECONOMY_REFORM_GRAPHS,
   UNCAPPED_ECONOMY_COUNTERS,
   advanceEconomyCounter,
@@ -632,10 +633,26 @@ assert(organizations1933.FIJL?.established && !organizations1933.ML?.established
 assert(!organizations1933.FNA?.established && organizations1933.FNA?.status === 'unformed', 'FNA must not exist at the 1933 start');
 assert(organizations1936.FIJL?.established && organizations1936.ML?.established && organizations1936.DC?.established, '1936 should start with FIJL, Mujeres Libres, and Defense Committees');
 assert(!organizations1936.FNA?.established && organizations1936.FNA?.status === 'unformed', 'FNA must not exist at the 1936 start');
+assert([organizations1931, organizations1933, organizations1936].every(organizations => organizations.RE?.established && organizations.RE?.status === 'active'), 'Every existing scenario must include its separate RE political organization');
 
 // Formation coverage: every organization must be reachable in a long 1931 game,
 // either by scenario default, by a formation event, or by the war mobilisation.
 assert(organizations1931.REQUETE_MILITIA?.established === true, 'The Requeté militia must predate 1931');
+const carlistOrganizations = ORGANIZATION_DEFINITIONS.filter(definition => definition.id === 'REQUETE' || definition.id === 'REQUETE_MILITIA');
+assert(carlistOrganizations.length === 1 && carlistOrganizations[0].owner === 'CT' && carlistOrganizations[0].type === 'militia', 'Requetés must be registered once as a Carlist militia organization');
+assert(getDefaultArmedEntityPools().requetes.owner === 'CT', 'New Requetés reserves must belong to the Carlists');
+const legacyRequetesState = normalizeOrganizationState(stateWith({ organizations: {
+  REQUETE: { established: true, status: 'dissolved', establishedAt: { year: 1913, month: 1 } },
+} }));
+assert(!legacyRequetesState.organizations.REQUETE && legacyRequetesState.organizations.REQUETE_MILITIA?.status === 'dissolved', 'The old duplicate must migrate without reviving a dissolved militia');
+assert(legacyRequetesState.organizations.RE?.status === 'active', 'Missing RE party organization records must be restored independently of the Carlist militia');
+const existingRequetesState = normalizeOrganizationState(stateWith({ organizations: {
+  RE: { established: true, status: 'dissolved' },
+  REQUETE: { established: true, status: 'active' },
+  REQUETE_MILITIA: { established: true, status: 'dissolved', establishedAt: { year: 1913, month: 1 } },
+} }));
+assert(!existingRequetesState.organizations.REQUETE && existingRequetesState.organizations.REQUETE_MILITIA?.status === 'dissolved', 'A current militia record must take precedence over the old duplicate');
+assert(existingRequetesState.organizations.RE?.status === 'dissolved', 'Restoring missing RE records must not overwrite an explicit saved lifecycle state');
 // Parties and their pre-1931 organizations must already exist when the game opens.
 const preExisting1931 = [
   'ERC', 'PRR', 'DLR', 'IR', 'UR', 'JJSS', 'UJCE', 'FNTT', 'UNIO_RABASSAIRES',
@@ -683,6 +700,37 @@ assert(seuFormation.condition?.(stateWith({ scenario: '1931', year: 1933, month:
 const jsuResult = jsuFormation.options[0].effect(stateWith({ scenario: '1931', year: 1936, month: 4 }));
 assert(jsuResult.organizations?.JJSS?.status === 'integrated' && jsuResult.organizations?.UJCE?.status === 'integrated', 'The JSU must absorb the JJSS and the UJCE');
 assert(jsuResult.organizations?.JSU?.established === true, 'The JSU itself must be established by the same event');
+
+// Recurring JSU support starts after formation, remains zero-sum, and stops when inactive.
+const jsuMonthlyState = stateWith({ organizations: jsuResult.organizations });
+const jsuSupportBefore = jsuMonthlyState.classes.Intelectuales.support.PCE;
+const jsuAfterOneMonth = applyMonthlyOrganizationEffects(jsuMonthlyState);
+assert(Math.abs(jsuAfterOneMonth.classes.Intelectuales.support.PCE - jsuSupportBefore - 7 / 12) < 0.001, 'An active JSU should add 7/12 points of PCE support among intellectuals each month');
+assert(jsuMonthlyState.classes.Intelectuales.support.PCE === jsuSupportBefore, 'JSU monthly effects must not mutate the previous month');
+Object.entries(jsuMonthlyState.classes).forEach(([classId, classData]) => {
+  if (classId === 'Intelectuales') return;
+  assert(JSON.stringify(jsuAfterOneMonth.classes[classId]) === JSON.stringify(classData), 'JSU must leave other social classes unchanged');
+});
+let jsuAfterOneYear = jsuMonthlyState;
+for (let month = 0; month < 12; month += 1) {
+  jsuAfterOneYear = applyMonthlyOrganizationEffects(jsuAfterOneYear);
+  const support = Object.values(jsuAfterOneYear.classes.Intelectuales.support);
+  assert(Math.abs(support.reduce((sum, value) => sum + value, 0) - 100) < 0.001, 'JSU support gains must preserve the intellectual support total');
+  assert(support.every(value => value >= 0 && value <= 100), 'JSU support gains must stay within share bounds');
+}
+assert(Math.abs(jsuAfterOneYear.classes.Intelectuales.support.PCE - jsuSupportBefore - 7) < 0.005, 'Twelve active JSU months should add seven PCE support points within rounding precision');
+(['unformed', 'integrated', 'dissolved'] as const).forEach(status => {
+  const inactive = stateWith({ organizations: { ...jsuResult.organizations, JSU: { established: status !== 'unformed', status } } });
+  assert(JSON.stringify(applyMonthlyOrganizationEffects(inactive).classes) === JSON.stringify(inactive.classes), 'An inactive JSU must not grant monthly support');
+});
+const jsuNearCap = stateWith({
+  ...jsuMonthlyState,
+  classes: {
+    ...jsuMonthlyState.classes,
+    Intelectuales: { support: Object.fromEntries(Object.keys(jsuMonthlyState.classes.Intelectuales.support).map(force => [force, force === 'PCE' ? 99.8 : force === 'Other' ? 0.2 : 0])) as GameState['classes']['Intelectuales']['support'] },
+  },
+});
+assert(applyMonthlyOrganizationEffects(jsuNearCap).classes.Intelectuales.support.PCE === 100, 'JSU must cap intellectual PCE support at 100');
 // FE-JONS merger absorbs the JONS.
 const falangeJons = birthOfFeDeLasJons.options[0].effect(stateWith({ scenario: '1931', year: 1934, month: 2, fe_founded: true }));
 assert(falangeJons.organizations?.JONS?.status === 'integrated', 'The FE-JONS merger must integrate the JONS organization');
@@ -941,8 +989,7 @@ const maxedReform = stateWith({
 } as StatePatch);
 assert(calculateMonthlyIncome(maxedReform, 2).resources === 2, 'Reform counters must not add monthly resources');
 
-// Currency reform progress and its declaration cannot change the tax base while
-// automatic counter effects are paused.
+// 货币废除的税基乘数只在**满级且已宣布作废**时生效（原样放开的宏观换算通道）。
 const undeclaredAbolition = stateWith({
   currency_abolition: 3,
   currency_abolished_declared: false,
@@ -951,9 +998,17 @@ assert(
   calculateEconomyReformGraphs(undeclaredAbolition).consumptionTaxBaseFactor === 1,
   'Reaching level 3 without declaring the abolition must leave the tax base intact',
 );
+const declaredAbolition = stateWith({
+  currency_abolition: 3,
+  currency_abolished_declared: true,
+});
+assert(
+  calculateEconomyReformGraphs(declaredAbolition).consumptionTaxBaseFactor === CURRENCY_ABOLITION_CONSUMPTION_FACTOR,
+  'Declaring the abolition at level 3 must cut the consumption tax base to the designed factor',
+);
 
-// Counter effects are paused even at the highest levels; the existing monthly
-// economy formulas must receive empty reform graphs.
+// 计数器 → 四个宏观方向：按等级线性叠加的**微弱**月度修正。未推进任何计数器时必须是零，
+// 否则每一局都会被凭空惩罚。
 const baselineGraphs = calculateEconomyReformGraphs(PRE_START_STATE);
 assert(
   baselineGraphs.growthGraph === EMPTY_ECONOMY_REFORM_GRAPHS.growthGraph
@@ -963,14 +1018,56 @@ assert(
   && baselineGraphs.consumptionTaxBaseFactor === EMPTY_ECONOMY_REFORM_GRAPHS.consumptionTaxBaseFactor,
   'An untouched scenario must produce empty reform graphs',
 );
-const maxedGraphs = calculateEconomyReformGraphs(maxedReform);
-assert(JSON.stringify(maxedGraphs) === JSON.stringify(EMPTY_ECONOMY_REFORM_GRAPHS), 'Finished reform counters must add no automatic macro modifiers');
+
+// 单个计数器的每级系数（外资没收：增长 +0.05、通胀 +0.02、外汇 −0.4、财政 +0.2）。
 const seizureOnly = calculateEconomyReformGraphs(stateWith({ foreign_capital_seizure: 3 }));
-assert(JSON.stringify(seizureOnly) === JSON.stringify(EMPTY_ECONOMY_REFORM_GRAPHS), 'One reform counter must also add no macro modifier');
+assert(seizureOnly.growthGraph === 0.15, `foreign_capital_seizure ×3 should add +0.15 growth, got ${seizureOnly.growthGraph}`);
+assert(seizureOnly.inflationGraph === 0.06, `foreign_capital_seizure ×3 should add +0.06 inflation, got ${seizureOnly.inflationGraph}`);
+assert(seizureOnly.foreignExchangeGraph === -1.2, `foreign_capital_seizure ×3 should cost 1.2 FX, got ${seizureOnly.foreignExchangeGraph}`);
+assert(seizureOnly.budgetGraph === 0.6, `foreign_capital_seizure ×3 should add +0.6 treasury, got ${seizureOnly.budgetGraph}`);
+
+// 满级（全部计数器拉满）必须给出非零、且方向可解释的修正；战时正增长再 ×1.5。
+const maxedGraphs = calculateEconomyReformGraphs(maxedReform);
+assert(maxedGraphs.growthGraph !== 0 && maxedGraphs.inflationGraph !== 0
+  && maxedGraphs.foreignExchangeGraph !== 0 && maxedGraphs.budgetGraph !== 0,
+  'A fully reformed run must produce non-zero reform graphs');
+assert(maxedGraphs.inflationGraph > 0, 'A fully reformed run should be inflationary (requisition, forced collectivization, bank seizure, abolished money)');
+// 外汇项：单项外资没收是净流出（见上面的 seizureOnly），但满级时清算委员会与外贸垄断的
+// 收益更大，所以整套改造的外汇净效果为正——这是原表的既有设计，不是笔误。
+assert(maxedGraphs.foreignExchangeGraph > 0, 'A fully reformed run should net positive FX (clearing house + trade monopoly outweigh foreign seizures)');
+const wartimeMaxed = calculateEconomyReformGraphs({ ...maxedReform, civilWarStatus: 'ongoing' });
+assert(
+  wartimeMaxed.growthGraph > maxedGraphs.growthGraph,
+  'Wartime reform gains must be amplified on the growth side only',
+);
+assert(
+  wartimeMaxed.inflationGraph === maxedGraphs.inflationGraph,
+  'The wartime multiplier must not touch the inflation graph',
+);
 
 const peaceEconomy = calculateMonthlyEconomy(stateWith({ unionShare: { CNT: 20 } }));
 const reformedEconomy = calculateMonthlyEconomy(maxedReform);
-assert(JSON.stringify(peaceEconomy) === JSON.stringify(reformedEconomy), 'Counter progress alone must leave every monthly economy result unchanged');
+assert(
+  reformedEconomy.nextGrowth !== peaceEconomy.nextGrowth
+  && reformedEconomy.nextInflation !== peaceEconomy.nextInflation
+  && reformedEconomy.nextForeignExchange !== peaceEconomy.nextForeignExchange,
+  'Counter progress must now move the monthly economy',
+);
+// CI 日志里留一份"满级改造"的读数，便于人工核对量级（每级微弱、叠加后可见）。
+console.log('  满级经济改造的月度宏观修正：'
+  + `增长 ${maxedGraphs.growthGraph.toFixed(2)}（战时 ${wartimeMaxed.growthGraph.toFixed(2)}）`
+  + ` · 通胀 ${maxedGraphs.inflationGraph.toFixed(2)}`
+  + ` · 外汇 ${maxedGraphs.foreignExchangeGraph.toFixed(2)}`
+  + ` · 财政 ${maxedGraphs.budgetGraph.toFixed(2)}`
+  + ` · 消费税税基 ×${maxedGraphs.consumptionTaxBaseFactor}`);
+console.log('  同一局面下三个指标的下一月读数：'
+  + `未改造 ${peaceEconomy.nextGrowth.toFixed(2)}／${peaceEconomy.nextInflation.toFixed(2)}／${peaceEconomy.nextForeignExchange.toFixed(1)}`
+  + ` → 满级改造 ${reformedEconomy.nextGrowth.toFixed(2)}／${reformedEconomy.nextInflation.toFixed(2)}／${reformedEconomy.nextForeignExchange.toFixed(1)}`
+  + `（增长／通胀／外汇）`);
+assert(
+  reformedEconomy.reformGraphs.consumptionTaxBaseFactor === CURRENCY_ABOLITION_CONSUMPTION_FACTOR,
+  'The reform graphs must reach the monthly economy (declared abolition cuts the tax base)',
+);
 assert(peaceEconomy.nextGrowth === calculateMonthlyEconomy(stateWith({})).nextGrowth, 'Monthly economy must stay deterministic');
 
 console.log('Pure rules calculator tests passed.');

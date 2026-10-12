@@ -16,11 +16,13 @@ import { advanceEconomyCounter, type EconomyCounter } from './economyReforms';
  *
  * 两条不变量（所有函数都必须维持）：
  *  1. 每张饼六项之和恒为 100，每项非负；
- *  2. 写入只经 `transferControlShare()` / `applyControlInfluence()`，
- *     不允许内容层逐个 bucket 手写增量（后一次会覆盖前一次）。
+ *  2. 写入只经 `transferControlShare()` / `applyControlInfluence()` /
+ *     `applyEconomicOption()`，不允许内容层逐个 bucket 手写增量（后一次会覆盖前一次）。
  *
- * 经济改造计数器当前只记进度；`applyEconomicOption()` 不自动转移所有权。
- * 独立行动仍可显式调用 `transferControlShare()` 改变所有权。
+ * **效果属于行动，记账属于计数器**：经济改造计数器只记录"玩家做过几次这件事"，
+ * 它本身不改变所有权、也不产生宏观修正；动饼的向量写在行动（选项）里。
+ * **军事类选项不写经济效果**：五月事件、民兵合法性、战时权力安排与军事化抉择
+ * 都只结算政治（派系异议、党派关系、承诺度、法律等级），不碰这两张饼。
  *
  * 依赖方向是单向的：`rules/*` → `rules/controlShares.ts` → `types.ts` / `scenarios/controlShares.ts`。
  * 本模块不得 import 经济改造的日志或事件。
@@ -324,20 +326,31 @@ export const getDerivedWorkerControl = (shares: EconomyOwnershipShares): number 
 };
 
 /**
- * **经济改造选项的唯一效果写法**（docs/工人控制度改造方案.md §4.4／§4.6）。
+ * **经济改造选项的效果写法**：效果由**选项自己**声明（与其他选项写效果的方式一致），
+ * 计数器只负责记账。**计数器本身不产生任何效果**——它不携带向量、不按等级发奖、
+ * 也不在月度结算里改动所有权。
  *
- * 只推进一次计数。完成状态仍供路线和选项条件读取，但计数不自动改变所有权。
- * 原先按计数器查向量的实现暂时注释保留，待独立设计行动效果时再处理。
+ * ```ts
+ * // 土地与自由「强制集体化」：向量写在选项里，计数器跟在后面 +1
+ * ...applyEconomicOption(s, 'land_forced_collectivization', {
+ *   land: { latifundia: -3, church: -1, smallholders: -5, collective: 8, state: 1 },
+ * }),
+ * ```
+ *
+ * 不传向量就是"这次行动不动所有权"（口粮本、清算机构这类），此时只 +1 计数。
+ * 之所以把向量做成调用方的参数而不是计数器上的表：同一个计数器会被不止一个选项
+ * 推动（土地与自由与农业政策都写 `land_voluntary_collectivization`），向量一旦钉在
+ * 计数器上，两处就会出现"第二种口径"；效果属于行动，记账属于计数器。
  */
 export const applyEconomicOption = (
   state: GameState,
   counter: EconomyCounter,
+  transfers: {
+    land?: Partial<Record<LandOwnershipKey, number>>;
+    industry?: Partial<Record<IndustryOwnershipKey, number>>;
+  } = {},
 ): Partial<GameState> => {
-  return advanceEconomyCounter(state, counter, 1);
-  /* 暂停：经济改造计数器不再自动转移生产资料所有权。
-  const counterPatch = advanceEconomyCounter(state, counter, 1);
-  let next = { ...state, ...counterPatch } as GameState;
-  const transfers = ECONOMY_COUNTER_TRANSFERS[counter];
+  let next = state;
   if (transfers.land) {
     const patch = transferControlShare(next, 'land', transfers.land as Partial<Record<string, number>>);
     next = { ...next, ...patch } as GameState;
@@ -346,8 +359,10 @@ export const applyEconomicOption = (
     const patch = transferControlShare(next, 'industry', transfers.industry as Partial<Record<string, number>>);
     next = { ...next, ...patch } as GameState;
   }
-  return { ...counterPatch, controlShares: next.controlShares } as Partial<GameState>;
-  */
+  const counterPatch = advanceEconomyCounter(state, counter, 1);
+  return next === state
+    ? counterPatch
+    : ({ ...counterPatch, controlShares: next.controlShares } as Partial<GameState>);
 };
 
 /** 给界面与预览用的份额条目顺序（私人三项 → 社会化三项）。 */

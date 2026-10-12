@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { EffectPreviewLine, Faction, GameEvent, GameState, WartimeGovernmentRoute } from '../../types';
 import { adjustFactionDissents, formWartimeGovernment, updateCoalitions } from '../../utils';
 import { getPartyName } from '../../partyNames';
@@ -8,16 +8,14 @@ import {
   WARTIME_COALITION_ID,
 } from '../../rules/wartimeCoalition';
 import { WartimeCoalitionDetails } from '../../../components/WartimeCoalitionDetails';
-import { applyControlInfluence } from '../../rules/controlShares';
 
+// 路线只结算政治与法律：三条路线都不动两张所有权饼，也不写经济改造计数器（用户定稿）。
 const ROUTE_EFFECTS: Record<WartimeGovernmentRoute, {
   stats: Partial<GameState['stats']>;
-  /** Ownership influence: the defence-council route hands the unions a share of industry. */
-  controlPoints?: number;
   dissent: Partial<Record<Faction, number>>;
 }> = {
   cabinet: { stats: { republicanAuthority: 10, bureaucratization: 10, revolutionaryFervor: -5 }, dissent: { Faistas: 8, Puristas: 12 } },
-  council: { stats: { republicanAuthority: 6, revolutionaryFervor: 5, bureaucratization: 3 }, controlPoints: 8, dissent: { Faistas: -4, Puristas: 4 } },
+  council: { stats: { republicanAuthority: 6, revolutionaryFervor: 5, bureaucratization: 3 }, dissent: { Faistas: -4, Puristas: 4 } },
   external: { stats: { republicanAuthority: 3, revolutionaryFervor: 3 }, dissent: { Faistas: -5, Puristas: -8 } },
 };
 const OFFICES: Record<keyof GameState['ministers'], [string, string]> = {
@@ -26,7 +24,7 @@ const OFFICES: Record<keyof GameState['ministers'], [string, string]> = {
 };
 const STAT_LABELS: Partial<Record<keyof GameState['stats'], [string, string]>> = {
   republicanAuthority: ['Republican authority', '共和国权威'], bureaucratization: ['Bureaucratization', '官僚化'],
-  revolutionaryFervor: ['Revolutionary fervor', '革命热情'], workerControl: ['Workers’ control', '工人控制'],
+  revolutionaryFervor: ['Revolutionary fervor', '革命热情'],
 };
 
 const previewArrangement = (state: GameState, route: WartimeGovernmentRoute): EffectPreviewLine[] => {
@@ -56,11 +54,9 @@ const applyArrangement = (state: GameState, route: WartimeGovernmentRoute): Part
     const stat = key as keyof GameState['stats'];
     stats[stat] = Math.max(0, Math.min(100, stats[stat] + delta));
   }
-  const controlPoints = ROUTE_EFFECTS[route].controlPoints;
   return {
     ...next,
     stats,
-    ...(controlPoints ? applyControlInfluence(next, controlPoints, { land: 0.25, industry: 0.75 }) : {}),
     factions: adjustFactionDissents(next.factions, ROUTE_EFFECTS[route].dissent),
     currentEvent: wartimePowerArrangementResult,
   };

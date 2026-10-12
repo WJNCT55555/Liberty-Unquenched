@@ -17,6 +17,7 @@ import { initializeStartingCoalition, shouldQueueEvent } from '../utils';
 import { activateCivilWarOrganizations, getDefaultArmedEntityPools } from '../organizations';
 import { getDefaultArmyFormations, initializeMapState } from '../../map/map_constants';
 import { ECONOMIC_RULES } from '../rules/economy';
+import { getAnnualEconomicImpulse } from '../rules/annualEconomicImpulse';
 import {
   PRE_START_STATE,
   NEUTRAL_ARMED_FORCES,
@@ -162,6 +163,7 @@ export const createScenarioState = (
     impeachPresidentAvailable: definition.history.impeachPresidentAvailable,
     isPresidentImpeached: definition.history.isPresidentImpeached,
     presidentElectionSeen: definition.history.presidentElectionSeen,
+    pceAcceptsComintern: definition.history.pceAcceptsComintern,
     coupSystemActive: definition.history.coupSystemActive,
     superEvent: definition.superEvent,
     regionalStatuses: { ...definition.regionalStatuses },
@@ -186,6 +188,9 @@ export const createScenarioState = (
     economic_output_index: ECONOMIC_RULES.defaults.outputIndex,
     economyHistory: initialHistory,
     fiscal_arrears: ECONOMIC_RULES.defaults.fiscalArrears,
+    // 开局年也先摆上当年那一行冲量（1933·11、1936·07 这类开局不是 1 月，
+    // 否则它们要等到下一个 1 月才有外部环境）；1931 开局没有表项，为零冲量。
+    annualEconomicImpulse: getAnnualEconomicImpulse(startYear, difficulty, startCivilWarStatus),
     ...initializeMapState(scenario, startCivilWarStatus),
     mapSelectedProvinceId: null,
     mapSelectedArmyId: null,

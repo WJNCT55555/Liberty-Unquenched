@@ -1,16 +1,15 @@
 import type { GameState } from '../types';
-// 暂停所有权向量时不再需要：import type { IndustryOwnershipKey, LandOwnershipKey } from '../types';
 import { isOrganizationEstablished } from '../organizations';
 import { getControlShares, getWorkersShare } from './controlShares';
 
 /**
  * 经济改造（生产关系的六条路线）的规则层单一来源。
  *
- * 设计见 `docs/经济改造方案.md`。当前计数器只统计进度；宏观换算已暂停：
- *
  *  1. `advanceEconomyCounter()` —— 18 个顶层计数器的唯一写入口（卡牌/顾问选项调用）；
- *  2. `calculateEconomyReformGraphs()` —— 暂时返回零修正，
- *     由 `rules/economy.ts` 的 `calculateMonthlyEconomy` 消费（预览与月结共用）。
+ *  2. `calculateEconomyReformGraphs()` —— 把计数器折算成四个宏观方向的月度修正 +
+ *     一个消费税税基乘数，由 `rules/economy.ts` 的 `calculateMonthlyEconomy` 消费
+ *     （预览与月结共用）。**按等级线性叠加，属于"微弱"的持续效果**；选项另有自己的
+ *     单次效果，计数器只负责记账。
  *
  * 依赖方向是单向的：`economy.ts` → `economyReforms.ts` → `types.ts` / `organizations.ts`。
  * 本模块**不得** import `economy.ts`，否则会与 `calculateMonthlyEconomy` 形成循环依赖。
@@ -66,48 +65,14 @@ export const ECONOMY_COUNTER_DEFAULTS: Record<EconomyCounter, number> = ECONOMY_
 );
 
 /**
- * 历史方案中的所有权转移向量，目前仅作为暂存设计数据保留。
- * `applyEconomicOption()` 已停止查表；计数器 +1 不再自动改变所有权。
+ * **计数器不带效果**（用户定稿）。
+ *
+ * 这里曾经有一张 `ECONOMY_COUNTER_TRANSFERS`（计数器 → 所有权转移向量）表，已删除：
+ * 效果由选项自己声明（见 `rules/controlShares.ts` 的 `applyEconomicOption`），
+ * 计数器只记录"玩家做过几次这件事"。把向量钉在计数器上的写法有两个后果，
+ * 都不是我们想要的：同一个计数器被两个选项推动时会出现第二种口径；以及
+ * 玩家会以为"把计数器刷高"本身就该有回报。
  */
-/* 暂停：计数器的历史所有权向量不参与运行；恢复时应先改为各行动独立效果。
-export const ECONOMY_COUNTER_TRANSFERS: Record<
-  EconomyCounter,
-  {
-    land?: Partial<Record<LandOwnershipKey, number>>;
-    industry?: Partial<Record<IndustryOwnershipKey, number>>;
-  }
-> = {
-  // ---- 农业五项（无上限；以下为暂停的历史转移方案）----
-  agricultural_cooperative: { land: { smallholders: -1.5, cooperative: 1.5 } },
-  land_requisition: { land: { latifundia: -2, church: -0.5, collective: 2, cooperative: 0.5 } },
-  land_redemption: { land: { latifundia: -1.5, church: -0.5, state: 2 } },
-  land_voluntary_collectivization: { land: { smallholders: -3, cooperative: -1, collective: 4 } },
-  land_forced_collectivization: {
-    land: { latifundia: -3, church: -1, smallholders: -5, collective: 8, state: 1 },
-  },
-  // ---- 金融与货币 ----
-  currency_abolition: { industry: { smallBusiness: -2, cooperative: 2 } },
-  private_bank_seizure: { industry: { bigCapital: -4, state: 4 } },
-  mutual_credit_network: { land: { smallholders: -2, cooperative: 2 } },
-  // 清算机构是记账与结算，不改所有权。
-  credit_exchange_committee: {},
-  // ---- 工业 ----
-  rail_nationalization: { industry: { foreign: -4, bigCapital: -2, state: 6 } },
-  coal_nationalization: { industry: { bigCapital: -5, union: 5 } },
-  industrial_cooperative: { industry: { smallBusiness: -5, cooperative: 5 } },
-  foreign_capital_seizure: { industry: { foreign: -6, state: 6 } },
-  supply_coordination_network: {
-    land: { smallholders: -1, cooperative: 1 },
-    industry: { smallBusiness: -1, cooperative: 1 },
-  },
-  // ---- 战时经济 ----
-  wartime_requisition: { land: { church: -1, latifundia: -1, smallholders: -2, state: 4 } },
-  // 口粮本重新分配的是食物，不是地契。
-  family_rationing: {},
-  war_industry_conversion: { industry: { smallBusiness: -3, bigCapital: -2, state: 5 } },
-  wartime_trade_monopoly: { industry: { foreign: -3, state: 3 } },
-};
-*/
 
 /** 顾问配方案的推动次数上限（方案 §9.3）。 */
 export const ECONOMY_PUSH_LIMITS = { cooperativePushes: 2, organicPushes: 3 } as const;
@@ -116,7 +81,7 @@ export type EconomyPushCounter = keyof typeof ECONOMY_PUSH_LIMITS;
 /**
  * 六条经济路线的日志 id，按方案 §0.3 的顺序。
  *
- * 放在规则层而不是 selectors：界面（读模型）、成就（"六条路"）与测试都要用它，
+ * 放在规则层而不是 selectors：界面（读模型）、日志路线判定与测试都要用它，
  * 而规则层是三者唯一共同的依赖方向。
  */
 export const ECONOMY_ROUTE_JOURNAL_IDS: readonly string[] = [
@@ -243,23 +208,27 @@ export const EMPTY_ECONOMY_REFORM_GRAPHS: EconomyReformGraphs = {
   consumptionTaxBaseFactor: 1,
 };
 
-// 暂停：完全废除货币后的消费税税基乘数。
-// export const CURRENCY_ABOLITION_CONSUMPTION_FACTOR = 0.6;
+/**
+ * 完全废除货币后的消费税税基乘数。
+ *
+ * 设计上最痛的一刀：消费税税基是财政大头（默认 8% 税率），废掉货币就等于废掉消费税，
+ * 否则"废除货币"就是免费红利。只有 `currency_abolition === 3` **且**已宣布作废才生效。
+ */
+export const CURRENCY_ABOLITION_CONSUMPTION_FACTOR = 0.6;
 
-// 暂停宏观修正期间保留原舍入函数，恢复下方公式时一并启用。
-// const roundTo = (value: number, decimals: number): number => Number(value.toFixed(decimals));
+const roundTo = (value: number, decimals: number): number => Number(value.toFixed(decimals));
 
 /**
- * 18 个计数器原本折算成四个宏观方向 + 一个税基乘数。
+ * 18 个计数器折算成四个宏观方向 + 一个税基乘数。
  *
- * 当前按设计决定暂时停用这些自动宏观效果。计数器本身、行动独立写入的
- * 即时效果与路线判定保留；经济窗口与月结都从这里读到零修正。
- * 原公式注释保留在函数内，恢复时可对照。
+ * **按等级线性叠加**：每推进一级就多一段**微弱**的月度修正，满级时这一段达到最大
+ * （例：农业合作社每级 `growthGraph +0.05`，满 5 级 = +0.25）。货币废除是唯一带
+ * 三级梯度的一项（通胀 +0.15／+0.25／+0.35），并且只有它拥有"满级触发"的税基乘数。
+ *
+ * 分母上的分工：选项自己写**单次**效果，计数器只负责记账，本函数把记账结果折成
+ * 持续的月度宏观环境。修正是加项，不改 `economy.ts` 的任何既有公式。
  */
-export const calculateEconomyReformGraphs = (_state: GameState): EconomyReformGraphs => {
-  return EMPTY_ECONOMY_REFORM_GRAPHS;
-
-  /* 暂停：经济改造计数器不再自动改变国家宏观经济。
+export const calculateEconomyReformGraphs = (state: GameState): EconomyReformGraphs => {
   const counter = (key: EconomyCounter): number => getEconomyCounter(state, key);
   const isCivilWar = state.civilWarStatus === 'ongoing';
 
@@ -343,5 +312,4 @@ export const calculateEconomyReformGraphs = (_state: GameState): EconomyReformGr
       ? CURRENCY_ABOLITION_CONSUMPTION_FACTOR
       : 1,
   };
-  */
 };

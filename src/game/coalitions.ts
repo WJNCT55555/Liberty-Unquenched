@@ -60,6 +60,14 @@ export const COALITION_DEFS: CoalitionDef[] = [
     dissolveThreshold: 10
   },
   {
+    id: 'prrevs_parliamentary_majority',
+    name: 'PRRevS Parliamentary Majority',
+    nameZh: 'PRRevS议会多数',
+    members: ['CNT_FAI'],
+    electionRole: 'seat_majority',
+    dissolveThreshold: 10
+  },
+  {
     id: 'national_front',
     name: 'National Front',
     nameZh: '国民阵线',

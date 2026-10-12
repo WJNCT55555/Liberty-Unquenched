@@ -20,12 +20,12 @@ export const landCollectivizationJournal: JournalEntryDef = {
   titleZh: '土地集体化',
   description: 'Redistribution settled who owns the fields; it did not settle how they are worked. A peasant with four hectares and a mule is not a collective, and the syndicates in Aragon have already discovered that you cannot plan a harvest across a hundred private plots. Collectivization means the villages pool the land itself — the boundary stones come up, the machinery is shared, and the harvest is reckoned in common.',
   descriptionZh: '重新分配解决了地是谁的，却没有解决地怎么种。一个有四公顷地和一头骡子的农民不是一个集体，而阿拉贡的工团已经发现：一百块私人的地是没法统一安排收成的。集体化意味着村庄把土地本身合起来——界石拔掉、机械共用、收成共同核算。',
-  successCondition: 'Agricultural collectives hold 65% of the land',
-  successConditionZh: '农业集体占到全部土地的 65%',
+  successCondition: 'The agricultural collectives hold 65% of the land pie.',
+  successConditionZh: '土地饼里的「农业集体」达到 65%。',
   successEffectDesc: 'The countryside is collectivized: the movement\'s organization grows in the villages and the yeomanry\'s resistance hardens.',
   successEffectDescZh: '乡村完成集体化：运动在村庄的组织规模扩大，自耕农的抵触也随之加深。',
-  failureCondition: 'The land reform itself fails',
-  failureConditionZh: '土地改革本身失败',
+  failureCondition: 'The Land Reform journal fails',
+  failureConditionZh: '「土地改革」日志失败',
   failureEffectDesc: 'Collectivization is abandoned along with the reform it rested on.',
   failureEffectDescZh: '集体化随它所依赖的改革一起被放弃。',
   hasProgress: true,
@@ -63,19 +63,9 @@ export const landCollectivizationJournal: JournalEntryDef = {
     classes: adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', -6),
   }),
 
-  activeEffect: {
-    description: 'Every village that pools its land is a village the yeomanry will not forgive; the syndicates grow, and so does the resistance.',
-    descriptionZh: '每一个把土地合起来的村庄，都是自耕农不会原谅的村庄；工团在增长，抵触也一样。',
-    apply: (state) => ({
-      // 集体化推进时，自耕农持续流失——这是这本日志的持续代价。
-      classes: adjustClassSupport(
-        adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', 2 / 12),
-        'Labradores',
-        'CNT_FAI',
-        -2 / 12,
-      ),
-    }),
-  },
+  // 日志**不提供月度效果**（用户定稿）：这本日志与六条经济路线一样，只回答
+  // "集体化走到哪一步了"。集体化的代价来自玩家自己按下的每一次强制/自愿集体化
+  // （选项里的阶层支持与派系异议），而不是日志每月自动扣一次。
 };
 
 /** 供事件与测试读取的当前集体化读数。 */

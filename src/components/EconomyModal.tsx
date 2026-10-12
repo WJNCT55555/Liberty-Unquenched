@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameState } from '../game/types';
 import { calculateMonthlyEconomy, ECONOMIC_RULES } from '../game/rules/economy';
+import { hasAnnualEconomicImpulseEffect } from '../game/rules/annualEconomicImpulse';
 import { EconomyReformPanel } from './EconomyReformPanel';
 import { X, TrendingUp, Percent, Users, Landmark, AlertTriangle, Coins, DollarSign, Activity, ShoppingCart } from 'lucide-react';
 
@@ -11,6 +12,9 @@ interface Props {
   dispatch: (action: any) => void;
   isZh: boolean;
 }
+
+/** 年度冲量的显示格式：带符号两位小数。 */
+const formatImpulseDelta = (value: number): string => `${value > 0 ? '+' : ''}${value.toFixed(2)}`;
 
 const MinimalPieChart: React.FC<{
   data: { label: string; value: number; color: string }[];
@@ -373,6 +377,31 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
               <h3 className="font-typewriter text-xs font-bold pb-1 border-b border-ink/20 uppercase tracking-wider mb-2">
                 {isZh ? '宏观经济指标' : 'Macroeconomic Status indicators'}
               </h3>
+
+              {/* 年度冲量：静默生效的外部环境，不进事件队列——在这里显示一行就够。 */}
+              {hasAnnualEconomicImpulseEffect(state.annualEconomicImpulse) && (
+                <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-ink-light border border-ink/10 bg-paper px-2 py-1 rounded-xs">
+                  <span className="uppercase tracking-wider font-bold">
+                    {isZh ? '本年外部经济环境' : 'External environment'}
+                  </span>
+                  <span className="font-bold text-ink">
+                    {isZh ? state.annualEconomicImpulse!.labelZh : state.annualEconomicImpulse!.label}
+                  </span>
+                  <span className="tabular-nums">
+                    {isZh ? '增长' : 'growth'} {formatImpulseDelta(state.annualEconomicImpulse!.growth)}
+                    {' · '}
+                    {isZh ? '通胀' : 'inflation'} {formatImpulseDelta(state.annualEconomicImpulse!.inflation)}
+                    {' · '}
+                    {isZh ? '失业' : 'unemployment'} {formatImpulseDelta(state.annualEconomicImpulse!.unemployment)}
+                    {state.annualEconomicImpulse!.foreignExchangeMonthly !== 0 && (
+                      <> {' · '}{isZh ? '外汇/月' : 'FX/mo'} {formatImpulseDelta(state.annualEconomicImpulse!.foreignExchangeMonthly)}</>
+                    )}
+                    {state.annualEconomicImpulse!.goldMonthly !== 0 && (
+                      <> {' · '}{isZh ? '黄金/月' : 'gold/mo'} {formatImpulseDelta(state.annualEconomicImpulse!.goldMonthly)}</>
+                    )}
+                  </span>
+                </div>
+              )}
               
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {/* Economy Growth */}

@@ -1,4 +1,5 @@
 import { AssassinationTarget, Card, Faction, GameEvent, GameState, SocialClass } from '../types';
+import { randomChance } from '../rules/rng';
 import {
   adjustClassSupport,
   adjustFactionDissent,
@@ -682,9 +683,9 @@ export const propagandaByDeed: Card = {
           },
           effect: (s: GameState): Partial<GameState> => {
             const chance = successChance(s, targetId, weapon.modifier);
-            const succeeded = Math.random() < chance / 100;
-            const captured = !succeeded && Math.random() < weapon.captureRisk;
-            const collateral = weapon.collateralRisk > 0 && Math.random() < weapon.collateralRisk;
+            const succeeded = randomChance(chance / 100);
+            const captured = !succeeded && randomChance(weapon.captureRisk);
+            const collateral = weapon.collateralRisk > 0 && randomChance(weapon.collateralRisk);
 
             const applied = succeeded ? target.success(s) : target.failure(s);
             const newBase = Math.max(

@@ -5,6 +5,7 @@ import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from
 import { canEnterMapProvince } from '../../map/rules/factions';
 import { settleIberianCapitulations } from './iberianDefense';
 import { resolveBattle } from './combat';
+import { random } from './rng';
 
 export interface MapAiTurnDependencies {
   calculateMoves: typeof calculateAiMoves;
@@ -19,7 +20,7 @@ export const DEFAULT_MAP_AI_TURN_DEPENDENCIES: MapAiTurnDependencies = {
   resolveBattle,
   settleCapitulations: settleIberianCapitulations,
   now: Date.now,
-  random: Math.random,
+  random: () => random(),
 };
 
 export function executeAiTurn<State extends MapRuntimeState>(
@@ -28,6 +29,7 @@ export function executeAiTurn<State extends MapRuntimeState>(
   isZh: boolean,
   dependencies: MapAiTurnDependencies = DEFAULT_MAP_AI_TURN_DEPENDENCIES,
 ): State {
+  if (state.iberianDefense?.winner || state.iberianDefense?.playerDefeated) return state;
   let tempState = { ...state };
   let mapResources = { ...tempState.mapResources };
   let provinces = { ...tempState.provinces };
@@ -59,7 +61,7 @@ export function executeAiTurn<State extends MapRuntimeState>(
   const factionNameEn = aiFaction === MapFaction.REPUBLICAN ? 'Republican' : 'Nationalist';
 
   aiActions.forEach(action => {
-    if (tempState.iberianDefense?.winner || tempState.iberianDefense?.eliminated.includes(aiFaction)) return;
+    if (tempState.iberianDefense?.winner || tempState.iberianDefense?.playerDefeated || tempState.iberianDefense?.eliminated.includes(aiFaction)) return;
     if (action.type === 'BUILD') {
       const { provinceId, buildingType } = action.payload || {};
       if (!provinceId || !buildingType) return;

@@ -1,4 +1,6 @@
 import type { GameEvent } from '../types';
+import { moscowGold } from '../events/civil_war/moscow_gold';
+import { pcePoliticalVacuum, pceSmallholderGuarantees, pceMiddleClassAppeal } from '../events/civil_war/pce_social_expansion';
 import { proclamationSecondRepublic } from '../events/proclamation_of_the_second_republic';
 import { elections1933 } from '../events/elections_1933';
 import { constitution1931 } from '../events/constitution_1931';
@@ -18,6 +20,7 @@ import { republicanSurrender } from '../events/civil_war/republican_surrender';
 import { foundingOfFalange } from '../events/founding_of_falange';
 import { birthOfFeDeLasJons } from '../events/birth_of_fe_de_las_jons';
 import { foundingOfPOUM } from '../events/founding_of_poum';
+import { cominternSeventhCongress } from '../events/comintern_seventh_congress';
 import { maocFormation } from '../events/maoc_formation';
 import { consFormation } from '../events/cons_formation';
 import { formationOfPRRevS } from '../events/formation_of_prrevs';
@@ -80,7 +83,12 @@ const defineScheduledEventRegistry = (events: readonly GameEvent[]): ScheduledEv
 
 /** Events discoverable by start/month scheduling or its explicit forced-entry rules. */
 export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
+  cominternSeventhCongress,
   wartimePowerArrangement,
+  pcePoliticalVacuum,
+  pceSmallholderGuarantees,
+  pceMiddleClassAppeal,
+  moscowGold,
   militarizationCrossroads,
   // 民兵合法性法的三级阶梯（`docs/militarization-system-design.md` §6.5 问题 1）：
   // 这条法律此前零写入者，而两条军事化日志都要求它到 4 级。三个事件各自一次性，

@@ -67,6 +67,8 @@ export interface ScenarioHistoryFlags {
   impeachPresidentAvailable: boolean;
   isPresidentImpeached: boolean;
   presidentElectionSeen: boolean;
+  /** PCE adopted the Comintern popular-front line in August 1935. */
+  pceAcceptsComintern: boolean;
   coupSystemActive: boolean;
 }
 

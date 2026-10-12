@@ -8,18 +8,20 @@ import type { GameState } from '../types';
 import { getArmyPoliticalMember } from '../rules/wartimeCoalition';
 import { monthIndex } from '../rules/wartimeCoalition';
 import { canEnterMapProvince, getPlayerMapFaction, getMapFactionName } from '../../map/rules/factions';
+import { randomInt } from '../rules/rng';
 
 /** Each monthly war segment has one player turn, followed by each surviving AI once. */
 export const finishPlayerMapTurn = (state: GameState, helpers: MapReducerHelpers): GameState => {
   const now = monthIndex(state);
-  if (state.iberianDefense?.winner || state.iberianDefense?.completedAiMonth === now) return state;
+  if (state.iberianDefense?.winner || state.iberianDefense?.playerDefeated || state.iberianDefense?.completedAiMonth === now) return state;
   let next = helpers.checkWarStatus(state, state.language === 'zh');
-  if (next.iberianDefense?.winner) return next;
+  if (next.iberianDefense?.winner || next.iberianDefense?.playerDefeated) return next;
   if (next.iberianDefense) next = { ...next, iberianDefense: { ...next.iberianDefense, completedAiMonth: now } };
   const aiFactions = state.iberianDefense ? [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]
     : [state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST];
   for (const faction of aiFactions) {
-    if (next.iberianDefense?.winner || next.iberianDefense?.eliminated.includes(faction)) continue;
+    if (next.iberianDefense?.winner || next.iberianDefense?.playerDefeated) break;
+    if (next.iberianDefense?.eliminated.includes(faction)) continue;
     next = helpers.executeAiTurn({ ...next, mapCurrentPlayer: faction, mapHistory: [
       `${state.year}-${state.month} · ${getMapFactionName(faction, state.language === 'zh')} · ${state.language === 'zh' ? 'AI 回合（2 CP）' : 'AI turn (2 CP)'}`, ...(next.mapHistory ?? []),
     ] }, faction, state.language === 'zh');
@@ -210,7 +212,7 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
         tankReserve: Math.max(0, playerRes.tankReserve - reqTankReserve),
       };
 
-      const newArmyId = `army_rec_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const newArmyId = `army_rec_${Date.now()}_${randomInt(1000)}`;
       const newArmy: Army = {
         id: newArmyId,
         faction: playerFaction,

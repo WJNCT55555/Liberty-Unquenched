@@ -1,7 +1,6 @@
 import type { EffectPreviewLine, GameEvent, GameState } from '../../types';
 import { adjustFactionDissents } from '../../utils';
 import { activateJournal } from '../../rules/journalEvents';
-import { applyControlInfluence } from '../../rules/controlShares';
 import {
   adjustMilitarization,
   adjustMilitarizations,
@@ -34,12 +33,12 @@ const buildPopularArmy = (state: GameState): Partial<GameState> => ({
   currentEvent: popularArmyResult,
 });
 
+// 军事选项只结算军事与政治：不动两张所有权饼，也不写经济改造计数器（用户定稿）。
 const buildMilitiaColumns = (state: GameState): Partial<GameState> => ({
   ...adjustMilitarization(state, 'cnt', 5),
   ...chooseMilitarizationPath(state, 'militia_autonomy'),
   partyRelations: { ...state.partyRelations, PCE: Math.max(-100, state.partyRelations.PCE - 10) },
   relations: { ...state.relations, ussr: Math.max(0, state.relations.ussr - 5) },
-  ...applyControlInfluence(state, 3, { land: 0.4, industry: 0.6 }),
   stats: {
     ...state.stats,
     revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5),

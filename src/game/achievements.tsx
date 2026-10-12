@@ -1,10 +1,6 @@
 import React from 'react';
 import { GameState } from './types';
-import { ENDINGS } from './endings';
-import { LAW_LEVEL_LIMITS } from './lawStances';
-import { isOrganizationEstablished } from './organizations';
-import { getOverallFactionDissent } from './utils/factionEffects';
-import { ECONOMY_ROUTE_JOURNAL_IDS } from './rules/economyReforms';
+import { ACHIEVEMENT_CHECKS } from './achievementConditions';
 
 import { toast } from 'sonner';
 import { getImageUrl } from '../lib/assetUrl';
@@ -37,15 +33,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'A_MOSQUETEROS', title: { en: 'Los tres mosqueteros', zh: '三个火枪手' }, description: { en: 'Have Ascaso, Durruti and García Oliver serving as advisors at the same time.', zh: '让阿斯卡索、杜鲁蒂与加西亚·奥利弗同时担任顾问。' }, icon: '⚔️' },
   { id: 'A_ESPERANTO', title: { en: 'Esperanto', zh: '世界语' }, description: { en: 'Raise the language law all the way to Esperanto.', zh: '将语言法律提升至世界语。' }, icon: 'img/Achievement Icon/esperanto.png' },
   { id: 'A_OLIMPIADA', title: { en: 'Olimpíada Popular', zh: '人民奥林匹克' }, description: { en: 'Hold the People\'s Olympiad in Barcelona while the Republic is still at peace.', zh: '在共和国仍然和平时，让人民奥林匹克运动会在巴塞罗那举行。' }, icon: 'img/Achievement Icon/olimpiada_popular.png' },
-  { id: 'A_MONEY_ENDS', title: { en: 'El fin del dinero', zh: '货币的终结' }, description: { en: 'Reach the third level of abolition and declare the peseta finished in the liberated districts.', zh: '把废除货币推进到第三级，并正式宣布比塞塔在解放区作废。' }, icon: '🪙' },
-  { id: 'A_SIX_ROADS', title: { en: 'Los seis caminos', zh: '六条路' }, description: { en: 'Complete all six economic routes in a single run.', zh: '在同一局内完成全部六条经济路线。' }, icon: '🧭' }
+  { id: 'A_MONEY_ENDS', title: { en: 'El fin del dinero', zh: '货币的终结' }, description: { en: 'Reach the third level of abolition and declare the peseta finished in the liberated districts.', zh: '把废除货币推进到第三级，并正式宣布比塞塔在解放区作废。' }, icon: '🪙' }
 ];
-
-/**
- * The three militants who led the armed workers of Barcelona shoulder to shoulder
- * (see events/civil_war/civil_war_setup.ts). All three begin in the advisor pool.
- */
-const THREE_MUSKETEERS = ['Francisco Ascaso', 'Buenaventura Durruti', 'Juan García Oliver'] as const;
 
 export const getUnlockedGlobalAchievements = (): string[] => {
   try {
@@ -65,18 +54,30 @@ export const getUnlockedHistoricalAchievements = (): string[] => {
   }
 };
 
+/**
+ * 解锁写入全局存储。
+ *
+ * **无头环境没有 `localStorage`**（Mission Runner、脚本测试、SSR 都会走到这里）：
+ * 那种情况下解锁只记在 `state.unlockedAchievementsThisRun` 上，不再往存储里写，
+ * 也绝不能因此抛错——否则一次 reducer 就会把整局脚本打断。
+ */
 export const unlockGlobalAchievement = (id: string, isHistorical: boolean) => {
-  const unlocked = getUnlockedGlobalAchievements();
-  if (!unlocked.includes(id)) {
-    unlocked.push(id);
-    localStorage.setItem('cnt_fai_achievements', JSON.stringify(unlocked));
-  }
-  if (isHistorical) {
-    const historical = getUnlockedHistoricalAchievements();
-    if (!historical.includes(id)) {
-      historical.push(id);
-      localStorage.setItem('cnt_fai_achievements_historical', JSON.stringify(historical));
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const unlocked = getUnlockedGlobalAchievements();
+    if (!unlocked.includes(id)) {
+      unlocked.push(id);
+      localStorage.setItem('cnt_fai_achievements', JSON.stringify(unlocked));
     }
+    if (isHistorical) {
+      const historical = getUnlockedHistoricalAchievements();
+      if (!historical.includes(id)) {
+        historical.push(id);
+        localStorage.setItem('cnt_fai_achievements_historical', JSON.stringify(historical));
+      }
+    }
+  } catch {
+    /* 存储不可用（隐私模式/无头环境）：忽略即可，本局记录仍然有效 */
   }
 };
 
@@ -91,10 +92,11 @@ export const checkAchievements = (state: GameState): GameState => {
       newUnlocked.add(id);
       unlockGlobalAchievement(id, state.difficulty === 'historical');
       changed = true;
-      
-      const ach = ACHIEVEMENTS.find(a => a.id === id);
-      if (ach) {
-        toast.custom(() => (
+
+      try {
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        if (ach) {
+          toast.custom(() => (
           <div className="flex items-center gap-4 bg-paper border-2 border-ink p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] w-[360px] relative overflow-hidden">
             {/* Decorative corners */}
             <div className="absolute top-1 left-1 w-2 h-2 border-t-2 border-l-2 border-ink"></div>
@@ -122,92 +124,17 @@ export const checkAchievements = (state: GameState): GameState => {
             </div>
           </div>
         ), { duration: 5000 });
+        }
+      } catch {
+        /* 无头环境没有 toast 容器：解锁本身已经记在 state 上，提示可以省掉 */
       }
     }
   };
 
-  // Check conditions
-  checkAndUnlock('A_CHILDREN', state.ending === ENDINGS.CHILDREN_OF_THE_PEOPLE);
-  checkAndUnlock('A_FRANCO', state.ending === ENDINGS.WE_HAVE_PASSED);
-  checkAndUnlock('A_POPULAR', state.ending === ENDINGS.POPULAR_FRONT);
-  
-  checkAndUnlock('A_RICH', state.armaments >= 50);
-  checkAndUnlock('A_BARRICADES', state.armedForces.entityPools.cnt_defense_committees.manpower > 100000);
-  
-  const overallDissent = getOverallFactionDissent(state.factions);
-  checkAndUnlock('A_UNITY', overallDissent === 0);
-
-  const isFaistasDominant = state.factions.Faistas.influence > Math.max(
-    state.factions.Treintistas.influence,
-    state.factions.Cenetistas.influence,
-    state.factions.Puristas.influence
-  );
-  checkAndUnlock('A_DURRUTI', state.civilWarStatus === 'won' && state.durrutiAlive && isFaistasDominant);
-  checkAndUnlock(
-    'A_CATALONIA',
-    state.regionalStatuses?.catalonia === 'independent' &&
-    (state.cataloniaControl === 'cnt_fai' || state.cataloniaControl === 'committee')
-  );
-  checkAndUnlock('A_THEOLOGY', state.classes.Clero.support.CNT_FAI >= 40);
-  checkAndUnlock('A_TIZNAOS', state.hasArmoredCars);
-
-  const maxWomensRights = LAW_LEVEL_LIMITS.womens_rights;
-  const maxEducation = LAW_LEVEL_LIMITS.education_institutions;
-  const maxLanguage = LAW_LEVEL_LIMITS.language_policy;
-
-  checkAndUnlock(
-    'A_MUJERES',
-    isOrganizationEstablished(state, 'ML') &&
-    state.domesticPolicy.womens_rights >= maxWomensRights
-  );
-  checkAndUnlock('A_YOUNG_WORLD', state.internationalBrigadesFormed);
-  checkAndUnlock(
-    'A_CULTURAL_REV',
-    state.domesticPolicy.womens_rights >= maxWomensRights &&
-    state.domesticPolicy.education_institutions >= maxEducation &&
-    (state.ateneos_established || 0) >= 5
-  );
-
-  checkAndUnlock('A_OTHER_FRANCO', state.government.president === 'Ramón Franco');
-
-  // The eight figures targeted by "propaganda by the deed" (action_affairs/propaganda_by_deed.ts).
-  // Other events can kill some of them as well, so this is not an assassination-only goal.
-  checkAndUnlock(
-    'A_NONE_LEFT',
-    state.francoStatus === 'dead' &&
-    state.queipoStatus === 'dead' &&
-    state.sanjurjoStatus === 'dead' &&
-    state.calvoSoteloStatus === 'dead' &&
-    state.primoDeRiveraStatus === 'dead' &&
-    state.ramiroLedesmaStatus === 'dead' &&
-    state.zamoraStatus === 'dead' &&
-    state.alfonsoXIIIStatus === 'dead'
-  );
-
-  checkAndUnlock('A_SIN_PARTIDO', isOrganizationEstablished(state, 'PRRevS'));
-
-  // Strictly "always opposed": the flag is only ever cleared, and gating on the
-  // ending keeps it from firing on turn one. Formation of the PRRevS requires
-  // cntStance === 'govern', so this and A_SIN_PARTIDO cannot coexist in one run.
-  const neverAbandonedAbstention = state.cntStanceAlwaysOpposed ?? (state.cntStance === 'oppose');
-  checkAndUnlock('A_NO_VOTEIS', Boolean(state.isGameOver) && neverAbandonedAbstention);
-
-  checkAndUnlock(
-    'A_MOSQUETEROS',
-    THREE_MUSKETEERS.every(id => state.activeAdvisors?.some(advisor => advisor?.id === id))
-  );
-  checkAndUnlock('A_ESPERANTO', state.domesticPolicy.language_policy >= maxLanguage);
-
-  // Resolved by events/olimpiada_popular.ts, which requires a Popular Front cabinet,
-  // Catalan self-government and a Republic still at peace in June 1936. The event
-  // history only grows, so the achievement cannot be un-earned mid-run.
-  const heldPeopleOlympiad = (state.eventHistory?.resolved || []).includes('olimpiada_popular');
-  checkAndUnlock('A_OLIMPIADA', heldPeopleOlympiad);
-
-  // Economy reform (docs/经济改造方案.md §11 第 4 期). Both read counters rather than
-  // flags, so they cannot be lost after the fact.
-  checkAndUnlock('A_MONEY_ENDS', (state.currency_abolition ?? 0) >= 3 && state.currency_abolished_declared === true);
-  checkAndUnlock('A_SIX_ROADS', ECONOMY_ROUTE_JOURNAL_IDS.every(journalId => state.journal?.[journalId]?.status === 'completed'));
+  // Check conditions — the table itself lives in `achievementConditions.ts` so that
+  // headless callers (Mission Runner, script tests) can evaluate it without React,
+  // sonner or localStorage.
+  for (const check of ACHIEVEMENT_CHECKS) checkAndUnlock(check.id, check.test(state));
 
   if (changed) {
     return { ...state, unlockedAchievementsThisRun: Array.from(newUnlocked) };

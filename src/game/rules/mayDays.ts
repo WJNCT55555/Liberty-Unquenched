@@ -4,7 +4,7 @@ import { isOrganizationActive, setOrganizationStatus } from '../organizations';
 import { isRepublicanPartyPresent } from '../politicalEligibility';
 import { adjustClassSupport, adjustFactionDissents, reshapeWartimeCabinet, updateCoalitions } from '../utils';
 import { getWartimeCoalitionPower, isSpanishCivilWarOngoing, monthIndex, WARTIME_COALITION_ID, WARTIME_CRISIS_ID } from './wartimeCoalition';
-import { applyControlInfluence, getControlShares } from './controlShares';
+import { getControlShares } from './controlShares';
 import { getUnionShare } from '../unions';
 
 export const MAY_DAYS_ID = 'may_days';
@@ -127,20 +127,21 @@ export const canPreserveMayDaysGovernment = (state: GameState) => state.mayDays?
 interface PoliticalEffect {
   resources?: number;
   stats: Partial<GameState['stats']>;
-  /**
-   * 所有权影响力（旧口径的 `workerControl` 增量）。第 5A 期加：结算时经
-   * `applyControlInfluence` 落到两张饼上，不再直接写 `stats.workerControl`
-   * （docs/工人控制度改造方案.md §4.5 #14）。
-   */
-  controlPoints?: number;
   dissent: Partial<Record<Faction, number>>;
   commitments: Partial<Record<CoalitionMember, number>>;
 }
+/**
+ * 五月事件的三种结算。
+ *
+ * **军事/政治类事件，不写经济效果**（用户定稿）：这里没有所有权影响力，也不写经济改造
+ * 计数器。谁能拿走巴塞罗那的工厂由经济路线与生产关系行动决定，不由这场巷战的结果决定；
+ * 巷战决定的是政治（派系异议、党派关系、战时联盟承诺度与共和国权威）。
+ */
 export const MAY_DAYS_SETTLEMENT_EFFECTS: Record<MayDaysSettlement, PoliticalEffect> = {
-  withdrawal: { stats: { republicanAuthority: 6, revolutionaryFervor: -5 }, controlPoints: -8, dissent: { Faistas: 6, Puristas: 10 }, commitments: { CNT_FAI: -10, POUM: -10, PCE: 8, PSOE: 5, ERC: 3 } },
+  withdrawal: { stats: { republicanAuthority: 6, revolutionaryFervor: -5 }, dissent: { Faistas: 6, Puristas: 10 }, commitments: { CNT_FAI: -10, POUM: -10, PCE: 8, PSOE: 5, ERC: 3 } },
   joint: { resources: -2, stats: { republicanAuthority: 3, bureaucratization: 2 }, dissent: { Faistas: 2, Puristas: 4 }, commitments: { CNT_FAI: 5, PSOE: 5, ERC: 5, POUM: 3, PCE: -5 } },
-  committee: { resources: -3, stats: { revolutionaryFervor: 5 }, controlPoints: 5, dissent: { Faistas: -4, Treintistas: 6 }, commitments: { CNT_FAI: 8, POUM: 8, PCE: -15, IR: -8, UR: -8, PSOE: -5 } },
-  defeat: { stats: { republicanAuthority: 3, revolutionaryFervor: -8 }, controlPoints: -12, dissent: { Faistas: 10, Puristas: 15 }, commitments: { CNT_FAI: -18, POUM: -15, PCE: 5, PSOE: -5, ERC: -5 } },
+  committee: { resources: -3, stats: { revolutionaryFervor: 5 }, dissent: { Faistas: -4, Treintistas: 6 }, commitments: { CNT_FAI: 8, POUM: 8, PCE: -15, IR: -8, UR: -8, PSOE: -5 } },
+  defeat: { stats: { republicanAuthority: 3, revolutionaryFervor: -8 }, dissent: { Faistas: 10, Puristas: 15 }, commitments: { CNT_FAI: -18, POUM: -15, PCE: 5, PSOE: -5, ERC: -5 } },
 };
 const applyPolitics = (state: GameState, effect: PoliticalEffect): GameState => {
   const stats = { ...state.stats };
@@ -161,12 +162,7 @@ const applyPolitics = (state: GameState, effect: PoliticalEffect): GameState => 
       },
     }),
   };
-  // May Days decides who ends up holding the factories in Barcelona: the unions, the
-  // Republic, or the owners. The transfer must land on the ownership pies.
-  const withControl = effect.controlPoints
-    ? { ...next, ...applyControlInfluence(next, effect.controlPoints, { land: 0.2, industry: 0.8 }) }
-    : next;
-  return { ...withControl, activeCoalitions: updateCoalitions(withControl) };
+  return { ...next, activeCoalitions: updateCoalitions(next) };
 };
 
 export const beginMayDays = (state: GameState, intention: NonNullable<MayDaysState['intention']>): GameState => {

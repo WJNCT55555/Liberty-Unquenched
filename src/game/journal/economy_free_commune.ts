@@ -9,7 +9,8 @@ import { ECONOMY_ROUTE_RULES, isJournalCompleted } from '../rules/economyReforms
  * 强制入队（`rules/monthlyPipeline.ts` 的 `forceFreeCommuneStartNextMonth`），它只有一个
  * 确认选项，玩家不需要做选择。
  *
- * **永不失败**，但持续代价写在 activeEffect 里：公社不听命于任何部，马德里的权威随之流失。
+ * **永不失败，也没有月度效果**（用户定稿：经济路线日志只回答"走到哪一步"）：
+ * 公社的代价与收益只能来自玩家自己的行动与事件选项。
  */
 export const economyFreeCommuneJournal: JournalEntryDef = {
   id: 'journal_economy_free_commune',
@@ -17,8 +18,8 @@ export const economyFreeCommuneJournal: JournalEntryDef = {
   titleZh: '自由公社路线',
   description: 'Tierra y Libertad is not a slogan about ownership; it is a claim about who decides. The villages of Aragon and Andalusia have already stopped asking Madrid for permission. If the land is held in common, the money abolished, and the railways and pits run by the workers themselves, then the state becomes a relic — not because it was stormed, but because nobody needs it any more.',
   descriptionZh: '「土地与自由」不是关于所有权的口号，而是关于谁说了算的主张。阿拉贡与安达卢西亚的村庄已经不再向马德里请示。如果土地归公、货币废除、铁路与矿井由工人自己经营，国家就成了遗物——不是因为它被攻占，而是因为再没有人需要它。',
-  successCondition: 'Land reform and collectivization completed, workers\' control above 60, money abolished, and the railways and coal mines taken over',
-  successConditionZh: '土地改革与土地集体化均完成、工人控制程度超过 60、货币已废除，且铁路与煤矿已被接管',
+  successCondition: 'The Land Reform and the Collectivization journals both completed, the workers\' share at 60% in land and 55% in industry (state ownership does not count), money abolished x3, rail nationalisation x3 and coal nationalisation x2.',
+  successConditionZh: '「土地改革」与「土地集体化」两本日志均完成、土地劳动者份额达到 60% 且工业劳动者份额达到 55%（国有制不计入）、废除货币推进 3 次、铁路国有化推进 3 次、煤炭国有化推进 2 次。',
   successEffectDesc: 'The communes federate: the confederation\'s organization grows, the countryside is organized for the CNT, and the movement no longer needs the Republic.',
   successEffectDescZh: '公社结成联邦：联合会组织规模扩大、乡村被 CNT 组织起来，运动不再需要共和国。',
   hasProgress: true,
@@ -63,16 +64,6 @@ export const economyFreeCommuneJournal: JournalEntryDef = {
     classes: adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', 6),
   }),
 
-  activeEffect: {
-    description: 'The communes answer to no ministry. The countryside is quieter and the columns are fed, but authority drains away from Madrid month by month.',
-    descriptionZh: '公社不听命于任何部。乡村安静了，纵队有饭吃了，但马德里的权威正在逐月流失。',
-    apply: (state) => ({
-      stats: {
-        ...state.stats,
-        revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 0.5),
-        republicanAuthority: Math.max(0, state.stats.republicanAuthority - 0.3),
-      },
-      classes: adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', 2 / 12),
-    }),
-  },
+  // 经济路线日志**不提供月度效果**（用户定稿）：路线的代价与收益只能来自行动、事件
+  // 与它们各自写下的效果，日志本身只回答"这条路线走到哪一步了"。
 };

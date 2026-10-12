@@ -1,4 +1,5 @@
 ﻿import { Card, Faction, GameEvent, GameState, SocialClass } from '../types';
+import { randomChance } from '../rules/rng';
 import {
   adjustAllActiveFactionDissent,
   adjustClassSupport,
@@ -21,7 +22,8 @@ import {
   statPreview,
   textPreview
 } from '../effectPreview';
-import { clampLawLevel } from '../lawStances';
+import { createLaborPressureChoiceEvent } from '../events/labor_pressure';
+import { canUseLaborPressure, hasAvailableLaborPressureLaw } from '../rules/laborPressure';
 import { applyControlInfluence, getWorkersShare } from '../rules/controlShares';
 import { applyUnionShareDelta, getCntDominance, getUnionShare } from '../unions';
 
@@ -179,7 +181,7 @@ export const mitinPopular: Card = {
         },
         effect: (s2: GameState): Partial<GameState> => {
           const arrestRoll = s2.stats.tension > 60 ? 0.6 : 0.3;
-          const arrested = Math.random() < arrestRoll;
+          const arrested = randomChance(arrestRoll);
           const classes = adjustClassSupports(s2.classes, [
             ['Obreros', 'CNT_FAI', 4 * df],
             ['Intelectuales', 'CNT_FAI', 3 * df]
@@ -533,8 +535,23 @@ export const mitinPopular: Card = {
     options.push({
       text: 'For bread and work!',
       textZh: '为了面包与工作！',
-      subtitle: 'Focus the assembly on concrete economic demands: higher wages and workplace safety.',
-      subtitleZh: '将集会焦点放在具体的经济诉求上：提高工资和工作场所安全。',
+      subtitle: 'Rally for wages, workplace safety, or shorter hours that share available work.',
+      subtitleZh: '围绕工资、工作安全或通过缩短工时分配工作提出诉求。',
+      effectPreview: (s: GameState) => [
+        classSupportPreview(s, 'Obreros', 'CNT_FAI', 6 * dissentFactor),
+        classSupportPreview(s, 'Braceros', 'CNT_FAI', 3 * dissentFactor),
+        classSupportPreview(s, 'PequenaBurguesia', 'CNT_FAI', -1 * dissentFactor),
+        classSupportPreview(s, 'Burguesia', 'CNT_FAI', -3 * dissentFactor),
+        factionInfluencePreview('Cenetistas', 2),
+        factionInfluencePreview('Treintistas', 2),
+        factionDissentPreview('Cenetistas', -4),
+        factionDissentPreview('Treintistas', -4),
+        factionDissentPreview('Faistas', 3),
+        statPreview(s, 'revolutionaryFervor', 2 * dissentFactor),
+        canUseLaborPressure(s) && hasAvailableLaborPressureLaw(s)
+          ? eventPreview('Choose a Labor Demand (+1 pressure)', '选择劳工诉求（施压 +1）')
+          : textPreview('No law pressure is available; social effects still apply.', '当前无法施压法律；群众效果仍会生效。'),
+      ],
       effect: (s: GameState): Partial<GameState> => {
         const classes = adjustClassSupports(s.classes, [
           ['Obreros', 'CNT_FAI', 6 * dissentFactor],
@@ -552,17 +569,13 @@ export const mitinPopular: Card = {
         return {
           classes,
           factions,
-          domesticPolicy: {
-            ...s.domesticPolicy,
-            min_wage: clampLawLevel('min_wage', s.domesticPolicy.min_wage + 1),
-            workplace_safety: clampLawLevel('workplace_safety', s.domesticPolicy.workplace_safety + 1)
-          },
           stats: {
             ...s.stats,
-            // 经济诉求（工资/工时/安全）：既非组织成果也非制度成果，不再写入。
             revolutionaryFervor: clampPercent(s.stats.revolutionaryFervor + 2 * dissentFactor)
           },
-          currentEvent: null
+          currentEvent: canUseLaborPressure(s) && hasAvailableLaborPressureLaw(s)
+            ? createLaborPressureChoiceEvent('assembly', s)
+            : null
         };
       }
     });
@@ -694,17 +707,18 @@ export const mitinPopular: Card = {
     options.push({
       text: 'The assembly gradually escalates into a strike.',
       textZh: '集会逐渐升级为一场罢工。',
-      subtitle: 'Use the crowd\'s momentum to move directly into a strike decision.',
-      subtitleZh: '利用群众动员的势头，直接转入罢工决策。',
+      subtitle: 'Spend 1 resource to turn the assembly into a strike without another AP cost.',
+      subtitleZh: '消耗 1 资源将集会升级为罢工，不再消耗行动点。',
       condition: (s: GameState) => {
-        return getUnionShare(s).CNT >= 30;
+        return getUnionShare(s).CNT >= 30 && s.resources >= 1;
       },
-      unavailableSubtitle: () => 'Requires CNT union share at least 30.',
-      unavailableSubtitleZh: () => '需要 CNT 工会占比大于等于 30。',
+      unavailableSubtitle: () => 'Requires CNT union share at least 30 and 1 resource.',
+      unavailableSubtitleZh: () => '需要 CNT 工会占比至少 30，且拥有 1 资源。',
       effect: (s: GameState): Partial<GameState> => {
         const strikeResult = strike.effect(s);
 
         return {
+          resources: s.resources - 1,
           currentEvent: strikeResult.currentEvent || null
         };
       }

@@ -18,6 +18,7 @@ import * as cntFourthCongressDefinitions from '../events/cnt_fourth_congress';
 import { SCHEDULED_EVENT_REGISTRY } from './scheduledEventRegistry';
 import { mergeRegistryDefinitions } from './registryUtils';
 import * as economyDefinitions from '../events/economy';
+import { LABOR_PRESSURE_RESULT_EVENTS } from '../events/labor_pressure';
 
 const isGameEvent = (value: unknown): value is GameEvent => Boolean(
   value
@@ -71,6 +72,7 @@ export const RESTORABLE_EVENT_REGISTRY: GameEvent[] = mergeRegistryDefinitions('
   ...eventDefinitionsFrom(asturiasDefinitions),
   ...eventDefinitionsFrom(cntThirdCongressDefinitions),
   ...eventDefinitionsFrom(cntFourthCongressDefinitions),
+  ...Object.values(LABOR_PRESSURE_RESULT_EVENTS),
   // 经济改造：结果/失败/中间事件（`condition: () => false`，只由日志管线或卡牌选项推入），
   // 加上四个"可还原但不可调度"的开始事件（见 RESTORABLE_ONLY_EVENT_IDS 的说明）。
   ...economyRestorableEvents(),

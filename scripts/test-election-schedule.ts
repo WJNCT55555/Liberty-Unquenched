@@ -154,6 +154,27 @@ const october1933 = {
 };
 assert.equal(cedaRadicalUnderstanding.condition?.(october1933), true);
 const cedaAgreement = cedaRadicalUnderstanding.options[0].effect(october1933);
+assert.equal(
+  cedaRadicalUnderstanding.condition?.({
+    ...october1933,
+    rulingCoalition: 'ceda_radical',
+    activeCoalitions: [],
+  }),
+  false,
+  'The Radical–CEDA understanding must not be offered when that alliance already governs.',
+);
+assert.equal(
+  cedaRadicalUnderstanding.condition?.({
+    ...october1933,
+    coalitionHistory: [{
+      id: 'ceda_radical',
+      from: { year: 1933, month: 10 },
+      to: { year: 1935, month: 5 },
+    }],
+  }),
+  false,
+  'The one-time Radical–CEDA understanding must not recreate an alliance recorded in coalition history.',
+);
 const historical1933WithAlliance = { ...historical1933, ...cedaAgreement };
 const historicalAbstention = elections1933.options[0].effect(historical1933WithAlliance);
 assert.equal(
@@ -268,6 +289,22 @@ const withPrrevs = {
   ...stableTermElection,
   ...setOrganizationEstablished(stableTermElection, 'PRRevS'),
 };
+assert.equal(
+  generalElectionCampaignOptions[1].condition?.(withPrrevs),
+  false,
+  'Tactical support for republican-left lists must close once PRRevS exists.',
+);
+const legacySupportLeftVotes = calculateRawVotes({
+  ...withPrrevs,
+  generalElectionSchedule: {
+    ...withPrrevs.generalElectionSchedule,
+    participation: 'support_left',
+  },
+});
+assert(
+  legacySupportLeftVotes.PRRevS > 0,
+  'A legacy save carrying support_left must still route CNT electoral votes to an established PRRevS.',
+);
 assert.equal(generalElectionCampaignOptions[2].condition?.(withPrrevs), true);
 const independentCampaign = generalElectionCampaignOptions[2].effect(withPrrevs);
 assert.equal(independentCampaign.generalElectionSchedule?.participation, 'prrevs_independent');
@@ -308,6 +345,54 @@ assert.equal(
   Object.values(cntCabinet.ministers || {}).includes('CNT'),
   false,
   'Later elections must let the player choose CNT portfolios instead of assigning fixed ministries.',
+);
+const prrevsMajorityCortes: Record<Party, number> = {
+  ...emptyCortes,
+  PRRevS: 236,
+  Other: 234,
+};
+const prrevsMajorityOutcome = summarizeGeneralElection(withPrrevs, prrevsMajorityCortes);
+assert.deepEqual(
+  prrevsMajorityOutcome.coalitionCandidates.find(candidate => candidate.coalitionId === 'prrevs_parliamentary_majority'),
+  {
+    coalitionId: 'prrevs_parliamentary_majority',
+    members: ['CNT_FAI'],
+    seats: 236,
+    hasMajority: true,
+  },
+  'An independent PRRevS absolute majority must become an eligible government candidate.',
+);
+const prrevsMajorityState = {
+  ...withPrrevs,
+  cntVotingRate: 100,
+  classes: Object.fromEntries(Object.entries(withPrrevs.classes).map(([classId, classState]) => [
+    classId,
+    {
+      ...classState,
+      support: Object.fromEntries(Object.keys(classState.support).map(party => [
+        party,
+        party === 'CNT_FAI' ? 100 : 0,
+      ])),
+    },
+  ])) as typeof withPrrevs.classes,
+  generalElectionSchedule: {
+    ...withPrrevs.generalElectionSchedule,
+    participation: 'prrevs_independent' as const,
+  },
+  pendingEvents: [],
+};
+assert.equal(
+  generalElectionResultOptions[4].condition?.(prrevsMajorityState),
+  true,
+  'The PRRevS-majority government option must appear when PRRevS wins more than half the Cortes.',
+);
+const prrevsGovernment = generalElectionResultOptions[4].effect(prrevsMajorityState);
+assert.equal(prrevsGovernment.rulingCoalition, 'prrevs_parliamentary_majority');
+assert.equal(prrevsGovernment.cntStance, 'govern');
+assert.equal(prrevsGovernment.government?.type, 'PRRevS Majority Government');
+assert(
+  prrevsGovernment.pendingEvents?.some(event => event.id === ministerAllocation.id),
+  'A PRRevS majority government must retain the later-election minister allocation flow.',
 );
 const repeatElection = hungParliamentFormation.options[1].effect({
   ...resultState,

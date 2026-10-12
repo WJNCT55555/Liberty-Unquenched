@@ -59,14 +59,14 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
         ? '铁路已经完成国有化。'
         : '需要 2 资源。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'rail_nationalization') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'rail_nationalization', { industry: { foreign: -4, bigCapital: -2, state: 6 } }) } as GameState;
         const completed = getEconomyCounter(next, 'rail_nationalization') >= 3;
         return {
           resources: s.resources - 2,
           // Railway nationalization creates *state* ownership, not worker ownership:
           // this is the line that separates the syndicalist road from the free commune
           // (docs/工人控制度改造方案.md §4.1).
-          ...applyEconomicOption(s, 'rail_nationalization'),
+          ...applyEconomicOption(s, 'rail_nationalization', { industry: { foreign: -4, bigCapital: -2, state: 6 } }),
           // Completing nationalization hands the confederation real bargaining rights
           // inside the Republic: collective bargaining becomes law.
           ...(completed
@@ -98,13 +98,13 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
         ? '煤矿已在工人控制之下。'
         : '需要 CNT 已成立，且拥有 2 资源。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'coal_nationalization') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'coal_nationalization', { industry: { bigCapital: -5, union: 5 } }) } as GameState;
         const completed = getEconomyCounter(next, 'coal_nationalization') >= 2;
         return {
           resources: s.resources - 2,
           // The pit committees take the mines for themselves: this one produces *union*
           // ownership rather than state ownership.
-          ...applyEconomicOption(s, 'coal_nationalization'),
+          ...applyEconomicOption(s, 'coal_nationalization', { industry: { bigCapital: -5, union: 5 } }),
           ...(completed ? applyUnionShareDelta(s, { CNT: 3, other: -3 }) : {}),
           classes: adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 5),
           ...concludeIndustryPolicy(s)
@@ -124,11 +124,11 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
         ? '工业合作社已达到满额。'
         : '需要 1 资源。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'industrial_cooperative') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'industrial_cooperative', { industry: { smallBusiness: -5, cooperative: 5 } }) } as GameState;
         const level = getEconomyCounter(next, 'industrial_cooperative');
         return {
           resources: s.resources - 1,
-          ...applyEconomicOption(s, 'industrial_cooperative'),
+          ...applyEconomicOption(s, 'industrial_cooperative', { industry: { smallBusiness: -5, cooperative: 5 } }),
           ...(level >= 3 ? applyUnionShareDelta(s, { CNT: 2, other: -2 }) : {}),
           classes: adjustClassSupport(s.classes, 'Obreros', 'CNT_FAI', 2),
           factions: level >= 5
@@ -152,10 +152,10 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
         ? '已经没有可没收的外资了。'
         : '需要与英国或法国的关系至少 20。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'foreign_capital_seizure') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'foreign_capital_seizure', { industry: { foreign: -6, state: 6 } }) } as GameState;
         const level = getEconomyCounter(next, 'foreign_capital_seizure');
         return {
-          ...applyEconomicOption(s, 'foreign_capital_seizure'),
+          ...applyEconomicOption(s, 'foreign_capital_seizure', { industry: { foreign: -6, state: 6 } }),
           relations: {
             ...s.relations,
             uk: Math.max(-100, s.relations.uk - 4),
@@ -182,7 +182,7 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
         ? '物资调控网络已经建成。'
         : '需要 1 资源，且至少有一处工业合作社。'),
       effect: (s: GameState): Partial<GameState> => {
-        const next = { ...s, ...applyEconomicOption(s, 'supply_coordination_network') } as GameState;
+        const next = { ...s, ...applyEconomicOption(s, 'supply_coordination_network', { land: { smallholders: -1, cooperative: 1 }, industry: { smallBusiness: -1, cooperative: 1 } }) } as GameState;
         const completed = getEconomyCounter(next, 'supply_coordination_network') >= 3;
         let factions = adjustFactionInfluence(s.factions, 'Treintistas', 3);
         factions = adjustFactionInfluence(factions, 'Cenetistas', 3);
@@ -190,7 +190,7 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
           resources: s.resources - 1,
           // A supply network moves goods, not title deeds; its small ownership effect is
           // that depots and workshops are pooled.
-          ...applyEconomicOption(s, 'supply_coordination_network'),
+          ...applyEconomicOption(s, 'supply_coordination_network', { land: { smallholders: -1, cooperative: 1 }, industry: { smallBusiness: -1, cooperative: 1 } }),
           ...(completed ? applyUnionShareDelta(s, { CNT: 1, other: -1 }) : {}),
           factions,
           ...concludeIndustryPolicy(s)

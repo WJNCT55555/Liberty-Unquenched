@@ -28,10 +28,11 @@ export interface WarRuntime {
  */
 export type OrganizationId =
   | 'CNT' | 'FAI' | 'FIJL' | 'ML' | 'FNA' | 'DC' | 'PRRevS'
-  | 'PSOE' | 'UGT' | 'PSOE_MILITIA' | 'JJSS' | 'FNTT' | 'JSU'
-  | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT' | 'UJCE' | 'MUJERES_ANTIFASCISTAS'
+  | 'PSOE' | 'UGT' | 'PSOE_MILITIA' | 'JJSS' | 'FNTT'
+  | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT' | 'UJCE' | 'JSU' | 'MUJERES_ANTIFASCISTAS'
   | 'POUM' | 'POUM_MILITIA' | 'JCI'
-  | 'CT' | 'REQUETE' | 'REQUETE_MILITIA' | 'PELAYOS'
+  | 'RE'
+  | 'CT' | 'REQUETE' | 'REQUETE_MILITIA' | 'PELAYOS' // REQUETE is a legacy save alias.
   | 'FE' | 'FALANGE_MILITIA' | 'JONS' | 'SEU' | 'SECCION_FEMENINA'
   | 'PNV' | 'EUZKO_GUDAROSTEA' | 'EGI'
   | 'ERC' | 'PRR' | 'DLR' | 'IR' | 'UR' | 'AP' | 'PS'
@@ -149,6 +150,12 @@ export interface JournalState {
   failureProgress?: number;
 }
 
+export interface JournalGoalLine {
+  text: string;
+  textZh: string;
+  met: boolean;
+}
+
 export interface JournalEntryDef {
   id: string;
   title: string;
@@ -169,6 +176,7 @@ export interface JournalEntryDef {
   hasProgress?: boolean;
   progressMax?: number;
   getProgress?: (state: GameState, entryState: JournalState) => number;
+  getGoalLines?: (state: GameState) => JournalGoalLine[];
 
   /**
    * 事件—日志—事件契约（设计文档 §6.3）。
@@ -257,6 +265,7 @@ export type CoalitionId =
   | 'popular_front_wartime'   // 战时人民阵线
   | 'ceda_radical'            // CEDA-激进联盟
   | 'workers_alliance'        // 工人联盟 (PSOE + CNT)
+  | 'prrevs_parliamentary_majority' // PRRevS 独立参选后的议会多数
   | 'national_front';         // 国民阵线
 
 export type CoalitionMember = Party | 'CNT_FAI';
@@ -360,10 +369,12 @@ export interface CoalitionDef {
   /**
    * `special` coalitions are installed only by their dedicated constitutional
    * story paths. `event_formed` coalitions must exist in `activeCoalitions`
-   * before they can contest an ordinary post-1931 election. Wartime structures
-   * never contest a Cortes election.
+   * before they can contest an ordinary post-1931 election. `seat_majority`
+   * represents a single electoral organization that may form a government only
+   * after winning an absolute majority in its own name. Wartime structures never
+   * contest a Cortes election.
    */
-  electionRole: 'special' | 'event_formed' | 'ineligible';
+  electionRole: 'special' | 'event_formed' | 'seat_majority' | 'ineligible';
   shouldDissolve?: (state: GameState, coalition: CoalitionState) => boolean;
   dissolveThreshold: number;
 }
@@ -509,6 +520,24 @@ export interface EconomyOwnershipShares {
   industry: IndustryOwnership;
 }
 
+/**
+ * 一年的外部经济环境（年度冲量）。
+ *
+ * 语义是**目标修正**，不是一次性跳变：`growth`／`inflation`／`unemployment` 各自加到
+ * `calculateMonthlyEconomy` 的同名目标上，`foreignExchangeMonthly` 加到外汇的月度流量上，
+ * `goldMonthly` 加到黄金储备上（资本外逃年）。全部为 0 表示"没有外部冲量"。
+ */
+export interface AnnualEconomicImpulse {
+  year: number;
+  label: string;
+  labelZh: string;
+  growth: number;
+  inflation: number;
+  unemployment: number;
+  foreignExchangeMonthly: number;
+  goldMonthly: number;
+}
+
 export interface GameState extends MapRuntimeState {
   screen: 'start' | 'game';
   currentView?: 'standard' | 'map';
@@ -557,6 +586,15 @@ export interface GameState extends MapRuntimeState {
   /** Real output index (100 = scenario starting level); drives every monthly tax base. */
   economic_output_index: number;
   economyHistory?: { growth: number; inflation: number; unemployment: number; month: number; year: number }[];
+  /**
+   * 本年度的外部经济环境（"年度冲量"）。
+   *
+   * 每年 1 月在月结里**静默**换表（不排队事件、不打断行动阶段），随后由
+   * `calculateMonthlyEconomy` 作为加项进入三个目标公式与外汇流量——记成"目标修正"
+   * 而不是"直接改当前值"，因为三个指标是惯性收敛的：直接加一笔下个月就会被抹掉。
+   * 数值与难度倍数见 `rules/annualEconomicImpulse.ts`。
+   */
+  annualEconomicImpulse?: AnnualEconomicImpulse;
   /** Treasury cash on hand. It is a stock, not the monthly operating balance. */
   budget: number;
   /** Obligations left unpaid after cash and borrowing capacity are exhausted. */
@@ -905,6 +943,10 @@ export interface GameState extends MapRuntimeState {
   unlockedAchievementsThisRun: string[];
   
   journal: Record<string, JournalState>;
+  /** The promises selected in the 1931 CNT congress unemployment resolution. */
+  forcedUnemploymentMandate?: import('./rules/forcedUnemployment').ForcedUnemploymentMandate;
+  /** One peacetime labor-law demand advanced through assemblies and strikes. */
+  laborPressure?: import('./rules/laborPressure').LaborPressureCampaign | null;
   
   civilWarChoices?: Record<string, string>;
   

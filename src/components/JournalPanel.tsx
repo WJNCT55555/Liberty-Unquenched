@@ -88,6 +88,7 @@ export const JournalPanel: React.FC = () => {
     const isExpanded = expandedIds.has(id);
     const fileCode = def.id.split('_').pop()?.substring(0, 6).toUpperCase() || 'DOC';
     const progress = state.progressById[id] ?? entryState.progress;
+    const goalLines = state.goalLinesById[id] || [];
 
     return (
       <div 
@@ -172,6 +173,18 @@ export const JournalPanel: React.FC = () => {
                       <div className="pl-5 opacity-70 mt-0.5 text-cnt-red/80">» {isZh ? def.failureEffectDescZh : def.failureEffectDesc}</div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {goalLines.length > 0 && entryState.status === 'active' && (
+                <div className="mb-4 p-3 bg-paper-dark/60 border border-ink/25 space-y-1 text-xs font-typewriter">
+                  <div className="font-bold mb-2">{isZh ? '大会决议 · 逐项核验' : 'CONGRESS RESOLUTION · PLEDGE CHECKLIST'}</div>
+                  {goalLines.map((line, index) => (
+                    <div key={`${id}-goal-${index}`} className="flex items-start gap-2">
+                      <span className={line.met ? 'text-green-700' : 'text-cnt-red'}>{line.met ? '✓' : '○'}</span>
+                      <span>{isZh ? line.textZh : line.text}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 

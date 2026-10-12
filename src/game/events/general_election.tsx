@@ -73,6 +73,9 @@ export const generalElectionCampaignOptions: GameEvent['options'] = [
     textZh: '在不加入其候选名单的前提下，战术性动员支持共和左翼。',
     subtitle: 'CNT votes are transferred only to friendly left parties; this is cooperation, not a PRRevS candidacy.',
     subtitleZh: 'CNT 选票只流向关系友好的左翼政党；这是选举合作，而不是 PRRevS 独立参选。',
+    condition: (state) => !isOrganizationEstablished(state, 'PRRevS'),
+    unavailableSubtitle: () => 'PRRevS has already been formed and must contest under its own name or through a formal electoral alliance.',
+    unavailableSubtitleZh: () => 'PRRevS 已经成立，必须以自身名义独立参选，或通过已正式成立的选举联盟参选。',
     effect: (state) => {
       let classes = adjustClassSupport(state.classes, 'Obreros', 'PSOE', 8);
       classes = adjustClassSupport(classes, 'PequenaBurguesia', 'IR', 4);
@@ -149,6 +152,7 @@ const COALITION_LABELS: Record<CoalitionId, { en: string; zh: string }> = {
   popular_front_wartime: { en: 'Wartime Popular Front', zh: '战时人民阵线' },
   ceda_radical: { en: 'CEDA-Radical Coalition', zh: 'CEDA—激进党联盟' },
   workers_alliance: { en: "Workers' Alliance", zh: '工人联盟' },
+  prrevs_parliamentary_majority: { en: 'PRRevS Parliamentary Majority', zh: 'PRRevS议会多数' },
   national_front: { en: 'National Front', zh: '国民阵线' },
 };
 
@@ -170,6 +174,8 @@ const getGovernmentProfile = (coalitionId: CoalitionId): {
       return { type: 'National Front Government', typeZh: '国家阵线政府', primeMinister: 'José María Gil-Robles', primeMinisterZh: '何塞·玛丽亚·吉尔-罗夫莱斯', ministerParty: 'AP' };
     case 'workers_alliance':
       return { type: "Workers' Alliance Cabinet", typeZh: '工人联盟内阁', primeMinister: 'Francisco Largo Caballero', primeMinisterZh: '弗朗西斯科·拉尔戈·卡巴列罗', ministerParty: 'PSOE' };
+    case 'prrevs_parliamentary_majority':
+      return { type: 'PRRevS Majority Government', typeZh: 'PRRevS多数政府', primeMinister: 'Ángel Pestaña', primeMinisterZh: '安赫尔·佩斯塔尼亚', ministerParty: 'Other' };
     default:
       return { type: 'Republican Coalition Cabinet', typeZh: '共和派联合内阁', primeMinister: 'Diego Martínez Barrio', primeMinisterZh: '迭戈·马丁内斯·巴里奥', ministerParty: 'PRR' };
   }
@@ -191,7 +197,7 @@ const installElectionGovernment = (
   const unionLoss = coalitionId === 'national_front' ? 15 : coalitionId === 'ceda_radical' ? 10 : 0;
   const participation = state.generalElectionSchedule.participation;
   const cntStance = cntStanceOverride
-    || (coalitionId === 'workers_alliance'
+    || (coalitionId === 'workers_alliance' || coalitionId === 'prrevs_parliamentary_majority'
       ? 'govern'
       : isRightGovernment || participation === 'abstain'
         ? 'oppose'
@@ -237,8 +243,8 @@ const installElectionGovernment = (
 };
 
 export const generalElectionResultDescription = {
-  en: 'The votes have been counted. Only political alliances that were publicly formed before the election may claim their member parties’ seats. An established alliance with 236 seats may form a majority government; otherwise the Cortes enters a separate government-formation crisis.',
-  zh: '选票已经清点完毕。只有在选举前已经公开成立的政党联盟，才能汇总其成员党的议席。已成立联盟达到236席即可组建多数政府；否则议会将进入独立的组阁危机。',
+  en: 'The votes have been counted. Only political alliances publicly formed before the election may aggregate their member parties’ seats. The sole exception is PRRevS, which may govern in its own name if it independently wins 236 seats. If no eligible formation has an absolute majority, the Cortes enters a separate government-formation crisis.',
+  zh: '选票已经清点完毕。只有在选举前已经公开成立的政党联盟，才能汇总其成员党的议席。唯一例外是 PRRevS：它若独立获得236席，可以以自身名义组阁。若没有任何符合资格的组阁力量取得绝对多数，议会将进入独立的组阁危机。',
 };
 
 export const renderGeneralElectionResults: NonNullable<GameEvent['renderContent']> = (state) => {
@@ -271,7 +277,7 @@ export const renderGeneralElectionResults: NonNullable<GameEvent['renderContent'
         className: 'border-b border-gray-800/50 pb-2 italic',
       }, isZh ? '没有已成立的选举联盟参加本届组阁。' : 'No established electoral alliance is available to form a government.')] : []),
       React.createElement('p', { className: 'pt-2 font-bold' }, outcome.formation === 'majority'
-        ? (isZh ? '至少一个已成立联盟达到绝对多数。' : 'At least one established alliance has an absolute majority.')
+        ? (isZh ? '至少一个符合资格的组阁力量达到绝对多数。' : 'At least one eligible governing formation has an absolute majority.')
         : (isZh ? '无多数议会：必须进入组阁程序。' : 'Hung Cortes: a separate government-formation decision is required.')),
     ),
   );
@@ -290,27 +296,35 @@ const createMajorityCoalitionOption = (coalitionId: CoalitionId): GameEvent['opt
     const candidate = getElectionCandidate(state, coalitionId);
     return `${COALITION_LABELS[coalitionId].zh}组建多数政府（${candidate?.seats ?? 0}席）。`;
   },
-  subtitle: 'The alliance was formed before the election and now controls an absolute majority.',
-  subtitleZh: '该联盟已在选举前成立，并在本届议会取得绝对多数。',
+  subtitle: coalitionId === 'prrevs_parliamentary_majority'
+    ? 'PRRevS independently controls an absolute majority and may form a government in its own name.'
+    : 'The alliance was formed before the election and now controls an absolute majority.',
+  subtitleZh: coalitionId === 'prrevs_parliamentary_majority'
+    ? 'PRRevS 独立获得绝对多数，可以以自身名义组织政府。'
+    : '该联盟已在选举前成立，并在本届议会取得绝对多数。',
   condition: (state) => getElectionCandidate(state, coalitionId)?.hasMajority === true,
   unavailableSubtitle: (state) => {
     const candidate = getElectionCandidate(state, coalitionId);
     return candidate
       ? `The alliance has ${candidate.seats} seats; ${summarizeGeneralElection(state).majority} are required.`
-      : 'This alliance was not formally established before the election.';
+      : coalitionId === 'prrevs_parliamentary_majority'
+        ? 'PRRevS has not independently won an absolute majority.'
+        : 'This alliance was not formally established before the election.';
   },
   unavailableSubtitleZh: (state) => {
     const candidate = getElectionCandidate(state, coalitionId);
     return candidate
       ? `该联盟拥有${candidate.seats}席，需要${summarizeGeneralElection(state).majority}席。`
-      : '该联盟没有在选举前正式成立。';
+      : coalitionId === 'prrevs_parliamentary_majority'
+        ? 'PRRevS 没有独立取得绝对多数。'
+        : '该联盟没有在选举前正式成立。';
   },
   effect: (state) => {
     const elected = installElectionGovernment(
       state,
       coalitionId,
       'majority',
-      coalitionId === 'workers_alliance' ? 'govern' : undefined,
+      coalitionId === 'workers_alliance' || coalitionId === 'prrevs_parliamentary_majority' ? 'govern' : undefined,
     );
     return {
       ...elected,
@@ -327,6 +341,7 @@ export const generalElectionResultOptions: GameEvent['options'] = [
   createMajorityCoalitionOption('ceda_radical'),
   createMajorityCoalitionOption('workers_alliance'),
   createMajorityCoalitionOption('national_front'),
+  createMajorityCoalitionOption('prrevs_parliamentary_majority'),
   {
     text: 'No established alliance has an absolute majority. Open government-formation talks.',
     textZh: '没有已成立联盟取得绝对多数。进入组阁程序。',

@@ -41,7 +41,7 @@ export const MapView: React.FC = () => {
   const currentPlayer = gameState.mapCurrentPlayer;
   const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
   const isPlayerTurn = currentPlayer === playerFaction && !gameState.iberianDefense?.playerDefeated && !gameState.iberianDefense?.winner;
-  const isAiTurn = gameState.iberianDefense ? !isPlayerTurn && !gameState.iberianDefense.winner : currentPlayer === aiFaction;
+  const isAiTurn = gameState.iberianDefense ? !isPlayerTurn && !gameState.iberianDefense.winner && !gameState.iberianDefense.playerDefeated : currentPlayer === aiFaction;
   const commandPoints = gameState.mapResources[playerFaction].commandPoints;
   const selectedArmy = armies.find((army) => army.id === selectedArmyId);
   const canMoveSelectedArmy = Boolean(

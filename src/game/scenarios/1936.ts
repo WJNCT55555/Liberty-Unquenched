@@ -118,6 +118,7 @@ export const SCENARIO_1936: ScenarioDefinition = {
     impeachPresidentAvailable: true,
     isPresidentImpeached: true,
     presidentElectionSeen: true,
+    pceAcceptsComintern: true,
     coupSystemActive: true,
   },
 

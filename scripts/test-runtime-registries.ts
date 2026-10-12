@@ -12,6 +12,7 @@ import { elections1931Results } from '../src/game/events/elections_1931_results'
 import { cabinetFormation1931 } from '../src/game/events/elections_1931_results';
 import { ramonCampaignEvent1 } from '../src/game/events/ramon_campaign_events';
 import { coalitionDissolutionEvents } from '../src/game/events/coalition_dissolution';
+import { LABOR_PRESSURE_RESULT_EVENTS } from '../src/game/events/labor_pressure';
 import { deserializeGameState, serializeGameState } from '../src/game/saveGame';
 
 const uniqueIds = (name: string, values: readonly { id: string }[]) => {
@@ -69,6 +70,7 @@ const literalAuthoredEventIds = eventFiles(path.join('src', 'game', 'events')).f
 const authoredEventIds = [
   ...literalAuthoredEventIds,
   ...coalitionDissolutionEvents.map(event => event.id),
+  ...Object.values(LABOR_PRESSURE_RESULT_EVENTS).map(event => event.id),
 ];
 
 assert.equal(new Set(authoredEventIds).size, authoredEventIds.length, 'Authored GameEvent ids must be unique.');

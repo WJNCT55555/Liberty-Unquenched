@@ -28,6 +28,7 @@ import { MapFaction, type Army, type ArmyIdentity, getEffectiveFortressLevel } f
 import { getMilitarization, getUnitMilitarizationMultiplier, applyPceMilitarizationMonthlyDrift, getPceMilitarizationMonthlyDrift, PCE_MILITARIZATION_RELATIONS_FLOOR, MAOC_MILITARIZATION_GAIN, INTERNATIONAL_BRIGADES_MILITARIZATION_GAIN } from '../src/game/rules/militarization';
 import { advancePhase } from '../src/game/rules/phaseOrchestrator';
 import { getDerivedWorkerControl } from '../src/game/rules/controlShares';
+import { ECONOMY_COUNTERS } from '../src/game/rules/economyReforms';
 import { maocFormation } from '../src/game/events/maoc_formation';
 import { deployToWidth, getCombatPower, getDefenseCoefficient, getDeployedManpower } from '../src/game/rules/combat';
 import { getCombatWidth } from '../src/map/map_constants';
@@ -491,15 +492,26 @@ test('Accepting all three rungs actually reaches level 4 and unblocks both journ
 
   assert.equal(afterThird.domesticPolicy.militia_legality_law, 4, 'the ladder must reach the level both journals require');
 
-  // 每一步都要动所有权系统——这是「工人控制度改造」§4.5 表 10a/10b 行挂回来的地方，
-  // 曾经随被删除的那张卡一起失去实现。
-  assert.notDeepEqual(afterFirst.controlShares, start.controlShares, 'rung 1 must move worker ownership');
-  assert.notDeepEqual(afterSecond.controlShares, afterFirst.controlShares, 'rung 2 must move worker ownership');
-  assert.notDeepEqual(afterThird.controlShares, afterSecond.controlShares, 'rung 3 must move worker ownership');
-  // 预览用的是补丁里的 `stats.workerControl`（`applyControlInfluence` 只返回这一项派生值），
-  // 所以事件必须把它合并进最终 stats，而不是用旧值覆盖掉。
-  assert.equal(afterThird.stats.workerControl, getDerivedWorkerControl(afterThird.controlShares!), 'the derived worker-control readout must survive the stats merge');
-  assert.notEqual(afterThird.stats.workerControl, start.stats.workerControl, 'and it must actually differ from where we started');
+  // 这三个台阶是**军事/法律事件**：只改法律等级、派系异议与党派关系，
+  // **不动两张所有权饼、也不写经济改造计数器**（用户定稿）。
+  assert.deepEqual(afterFirst.controlShares, start.controlShares, 'rung 1 must not touch ownership');
+  assert.deepEqual(afterSecond.controlShares, afterFirst.controlShares, 'rung 2 must not touch ownership');
+  assert.deepEqual(afterThird.controlShares, afterSecond.controlShares, 'rung 3 must not touch ownership');
+  assert.equal(
+    afterThird.stats.workerControl,
+    getDerivedWorkerControl(afterThird.controlShares!),
+    'the derived worker-control readout must still match the pies',
+  );
+  assert.equal(
+    getDerivedWorkerControl(afterThird.controlShares!),
+    getDerivedWorkerControl(start.controlShares!),
+    'and the ladder must not move the worker share either',
+  );
+  assert.deepEqual(
+    ECONOMY_COUNTERS.filter(counter => afterThird[counter] !== start[counter]),
+    [],
+    'the militia ladder must not write any economy counter',
+  );
 
   // 端到端：法律到位后，两条日志的完成条件第一次真正可达。
   const activePopular = { id: 'journal_popular_army', status: 'active' as const, progress: 0 };

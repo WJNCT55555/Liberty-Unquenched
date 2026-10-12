@@ -25,13 +25,14 @@ import {
   MAY_DAYS_UNION_OWNERSHIP_GATE,
   MAY_DAYS_UNION_SHARE_GATE,
 } from '../src/game/rules/mayDays';
-import { ECONOMY_COUNTERS, ECONOMY_ROUTE_RULES } from '../src/game/rules/economyReforms';
+import { ECONOMY_COUNTERS, ECONOMY_ROUTE_JOURNAL_IDS, ECONOMY_ROUTE_RULES, advanceEconomyCounter, type EconomyCounter } from '../src/game/rules/economyReforms';
 import { migrateSaveState } from '../src/game/saveMigrations';
 import { gameReducer } from '../src/game/reducers/gameReducer';
 import { selectEconomyReformViewModel, areEconomyReformViewModelsEqual } from '../src/game/selectors';
 import { landAndFreedom } from '../src/game/action_affairs/land_and_freedom';
 import { joanPeiro } from '../src/game/advisors/joan_peiro';
 import { landReformJournal } from '../src/game/journal/land_reform';
+import { getJournalEntryDef } from '../src/game/journal';
 
 /**
  * 第 5A—5C 期验收（docs/工人控制度改造方案.md §9）。
@@ -393,13 +394,17 @@ assert(
   'Completing land reform must shrink the latifundia bucket',
 );
 
-// 卡牌选项：土地与自由的集体化目前只推进计数器及独立写明的政治效果。
+// 卡牌选项：土地与自由的集体化由**选项自己**声明所有权效果，计数器只跟着 +1。
 const cardState = { ...createScenarioState('1931', 'normal', 'en'), resources: 5, armaments: 5 };
 const cardEvent = landAndFreedom.effect(cardState).currentEvent!;
 const collectivization = cardEvent.options.find(option => String(option.text).includes('Collectivizations'))!;
 const cardPatch = collectivization.effect(cardState);
-assert.equal(cardPatch.controlShares, undefined, 'The counter must not write ownership');
-assert.equal(cardPatch.land_voluntary_collectivization, 1, 'The option must still record one use');
+assert.ok(cardPatch.controlShares, 'The option itself must declare the ownership effect');
+assert(
+  (cardPatch.controlShares!.land.collective ?? 0) > cardState.controlShares!.land.collective,
+  'The collectivization option must grow the collective bucket',
+);
+assert.equal(cardPatch.land_voluntary_collectivization, 1, 'and still record one use');
 
 // ---- 8. 读模型 --------------------------------------------------------------
 
@@ -591,9 +596,9 @@ assert.equal(
   'Street formulas must read the industrial worker share (60 = cooperative 20 + union 40)',
 );
 
-// ---- 12. 经济改造计数器仅记账 -----------------------------------------------
+// ---- 12. 效果属于选项，计数器只记账（用户定稿）--------------------------------
 
-/** 给两张饼保留可观察的初值，确认所有计数器都不会自动改动它们。 */
+/** 给两张饼保留可观察的初值，确认计数器不会自动改动它们。 */
 const abundant = {
   ...createScenarioState('1936', 'normal', 'en'),
   controlShares: {
@@ -602,20 +607,81 @@ const abundant = {
   },
 } as GameState;
 
+// ① 计数器本身不产生任何效果：单独推进它，两张饼与其它字段都必须原封不动。
 ECONOMY_COUNTERS.forEach((counter) => {
-  const patch = applyEconomicOption(abundant, counter);
+  const patch = advanceEconomyCounter(abundant, counter, 1);
+  assert.deepEqual(Object.keys(patch), [counter], `${counter}: a counter write must emit nothing else`);
   const next = { ...abundant, ...patch } as GameState;
-  assert.equal(patch.controlShares, undefined, `${counter}: no automatic ownership transfer`);
-  assert.equal(next.controlShares, abundant.controlShares, `${counter}: both ownership pies must be unchanged`);
-  assert.equal(next[counter], abundant[counter] + 1, `${counter}: only the named counter advances`);
-  assert.deepEqual(Object.keys(patch), [counter], `${counter}: the helper must emit no other effect`);
+  assert.equal(next.controlShares, abundant.controlShares, `${counter}: counters must not move ownership`);
 });
 
-// 源码级守卫：选项不得自己传向量。否则同一个计数器（土地与自由的农业集体化、农业
-// 政策的推广农民集体化都写 land_voluntary_collectivization）迟早出现第二种口径，
-// 也就重新打开了 §4.4 的双写。这条断言让"下一次双写"在 CI 里就被拦住。
-const offenders: string[] = [];
+// ② 效果由选项声明：选项给出的向量必须精确落到饼上，计数器跟在后面 +1。
+const declaredVectors: Record<string, { land?: Record<string, number>; industry?: Record<string, number> }> = {
+  land_forced_collectivization: { land: { latifundia: -3, church: -1, smallholders: -5, collective: 8, state: 1 } },
+  rail_nationalization: { industry: { foreign: -4, bigCapital: -2, state: 6 } },
+  supply_coordination_network: {
+    land: { smallholders: -1, cooperative: 1 },
+    industry: { smallBusiness: -1, cooperative: 1 },
+  },
+};
+Object.entries(declaredVectors).forEach(([counter, vector]) => {
+  const key = counter as EconomyCounter;
+  const patch = applyEconomicOption(abundant, key, vector);
+  const next = { ...abundant, ...patch } as GameState;
+  assert.equal(next[key], abundant[key] + 1, `${counter}: the option must advance its counter once`);
+  assert(isValidOwnershipPie(next.controlShares!.land), `${counter}: land pie must stay valid`);
+  assert(isValidOwnershipPie(next.controlShares!.industry), `${counter}: industry pie must stay valid`);
+  (['land', 'industry'] as const).forEach((sector) => {
+    const declared = vector[sector];
+    if (!declared) {
+      assert.equal(next.controlShares![sector], abundant.controlShares![sector], `${counter}: ${sector} must stay untouched`);
+      return;
+    }
+    Object.entries(declared).forEach(([bucket, delta]) => {
+      const before = (abundant.controlShares![sector] as Record<string, number>)[bucket];
+      const after = (next.controlShares![sector] as Record<string, number>)[bucket];
+      assert.equal(after - before, delta, `${counter}: ${sector}.${bucket} must follow the option's own vector`);
+    });
+  });
+});
+
+// 不传向量 = 这次行动不动所有权（口粮本、清算机构这类）。
+{
+  const patch = applyEconomicOption(abundant, 'family_rationing');
+  const next = { ...abundant, ...patch } as GameState;
+  assert.equal(next.controlShares, abundant.controlShares, 'an option without a vector must not move ownership');
+  assert.equal(next.family_rationing, abundant.family_rationing + 1, 'but it still advances its counter');
+}
+
+// ③ 军事类事件不写经济效果（用户定稿）：五月事件、民兵合法性、战时权力安排、军事化抉择。
 const GAME_SRC = fileURLToPath(new URL('../src/game', import.meta.url));
+const MILITARY_FILES = [
+  'rules/mayDays.ts',
+  'events/civil_war/militia_legality.ts',
+  'events/civil_war/wartime_power_arrangement.tsx',
+  'events/civil_war/militarization_crossroads.tsx',
+];
+const ECONOMY_WRITERS = ['applyControlInfluence', 'applyEconomicOption', 'advanceEconomyCounter', 'transferControlShare'];
+MILITARY_FILES.forEach((relative) => {
+  const text = readFileSync(join(GAME_SRC, relative), 'utf8');
+  ECONOMY_WRITERS.forEach((writer) => {
+    assert(
+      !text.includes(writer),
+      `${relative} is a military/political file and must not write the economy (${writer})`,
+    );
+  });
+});
+
+// ④ 经济日志不提供月度效果（用户定稿）：六条路线 + 土地集体化，共七本。
+[...ECONOMY_ROUTE_JOURNAL_IDS, 'journal_land_collectivization'].forEach((journalId) => {
+  const def = getJournalEntryDef(journalId);
+  assert(def, `${journalId} must be registered`);
+  assert.equal(def!.activeEffect, undefined, `${journalId} must not provide a monthly effect`);
+});
+
+// ⑤ 每个调用点都必须自带向量（源码级守卫）：经济选项的效果写在选项里，
+// 不允许出现"只 +1 计数、指望别处补效果"的写法。
+const vectorMissing: string[] = [];
 (function walk(dir: string): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -642,14 +708,18 @@ const GAME_SRC = fileURLToPath(new URL('../src/game', import.meta.url));
         else if (c === ')' || c === '}' || c === ']') { depth--; if (depth === 0) break; }
         else if (c === ',' && depth === 1) commas++;
       }
-      if (commas > 1) offenders.push(`${full}:${text.slice(0, at).split('\n').length}`);
+      // 只检查"两次逗号分隔"的真实调用（`(state, 'counter')`）；零参数的注释引用与
+      // 带向量的调用都不算违规。
+      if (commas === 1) {
+        vectorMissing.push(`${full}:${text.slice(0, at).split('\n').length}`);
+      }
     }
   }
 })(GAME_SRC);
 assert.deepEqual(
-  offenders,
+  vectorMissing,
   [],
-  `applyEconomicOption must not receive a transfer vector from the caller: ${offenders.join(', ')}`,
+  `every applyEconomicOption call must declare its own vector: ${vectorMissing.join(', ')}`,
 );
 
 console.log('Control shares passed: 2 pies x 6 buckets, May Days dual gate, route gates diverge.');

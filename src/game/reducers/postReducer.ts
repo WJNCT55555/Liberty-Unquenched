@@ -25,10 +25,17 @@ export const applyPostReducerPipeline = (
 ): GameState => {
   // Normalize values to prevent overflow/underflow (0-100)
   if (newState !== previousState) {
+    if (newState.civilWarStatus !== 'not_started' && newState.laborPressure) {
+      newState = { ...newState, laborPressure: null };
+    }
     if (newState.domesticPolicy) {
       // Law levels use their own L0-L3/L4 scales. Journal progress fields,
       // including land_reform_progress, remain independent 0-100 values.
       newState.domesticPolicy = normalizeDomesticPolicyLawLevels(newState.domesticPolicy);
+    }
+    if (newState.laborPressure
+      && newState.domesticPolicy[newState.laborPressure.lawId] >= newState.laborPressure.targetLevel) {
+      newState = { ...newState, laborPressure: null };
     }
     // The Security Corps Law owns the Assault Guard establishment, so derived
     // security-force state is recomputed after law levels are normalized.

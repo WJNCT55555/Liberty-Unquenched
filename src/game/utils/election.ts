@@ -37,14 +37,10 @@ export function calculateRawVotes(state: GameState): Record<Party, number> {
   if (actualCntVotes > 0) {
     if (participation === 'abstain') {
       // Deliberately leave the mobilizable CNT electorate outside the ballot.
-    } else if (
-      isOrganizationEstablished(state, 'PRRevS')
-      && (
-        participation === undefined
-        || participation === 'prrevs_independent'
-        || participation === 'prrevs_left_alliance'
-      )
-    ) {
+    } else if (isOrganizationEstablished(state, 'PRRevS')) {
+      // Once PRRevS exists it is the CNT electorate's parliamentary vehicle.
+      // Even a legacy/invalid save carrying `support_left` must not transfer
+      // those votes into friendly republican parties.
       votes['PRRevS'] += actualCntVotes;
     } else {
       const preferredParties: Party[] = participation === 'support_left'
@@ -166,7 +162,7 @@ export const getGeneralElectionCoalitionCandidates = (
   const totalSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0);
   const majority = Math.floor(totalSeats / 2) + 1;
 
-  return state.activeCoalitions
+  const eventFormedCandidates = state.activeCoalitions
     .flatMap((coalition): GeneralElectionCoalitionCandidate[] => {
       const definition = COALITION_DEFS.find(candidate => candidate.id === coalition.activeId);
       if (definition?.electionRole !== 'event_formed') return [];
@@ -178,7 +174,19 @@ export const getGeneralElectionCoalitionCandidates = (
         .filter((party): party is Party => Boolean(party)))];
       const seats = sumPartySeats(cortes, seatParties);
       return [{ coalitionId: coalition.activeId, members, seats, hasMajority: seats >= majority }];
-    })
+    });
+
+  const prrevsSeats = cortes.PRRevS || 0;
+  const prrevsMajorityCandidate: GeneralElectionCoalitionCandidate[] = (
+    isOrganizationEstablished(state, 'PRRevS') && prrevsSeats >= majority
+  ) ? [{
+      coalitionId: 'prrevs_parliamentary_majority',
+      members: ['CNT_FAI'],
+      seats: prrevsSeats,
+      hasMajority: true,
+    }] : [];
+
+  return [...eventFormedCandidates, ...prrevsMajorityCandidate]
     .sort((left, right) => right.seats - left.seats);
 };
 

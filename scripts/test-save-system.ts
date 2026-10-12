@@ -243,6 +243,33 @@ const restoredPhaseZeroElection = deserializeGameState(phaseZeroElectionSnapshot
 assert.equal(restoredPhaseZeroElection.governmentCrisisSequence, 2);
 assert.equal(restoredPhaseZeroElection.generalElectionSchedule.crisis?.sequence, 2);
 
+// Old Requetés reserves attributed to RE must load under CT without losing assets.
+for (const civilWarStatus of ['not_started', 'ongoing'] as const) {
+  const carlistSnapshot = JSON.parse(serializedText);
+  carlistSnapshot.state.year = 1936;
+  carlistSnapshot.state.month = 7;
+  carlistSnapshot.state.civilWarStatus = civilWarStatus;
+  carlistSnapshot.state.organizations = {
+    ...(carlistSnapshot.state.organizations || {}),
+    REQUETE: { established: true, status: 'active', establishedAt: { year: 1913, month: 1 } },
+  };
+  carlistSnapshot.state.armedForces = { ...(carlistSnapshot.state.armedForces || {}), entityPools: {} };
+  carlistSnapshot.state.armedForces.entityPools.requetes = {
+    entityId: 'requetes', organizationId: 'REQUETE_MILITIA', owner: 'RE',
+    status: 'active', activeFrom: { year: 1933, month: 11 },
+    manpower: 12345, artillery: 321, tanks: 17,
+  };
+  const expectedPool = { ...carlistSnapshot.state.armedForces.entityPools.requetes, owner: 'CT' };
+  const restoredCarlist = deserializeGameState(carlistSnapshot, { cards: [card], advisors: [advisor], events: [] });
+  assert.equal(restoredCarlist.organizations.REQUETE, undefined, 'Loading must remove the duplicate organization entry.');
+  assert.equal(restoredCarlist.organizations.REQUETE_MILITIA?.established, true, 'The Carlist militia must survive migration from its old organization entry.');
+  assert.equal(restoredCarlist.organizations.RE?.status, 'active', 'An old save missing the RE party organization must restore its separate political entry.');
+  assert.deepEqual(restoredCarlist.armedForces.entityPools.requetes, expectedPool, 'Loading must repair political ownership while preserving the reserve and its activation date.');
+  assert.equal(carlistSnapshot.state.armedForces.entityPools.requetes.owner, 'RE', 'Loading must not mutate the saved snapshot.');
+  const reloadedCarlist = deserializeGameState(serializeGameState(restoredCarlist), { cards: [card], advisors: [advisor], events: [] });
+  assert.deepEqual(reloadedCarlist.armedForces.entityPools.requetes, expectedPool, 'Repeated save/load must not add or remove Requetés assets.');
+}
+
 const partialMapSnapshot = JSON.parse(serializedText);
 partialMapSnapshot.state.mapResources = { [MapFaction.REPUBLICAN]: { manpower: 321 } };
 const restoredPartialMap = deserializeGameState(partialMapSnapshot, {

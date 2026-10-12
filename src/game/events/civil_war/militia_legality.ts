@@ -1,7 +1,6 @@
 import type { GameEvent, GameState } from '../../types';
 import { adjustFactionDissents } from '../../utils';
 import { clampLawLevel } from '../../lawStances';
-import { applyControlInfluence } from '../../rules/controlShares';
 import { isSpanishCivilWarOngoing, monthIndex } from '../../rules/wartimeCoalition';
 
 /**
@@ -73,9 +72,8 @@ const raiseMilitiaLegality = (state: GameState, level: number): Partial<GameStat
 /**
  * 一次结算两个标量，避免嵌套调用时把 `stats` 拼错。
  *
- * 传入的 `state` 必须是**已经套用过所有权补丁**的那个：`applyControlInfluence` 只返回
- * 部分的 `stats`（仅 `workerControl`），这里要把那份派生值一并带进最终补丁，否则预览
- * 会少显示一段工人控制度的变化。
+ * 本文件的事件是**军事/法律类**：只改法律等级、派系异议、党派关系、革命热情与共和国
+ * 权威，**不动两张所有权饼、也不写经济改造计数器**（用户定稿）。
  */
 const withStats = (
   state: GameState,
@@ -90,25 +88,21 @@ const withStats = (
 // 1 级 → 2 级　武装工会法令
 // ---------------------------------------------------------------------------
 
-const signArmedUnionsDecree = (state: GameState): Partial<GameState> => {
-  const control = applyControlInfluence(state, 3, { land: 0.3, industry: 0.7 });
-  return {
-    ...raiseMilitiaLegality(state, 2),
-    factions: adjustFactionDissents(state.factions, {
-      Faistas: -6,
-      Puristas: -4,
-      Cenetistas: 2,
-      Treintistas: 6,
-    }),
-    partyRelations: {
-      ...state.partyRelations,
-      PCE: Math.max(-100, (state.partyRelations.PCE || 0) - 4),
-      PSOE: Math.max(-100, (state.partyRelations.PSOE || 0) - 2),
-    },
-    ...control,
-    stats: withStats({ ...state, ...control }, { fervor: 5, authority: -6 }),
-  };
-};
+const signArmedUnionsDecree = (state: GameState): Partial<GameState> => ({
+  ...raiseMilitiaLegality(state, 2),
+  factions: adjustFactionDissents(state.factions, {
+    Faistas: -6,
+    Puristas: -4,
+    Cenetistas: 2,
+    Treintistas: 6,
+  }),
+  partyRelations: {
+    ...state.partyRelations,
+    PCE: Math.max(-100, (state.partyRelations.PCE || 0) - 4),
+    PSOE: Math.max(-100, (state.partyRelations.PSOE || 0) - 2),
+  },
+  stats: withStats(state, { fervor: 5, authority: -6 }),
+});
 
 const keepParamilitariesIllegal = (state: GameState): Partial<GameState> => ({
   factions: adjustFactionDissents(state.factions, {
@@ -156,25 +150,21 @@ export const militiaLegalityArmedUnions: GameEvent = {
 // 2 级 → 3 级　后方民兵治安统合
 // ---------------------------------------------------------------------------
 
-const handRearSecurityToMilitias = (state: GameState): Partial<GameState> => {
-  const control = applyControlInfluence(state, 5, { land: 0.3, industry: 0.7 });
-  return {
-    ...raiseMilitiaLegality(state, 3),
-    factions: adjustFactionDissents(state.factions, {
-      Faistas: 6,
-      Puristas: 6,
-      Treintistas: -4,
-      Cenetistas: -3,
-    }),
-    partyRelations: {
-      ...state.partyRelations,
-      PCE: Math.min(100, (state.partyRelations.PCE || 0) + 10),
-      PSOE: Math.min(100, (state.partyRelations.PSOE || 0) + 5),
-    },
-    ...control,
-    stats: withStats({ ...state, ...control }, { authority: -5 }),
-  };
-};
+const handRearSecurityToMilitias = (state: GameState): Partial<GameState> => ({
+  ...raiseMilitiaLegality(state, 3),
+  factions: adjustFactionDissents(state.factions, {
+    Faistas: 6,
+    Puristas: 6,
+    Treintistas: -4,
+    Cenetistas: -3,
+  }),
+  partyRelations: {
+    ...state.partyRelations,
+    PCE: Math.min(100, (state.partyRelations.PCE || 0) + 10),
+    PSOE: Math.min(100, (state.partyRelations.PSOE || 0) + 5),
+  },
+  stats: withStats(state, { authority: -5 }),
+});
 
 const keepPoliceOnTheCheckpoints = (state: GameState): Partial<GameState> => ({
   factions: adjustFactionDissents(state.factions, {
@@ -219,27 +209,23 @@ export const militiaLegalityRearSecurity: GameEvent = {
 // 3 级 → 4 级　反法西斯民兵委员会
 // ---------------------------------------------------------------------------
 
-const recogniseTheCommittee = (state: GameState): Partial<GameState> => {
-  const control = applyControlInfluence(state, 8, { land: 0.3, industry: 0.7 });
-  return {
-    ...raiseMilitiaLegality(state, 4),
-    factions: adjustFactionDissents(state.factions, {
-      Faistas: -10,
-      Puristas: -8,
-      Cenetistas: 3,
-      Treintistas: 8,
-    }),
-    partyRelations: {
-      ...state.partyRelations,
-      PCE: Math.max(-100, (state.partyRelations.PCE || 0) - 10),
-      PSOE: Math.max(-100, (state.partyRelations.PSOE || 0) - 6),
-      IR: Math.max(-100, (state.partyRelations.IR || 0) - 4),
-    },
-    relations: { ...state.relations, ussr: Math.max(0, (state.relations.ussr || 0) - 5) },
-    ...control,
-    stats: withStats({ ...state, ...control }, { fervor: 8, authority: -10 }),
-  };
-};
+const recogniseTheCommittee = (state: GameState): Partial<GameState> => ({
+  ...raiseMilitiaLegality(state, 4),
+  factions: adjustFactionDissents(state.factions, {
+    Faistas: -10,
+    Puristas: -8,
+    Cenetistas: 3,
+    Treintistas: 8,
+  }),
+  partyRelations: {
+    ...state.partyRelations,
+    PCE: Math.max(-100, (state.partyRelations.PCE || 0) - 10),
+    PSOE: Math.max(-100, (state.partyRelations.PSOE || 0) - 6),
+    IR: Math.max(-100, (state.partyRelations.IR || 0) - 4),
+  },
+  relations: { ...state.relations, ussr: Math.max(0, (state.relations.ussr || 0) - 5) },
+  stats: withStats(state, { fervor: 8, authority: -10 }),
+});
 
 const dissolveTheCommittee = (state: GameState): Partial<GameState> => ({
   factions: adjustFactionDissents(state.factions, {

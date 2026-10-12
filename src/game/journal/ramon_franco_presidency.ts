@@ -9,8 +9,8 @@ export const ramonFrancoPresidencyJournal: JournalEntryDef = {
   description: 'Ramón Franco — legendary aviator, adventurer, the rebel of the Franco family — has been swept up by the Jabalí movement into a mad ambition: running for President of the Republic. His platform is as blunt as it is dangerous: abolish centralism, forge an Iberian Federation from Gibraltar to Porto, from Cádiz to Andorra. Every region shall have full self-determination. This is either a grand revolution or suicide against the tide.',
   descriptionZh: '拉蒙·佛朗哥——传奇飞行员、冒险家、佛朗哥家族的叛逆者——在野猪运动的推波助澜之下，萌生了一个疯狂的念头：竞选共和国总统。他的纲领直白而危险：废除中央集权，建立从直布罗陀到波尔图、从加的斯到安道尔的伊比利亚联邦。每一个地区都将拥有完全的自决权。这要么是一场宏大的革命，要么是以卵击石的自杀。',
   
-  successCondition: 'ERC relations >= 80 and Ramón Franco campaigns 3 times',
-  successConditionZh: '与 ERC 的关系达到 80，且拉蒙·佛朗哥进行 3 次竞选宣传',
+  successCondition: 'Relations with the ERC reach 80, and Ramón Franco\'s campaign tours advance 3 times.',
+  successConditionZh: '与 ERC 的关系达到 80，且拉蒙·佛朗哥的竞选宣传推进 3 次。',
   successEffectDesc: 'Unlock President Ramón Franco, Jabalistas +10 influence, ERC relations +15, FAI/Puristas dissent +12',
   successEffectDescZh: '解锁总统拉蒙·佛朗哥，野猪派影响力 +10，ERC 关系 +15，FAI与纯洁派不服度 +12',
   

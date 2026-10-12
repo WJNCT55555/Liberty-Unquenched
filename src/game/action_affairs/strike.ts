@@ -1,14 +1,17 @@
 import { Card } from '../types';
 import { adjustAllActiveFactionDissent, adjustFactionInfluence, adjustClassSupport, getDissentMultiplier } from '../utils';
 import { applyUnionShareDelta } from '../unions';
+import { createLaborPressureChoiceEvent } from '../events/labor_pressure';
+import { canUseLaborPressure, hasAvailableLaborPressureLaw } from '../rules/laborPressure';
+import { classSupportPreview, eventPreview, textPreview } from '../effectPreview';
 
 export const strike: Card = {
   id: 'strike',
   title: 'Strike',
   titleZh: '罢工',
   type: 'Action',
-  description: 'Call a general strike to increase worker control, but raise tension.',
-  descriptionZh: '号召总罢工以增加工人控制度，但会加剧紧张局势。',
+  description: 'Organize a strike for union strength, solidarity, revolution, or a concrete labor demand.',
+  descriptionZh: '组织罢工，争取工会力量、同志团结、革命动员或具体劳工诉求。',
   cost: 1,
   resourceCost: 1,
   effect: (state) => ({
@@ -76,6 +79,13 @@ export const strike: Card = {
           textZh: '推动工人权利的罢工',
           subtitle: 'Focus the strike on concrete economic and workplace demands: higher wages, safety standards, and shorter hours.',
           subtitleZh: '将罢工重点放在具体的经济和工作场所诉求上：更高的薪资、安全标准和缩短工时。',
+          effectPreview: (s) => [
+            classSupportPreview(s, 'Obreros', 'CNT_FAI', 2),
+            classSupportPreview(s, 'Braceros', 'CNT_FAI', 2),
+            canUseLaborPressure(s) && hasAvailableLaborPressureLaw(s)
+              ? eventPreview('Choose a Labor Demand (+2 pressure)', '选择劳工诉求（施压 +2）')
+              : textPreview('No law pressure is available; social support still rises.', '当前无法施压法律；群众支持仍会提高.'),
+          ],
           effect: (s) => {
             let newClasses = s.classes;
             newClasses = adjustClassSupport(newClasses, 'Obreros', 'CNT_FAI', 2);
@@ -83,8 +93,9 @@ export const strike: Card = {
 
             return {
               classes: newClasses,
-              // 经济诉求（工资/安全/工时）既非组织成果也非制度成果：不再写 workerControl 或 unionShare。
-              stats: { ...s.stats }
+              currentEvent: canUseLaborPressure(s) && hasAvailableLaborPressureLaw(s)
+                ? createLaborPressureChoiceEvent('strike', s)
+                : null
             };
           }
         }

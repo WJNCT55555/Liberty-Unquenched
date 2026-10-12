@@ -137,12 +137,13 @@ export const formIberianDefense = (state: GameState, allies: IberianAllies): Gam
 
 /** Resolve capital loss AND low SV. Re-evaluate after each territorial transfer. */
 export const settleIberianCapitulations = <State extends MapRuntimeState>(state: State): State => {
-  if (!state.iberianDefense || state.iberianDefense.winner) return state;
+  if (!state.iberianDefense || state.iberianDefense.winner || state.iberianDefense.playerDefeated) return state;
   let next = state;
   let changed = true;
   while (changed) {
     changed = false;
-    for (const faction of [MapFaction.NATIONALIST, MapFaction.REPUBLICAN, MapFaction.IBERIAN_DEFENSE] as const) {
+    // A defeated player must not be rescued by an enemy's simultaneous transfer.
+    for (const faction of [MapFaction.IBERIAN_DEFENSE, MapFaction.NATIONALIST, MapFaction.REPUBLICAN] as const) {
       const campaign = next.iberianDefense;
       if (!campaign) return next;
       if (campaign.eliminated.includes(faction)) continue;
@@ -162,6 +163,10 @@ export const settleIberianCapitulations = <State extends MapRuntimeState>(state:
           ? `${getMapFactionName(faction, true)}出局；剩余领土交给占领其首都的${getMapFactionName(occupier, true)}。`
           : `${getMapFactionName(faction, false)} capitulates; remaining territory passes to ${getMapFactionName(occupier, false)}, holder of its capital.`, ...next.mapHistory],
       };
+      if (faction === MapFaction.IBERIAN_DEFENSE) {
+        return { ...next, civilWarStatus: 'lost', activeWar: null,
+          wars: { ...next.wars, spanish_civil_war: 'lost' }, mapSelectedArmyId: null, mapSelectedArmyIds: [] };
+      }
       changed = true;
     }
   }

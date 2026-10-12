@@ -17,10 +17,13 @@ import {
   queueJournalOutcomeEvent,
 } from './journalEvents';
 import { hasMandatoryMayDaysEvent, isMayDaysEvent } from './mayDays';
+import { getAnnualEconomicImpulse } from './annualEconomicImpulse';
 import { WARTIME_EVENT_ID } from './wartimeCoalition';
 import { adjustMilitarization, INTERNATIONAL_BRIGADES_MILITARIZATION_GAIN } from './militarization';
 import { MAP_RUNTIME_HELPERS } from './mapRuntime';
 import { checkWarStatus } from './warStatus';
+import { settleLaborPressure } from './laborPressure';
+import { LABOR_PRESSURE_RESULT_EVENTS } from '../events/labor_pressure';
 
 export interface PhaseOrchestratorDependencies {
   finishPlayerMapTurn: (state: GameState) => GameState;
@@ -136,6 +139,15 @@ export const advancePhase = (
       };
     }
 
+    // 年度经济冲量：每年 1 月**静默**换表（不排队事件、不打断行动阶段）。放在国家账目
+    // 结算之前，所以当年的第一笔月结就已经按新环境计算目标值。
+    if (nextMonth === 1) {
+      tempState = {
+        ...tempState,
+        annualEconomicImpulse: getAnnualEconomicImpulse(nextYear, state.difficulty, newCivilWarStatus),
+      };
+    }
+
     // National accounting is a pure, shared pipeline. Journal effects and
     // phase/timer orchestration remain in this reducer.
     const monthlyPipeline = calculateMonthlyPipeline(tempState);
@@ -154,6 +166,13 @@ export const advancePhase = (
       ...tempState,
       economyHistory: updatedHistory
     };
+
+    const pressureSettlement = settleLaborPressure(tempState);
+    tempState = { ...tempState, ...pressureSettlement.patch };
+    if (pressureSettlement.enactedLawId) {
+      const resultEvent = LABOR_PRESSURE_RESULT_EVENTS[pressureSettlement.enactedLawId];
+      tempState = { ...tempState, pendingEvents: [resultEvent, ...tempState.pendingEvents] };
+    }
 
     let newJournal = JSON.parse(JSON.stringify(state.journal || {}));
 

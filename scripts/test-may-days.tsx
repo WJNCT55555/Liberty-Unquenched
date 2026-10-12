@@ -20,7 +20,7 @@ import { getLegalStanceActors } from '../src/game/lawStances';
 import { activateCivilWarOrganizations, isOrganizationActive, normalizeOrganizationState, setOrganizationEstablished } from '../src/game/organizations';
 import { getMilitiaRecruitmentPool } from '../src/game/rules/warSetup';
 import { serializeGameState, deserializeGameState } from '../src/game/saveGame';
-import { MapFaction, type Army } from '../src/map/types_map';
+import { MapFaction, type Army, type MapRuntimeState } from '../src/map/types_map';
 import { formIberianDefense, settleIberianCapitulations, IBERIAN_CAPITALS, IBERIAN_SURRENDER_THRESHOLDS } from '../src/game/rules/iberianDefense';
 import { mayDaysSplitAlignment } from '../src/game/events/civil_war/may_days';
 import { getPlayerMapFaction, canEnterMapProvince, CIVIL_WAR_FACTIONS } from '../src/map/rules/factions';
@@ -31,6 +31,7 @@ import { IberianWarDetails } from '../src/components/IberianWarDetails';
 import { PROVINCE_REGIONS, PROVINCE_ADJACENCY } from '../src/map/map_constants';
 import { nationalistSurrender } from '../src/game/events/civil_war/nationalist_surrender';
 import { republicanSurrender } from '../src/game/events/civil_war/republican_surrender';
+import { executeAiTurn, DEFAULT_MAP_AI_TURN_DEPENDENCIES } from '../src/game/rules/mapAiTurn';
 
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const storage = new Map<string, string>();
@@ -560,36 +561,99 @@ test('Every capitulation uses strict SV and capital loss together; remaining ter
   assert.ok(settleIberianCapitulations(custom).iberianDefense!.eliminated.includes(MapFaction.NATIONALIST));
 });
 
-test('Nationalist elimination leaves the left-wing war running; Committee defeat allows AI observation beyond 1939', () => {
+test('Nationalist elimination leaves the left-wing war running; Committee defeat ends play immediately', () => {
   const leftWar = settleIberianCapitulations(thresholdFixture(MapFaction.NATIONALIST, 59, true));
   assert.equal(leftWar.civilWarStatus, 'ongoing');
   assert.equal(leftWar.iberianDefense!.winner, undefined);
   const leftCalls: MapFaction[] = [];
   finishPlayerMapTurn(leftWar, battleHelpers(leftCalls));
   assert.deepEqual(leftCalls, [MapFaction.REPUBLICAN]);
-  const observer = settleIberianCapitulations(thresholdFixture(MapFaction.IBERIAN_DEFENSE, 49, true));
-  assert.equal(observer.iberianDefense!.playerDefeated, true);
-  assert.equal(checkEndings({ ...observer, year: 1942 }).isGameOver, false);
+  const defeated = settleIberianCapitulations(thresholdFixture(MapFaction.IBERIAN_DEFENSE, 49, true));
+  assert.equal(defeated.iberianDefense!.playerDefeated, true);
+  assert.equal(defeated.iberianDefense!.winner, undefined);
+  assert.equal(defeated.civilWarStatus, 'lost');
+  assert.equal(defeated.activeWar, null);
+  assert.equal(checkEndings({ ...defeated, year: 1942 }).isGameOver, true);
+  assert.equal(checkEndings(defeated).ending, 'IBERIAN_COMMITTEE_DEFEAT');
   const calls: MapFaction[] = [];
-  finishPlayerMapTurn(observer, battleHelpers(calls));
-  assert.deepEqual(calls, [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]);
-  const income = calculateMonthlyMapStage(observer);
+  assert.equal(finishPlayerMapTurn(defeated, battleHelpers(calls)), defeated);
+  assert.deepEqual(calls, []);
+  const income = calculateMonthlyMapStage(defeated);
   assert.equal(income.mapResources.IBERIAN_DEFENSE.manpower, 0);
   assert.equal(income.mapResources.IBERIAN_DEFENSE.commandPoints, 0);
 });
 
-test('Only the last surviving faction wins, with distinct endings and no defeated-faction revival', () => {
+test('Committee victory requires the last survivor; either enemy causes the same player defeat ending', () => {
   for (const winner of CIVIL_WAR_FACTIONS) {
     let state = secede();
     state = { ...state, provinces: Object.fromEntries(Object.entries(state.provinces!).map(([id, province]) => [id, CIVIL_WAR_FACTIONS.some(faction => faction === province.owner) ? { ...province, owner: winner } : province])) };
     const next = settleIberianCapitulations(state);
-    assert.equal(next.iberianDefense!.winner, winner);
-    assert.equal(next.iberianDefense!.eliminated.length, 2);
+    assert.equal(next.iberianDefense!.winner, winner === MapFaction.IBERIAN_DEFENSE ? winner : undefined);
+    assert.equal(next.iberianDefense!.eliminated.length, winner === MapFaction.IBERIAN_DEFENSE ? 2 : 1);
     assert.equal(next.activeWar, null);
     assert.equal(checkEndings(next).isGameOver, true);
-    assert.equal(checkEndings(next).ending, winner === MapFaction.IBERIAN_DEFENSE ? 'IBERIAN_COMMITTEE_VICTORY' : winner === MapFaction.REPUBLICAN ? 'IBERIAN_MADRID_VICTORY' : 'WE_HAVE_PASSED');
+    assert.equal(checkEndings(next).ending, winner === MapFaction.IBERIAN_DEFENSE ? 'IBERIAN_COMMITTEE_VICTORY' : 'IBERIAN_COMMITTEE_DEFEAT');
     assert.deepEqual(settleIberianCapitulations(next), next);
   }
+});
+
+test('Simultaneous enemy capitulation cannot rescue an already defeated Committee', () => {
+  const state = thresholdFixture(MapFaction.IBERIAN_DEFENSE, 49, true);
+  state.provinces = { ...state.provinces!,
+    barcelona: { ...state.provinces!.barcelona, strategicValue: 0 },
+    burgos: { ...state.provinces!.burgos, owner: MapFaction.IBERIAN_DEFENSE, strategicValue: 0 },
+    nationalist_base: { ...state.provinces!.madrid, id: 'nationalist_base', owner: MapFaction.NATIONALIST, strategicValue: 55 },
+  };
+  const next = settleIberianCapitulations(state);
+  assert.equal(next.iberianDefense!.playerDefeated, true);
+  assert.deepEqual(next.iberianDefense!.eliminated, [MapFaction.IBERIAN_DEFENSE]);
+  assert.equal(checkEndings(next).ending, 'IBERIAN_COMMITTEE_DEFEAT');
+});
+
+test('Committee defeat stops both the current AI action list and the next AI faction', () => {
+  const state = thresholdFixture(MapFaction.IBERIAN_DEFENSE, 49, false);
+  state.provinces = { ...state.provinces!, gerona: { ...state.provinces!.gerona, owner: MapFaction.NATIONALIST, strategicValue: 100 } };
+  state.armies = [{ ...troop('capture_barcelona', 'gov', 5000), faction: MapFaction.NATIONALIST, provinceId: 'gerona' }];
+  let battles = 0;
+  const next = executeAiTurn(state as GameState & MapRuntimeState, MapFaction.NATIONALIST, true, {
+    ...DEFAULT_MAP_AI_TURN_DEPENDENCIES,
+    calculateMoves: () => [
+      { type: 'MOVE', payload: { armyId: 'capture_barcelona', targetProvinceId: 'barcelona' } },
+      { type: 'MOVE', payload: { armyId: 'capture_barcelona', targetProvinceId: 'gerona' } },
+    ],
+    resolveBattle: (armies, provinces, moved, target) => {
+      battles++;
+      return { updatedArmies: armies.map(army => army.id === moved.id ? { ...army, provinceId: target, movesLeft: army.movesLeft - 1 } : army),
+        updatedProvinces: { ...provinces, [target]: { ...provinces[target], owner: moved.faction } }, messages: [] };
+    },
+  });
+  assert.equal(battles, 1);
+  assert.equal(next.iberianDefense!.playerDefeated, true);
+  assert.equal(executeAiTurn(next, MapFaction.REPUBLICAN, true), next);
+  const calls: MapFaction[] = [];
+  finishPlayerMapTurn(state, { ...battleHelpers(calls), executeAiTurn: (current, faction) => {
+    calls.push(faction);
+    return settleIberianCapitulations({ ...current, provinces: { ...current.provinces!, barcelona: { ...current.provinces!.barcelona, owner: faction } } });
+  } });
+  assert.deepEqual(calls, [MapFaction.REPUBLICAN]);
+  // The reducer integration is separately covered with an already-lost capital,
+  // avoiding dependence on random combat for the terminal transition.
+  const terminal = gameReducer({ ...state, provinces: { ...state.provinces!, barcelona: { ...state.provinces!.barcelona, owner: MapFaction.NATIONALIST } } }, { type: 'END_MAP_PLAYER_TURN' });
+  assert.equal(terminal.isGameOver, true);
+  assert.equal(terminal.ending, 'IBERIAN_COMMITTEE_DEFEAT');
+});
+
+test('Legacy Madrid and Nationalist victories restore as Committee defeat', () => {
+  for (const winner of [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]) {
+    const state = secede();
+    const legacy = { ...state, isGameOver: true, ending: winner === MapFaction.REPUBLICAN ? 'IBERIAN_MADRID_VICTORY' : 'WE_HAVE_PASSED',
+      iberianDefense: { ...state.iberianDefense!, winner, eliminated: [MapFaction.IBERIAN_DEFENSE], playerDefeated: true } };
+    const loaded = gameReducer(seed(), { type: 'LOAD_STATE', payload: restore(legacy) });
+    assert.equal(loaded.isGameOver, true);
+    assert.equal(loaded.ending, 'IBERIAN_COMMITTEE_DEFEAT');
+  }
+  const ordinary = { ...seed(), isGameOver: true, ending: 'WE_HAVE_PASSED' };
+  assert.equal(checkEndings(ordinary), ordinary);
 });
 
 test('Old two-sided surrender events and forced Asturias cannot interrupt the three-sided campaign', () => {

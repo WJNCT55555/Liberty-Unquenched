@@ -76,7 +76,7 @@ export const MILITARIZATION_GROUP_INFO: Record<ArmyIdentity, {
   pce: { en: 'PCE militia', zh: 'PCE 民兵', color: 'bg-red-800', camp: 'republic' },
   intl: { en: 'International Brigades', zh: '国际纵队', color: 'bg-rose-700', camp: 'republic' },
   regional: { en: 'Basque Army', zh: '巴斯克军', color: 'bg-green-700', camp: 'republic' },
-  requetes: { en: 'Requeté', zh: '雷盖特', color: 'bg-blue-900', camp: 'nationalist' },
+  requetes: { en: 'Requetés', zh: '呼啸兵', color: 'bg-blue-900', camp: 'nationalist' },
   falange: { en: 'Falange', zh: '长枪党', color: 'bg-slate-800', camp: 'nationalist' },
 };
 

@@ -67,17 +67,18 @@ body {
   background-size: 4px 4px;
 }
 
-.bg-contested-stripes {
-  background: repeating-linear-gradient(
-    45deg,
-    #00008b,
-    #00008b 10px,
-    #ff0000 10px,
-    #ff0000 20px
-  );
-}
+/* ---------------------------------------------------------------------------
+   DEPRECATED — radio material styles. Kept for reference; nothing in src/
+   references these four classes anymore.
 
-/* Radio Textures */
+   The secret-radio UI (components/MusicPlayer.tsx) ended up with a flat
+   illustration treatment — hardcoded hex plus hard offset shadows — which
+   matches the .border-print language used everywhere else. This realistic
+   wood / brass / glass material set was therefore never adopted, and its only
+   consumers, the @theme tokens --color-wood-*, --color-brass*, --color-tube-glow
+   and --color-glass (see the @theme block above), are dormant for the same
+   reason. Safe to delete this whole block together with those tokens.
+   --------------------------------------------------------------------------- */
 .bg-wood-texture {
   background-color: var(--color-wood-base);
   background-image: 

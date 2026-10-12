@@ -1,6 +1,5 @@
 ﻿import { Card, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport } from '../utils';
-import { clampLawLevel } from '../lawStances';
 import { getEconomyCounter } from '../rules/economyReforms';
 import { applyControlInfluence, applyEconomicOption } from '../rules/controlShares';
 import { MapFaction } from '../../map/types_map';
@@ -57,26 +56,6 @@ export const agriculturalPolicy: Card = {
             }
           },
           {
-            text: 'Enforce Fixed Minimum Rural Wages',
-            textZh: '推行农村固定最低保障工资',
-            subtitle: 'Enforce modern wage guarantees inside the rural sectors. Elevates the peasantry standard of living cooperatively through republican laws.',
-            subtitleZh: '在农业部门全面强制执行保障性最低工资。通过共和国法律框架，有条不紊地提高劳工与佃农的生活水平。',
-            effect: (s: GameState) => {
-              let newClasses = s.classes;
-              newClasses = adjustClassSupport(newClasses, 'Braceros', 'CNT_FAI', 8);
-              const newFactions = adjustFactionInfluence(s.factions, 'Treintistas', 8);
-              return {
-                agricultural_policy_timer: 6,
-                classes: newClasses,
-                factions: newFactions,
-                domesticPolicy: {
-                  ...s.domesticPolicy,
-                  min_wage: clampLawLevel('min_wage', s.domesticPolicy.min_wage + 1)
-                }
-              };
-            }
-          },
-          {
             text: 'Maintain Moderate Paced Rural Reforms',
             textZh: '采取温和渐进的农村改革',
             subtitle: 'Ensure minimal disruption to food production and safeguard the coalition by coordinating reforms with moderate Republican parties.',
@@ -104,7 +83,7 @@ export const agriculturalPolicy: Card = {
             unavailableSubtitle: () => 'Requires 1 resource.',
             unavailableSubtitleZh: () => '需要 1 资源。',
             effect: (s: GameState) => {
-              const next = { ...s, ...applyEconomicOption(s, 'agricultural_cooperative') } as GameState;
+              const next = { ...s, ...applyEconomicOption(s, 'agricultural_cooperative', { land: { smallholders: -1.5, cooperative: 1.5 } }) } as GameState;
               const level = getEconomyCounter(next, 'agricultural_cooperative');
               let classes = adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 2);
               classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', 1);
@@ -117,7 +96,7 @@ export const agriculturalPolicy: Card = {
               return {
                 resources: s.resources - 1,
                 agricultural_policy_timer: 6,
-                ...applyEconomicOption(s, 'agricultural_cooperative'),
+                ...applyEconomicOption(s, 'agricultural_cooperative', { land: { smallholders: -1.5, cooperative: 1.5 } }),
                 classes
               };
             }
@@ -136,7 +115,7 @@ export const agriculturalPolicy: Card = {
               return {
                 budget: Math.max(0, s.budget - 3),
                 agricultural_policy_timer: 6,
-                ...applyEconomicOption(s, 'land_redemption'),
+                ...applyEconomicOption(s, 'land_redemption', { land: { latifundia: -1.5, church: -0.5, state: 2 } }),
                 domesticPolicy: {
                   ...s.domesticPolicy,
                   land_reform_progress: Math.min(100, s.domesticPolicy.land_reform_progress + 5)
@@ -154,14 +133,14 @@ export const agriculturalPolicy: Card = {
             unavailableSubtitle: () => 'Requires 1 resource.',
             unavailableSubtitleZh: () => '需要 1 资源。',
             effect: (s: GameState) => {
-              const next = { ...s, ...applyEconomicOption(s, 'land_voluntary_collectivization') } as GameState;
+              const next = { ...s, ...applyEconomicOption(s, 'land_voluntary_collectivization', { land: { smallholders: -3, cooperative: -1, collective: 4 } }) } as GameState;
               const level = getEconomyCounter(next, 'land_voluntary_collectivization');
               let classes = adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 5);
               classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', -1);
               return {
                 resources: s.resources - 1,
                 agricultural_policy_timer: 6,
-                ...applyEconomicOption(s, 'land_voluntary_collectivization'),
+                ...applyEconomicOption(s, 'land_voluntary_collectivization', { land: { smallholders: -3, cooperative: -1, collective: 4 } }),
                 factions: level >= 3 ? adjustFactionInfluence(s.factions, 'Faistas', 4) : s.factions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
@@ -189,7 +168,7 @@ export const agriculturalPolicy: Card = {
               classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', -8);
               return {
                 agricultural_policy_timer: 6,
-                ...applyEconomicOption(s, 'wartime_requisition'),
+                ...applyEconomicOption(s, 'wartime_requisition', { land: { church: -1, latifundia: -1, smallholders: -2, state: 4 } }),
                 classes
               };
             }

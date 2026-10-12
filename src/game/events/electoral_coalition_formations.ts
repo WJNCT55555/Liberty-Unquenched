@@ -13,6 +13,10 @@ const hasCoalition = (state: GameState, id: CoalitionId): boolean => (
   state.activeCoalitions.some(coalition => coalition.activeId === id)
 );
 
+const hasEndedCoalition = (state: GameState, id: CoalitionId): boolean => (
+  state.coalitionHistory.some(coalition => coalition.id === id)
+);
+
 const formPoliticalCoalition = (state: GameState, id: CoalitionId): Partial<GameState> => {
   const next = formCoalition(state, id);
   return {
@@ -38,7 +42,10 @@ export const cedaRadicalUnderstanding: GameEvent = {
     && state.ceda_formed
     && isRepublicanPartyPresent(state, 'AP')
     && isRepublicanPartyPresent(state, 'PRR')
-    && !hasCoalition(state, 'ceda_radical'),
+    && state.rulingCoalition !== 'ceda_radical'
+    && !state.isCedaRadicalDissolved
+    && !hasCoalition(state, 'ceda_radical')
+    && !hasEndedCoalition(state, 'ceda_radical'),
   title: 'The Radical–CEDA Understanding',
   titleZh: '激进党—CEDA谅解协议',
   description: 'As the republican left fragments, Alejandro Lerroux’s Radical Republican Party and Gil-Robles’s CEDA reach a public parliamentary understanding. The Radicals will provide the republican cabinet leadership; CEDA will contribute the decisive Catholic-right vote and initially support the cabinet from outside. Liberal democrats may join the arrangement. It is not yet a fully shared cabinet, but it is now a recognizable governing alliance capable of claiming seats after an election.',

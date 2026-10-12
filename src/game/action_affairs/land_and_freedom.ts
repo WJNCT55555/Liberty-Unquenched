@@ -36,7 +36,7 @@ export const landAndFreedom: Card = {
               // The rural collectives are the voluntary-collectivization counter: the
               // ownership transfer is declared on the counter itself, never here
               // (docs/工人控制度改造方案.md §4.4).
-              ...applyEconomicOption(s, 'land_voluntary_collectivization'),
+              ...applyEconomicOption(s, 'land_voluntary_collectivization', { land: { smallholders: -3, cooperative: -1, collective: 4 } }),
               stats: {
                 ...s.stats,
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 5 * multiplier),
@@ -108,7 +108,7 @@ export const landAndFreedom: Card = {
               land_and_freedom_timer: 3,
               // The estates pass to the collectives; some land becomes state property
               // because a requisition needs a legal owner to register it.
-              ...applyEconomicOption(s, 'land_requisition'),
+              ...applyEconomicOption(s, 'land_requisition', { land: { latifundia: -2, church: -0.5, collective: 2, cooperative: 0.5 } }),
               stats: {
                 ...s.stats,
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 3),
@@ -131,7 +131,7 @@ export const landAndFreedom: Card = {
           unavailableSubtitle: () => 'Need at least 2 armaments and 1 resource.',
           unavailableSubtitleZh: () => '需要至少 2 军备与 1 资源。',
           effect: (s) => {
-            const next = { ...s, ...applyEconomicOption(s, 'land_forced_collectivization') } as GameState;
+            const next = { ...s, ...applyEconomicOption(s, 'land_forced_collectivization', { land: { latifundia: -3, church: -1, smallholders: -5, collective: 8, state: 1 } }) } as GameState;
             const uses = getEconomyCounter(next, 'land_forced_collectivization');
             let classes = adjustClassSupport(s.classes, 'Braceros', 'CNT_FAI', 8);
             classes = adjustClassSupport(classes, 'Labradores', 'CNT_FAI', -8);
@@ -142,7 +142,7 @@ export const landAndFreedom: Card = {
               land_and_freedom_timer: 3,
               // Forced pooling takes from every private holder at once — the estates, the
               // Church and the yeomanry — and needs the state to enforce it.
-              ...applyEconomicOption(s, 'land_forced_collectivization'),
+              ...applyEconomicOption(s, 'land_forced_collectivization', { land: { latifundia: -3, church: -1, smallholders: -5, collective: 8, state: 1 } }),
               stats: {
                 ...s.stats,
                 revolutionaryFervor: Math.min(100, s.stats.revolutionaryFervor + 6),

@@ -1,4 +1,5 @@
 import { Card, GameEvent, GameState } from '../types';
+import { random } from '../rules/rng';
 import {
   armamentPreview,
   eventPreview,
@@ -101,7 +102,7 @@ const fundTankResearch: AnarchyTanksEffect = (state: GameState): Partial<GameSta
 };
 
 const accelerateTankResearch: AnarchyTanksEffect = (state: GameState): Partial<GameState> => {
-  const roll = Math.random() * 100;
+  const roll = random() * 100;
   const progressChange = roll < 50 ? 50 : roll < 75 ? 25 : roll < 90 ? 0 : -25;
   const succeeded = roll < 75;
   const progress = Math.min(100, Math.max(0, state.tankResearchProgress + progressChange));
@@ -115,7 +116,7 @@ const accelerateTankResearch: AnarchyTanksEffect = (state: GameState): Partial<G
 };
 
 const runCombatTest: AnarchyTanksEffect = (state: GameState): Partial<GameState> => {
-  const roll = Math.random() * 100;
+  const roll = random() * 100;
   const successChance = state.difficulty === 'easy' || state.difficulty === 'sandbox'
     ? 75
     : state.difficulty === 'hard'

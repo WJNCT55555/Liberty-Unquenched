@@ -93,7 +93,7 @@ export const MILITIA_RECRUITMENT_POOLS: MilitiaRecruitmentPool[] = [
   { entityId: 'poum_militias', identity: 'poum', camp: MapFaction.REPUBLICAN, label: { en: 'POUM militia', zh: 'POUM 民兵' } },
   { entityId: 'euzko_gudarostea', identity: 'regional', camp: MapFaction.REPUBLICAN, label: { en: 'Basque Army (PNV)', zh: '巴斯克军（PNV）' } },
   { entityId: 'international_brigades', identity: 'intl', camp: MapFaction.REPUBLICAN, label: { en: 'International Brigades', zh: '国际纵队' } },
-  { entityId: 'requetes', identity: 'requetes', camp: MapFaction.NATIONALIST, label: { en: 'Requeté', zh: '雷盖特' } },
+  { entityId: 'requetes', identity: 'requetes', camp: MapFaction.NATIONALIST, label: { en: 'Requetés (Carlist militia)', zh: '呼啸兵（卡洛斯派民兵）' } },
   { entityId: 'falange_first_line', identity: 'falange', camp: MapFaction.NATIONALIST, label: { en: 'Falange', zh: '长枪党' } },
 ];
 

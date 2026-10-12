@@ -13,6 +13,7 @@ import { economyCooperativeJournal } from './economy_cooperative';
 import { economyOrganicJournal } from './economy_organic';
 import { economyWarEffortJournal } from './economy_war_effort';
 import { economyRevolutionaryWarJournal } from './economy_revolutionary_war';
+import { forcedUnemploymentJournal } from './forced_unemployment';
 import { JournalEntryDef } from '../types';
 
 export const JOURNAL_ENTRIES: JournalEntryDef[] = [
@@ -21,6 +22,7 @@ export const JOURNAL_ENTRIES: JournalEntryDef[] = [
   iberianDreamJournal,
   uhpJournal,
   alianzaObreraJournal,
+  forcedUnemploymentJournal,
   ramonFrancoPresidencyJournal,
   popularArmyJournal,
   militiaAutonomyJournal,

@@ -115,8 +115,8 @@ export const diegoAbadDeSantillan: Advisor = {
           advisorActionTimer: 6,
           ...advanceEconomyPush(state, 'organicPushes'),
           // One round of work advances both ladders, ownership included.
-          ...applyEconomicOption(state, 'supply_coordination_network'),
-          ...applyEconomicOption(state, 'foreign_capital_seizure'),
+          ...applyEconomicOption(state, 'supply_coordination_network', { land: { smallholders: -1, cooperative: 1 }, industry: { smallBusiness: -1, cooperative: 1 } }),
+          ...applyEconomicOption(state, 'foreign_capital_seizure', { industry: { foreign: -6, state: 6 } }),
           factions: adjustFactionInfluence(state.factions, 'Faistas', 3),
           // The third round publishes the plan: the event's option is what activates the
           // journal, and its condition also allows the collectivization entry later (§5.4).

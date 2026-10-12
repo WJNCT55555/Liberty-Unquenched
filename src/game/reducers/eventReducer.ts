@@ -6,6 +6,7 @@ import { INITIAL_ADVISORS } from '../advisors';
 import { civilWarSetup } from '../events/civil_war/civil_war_setup';
 import { addEasyUndoOption, createEasyConfirmationEvent } from '../easyMode';
 import { isMayDaysEvent } from '../rules/mayDays';
+import { randomPick } from '../rules/rng';
 
 const createEmptyEventHistory = (): EventHistory => ({ triggered: [], resolved: [] });
 
@@ -169,7 +170,7 @@ export const reduceEvent: DomainReducer = (state, action) => {
         if (availableCards.length === 0) return state;
       }
 
-      const drawnCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+      const drawnCard = randomPick(availableCards);
       if (cardType === 'Action') actionDeck = actionDeck.filter(card => card.id !== drawnCard.id);
       else if (cardType === 'Government') governmentDeck = governmentDeck.filter(card => card.id !== drawnCard.id);
       else militaryDeck = militaryDeck.filter(card => card.id !== drawnCard.id);

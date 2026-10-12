@@ -2,6 +2,7 @@ import { PROVINCE_ADJACENCY, getCombatWidth } from '../../map/map_constants';
 import { getEffectiveFortressLevel, MapFaction, type Army, type ArmyComposition, type ArmyIdentity, type Province } from '../../map/types_map';
 import { canEnterMapProvince, getMapFactionName } from '../../map/rules/factions';
 import { getMilitarization, getMilitarizationMultiplier } from './militarization';
+import { random as rngRandom } from './rng';
 
 /**
  * One battle is one resolution: a single line fights, casualties are taken, and
@@ -228,7 +229,7 @@ export function resolveBattle(
   targetProvinceId: string,
   isZh: boolean,
   militarization?: MilitarizationLookup,
-  random: () => number = Math.random,
+  random: () => number = () => rngRandom(),
 ): { updatedArmies: Army[]; updatedProvinces: Record<string, Province>; messages: string[] } {
   const targetProvince = provinces[targetProvinceId];
   if (!targetProvince || !canEnterMapProvince(movedArmy.faction, targetProvince.owner)) {

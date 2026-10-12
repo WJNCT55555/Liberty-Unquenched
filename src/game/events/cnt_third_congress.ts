@@ -3,6 +3,14 @@ import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence, isAt
 import { elections1931Results } from './elections_1931_results';
 import { setOrganizationEstablished } from '../organizations';
 import { activateJournal } from '../rules/journalEvents';
+import { createElement } from 'react';
+import { ForcedUnemploymentResolution } from '../../components/ForcedUnemploymentResolution';
+import {
+  FORCED_UNEMPLOYMENT_JOURNAL_ID,
+  getForcedUnemploymentChips,
+  isValidForcedUnemploymentSelection,
+  type ForcedUnemploymentPledgeId,
+} from '../rules/forcedUnemployment';
 
 const cntThirdCongressMeta = {
   category: 'cnt' as const,
@@ -179,6 +187,56 @@ export const cnt_third_congress_4: GameEvent = {
   ]
 };
 
+export const cnt_forced_unemployment_fulfilled: GameEvent = {
+  id: 'cnt_forced_unemployment_fulfilled',
+  meta: { category: 'cnt', flow: 'solo', series: ['cnt_congress_1931'], tags: ['journal'] },
+  condition: () => false,
+  title: 'The Confederation Keeps Its Promise',
+  titleZh: '联合会兑现了自己的承诺',
+  description: 'The promises adopted at the Third Congress have been met. Shorter hours, employment and the additional commitments survived the test of time. Workers who doubted the Confederation now see that its resolutions can become material gains.',
+  descriptionZh: '第三次代表大会通过的承诺已经全部兑现。工时、就业与额外承诺经受住了时间的检验。曾经怀疑联合会的劳动者，如今看到大会决议也能成为切实成果。',
+  options: [{ text: 'The workers will remember.', textZh: '劳动者会记住。', effect: () => ({}) }],
+};
+
+export const cnt_forced_unemployment_broken_promise: GameEvent = {
+  id: 'cnt_forced_unemployment_broken_promise',
+  meta: { category: 'cnt', flow: 'solo', series: ['cnt_congress_1931'], tags: ['journal'] },
+  condition: () => false,
+  title: 'A Promise Broken',
+  titleZh: '失信于劳动者',
+  description: 'Four years have passed since the Third Congress. The Confederation asked workers and the unemployed to trust its programme, but the promises it made publicly remain unmet. Disillusion spreads through the workplaces and the union locals.',
+  descriptionZh: '第三次代表大会过去了四年。联合会曾请劳动者与失业者相信自己的纲领，但公开许下的承诺仍未兑现。失望正在工厂和地方工会间蔓延。',
+  options: [{ text: 'We must bear the consequences.', textZh: '我们必须承担后果。', effect: () => ({}) }],
+};
+
+export const cnt_forced_unemployment_resolution: GameEvent = {
+  id: 'cnt_forced_unemployment_resolution',
+  meta: cntThirdCongressNodeMeta,
+  condition: () => false,
+  title: 'Involuntary Unemployment',
+  titleZh: '强制失业',
+  description: 'The congress turns to paro forzoso. Delegates propose a six-hour day without lower wages, fair distribution of work, protection against dismissal, a minimum wage and land for those willing to cultivate it. The strongest hours pledge below uses the existing 36-hour law level. A resolution is easy to proclaim; every pledge made here will be judged by the workers who must live with its consequences.',
+  descriptionZh: '大会转而讨论“强制失业”（paro forzoso）。代表们要求实行不降薪的六小时工作日、公平分配工作、反对借危机裁员、保障最低工资，并让愿意耕种的人得到土地。下方最强的工时承诺采用现有的36小时法律等级。宣布决议很容易；这里许下的每项承诺，都将由承受其后果的劳动者检验。',
+  renderContent: (state, dispatch) => createElement(ForcedUnemploymentResolution, {
+    state,
+    dispatch,
+    onConfirm: (currentState, pledgeIds: ForcedUnemploymentPledgeId[]) => {
+      if (!isValidForcedUnemploymentSelection(pledgeIds)) return { currentEvent: cnt_forced_unemployment_resolution };
+      return {
+        forcedUnemploymentMandate: {
+          pledgeIds,
+          chips: getForcedUnemploymentChips(pledgeIds),
+          adoptedAt: { year: currentState.year, month: currentState.month },
+          unemploymentStreak: 0,
+        },
+        ...activateJournal(currentState, FORCED_UNEMPLOYMENT_JOURNAL_ID),
+        currentEvent: cnt_third_congress_4,
+      };
+    },
+  }),
+  options: [],
+};
+
 export const cnt_third_congress_3: GameEvent = {
   id: 'cnt_third_congress_3',
   meta: cntThirdCongressNodeMeta,
@@ -204,7 +262,7 @@ export const cnt_third_congress_3: GameEvent = {
             revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15)
           },
           classes: newClasses,
-          currentEvent: cnt_third_congress_4
+          currentEvent: cnt_forced_unemployment_resolution
         };
       }
     },
@@ -223,7 +281,7 @@ export const cnt_third_congress_3: GameEvent = {
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 10)
           },
           factions: newFactions,
-          currentEvent: cnt_third_congress_4
+          currentEvent: cnt_forced_unemployment_resolution
         };
       }
     },
@@ -243,7 +301,7 @@ export const cnt_third_congress_3: GameEvent = {
             ...state.stats,
             revolutionaryFervor: Math.max(0, state.stats.revolutionaryFervor - 5)
           },
-          currentEvent: cnt_third_congress_4
+          currentEvent: cnt_forced_unemployment_resolution
         };
       }
     }

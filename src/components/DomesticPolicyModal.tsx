@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { GameState } from '../game/types';
 import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, X, Languages, Users, ShieldCheck, Swords, Crosshair, UserCheck } from 'lucide-react';
 import { LAW_DEFINITIONS, getPolicyEffectLines, type PolicyCategory, type PolicyDefinition } from '../game/rules/policyDefinitions';
+import {
+  getLaborPressureCampaign,
+  getLaborPressureResistance,
+  getLaborPressureThreshold,
+  LABOR_PRESSURE_LABELS,
+} from '../game/rules/laborPressure';
 
 type PolicyViewDefinition = PolicyDefinition & { icon: React.ReactNode };
 
@@ -45,6 +51,10 @@ interface Props {
 
 export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }) => {
   const [activePolicy, setActivePolicy] = useState<PolicyViewDefinition | null>(null);
+  const pressure = getLaborPressureCampaign(state);
+  const pressureResistance = pressure
+    ? getLaborPressureResistance(state, pressure.lawId, pressure.targetLevel)
+    : null;
 
   if (!isOpen) return null;
 
@@ -75,6 +85,22 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {pressure && pressureResistance && (
+          <div className="border-b border-ink/30 bg-amber-100/70 px-5 py-3 text-sm font-typewriter">
+            <div className="font-bold">
+              {isZh ? '议会外劳工诉求：' : 'Labor demand outside parliament: '}
+              {isZh ? LABOR_PRESSURE_LABELS[pressure.lawId].zh : LABOR_PRESSURE_LABELS[pressure.lawId].en}
+              {' '}L{state.domesticPolicy[pressure.lawId]} → L{pressure.targetLevel}
+              {' · '}{pressure.points}/{getLaborPressureThreshold(state, pressure.lawId, pressure.targetLevel)}
+            </div>
+            <div className="text-ink/70 mt-1">
+              {isZh
+                ? `议会阻力 +${pressureResistance.parliament}；劳工部长阻力 +${pressureResistance.ministry}。${state.governmentCrisis || state.earlyElectionInProgress ? '政府危机期间暂停结算与衰减。' : '闲置六个月损失 1 点；达标后下月结算。'}`
+                : `Cortes resistance +${pressureResistance.parliament}; labor minister resistance +${pressureResistance.ministry}. ${state.governmentCrisis || state.earlyElectionInProgress ? 'Settlement and decay pause during a government crisis.' : 'Lose 1 point after six idle months; resolve next month when ready.'}`}
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
