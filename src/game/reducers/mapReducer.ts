@@ -13,15 +13,22 @@ import { randomInt } from '../rules/rng';
 /** Each monthly war segment has one player turn, followed by each surviving AI once. */
 export const finishPlayerMapTurn = (state: GameState, helpers: MapReducerHelpers): GameState => {
   const now = monthIndex(state);
-  if (state.iberianDefense?.winner || state.iberianDefense?.playerDefeated || state.iberianDefense?.completedAiMonth === now) return state;
+  if (state.iberianDefense?.winner || state.iberianDefense?.playerDefeated
+    || state.iberianDefense?.completedAiMonth === now || state.lastCompletedAiMonth === now) return state;
   let next = helpers.checkWarStatus(state, state.language === 'zh');
   if (next.iberianDefense?.winner || next.iberianDefense?.playerDefeated) return next;
-  if (next.iberianDefense) next = { ...next, iberianDefense: { ...next.iberianDefense, completedAiMonth: now } };
-  const aiFactions = state.iberianDefense ? [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]
-    : [state.activeWar === 'asturias_war' ? MapFaction.REPUBLICAN : MapFaction.NATIONALIST];
+  if (state.activeWar === 'spanish_civil_war' && next.civilWarStatus !== 'ongoing') return next;
+  next = { ...next, lastCompletedAiMonth: now,
+    ...(next.iberianDefense ? { iberianDefense: { ...next.iberianDefense, completedAiMonth: now } } : {}) };
+  const carlistsActive = Object.values(next.provinces).some(province => province.owner === MapFaction.CARLIST);
+  const aiFactions = state.iberianDefense ? [MapFaction.REPUBLICAN, MapFaction.NATIONALIST, ...(carlistsActive ? [MapFaction.CARLIST] : [])]
+    : state.activeWar === 'asturias_war' ? [MapFaction.REPUBLICAN]
+      : [MapFaction.NATIONALIST, ...(carlistsActive ? [MapFaction.CARLIST] : [])];
   for (const faction of aiFactions) {
     if (next.iberianDefense?.winner || next.iberianDefense?.playerDefeated) break;
+    if (state.activeWar === 'spanish_civil_war' && next.civilWarStatus !== 'ongoing') break;
     if (next.iberianDefense?.eliminated.includes(faction)) continue;
+    if (!Object.values(next.provinces).some(province => province.owner === faction)) continue;
     next = helpers.executeAiTurn({ ...next, mapCurrentPlayer: faction, mapHistory: [
       `${state.year}-${state.month} · ${getMapFactionName(faction, state.language === 'zh')} · ${state.language === 'zh' ? 'AI 回合（2 CP）' : 'AI turn (2 CP)'}`, ...(next.mapHistory ?? []),
     ] }, faction, state.language === 'zh');

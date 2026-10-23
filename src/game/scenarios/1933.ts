@@ -33,10 +33,18 @@ export const SCENARIO_1933: ScenarioDefinition = {
     labor: 'PRR',
     health: 'PRR',
     justice: 'Other',
+    // 工业与商业部在本月（1933 年 12 月）由勒鲁政府设立，随后由
+    // `events/industry_commerce_ministry.ts` 交代这次机构扩张，并在战时拆成两个部。
     industry: 'Other',
+    commerce: 'Other',
     interior: 'Other',
     war: 'PRR',
     agriculture: 'Other',
+    // 公共教育部：马塞利诺·多明戈自 1931 年 4 月起任职，1933 年 9 月起兼任农业部长。
+    education: 'Other',
+    // 公共工程部（改组中的 Fomento → Obras Públicas），自 1931 年 12 月起由
+    // 激进社会党人掌管。
+    publicWorks: 'Other',
     finance: 'PRR',
     estado: 'Other',
   },
@@ -79,6 +87,8 @@ export const SCENARIO_1933: ScenarioDefinition = {
     militia_legality_law: 1,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
+    judiciary_reform_progress: 0,
+    health_reform_progress: 0,
     max_hours_law: 0,
     min_wage: 0,
     workplace_safety: 0,

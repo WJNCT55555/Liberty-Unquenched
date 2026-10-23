@@ -3,6 +3,7 @@ import { adjustFactionDissent } from '../utils';
 import { getMilitarization } from '../rules/militarization';
 import { countCntMilitiaUnits } from '../rules/armyPools';
 import { adjustMemberContribution } from '../rules/wartimeCoalition';
+import { changeLaws } from '../rules/lawChange';
 
 /** 完成门槛：场上至少要这么多支归属 CNT 的民兵单位。 */
 export const MILITIA_COLUMN_TARGET = 8;
@@ -64,7 +65,12 @@ export const militiaAutonomyJournal: JournalEntryDef = {
 
   /** 池不动——这正是这条路线的实质。只把军队改革法钉到民兵纵队体系。 */
   onComplete: (state) => ({
-    domesticPolicy: { ...state.domesticPolicy, army_reform_law: 4 },
+    // 与「人民军」路线互斥，因此这里可以放心地把军队改革法定到 4 级（民兵纵队体系）；
+    // 写入仍走统一 helper，保证与另一条路线同一套语义。
+    domesticPolicy: {
+      ...state.domesticPolicy,
+      ...changeLaws(state, { army_reform_law: { to: 4 } }),
+    },
   }),
 
   onFail: (state) => ({ factions: adjustFactionDissent(state.factions, 'Puristas', 25) }),

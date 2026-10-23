@@ -1,6 +1,6 @@
 import type { GameEvent, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -84,7 +84,7 @@ export const leyDefensaRepublica: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            public_order_law: clampLawLevel('public_order_law', 1),
+            ...changeLaws(state, { public_order_law: { atLeast: 1 } }),
           },
           stats: {
             ...state.stats,
@@ -118,9 +118,11 @@ export const leyDefensaRepublica: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            public_order_law: clampLawLevel('public_order_law', 2),
             // The act suspends the guarantees the 1931 constitution is about to write.
-            political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights - 1),
+            ...changeLaws(state, {
+              public_order_law: { atLeast: 2 },
+              political_rights: 'down',
+            }),
           },
           stats: {
             ...state.stats,

@@ -23,6 +23,7 @@ import {
   transferControlShare,
 } from '../game/rules/controlShares';
 import type { OwnershipSector } from '../game/types';
+import { CABINET_FIELDS, CABINET_MINISTER_LABELS } from '../game/rules/cabinet';
 
 type CoalitionRole = 'ruling' | 'opposition';
 
@@ -132,17 +133,13 @@ export const SandboxMenu = () => {
     dispatch({ type: 'SANDBOX_EDIT', payload: extraPayload });
   };
 
-  const ministerRoles = [
-    { role: 'labor', labelZh: '劳动部长', labelEn: 'Labor Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'health', labelZh: '卫生部长', labelEn: 'Health Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'justice', labelZh: '司法部长', labelEn: 'Justice Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'industry', labelZh: '工业部长', labelEn: 'Industry Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'interior', labelZh: '内政部长', labelEn: 'Interior Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'war', labelZh: '陆军部长', labelEn: 'War Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'agriculture', labelZh: '农业部长', labelEn: 'Agriculture Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'finance', labelZh: '财政部长', labelEn: 'Finance Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-    { role: 'estado', labelZh: '国务部长 (外交)', labelEn: 'Estado Minister', options: ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] },
-  ] as const;
+  const MINISTER_OPTIONS = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT', 'Other'] as const;
+  const ministerRoles = CABINET_FIELDS.map(field => ({
+    role: field,
+    labelZh: CABINET_MINISTER_LABELS[field].zh,
+    labelEn: CABINET_MINISTER_LABELS[field].en,
+    options: MINISTER_OPTIONS,
+  }));
 
   const factionNames = FACTION_NAMES;
   const activeCoalitions = state.activeCoalitions || [];
@@ -383,7 +380,7 @@ export const SandboxMenu = () => {
                     </label>
                   </div>
 
-                  {/* Dropdowns for all 8 ministers */}
+                  {/* Dropdowns for every cabinet portfolio (from the canonical roster) */}
                   {ministerRoles.map(({ role, labelZh, labelEn, options }) => {
                     const currentVal = state.ministers[role];
                     return (

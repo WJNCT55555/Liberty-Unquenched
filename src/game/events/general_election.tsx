@@ -24,7 +24,7 @@ import {
 } from '../rules/electionSchedule';
 import { isOrganizationEstablished } from '../organizations';
 import { applyUnionShareDelta } from '../unions';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 import { MINISTER_ALLOCATION_LEVERAGE, ministerAllocation } from './elections_1931_results';
 
 const generalElectionRootMeta = {
@@ -225,8 +225,8 @@ const installElectionGovernment = (
       ? {
           ...state.domesticPolicy,
           land_reform_progress: Math.max(0, state.domesticPolicy.land_reform_progress - (coalitionId === 'national_front' ? 30 : 20)),
-          max_hours_law: clampLawLevel('max_hours_law', state.domesticPolicy.max_hours_law - 1),
-          min_wage: clampLawLevel('min_wage', state.domesticPolicy.min_wage - 1),
+          // 右翼政府上台后回退工时与最低工资：这是明确的事件意图，走统一的降级 helper。
+          ...changeLaws(state, { max_hours_law: 'down', min_wage: 'down' }),
         }
       : state.domesticPolicy,
     ...(unionLoss > 0 ? applyUnionShareDelta(state, { CNT: -unionLoss, unorganized: unionLoss }) : {}),

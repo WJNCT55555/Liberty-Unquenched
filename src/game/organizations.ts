@@ -395,6 +395,22 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
   },
   {
+    id: 'FET', abbreviation: 'FET', name: 'Falange Española Tradicionalista y de las JONS', nameZh: '西班牙传统主义长枪党与国家工团主义进攻委员会',
+    type: 'political', owner: 'FET', uiVisibility: 'internal', monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+  },
+  {
+    id: 'FET_NATIONAL_MILITIA', abbreviation: 'MN', name: 'Milicia Nacional', nameZh: '全国民兵',
+    type: 'militia', owner: 'FET', uiVisibility: 'internal', monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+  },
+  {
+    id: 'FET_POLITICAL_BOARD', abbreviation: 'JP', name: 'Junta Política', nameZh: '政治委员会',
+    type: 'command', owner: 'FET', uiVisibility: 'internal', monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+  },
+  {
+    id: 'FET_NATIONAL_COUNCIL', abbreviation: 'CN', name: 'Consejo Nacional', nameZh: '全国委员会',
+    type: 'command', owner: 'FET', uiVisibility: 'internal', monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+  },
+  {
     id: 'FE', abbreviation: 'FE', name: 'Falange Española', nameZh: '西班牙长枪党', type: 'political', owner: 'FE',
     icon: '/img/Organization/FE_Emblem.png',
     defaultEstablished: { '1933': true, '1936': true }, defaultEstablishedAt: { '1933': { year: 1933, month: 10 }, '1936': { year: 1933, month: 10 } }, uiVisibility: 'internal',
@@ -425,6 +441,8 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     id: 'ITALIAN_CTV', abbreviation: 'CTV', name: 'Corpo Truppe Volontarie', nameZh: '意大利志愿军团', type: 'militia', owner: 'FE',
     icon: '/img/Organization/CTV_Emblem.png',
     uiVisibility: 'internal', armedEntityId: 'italian_ctv', monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    capabilityText: 'Italian expeditionary force; remains foreign aid and is not merged into FET.',
+    capabilityTextZh: '意大利远征部队；保持外援身份，不并入 FET。',
   },
   {
     id: 'PRRevS',

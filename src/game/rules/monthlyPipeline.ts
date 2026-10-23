@@ -42,6 +42,7 @@ export const calculateMonthlyMapStage = (state: GameState): MonthlyMapStage => {
     const current = mapResources[faction];
     if (!current) return;
     if (!isWartime) return;
+    if (faction === MapFaction.CARLIST && !Object.values(state.provinces).some(province => province.owner === faction)) return;
     if (faction === MapFaction.IBERIAN_DEFENSE && !state.iberianDefense) return;
     if (state.iberianDefense && (!isCivilWarFaction(faction) || state.iberianDefense.eliminated.includes(faction))) return;
     const ownedProvinces = Object.values(state.provinces || INITIAL_PROVINCES).filter(province => province.owner === faction);
@@ -63,7 +64,7 @@ export const calculateMonthlyMapStage = (state: GameState): MonthlyMapStage => {
       if (buildings.ammoFactory) supplies += (buildings.ammoFactory === 1 ? 500 : 1200) * productionFactor;
     });
     mapResources[faction] = {
-      manpower: current.manpower + Math.floor(manpower),
+      manpower: faction === MapFaction.CARLIST ? current.manpower : current.manpower + Math.floor(manpower),
       supplies: current.supplies + Math.floor(supplies),
       industrialCapacity: Math.min(250, current.industrialCapacity + Math.floor(industrialCapacity * 0.2)),
       commandPoints: 2,

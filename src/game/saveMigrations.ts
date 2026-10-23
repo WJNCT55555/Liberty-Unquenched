@@ -413,7 +413,7 @@ const migrateMilitarization = (state: GameState): GameState => {
 export const migrateSaveState = (rawState: unknown): GameState => {
   const raw = rawState as LegacySaveState;
   const withoutDeprecatedSdaahState = removeDeprecatedSdaahState(raw);
-  return migrateMilitarization(
+  const migrated = migrateMilitarization(
     migrateMapState(
       migrateMilitaryState(
         migrateOrganizationIdsAndPools(
@@ -428,4 +428,14 @@ export const migrateSaveState = (rawState: unknown): GameState => {
       ),
     ),
   );
+  return {
+    ...migrated,
+    ...(migrated.classes ? { classes: Object.fromEntries(Object.entries(migrated.classes).map(([socialClass, entry]) =>
+      [socialClass, { ...entry, support: { ...entry.support, FET: entry.support.FET ?? 0 } }])) as GameState['classes'] } : {}),
+    ...(migrated.partySupport ? { partySupport: { ...migrated.partySupport, FET: migrated.partySupport.FET ?? 0 } } : {}),
+    ...(migrated.partyRelations ? { partyRelations: { ...migrated.partyRelations, FET: migrated.partyRelations.FET ?? 0 } } : {}),
+    francoStatus: migrated.civilWarStatus === 'ongoing' && migrated.francoStatus === 'alive'
+      && migrated.francoAfricaControl && (!migrated.civilWarChoices?.step14 || migrated.civilWarChoices.step14 === 'nationalist')
+      ? 'nationalist' : migrated.francoStatus,
+  };
 };

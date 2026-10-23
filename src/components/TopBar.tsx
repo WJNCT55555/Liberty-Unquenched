@@ -1,7 +1,6 @@
 import { getPartyName } from "../game/partyNames";
 import React, { useState } from 'react';
 import { useGameActions, useGameSelector, shallowEqual } from '../game/GameContext';
-import { cn } from '../lib/utils';
 import { Calendar, Coins, ShieldAlert, Settings, HardDrive, Globe, X, Trophy, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AchievementsModal } from './AchievementsModal';
@@ -44,7 +43,6 @@ export const TopBar = () => {
     difficulty: snapshot.difficulty,
     resources: snapshot.resources,
     armaments: snapshot.armaments,
-    currentView: snapshot.currentView,
     ceda_formed: snapshot.ceda_formed,
     ir_formed: snapshot.ir_formed,
     ur_formed: snapshot.ur_formed,
@@ -76,7 +74,7 @@ export const TopBar = () => {
 
   return (
     <>
-      <div className="pointer-events-none relative isolate flex shrink-0 flex-col w-full overflow-hidden">
+      <div className="game-header pointer-events-none relative isolate z-30 flex shrink-0 flex-col w-full">
         <div className="pointer-events-auto relative flex w-full flex-col items-center justify-between gap-4 bg-ink p-3 text-paper lg:flex-row">
           <div className="flex items-center gap-6">
           <div className="flex flex-col">
@@ -125,52 +123,34 @@ export const TopBar = () => {
         </div>
       </div>
       
-      {/* Bottom Tabs Section */}
-      <div className="w-full flex h-6 relative z-10">
-        {/* Halftone background for the right section */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-72 right-0 z-0 bg-paper bg-halftone"
-        />
-
-        {/* Black fill behind the first slanted tab to merge with sidebar */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-72 z-10 w-8 bg-ink"
-        />
-
-        {/* Left black section to match sidebar */}
-        <div className="w-72 bg-ink shrink-0 h-full relative z-20" />
-        
-        {/* Right tabs section */}
-        <div className="pointer-events-none relative z-20 flex flex-1 items-end">
+      <nav className="archive-nav" lang={isZh ? 'zh-CN' : 'en'} aria-label={isZh ? '主要页签' : 'Main navigation'}>
+        <div className="archive-nav__scroll">
           <TabButton 
             onClick={() => setIsEconomyModalOpen(true)}
             isActive={isEconomyModalOpen}
+            index="01"
             label={isZh ? '财政' : 'FINANCE'} 
           />
           <TabButton 
             onClick={() => setIsPoliticsModalOpen(true)}
             isActive={isPoliticsModalOpen}
+            index="02"
             label={isZh ? '政治' : 'POLITICS'}
           />
           <TabButton 
             onClick={() => setIsPolicyModalOpen(true)}
             isActive={isPolicyModalOpen}
+            index="03"
             label={isZh ? '法律' : 'LAW'} 
           />
           <TabButton
             onClick={() => setIsLawStanceModalOpen(true)}
             isActive={isLawStanceModalOpen}
+            index="04"
             label={isZh ? '法律立场' : 'STANCES'}
           />
-          <TabButton 
-            onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
-            isActive={state.currentView === 'map'}
-            label={isZh ? '地图' : 'MAP'} 
-          />
         </div>
-      </div>
+      </nav>
       </div>
 
       <AnimatePresence>
@@ -332,15 +312,18 @@ const LawStanceModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh })
   return <LawStanceModal isOpen onClose={onClose} state={state} isZh={isZh} />;
 };
 
-const TabButton = ({ onClick, isActive, label }: { onClick: () => void, isActive?: boolean, label: string }) => (
-  <button 
+const TabButton = ({ onClick, isActive = false, label, index }: { onClick: () => void, isActive?: boolean, label: string, index: string }) => (
+  <button
+    type="button"
     onClick={onClick}
-    className={cn(
-      "pointer-events-auto h-full px-8 flex items-center justify-center -skew-x-[30deg] border-x-2 border-t-2 border-ink transition-colors relative -ml-[2px] origin-bottom-left group",
-      isActive ? "bg-paper text-ink font-bold border-b-0 z-30" : "bg-paper-dark text-ink hover:bg-paper font-medium border-b-2 border-ink z-20"
-    )}
+    className="archive-tab"
+    data-active={isActive}
+    aria-pressed={isActive}
   >
-    <span className="skew-x-[30deg] text-[10px] uppercase font-typewriter tracking-wider group-hover:scale-105 transition-transform">{label}</span>
+    <span className="archive-tab__content">
+      <span className="archive-tab__index" aria-hidden="true">{index}</span>
+      <span className="archive-tab__label">{label}</span>
+    </span>
   </button>
 );
 

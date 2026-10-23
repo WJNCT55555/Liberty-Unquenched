@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { moscowGold } from '../events/civil_war/moscow_gold';
+import { durrutiDeath } from '../events/civil_war/durruti_death';
 import { pcePoliticalVacuum, pceSmallholderGuarantees, pceMiddleClassAppeal } from '../events/civil_war/pce_social_expansion';
 import { proclamationSecondRepublic } from '../events/proclamation_of_the_second_republic';
 import { elections1933 } from '../events/elections_1933';
@@ -10,12 +11,15 @@ import { azanaMilitaryReform } from '../events/azana_military_reform';
 import { manifestoOfThirty } from '../events/manifesto_thirty';
 import { foundingSyndicalistParty } from '../events/founding_syndicalist_party';
 import { cedaFormation } from '../events/ceda_formation';
+import { industryCommerceMinistry } from '../events/industry_commerce_ministry';
+import { healthMinistry } from '../events/civil_war/health_ministry';
 import { accionNacionalFormation } from '../events/accion_nacional_formation';
 import { jonsFormation, seuFormation, seccionFemeninaFormation } from '../events/falange_organizations';
 import { jsuFormation, mujeresAntifascistasFormation, egiFormation, jciFormation } from '../events/party_auxiliary_organizations';
 import { cataloniaDefense } from '../events/civil_war/catalonia_defense';
 import { aragonCouncil } from '../events/civil_war/aragon_council';
 import { nationalistSurrender } from '../events/civil_war/nationalist_surrender';
+import { NATIONALIST_INTEGRATION_EVENTS } from '../events/civil_war/nationalist_integration';
 import { republicanSurrender } from '../events/civil_war/republican_surrender';
 import { foundingOfFalange } from '../events/founding_of_falange';
 import { birthOfFeDeLasJons } from '../events/birth_of_fe_de_las_jons';
@@ -28,6 +32,7 @@ import { fijlFormation } from '../events/fijl_formation';
 import { mujeresLibresFormation } from '../events/mujeres_libres_formation';
 import { olimpiadaPopular, olimpiadaPopularStranded } from '../events/olimpiada_popular';
 import { laSanjurjada } from '../events/la_sanjurjada';
+import { divorceLaw1932 } from '../events/divorce_law_1932';
 import { jabaliEvent } from '../events/jabali';
 import { juradosMixtos } from '../events/jurados_mixtos';
 import { leyDefensaRepublica } from '../events/ley_defensa_republica';
@@ -89,6 +94,7 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   pceSmallholderGuarantees,
   pceMiddleClassAppeal,
   moscowGold,
+  durrutiDeath,
   militarizationCrossroads,
   // 民兵合法性法的三级阶梯（`docs/militarization-system-design.md` §6.5 问题 1）：
   // 这条法律此前零写入者，而两条军事化日志都要求它到 4 级。三个事件各自一次性，
@@ -108,6 +114,11 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   constitution1931,
   foundingSyndicalistParty,
   cedaFormation,
+  // 1933 年 12 月：工业与商业部从劳动部体系中分出（史实节点）。
+  industryCommerceMinistry,
+  // 1936 年 11 月：卫生与社会援助部成立，蒙特塞尼出任首任部长。与上一条相反，
+  // 它不能按月份硬编码：战时内阁落定的时间随剧本与玩家路线变化，因此只按条件触发。
+  healthMinistry,
   cedaRadicalUnderstanding,
   accionNacionalFormation,
   jonsFormation,
@@ -120,6 +131,7 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   cataloniaDefense,
   aragonCouncil,
   nationalistSurrender,
+  ...NATIONALIST_INTEGRATION_EVENTS,
   republicanSurrender,
   foundingOfFalange,
   birthOfFeDeLasJons,
@@ -134,6 +146,9 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   formationOfIzquierdaRepublicana,
   formationOfUnionRepublicana,
   laSanjurjada,
+  // 离婚合法化（1932 年 2 月）：女性权利 L1 → L2 的唯一入口。三个剧本通用——
+  // 时代已经到了就按历史推进，不按剧本分叉。
+  divorceLaw1932,
   jabaliEvent,
   juradosMixtos,
   leyDefensaRepublica,

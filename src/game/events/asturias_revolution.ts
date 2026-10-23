@@ -195,7 +195,8 @@ export const asturiasRevolution: GameEvent = {
             [MapFaction.WORKERS_ALLIANCE]: { manpower: 12000, industrialCapacity: 60, commandPoints: 2, supplies: 6000, tankReserve: 0 },
             [MapFaction.NEUTRAL]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
             [MapFaction.UNITED_KINGDOM]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
-            [MapFaction.ANDORRA]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
+            [MapFaction.ANDORRA]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
+            [MapFaction.CARLIST]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 }
           }
         };
       }

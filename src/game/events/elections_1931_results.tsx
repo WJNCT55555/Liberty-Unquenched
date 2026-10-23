@@ -6,6 +6,7 @@ import { getPartyName } from '../partyNames';
 import { getParliamentSeatEntries } from '../parliamentOrder';
 import { cn } from '../../lib/utils';
 import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
+import { getDepartmentName } from '../rules/cabinet';
 
 const election1931Meta = {
   category: 'politics' as const,
@@ -119,6 +120,12 @@ export const elections1931Results: GameEvent = {
           industry: 'Other',
           interior: 'DLR',
           agriculture: 'Other',
+          // 马塞利诺·多明戈（激进社会共和党）自 1931 年 4 月起执掌公共教育部。
+          education: 'Other',
+          // 公共工程部（时为 Fomento）：首任部长为激进社会党人阿尔瓦罗·德·阿尔博诺斯。
+          publicWorks: 'Other',
+          // 工业与商业（1931 年同属劳动部体系，1933 年 12 月才单设一个部）。
+          commerce: 'Other',
           finance: 'PSOE',
           estado: 'PRR',
           war: 'Other',
@@ -196,6 +203,12 @@ export const elections1931Results: GameEvent = {
           industry: 'Other',
           interior: 'DLR',
           agriculture: 'Other',
+          // 马塞利诺·多明戈（激进社会共和党）自 1931 年 4 月起执掌公共教育部。
+          education: 'Other',
+          // 公共工程部（时为 Fomento）：首任部长为激进社会党人阿尔瓦罗·德·阿尔博诺斯。
+          publicWorks: 'Other',
+          // 工业与商业（1931 年同属劳动部体系，1933 年 12 月才单设一个部）。
+          commerce: 'Other',
           finance: 'PSOE',
           estado: 'PRR',
           war: 'Other',
@@ -329,67 +342,102 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
   const ministriesList = [
     {
       id: 'labor',
-      name: 'Ministry of Labor',
-      nameZh: '劳工部',
+      name: getDepartmentName('labor', state.year).en,
+      nameZh: getDepartmentName('labor', state.year).zh,
       cost: 5,
-      description: 'Assigns the Labor portfolio to a CNT minister.',
-      descriptionZh: '由 CNT 阁员掌管劳工部。',
+      description: 'Assigns the Labor portfolio to a CNT minister. Until the wartime reshuffle splits it out, this department also carries the health administration.',
+      descriptionZh: '由 CNT 阁员掌管劳工部。在战时改组把卫生拆出去之前，卫生行政也归此部管辖。',
     },
     {
       id: 'agriculture',
-      name: 'Ministry of Agriculture',
-      nameZh: '农业部',
+      name: getDepartmentName('agriculture', state.year).en,
+      nameZh: getDepartmentName('agriculture', state.year).zh,
       cost: 5,
       description: 'Assigns the Agriculture portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管农业部。',
     },
     {
+      id: 'education',
+      name: getDepartmentName('education', state.year).en,
+      nameZh: getDepartmentName('education', state.year).zh,
+      cost: 5,
+      description: 'Assigns Public Instruction to a CNT minister: the secular-school programme, the Pedagogical Missions and the rural libraries.',
+      descriptionZh: '由 CNT 阁员掌管公共教育部：世俗学校纲领、教育使团与农村图书馆。',
+    },
+    {
       id: 'health',
-      name: 'Ministry of Health & Social Assistance',
+      name: 'Ministry of Health and Social Assistance',
       nameZh: '卫生与社会援助部',
       cost: 5,
-      description: 'Assigns the Health and Social Assistance portfolio to a CNT minister.',
-      descriptionZh: '由 CNT 阁员掌管卫生与社会援助部。',
+      description: 'Assigns the health administration to a CNT minister. Until the wartime reshuffle creates it as a separate ministry, these functions sit inside the Labor ministry, so this entry follows whoever holds Labor.',
+      descriptionZh: '由 CNT 阁员掌管卫生行政。在战时改组把它单设成部之前，该职能属于劳动部，因此这一项随劳工部长归属。',
     },
     {
       id: 'finance',
-      name: 'Ministry of Finance',
-      nameZh: '财政部',
+      name: getDepartmentName('finance', state.year).en,
+      nameZh: getDepartmentName('finance', state.year).zh,
       cost: 10,
       description: 'Assigns the Finance portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管财政部。',
     },
     {
       id: 'justice',
-      name: 'Ministry of Justice',
-      nameZh: '司法部',
+      name: getDepartmentName('justice', state.year).en,
+      nameZh: getDepartmentName('justice', state.year).zh,
       cost: 10,
       description: 'Assigns the Justice portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管司法部。',
     },
     {
       id: 'industry',
-      name: 'Ministry of Industry',
-      nameZh: '工业部',
+      name: getDepartmentName('industry', state.year).en,
+      nameZh: getDepartmentName('industry', state.year).zh,
       cost: 10,
-      description: 'Assigns the Industry portfolio to a CNT minister.',
-      descriptionZh: '由 CNT 阁员掌管工业部。',
+      description: 'Assigns the Industry portfolio to a CNT minister: pits, mills, metalworks and the war plants.',
+      descriptionZh: '由 CNT 阁员掌管工业部：矿井、纺织、冶金与兵工生产。',
+    },
+    {
+      id: 'commerce',
+      name: getDepartmentName('commerce', state.year).en,
+      nameZh: getDepartmentName('commerce', state.year).zh,
+      cost: 5,
+      description: 'Assigns the Commerce portfolio to a CNT minister: customs, foreign trade and the shops.',
+      descriptionZh: '由 CNT 阁员掌管商业部：海关、对外贸易与商铺。',
+    },
+    {
+      id: 'publicWorks',
+      name: getDepartmentName('publicWorks', state.year).en,
+      nameZh: getDepartmentName('publicWorks', state.year).zh,
+      cost: 10,
+      description: 'Assigns Public Works to a CNT minister: railways, roads, ports and telegraphs.',
+      descriptionZh: '由 CNT 阁员掌管公共工程部：铁路、公路、港口与电报。',
     },
     {
       id: 'interior',
-      name: 'Ministry of Interior',
-      nameZh: '内政部',
+      name: getDepartmentName('interior', state.year).en,
+      nameZh: getDepartmentName('interior', state.year).zh,
       cost: 15,
       description: 'Assigns the Interior portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管内政部。',
     },
     {
       id: 'estado',
-      name: 'Ministry of State',
-      nameZh: '国务部',
+      name: getDepartmentName('estado', state.year).en,
+      nameZh: getDepartmentName('estado', state.year).zh,
       cost: 5,
       description: 'Assigns the State portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管国务部。',
+    },
+    {
+      // 史实上「谁掌陆军部」是 1931—1936 年每一届内阁的第一问题：阿萨尼亚本人、
+      // 希尔-罗夫莱斯、普列托都做过这个部的部长。它此前只在剧本与选举事件里被直接
+      // 写入，玩家永远无法通过谈判取得，这里把它补进菜单。
+      id: 'war',
+      name: getDepartmentName('war', state.year).en,
+      nameZh: getDepartmentName('war', state.year).zh,
+      cost: 15,
+      description: 'Assigns the War portfolio to a CNT minister: military funding, officer postings and the loyalty of the regular army.',
+      descriptionZh: '由 CNT 阁员掌管战争部：军费、军官任免与正规军的忠诚。',
     },
   ];
 
@@ -437,6 +485,18 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
         }
         if (selected.interior) {
           newMinisters.interior = 'CNT';
+        }
+        if (selected.education) {
+          newMinisters.education = 'CNT';
+        }
+        if (selected.publicWorks) {
+          newMinisters.publicWorks = 'CNT';
+        }
+        if (selected.commerce) {
+          newMinisters.commerce = 'CNT';
+        }
+        if (selected.war) {
+          newMinisters.war = 'CNT';
         }
         if (selected.estado) {
           newMinisters.estado = 'CNT';

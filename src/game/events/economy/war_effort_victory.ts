@@ -1,10 +1,14 @@
-﻿import type { GameEvent } from '../../types';
+import type { GameEvent } from '../../types';
+import { ensureLawAtLeast } from '../../rules/lawChange';
 
 /**
  * 战时统筹路线的结果事件（docs/经济改造方案.md §5.5）。
  *
  * 唯一需要玩家确认的转换：把 `public_order_law` 推到 2 级「共和国防卫法」——
  * 这在设计上是"战时统筹"的政治代价，必须由玩家点头。
+ *
+ * 写法是 `ensureLawAtLeast`（「至少到 2 级」）：如果这条法律已经在 3 级（宪政与集会
+ * 保障法案），这个选项不应该把它拉回去。
  */
 export const economyWarEffortVictory: GameEvent = {
   id: 'economy_war_effort_victory',
@@ -23,7 +27,7 @@ export const economyWarEffortVictory: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          public_order_law: Math.max(state.domesticPolicy.public_order_law, 2),
+          public_order_law: ensureLawAtLeast(state, 'public_order_law', 2),
         },
         stats: {
           ...state.stats,

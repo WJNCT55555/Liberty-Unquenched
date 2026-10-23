@@ -1,7 +1,7 @@
 import React from 'react';
 import type { GameEvent, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, calculatePresidentialVotes } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws, raiseLaw } from '../rules/lawChange';
 import { applyUnionShareDelta } from '../unions';
 
 const presidentialElectionMeta = {
@@ -657,7 +657,7 @@ function getWinnerEffects(state: GameState, winner: string) {
     
     const dp = { ...state.domesticPolicy };
     dp.land_reform_progress = Math.min(100, (dp.land_reform_progress || 0) + 5);
-    dp.political_rights = clampLawLevel('political_rights', (dp.political_rights || 0) + 1);
+    dp.political_rights = raiseLaw(state, 'political_rights');
     
     const pr = { ...state.partyRelations };
     pr.PRR = Math.min(100, (pr.PRR || 0) + 20);
@@ -684,10 +684,14 @@ function getWinnerEffects(state: GameState, winner: string) {
     
     const dp = { ...state.domesticPolicy };
     dp.land_reform_progress = Math.max(0, (dp.land_reform_progress || 0) - 35);
-    dp.max_hours_law = clampLawLevel('max_hours_law', (dp.max_hours_law || 0) - 1);
-    dp.min_wage = clampLawLevel('min_wage', (dp.min_wage || 0) - 1);
-    dp.religion_policy = clampLawLevel('religion_policy', (dp.religion_policy || 0) - 1);
-    dp.political_rights = clampLawLevel('political_rights', (dp.political_rights || 0) - 1);
+    // 希尔-罗夫莱斯当选：一次下调四条法律。这是本事件明确的政治意图，因此显式写出
+    // 「降级」，而不是让它们悄悄跟着剧本走（统一 helper 见 rules/lawChange.ts）。
+    Object.assign(dp, changeLaws(state, {
+      max_hours_law: 'down',
+      min_wage: 'down',
+      religion_policy: 'down',
+      political_rights: 'down',
+    }));
     
     const pr = { ...state.partyRelations };
     pr.PSOE = Math.max(-100, (pr.PSOE || 0) - 35);

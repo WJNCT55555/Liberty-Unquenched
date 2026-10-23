@@ -1,12 +1,26 @@
 import type { GameEvent } from '../types';
 import { adjustFactionInfluence, isAtOrAfter } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 
 const lawMeta = {
   category: 'politics' as const,
   flow: 'solo' as const,
   tags: ['law'],
 };
+
+/**
+ * 1931 年宪法。
+ *
+ * 两个选项都在宪法公布时推进同一组法律：政治权利、女性权利、宗教政策与教育制度。
+ * 它们是**相对推进**（`up` / `{ up: 2 }`），不是绝对赋值——若玩家世界里某条法律已经
+ * 走得更远，宪法新闻不会把它拉回去。法律写入统一走 `rules/lawChange.ts`。
+ */
+const CONSTITUTION_LAW_CHANGES = {
+  political_rights: 'up',
+  womens_rights: 'up',
+  religion_policy: { up: 2 },
+  education_institutions: 'up',
+} as const;
 
 export const constitution1931: GameEvent = {
   id: 'constitution_1931',
@@ -24,10 +38,7 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights + 1),
-          womens_rights: clampLawLevel('womens_rights', state.domesticPolicy.womens_rights + 1),
-          religion_policy: clampLawLevel('religion_policy', state.domesticPolicy.religion_policy + 2),
-          education_institutions: clampLawLevel('education_institutions', state.domesticPolicy.education_institutions + 1)
+          ...changeLaws(state, CONSTITUTION_LAW_CHANGES)
         },
         stats: {
           ...state.stats,         
@@ -42,10 +53,7 @@ export const constitution1931: GameEvent = {
       effect: (state) => ({
         domesticPolicy: {
           ...state.domesticPolicy,
-          political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights + 1),
-          womens_rights: clampLawLevel('womens_rights', state.domesticPolicy.womens_rights + 1),
-          religion_policy: clampLawLevel('religion_policy', state.domesticPolicy.religion_policy + 2),
-          education_institutions: clampLawLevel('education_institutions', state.domesticPolicy.education_institutions + 1)
+          ...changeLaws(state, CONSTITUTION_LAW_CHANGES)
         },
         stats: {
           ...state.stats,

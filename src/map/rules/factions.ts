@@ -4,10 +4,10 @@ export const CIVIL_WAR_FACTIONS = [MapFaction.IBERIAN_DEFENSE, MapFaction.REPUBL
 export const getPlayerMapFaction = (state: Pick<MapRuntimeState, 'activeWar' | 'iberianDefense'>): MapFaction =>
   state.iberianDefense ? MapFaction.IBERIAN_DEFENSE
     : state.activeWar === 'asturias_war' ? MapFaction.WORKERS_ALLIANCE : MapFaction.REPUBLICAN;
-export const isCivilWarFaction = (faction: MapFaction) => CIVIL_WAR_FACTIONS.some(item => item === faction);
+export const isCivilWarFaction = (faction: MapFaction) => faction === MapFaction.CARLIST || CIVIL_WAR_FACTIONS.some(item => item === faction);
 
 /** 西班牙各阵营：内战三方加上不属于内战阵营的工人联盟自治政府。 */
-const SPAIN_MAP_FACTIONS: MapFaction[] = [...CIVIL_WAR_FACTIONS, MapFaction.WORKERS_ALLIANCE];
+const SPAIN_MAP_FACTIONS: MapFaction[] = [...CIVIL_WAR_FACTIONS, MapFaction.CARLIST, MapFaction.WORKERS_ALLIANCE];
 
 /**
  * 机动许可：西班牙各阵营只能在内战阵营与工人联盟控制的省份之间移动。
@@ -23,6 +23,7 @@ export const canEnterMapProvince = (faction: MapFaction, owner: MapFaction): boo
 export const getMapFactionName = (faction: MapFaction, zh: boolean): string => {
   const names: Record<MapFaction, [string, string]> = {
     REPUBLICAN: ['Madrid Government', '马德里政府'], NATIONALIST: ['Nationalists', '国民军'],
+    CARLIST: ['Carlists', '卡洛斯派'],
     IBERIAN_DEFENSE: ['Iberian Defense Committee', '伊比利亚防御委员会'],
     WORKERS_ALLIANCE: ["Workers’ Alliance", '工人联盟自治政府'], PORTUGAL: ['Portugal', '葡萄牙'],
     NEUTRAL: ['Neutral', '中立'], UNITED_KINGDOM: ['United Kingdom', '英国'], ANDORRA: ['Andorra', '安道尔'],

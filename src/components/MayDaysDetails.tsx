@@ -3,6 +3,7 @@ import type { GameState, MayDaysPOUMOutcome, MayDaysSettlement } from '../game/t
 import { getPartyName } from '../game/partyNames';
 import { getMayDaysCohesion, getMayDaysRequiredPartner, getMayDaysSupport, getMayDaysSupportWeight } from '../game/rules/mayDays';
 import { monthIndex } from '../game/rules/wartimeCoalition';
+import { CABINET_OFFICE_LABELS } from '../game/rules/cabinet';
 
 export const MAY_SETTLEMENT_NAMES: Record<MayDaysSettlement, [string, string]> = {
   withdrawal: ['Ceasefire through concessions', '让步停火'], joint: ['Joint management with guarantees', '有保障的共同管理'],
@@ -13,10 +14,7 @@ export const MAY_POUM_NAMES: Record<MayDaysPOUMOutcome, [string, string]> = {
   banned: ['POUM banned', '接受取缔 POUM'], protested_ban: ['The ban proceeds despite CNT protests', 'CNT 抗议未能阻止取缔'],
 };
 const CONTROL_NAMES = { central: ['Central government', '中央政府'], joint: ['Joint supervision', '共同监督'], committee: ['Local committees', '地方委员会'] } as const;
-const OFFICES: Record<keyof GameState['ministers'], [string, string]> = {
-  labor: ['Labour', '劳动'], health: ['Health', '卫生'], justice: ['Justice', '司法'], industry: ['Industry and commerce', '工业与商业'],
-  interior: ['Interior', '内政'], war: ['War', '战争'], agriculture: ['Agriculture', '农业'], finance: ['Finance', '财政'], estado: ['Foreign affairs', '外交'],
-};
+const OFFICES = CABINET_OFFICE_LABELS;
 
 export const MayDaysNegotiators = ({ state, judicial = false }: { state: GameState; judicial?: boolean }) => {
   const zh = state.language === 'zh';

@@ -55,6 +55,11 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   agricultural_policy_timer: { label: 'Agricultural policy cooldown', labelZh: '农业政策冷却', reverseTone: true },
   labor_rights_timer: { label: 'Labor rights cooldown', labelZh: '劳工权利冷却', reverseTone: true },
   labor_affairs_timer: { label: 'Labor affairs cooldown', labelZh: '劳工事务冷却', reverseTone: true },
+  education_policy_timer: { label: 'Public instruction cooldown', labelZh: '公共教育冷却', reverseTone: true },
+  public_works_timer: { label: 'Public works cooldown', labelZh: '公共工程冷却', reverseTone: true },
+  commerce_policy_timer: { label: 'Commerce cooldown', labelZh: '商业冷却', reverseTone: true },
+  judiciary_timer: { label: 'Judiciary reform cooldown', labelZh: '司法改革冷却', reverseTone: true },
+  health_timer: { label: 'Health reform cooldown', labelZh: '卫生改革冷却', reverseTone: true },
   fiscal_policy_timer: { label: 'Fiscal policy cooldown', labelZh: '财政政策冷却', reverseTone: true },
   aragon_front_timer: { label: 'Aragon cooldown', labelZh: '阿拉贡冷却', reverseTone: true },
   militia_reorg_timer: { label: 'Militia reorganization cooldown', labelZh: '民兵整编冷却', reverseTone: true },
@@ -152,6 +157,8 @@ const DOMESTIC_POLICY_LABELS: Record<keyof GameState['domesticPolicy'], Labels &
   militia_legality_law: { label: 'Militia legality law', labelZh: '民兵合法性法' },
   land_reform_progress: { label: 'Land reform progress', labelZh: '土地改革进度' },
   regional_autonomy_progress: { label: 'Regional autonomy progress', labelZh: '区域自治进度' },
+  judiciary_reform_progress: { label: 'Judiciary reform progress', labelZh: '司法改革进度' },
+  health_reform_progress: { label: 'Public health reform progress', labelZh: '公共卫生改革进度' },
   max_hours_law: { label: 'Maximum-hours law', labelZh: '最高工时法' },
   min_wage: { label: 'Minimum wage', labelZh: '最低工资' },
   workplace_safety: { label: 'Workplace safety', labelZh: '工作场所安全' },
@@ -212,6 +219,7 @@ const PARTY_LABELS: Record<'CNT_FAI' | Party, Labels> = {
   RE: { label: 'Spanish Renovation', labelZh: '西班牙革新党' },
   CT: { label: 'Traditionalist Communion', labelZh: '传统主义联盟' },
   FE: { label: 'Falange', labelZh: '长枪党' },
+  FET: { label: 'FET', labelZh: '西班牙传统主义长枪党' },
   Other: { label: 'Other parties', labelZh: '其他政党' },
   PRRevS: { label: 'PRRevS', labelZh: 'PRRevS' }
 };

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * April 1931 — the Second Republic is proclaimed. The Provisional Government
  * holds office, the Cortes has not been elected yet, and the CNT is a hostile
  * outsider.
@@ -33,9 +33,17 @@ export const SCENARIO_1931: ScenarioDefinition = {
     labor: 'PSOE',
     health: 'PSOE',
     justice: 'PSOE',
+    // 1931 年不存在工业部与商业部：工业与商业迟至 1933 年 12 月才从劳动部体系中分出
+    // （见 `events/industry_commerce_ministry.ts`）。这两个字段在 1936 剧本才有归属。
     industry: 'Other',
+    commerce: 'Other',
     interior: 'DLR',
     agriculture: 'Other',
+    // 公共教育部的史实首任部长是马塞利诺·多明戈（激进社会共和党，1934 年并入 IR）；
+    // 在本作的党派表里，这一时期的共和派小党人物记作 `Other`。
+    education: 'Other',
+    // 公共工程部（时为 Fomento），首任部长为激进社会党人阿尔瓦罗·德·阿尔博诺斯。
+    publicWorks: 'Other',
     finance: 'PSOE',
     estado: 'PRR',
     war: 'Other',
@@ -56,6 +64,8 @@ export const SCENARIO_1931: ScenarioDefinition = {
     militia_legality_law: 1,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
+    judiciary_reform_progress: 0,
+    health_reform_progress: 0,
     max_hours_law: 1,
     min_wage: 0,
     workplace_safety: 0,

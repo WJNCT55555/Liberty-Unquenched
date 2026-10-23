@@ -1,4 +1,4 @@
-﻿import type { Card, GameEvent, GameState } from '../types';
+import type { Card, GameEvent, GameState } from '../types';
 import { adjustFactionDissents } from '../utils';
 import { getEconomyCounter } from '../rules/economyReforms';
 import { applyEconomicOption } from '../rules/controlShares';
@@ -9,6 +9,12 @@ import { applyEconomicOption } from '../rules/controlShares';
  * Gated on the CNT holding Foreign Affairs (`estado`) or Finance. It does not conflict
  * with the Foreign Policy card mechanically, but both write into the same international
  * relation readings, so the player is choosing between them in practice.
+ *
+ * 分工（2026-10-15 拆分商业部之后）：本卡管**对外经济关系**——关税与外汇结算、
+ * 与法国的煤炭换粮食、与英国的英镑余额、以及战时外贸垄断。新设的商业部
+ * （`commerce_policy.ts`）管**海关与商铺**这一侧：把外贸收进一个衙门的组织方式、
+ * 绕开黄金的易货协定、以及追索转往海外的公司账户。两张卡都可以推动对外贸易，
+ * 但只有本卡需要达到对外关系门槛，也只有它给外汇与双边关系。
  */
 export const tradePolicy: Card = {
   id: 'trade_policy',

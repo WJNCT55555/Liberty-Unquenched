@@ -15,6 +15,9 @@ export const ENDINGS = {
   FOR_WHOM_THE_BELL_TOLLS: 'FOR_WHOM_THE_BELL_TOLLS',
   ASTURIAS_WAR_LOST: 'ASTURIAS_WAR_LOST',
   WE_HAVE_PASSED: 'WE_HAVE_PASSED',
+  NATIONALIST_JUNTA_VICTORY: 'NATIONALIST_JUNTA_VICTORY',
+  DIVIDED_REBEL_VICTORY: 'DIVIDED_REBEL_VICTORY',
+  CARLIST_VICTORY: 'CARLIST_VICTORY',
 };
 
 export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; description: string; descriptionZh: string }> = {
@@ -76,6 +79,21 @@ export const ENDING_DETAILS: Record<string, { title: string; titleZh: string; de
     description: 'Madrid has fallen. Barcelona has fallen. The Nationalists have won the civil war, and General Francisco Franco is the absolute dictator of Spain. The cry of "No Pasarán" has been silenced by the fascist boast: "Hemos Pasado" (We Have Passed). Mass executions of CNT-FAI members, unionists, and republicans are taking place in every plaza and bullring. The light of liberty has been extinguished, and a long, dark, and brutal night descends upon Spain. The revolution is buried in mass graves.',
     descriptionZh: '马德里陷落了。巴塞罗那陷落了。国民军赢得了内战，弗朗西斯科·佛朗哥将军成为了西班牙的绝对独裁者。“他们休想通过 (No Pasarán)”的呐喊，被法西斯分子“我们已经通过 (Hemos Pasado)”的狂言彻底粉碎。针对 CNT-FAI 成员、工会分子和共和派的大规模处决正在每一个广场和斗牛场上演。自由之光已然熄灭，漫长、黑暗且残暴的黑夜降临西班牙。革命，被永远埋葬在了万人坑中。'
   },
+  [ENDINGS.NATIONALIST_JUNTA_VICTORY]: {
+    title: 'Victory of the Rebel Junta', titleZh: '叛军军政委员会的胜利',
+    description: 'The Republic has capitulated to the rebel army. Its generals have won the war, but the Falangist and Carlist movements were never politically unified. The victors must still settle their competing claims to power.',
+    descriptionZh: '共和国向叛军投降。将领们赢得战争，但长枪党与卡洛斯派从未完成政治统一，胜利者仍须解决彼此的权力争端。',
+  },
+  [ENDINGS.DIVIDED_REBEL_VICTORY]: {
+    title: 'The Republic Falls to Divided Rebels', titleZh: '共和国败于分裂的叛军',
+    description: 'The Republic has surrendered while the Nationalists and independent Carlists remain rival armed camps. The player\'s war is lost, but the rebel struggle for Spain is not settled.',
+    descriptionZh: '共和国投降之时，国民军与独立的卡洛斯派仍是相互对立的武装阵营。玩家的战争已经失败，叛军内部对西班牙的争夺却尚未结束。',
+  },
+  [ENDINGS.CARLIST_VICTORY]: {
+    title: 'Carlist Victory', titleZh: '卡洛斯派的胜利',
+    description: 'The Republic has capitulated while the independent Carlist army holds the field and the Nationalist command has fallen. Its leaders now face the unresolved task of building a postwar order.',
+    descriptionZh: '共和国投降，独立的卡洛斯派军队掌握战场，国民军指挥体系已经瓦解。卡洛斯派领导人仍须面对建立战后秩序的未决难题。',
+  },
   GENERIC_WIN: {
     title: 'A Fragile Peace',
     titleZh: '脆弱的和平',
@@ -114,7 +132,12 @@ export const checkEndings = (state: GameState): GameState => {
   }
   // 2. We Have Passed
   else if (state.civilWarStatus === 'lost') {
-    triggeredEnding = ENDINGS.WE_HAVE_PASSED;
+    const carlistsStillFight = Object.values(state.provinces ?? {}).some(province => province.owner === MapFaction.CARLIST);
+    const nationalistsStillFight = Object.values(state.provinces ?? {}).some(province => province.owner === MapFaction.NATIONALIST);
+    triggeredEnding = carlistsStillFight && !nationalistsStillFight ? ENDINGS.CARLIST_VICTORY
+      : carlistsStillFight ? ENDINGS.DIVIDED_REBEL_VICTORY
+      : state.francoStatus === 'nationalist' && (!state.nationalistIntegration || state.nationalistIntegration.stage === 'fet')
+        ? ENDINGS.WE_HAVE_PASSED : ENDINGS.NATIONALIST_JUNTA_VICTORY;
   }
   // 3. Russian Spain
   else if (state.civilWarStatus === 'won' && state.moscowGoldTransferred && state.partySupport['PCE'] > PCE_ENDING_THRESHOLDS.russianSpain && state.pceInPower && state.pceAcceptsComintern) {

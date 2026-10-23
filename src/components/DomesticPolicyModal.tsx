@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameState } from '../game/types';
-import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, X, Languages, Users, ShieldCheck, Swords, Crosshair, UserCheck } from 'lucide-react';
+import { ShieldAlert, BookOpen, Scaling, Hammer, Sprout, Heart, Baby, Book, X, ArrowLeft, Languages, Users, ShieldCheck, Swords, Crosshair, UserCheck } from 'lucide-react';
 import { LAW_DEFINITIONS, getPolicyEffectLines, type PolicyCategory, type PolicyDefinition } from '../game/rules/policyDefinitions';
 import {
   getLaborPressureCampaign,
@@ -8,6 +8,7 @@ import {
   getLaborPressureThreshold,
   LABOR_PRESSURE_LABELS,
 } from '../game/rules/laborPressure';
+import { HerculesRail } from './HerculesRail';
 
 type PolicyViewDefinition = PolicyDefinition & { icon: React.ReactNode };
 
@@ -40,7 +41,63 @@ export const POLICIES_DEF: Record<PolicyCategory, PolicyViewDefinition[]> = {
     .map(policy => ({ ...policy, icon: POLICY_ICONS[policy.id] })),
 };
 
+const CATEGORY_META: Record<PolicyCategory, { zh: string; en: string; icon: React.ReactNode }> = {
+  economy: { zh: '社会经济', en: 'Socioeconomics', icon: <Hammer className="h-4 w-4" /> },
+  society: { zh: '社会权利', en: 'Social Rights', icon: <Book className="h-4 w-4" /> },
+  security: { zh: '社会安全', en: 'Social Security', icon: <ShieldCheck className="h-4 w-4" /> },
+};
+
+const categoryOrder: PolicyCategory[] = ['economy', 'society', 'security'];
+const focusRing =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#51335c]';
+
 const getLawIconFilename = (policyId: PolicyDefinition['id'], level: number): string => `${policyId}_${level}.png`;
+
+const getCurrentLevelValue = (state: GameState, policy: PolicyDefinition): number =>
+  Math.max(0, Math.min(policy.levels.length - 1, Number(state.domesticPolicy[policy.id] ?? 0)));
+
+const LawIcon: React.FC<{
+  policyId: PolicyDefinition['id'];
+  level: number;
+  fallback: React.ReactNode;
+  className?: string;
+}> = ({ policyId, level, fallback, className = '' }) => {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <span className={`law-page__icon text-[#3c3832] ${className}`}>
+      {!failed && (
+        <img
+          src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policyId, level)}`}
+          alt=""
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {failed && (
+        <span className="flex h-full w-full items-center justify-center">{fallback}</span>
+      )}
+    </span>
+  );
+};
+
+const LawPips: React.FC<{ levels: PolicyDefinition['levels']; current: number }> = ({ levels, current }) => (
+  <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
+    {levels.map(level => (
+      <span
+        key={level.level}
+        className={`law-page__pip ${
+          level.level < current
+            ? 'law-page__pip--past'
+            : level.level === current
+              ? 'law-page__pip--current'
+              : ''
+        }`}
+      />
+    ))}
+  </span>
+);
 
 interface Props {
   isOpen: boolean;
@@ -58,43 +115,209 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-paper border-2 border-ink w-full max-w-5xl md:h-[80vh] flex flex-col shadow-2xl relative">
-        {/* Header */}
-        <div className="border-b-2 border-ink border-opacity-30 p-4 flex justify-between items-center bg-ink/5">
-          <div className="flex items-center gap-4">
-            {activePolicy && (
-              <button 
-                onClick={() => setActivePolicy(null)}
-                className="flex items-center gap-1 text-sm font-bold bg-ink text-paper px-3 py-1 hover:bg-ink-light transition-colors"
-              >
-                <span>{isZh ? '返回' : 'Back'}</span>
-              </button>
-            )}
-            <h2 className="font-typewriter text-2xl font-bold">
-              {activePolicy 
-                ? (isZh ? activePolicy.name.zh : activePolicy.name.en) 
-                : (isZh ? '国内政策法案' : 'Domestic Policies')}
-            </h2>
+  const activeLevelValue = activePolicy ? getCurrentLevelValue(state, activePolicy) : 0;
+
+  const renderPolicyCard = (policy: PolicyViewDefinition) => {
+    const levelValue = getCurrentLevelValue(state, policy);
+    const levelDefinition = policy.levels.find(level => level.level === levelValue) ?? policy.levels[0];
+    const effectLines = getPolicyEffectLines(policy.id, levelValue, state, isZh);
+    const primaryEffect = effectLines[0] ?? '';
+
+    return (
+      <button
+        key={policy.id}
+        type="button"
+        onClick={() => setActivePolicy(policy)}
+        className="law-page__card law-page__card--interactive p-3"
+      >
+        <div className="flex gap-2.5">
+          <LawIcon
+            key={`${policy.id}-${levelValue}`}
+            policyId={policy.id}
+            level={levelValue}
+            fallback={policy.icon}
+            className="h-12 w-12"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate font-sans text-[11px] font-semibold leading-none tracking-[0.06em] text-[#5d574e]">
+                {isZh ? policy.name.zh : policy.name.en}
+              </span>
+              <LawPips levels={policy.levels} current={levelValue} />
+            </div>
+            <h4 className="mt-1.5 font-serif text-[17px] font-bold leading-snug text-[#211f1c]">
+              {isZh ? levelDefinition.name.zh : levelDefinition.name.en}
+            </h4>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1 hover:bg-ink/10 transition-colors border border-transparent hover:border-ink"
-          >
-            <X className="w-6 h-6" />
-          </button>
         </div>
 
+        <div className="mt-auto pt-2">
+          <div className="law-page__hairline" />
+          <div
+            className="mt-1.5 flex items-center gap-1.5"
+            title={effectLines.join(isZh ? '；' : '; ')}
+          >
+            <span className="h-1.5 w-1.5 shrink-0 bg-[#9c7321]" aria-hidden="true" />
+            <span className="truncate font-mono text-[10.5px] leading-relaxed text-[#3c3832]">
+              {primaryEffect}
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  const renderCategoryPanel = (category: PolicyCategory) => {
+    const meta = CATEGORY_META[category];
+
+    return (
+      <section
+        key={category}
+        className="flex min-w-0 flex-col border border-[#524c44] bg-[#f0e9da]"
+      >
+        <header className="flex items-center gap-2.5 border-b border-[#524c44] border-t-2 border-t-[#51335c] bg-[#e6decb] px-3 py-2">
+          <span className="law-page__icon h-7 w-7 text-[#3c3832]">{meta.icon}</span>
+          <h3 className="truncate font-serif text-[16px] font-bold leading-none text-[#211f1c]">
+            {isZh ? meta.zh : meta.en}
+          </h3>
+        </header>
+        <div className="flex flex-1 flex-col gap-2 p-2.5">
+          {POLICIES_DEF[category].map(renderPolicyCard)}
+        </div>
+      </section>
+    );
+  };
+
+  const renderLevelCard = (levelDefinition: PolicyDefinition['levels'][number]) => {
+    if (!activePolicy) return null;
+
+    const isCurrent = levelDefinition.level === activeLevelValue;
+    const effectLines = getPolicyEffectLines(activePolicy.id, levelDefinition.level, state, isZh);
+
+    return (
+      <article
+        key={`${activePolicy.id}-${levelDefinition.level}`}
+        className={`law-page__card p-3 ${isCurrent ? 'law-page__card--current' : ''}`}
+        aria-current={isCurrent ? 'true' : undefined}
+      >
+        <div className="flex gap-3">
+          <LawIcon
+            policyId={activePolicy.id}
+            level={levelDefinition.level}
+            fallback={activePolicy.icon}
+            className="h-14 w-14"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-typewriter text-[9px] uppercase leading-none tracking-[0.14em] text-[#5d574e]">
+                  {isZh ? `等级 L${levelDefinition.level}` : `Level ${levelDefinition.level}`}
+                </div>
+                <h4 className="mt-1 font-serif text-[20px] font-bold leading-tight text-[#211f1c]">
+                  {isZh ? levelDefinition.name.zh : levelDefinition.name.en}
+                </h4>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <LawPips levels={activePolicy.levels} current={activeLevelValue} />
+                {isCurrent && (
+                  <span className="border border-[#c1272d] bg-[#f7f2e7] px-1.5 py-0.5 font-typewriter text-[8px] font-bold uppercase leading-none tracking-[0.1em] text-[#c1272d]">
+                    {isZh ? '当前生效' : 'Active'}
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className={`mt-2 text-[12.5px] leading-relaxed ${isCurrent ? 'text-[#211f1c]' : 'text-[#3c3832]'}`}>
+              {isZh ? levelDefinition.description.zh : levelDefinition.description.en}
+            </p>
+          </div>
+        </div>
+
+        {effectLines.length > 0 && (
+          <div className="mt-auto pt-3">
+            <div className="law-page__hairline" />
+            <div className="mt-2">
+              <div className="font-typewriter text-[9px] uppercase leading-none tracking-[0.18em] text-[#8a8175]">
+                {isZh ? '月度效果' : 'Monthly effect'}
+              </div>
+              <div className="mt-1.5 grid gap-1">
+                {effectLines.map((line, index) => (
+                  <div key={index} className="flex items-start gap-1.5">
+                    <span className="mt-[5px] h-1 w-1 shrink-0 bg-[#9c7321]" aria-hidden="true" />
+                    <span className="font-mono text-[10.5px] leading-relaxed text-[#3c3832]">{line}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </article>
+    );
+  };
+
+  return (
+    <div className="law-page law-page__backdrop fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
+      <div className="law-page__window flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden">
+        <div className="law-page__tricolor shrink-0" aria-hidden="true" />
+
+        <header className="shrink-0 border-b-[3px] border-double border-[#524c44] bg-[#f0e9da] px-4 py-3 md:px-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              {activePolicy && (
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy(null)}
+                  className={`flex shrink-0 items-center gap-1.5 border border-[#524c44] bg-[#dcd2bc] px-2.5 py-1.5 text-[11px] font-semibold text-[#211f1c] transition-colors hover:bg-[#d0c3a8] ${focusRing}`}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>{isZh ? '返回' : 'Back'}</span>
+                </button>
+              )}
+              {activePolicy && (
+                <LawIcon
+                  key={`${activePolicy.id}-${activeLevelValue}`}
+                  policyId={activePolicy.id}
+                  level={activeLevelValue}
+                  fallback={activePolicy.icon}
+                  className="h-11 w-11"
+                />
+              )}
+              <div className="min-w-0">
+                {activePolicy && (
+                  <div className="font-typewriter text-[8px] uppercase leading-none tracking-[0.24em] text-[#51335c]">
+                    {isZh ? CATEGORY_META[activePolicy.category].zh : CATEGORY_META[activePolicy.category].en}
+                  </div>
+                )}
+                <h2
+                  className={`truncate font-serif font-bold leading-tight text-[#211f1c] ${
+                    activePolicy ? 'mt-1 text-[20px] md:text-[24px]' : 'text-[21px] md:text-[26px]'
+                  }`}
+                >
+                  {activePolicy
+                    ? (isZh ? activePolicy.name.zh : activePolicy.name.en)
+                    : (isZh ? '国内政策法案' : 'Domestic Policies')}
+                </h2>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`shrink-0 border border-[#524c44] bg-[#dcd2bc] p-1.5 text-[#211f1c] transition-colors hover:bg-[#d0c3a8] ${focusRing}`}
+              aria-label={isZh ? '关闭' : 'Close'}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
         {pressure && pressureResistance && (
-          <div className="border-b border-ink/30 bg-amber-100/70 px-5 py-3 text-sm font-typewriter">
-            <div className="font-bold">
+          <div className="shrink-0 border-b border-[#9c7321] bg-[#ece0c4] px-4 py-2.5">
+            <div className="text-[11px] font-semibold leading-relaxed text-[#755118]">
               {isZh ? '议会外劳工诉求：' : 'Labor demand outside parliament: '}
               {isZh ? LABOR_PRESSURE_LABELS[pressure.lawId].zh : LABOR_PRESSURE_LABELS[pressure.lawId].en}
               {' '}L{state.domesticPolicy[pressure.lawId]} → L{pressure.targetLevel}
               {' · '}{pressure.points}/{getLaborPressureThreshold(state, pressure.lawId, pressure.targetLevel)}
             </div>
-            <div className="text-ink/70 mt-1">
+            <div className="mt-0.5 text-[10.5px] leading-relaxed text-[#5d574e]">
               {isZh
                 ? `议会阻力 +${pressureResistance.parliament}；劳工部长阻力 +${pressureResistance.ministry}。${state.governmentCrisis || state.earlyElectionInProgress ? '政府危机期间暂停结算与衰减。' : '闲置六个月损失 1 点；达标后下月结算。'}`
                 : `Cortes resistance +${pressureResistance.parliament}; labor minister resistance +${pressureResistance.ministry}. ${state.governmentCrisis || state.earlyElectionInProgress ? 'Settlement and decay pause during a government crisis.' : 'Lose 1 point after six idle months; resolve next month when ready.'}`}
@@ -102,327 +325,20 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-          {!activePolicy ? (
-            <>
-              {/* Overview Mode: Left Column - Economy */}
-              <div className="flex-1 border-r-0 md:border-r-2 border-ink border-opacity-30 p-6 overflow-y-auto flex flex-col gap-6">
-                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
-                  <Hammer className="w-6 h-6 text-ink-light" />
-                  {isZh ? '社会经济' : 'Socioeconomics'}
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {POLICIES_DEF.economy.map((policy) => {
-                    const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevel = policy.levels.find(l => l.level === currentValue);
-                    const currentLevelName = currentLevel?.name;
-
-                    return (
-                      <button
-                        key={policy.id}
-                        onClick={() => setActivePolicy(policy)}
-                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-transparent hover:bg-ink hover:text-paper group"
-                      >
-                        {/* Current Law Icon on Left */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
-                          <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
-                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
-                            referrerPolicy="no-referrer"
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{ display: 'none' }}
-                            onLoad={(e) => {
-                              e.currentTarget.style.display = 'block';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'none';
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
-                            {policy.icon}
-                          </div>
-                        </div>
-
-                        {/* Content on Right */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div className="flex justify-between items-center w-full">
-                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
-                              {isZh ? policy.name.zh : policy.name.en}
-                            </span>
-                            <div className="flex gap-1 flex-shrink-0 ml-2">
-                              {policy.levels.map((lvl) => (
-                                <div 
-                                  key={lvl.level} 
-                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
-                                    lvl.level === currentValue 
-                                      ? 'bg-cnt-red group-hover:bg-paper' 
-                                      : (lvl.level < currentValue 
-                                          ? 'bg-ink/40 group-hover:bg-paper/40'
-                                          : 'bg-transparent group-hover:bg-paper/10')
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
-                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+        <div className="flex min-h-0 flex-1">
+          <HerculesRail side="left" />
+          <div className="law-page__sheet min-h-0 flex-1 overflow-y-auto px-3 py-3.5 md:px-4 md:py-4">
+            {activePolicy ? (
+              <div className="mx-auto flex w-full max-w-4xl flex-col gap-2.5">
+                {activePolicy.levels.map(renderLevelCard)}
               </div>
-
-              {/* Overview Mode: Right Column - Society */}
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5">
-                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
-                  <Book className="w-6 h-6 text-ink-light" />
-                  {isZh ? '社会权利' : 'Social Rights'}
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {POLICIES_DEF.society.map((policy) => {
-                    const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevel = policy.levels.find(l => l.level === currentValue);
-                    const currentLevelName = currentLevel?.name;
-
-                    return (
-                      <button
-                        key={policy.id}
-                        onClick={() => setActivePolicy(policy)}
-                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-paper hover:bg-ink hover:text-paper group shadow-sm"
-                      >
-                        {/* Current Law Icon on Left */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
-                          <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
-                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
-                            referrerPolicy="no-referrer"
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{ display: 'none' }}
-                            onLoad={(e) => {
-                              e.currentTarget.style.display = 'block';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'none';
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
-                            {policy.icon}
-                          </div>
-                        </div>
-
-                        {/* Content on Right */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div className="flex justify-between items-center w-full">
-                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
-                              {isZh ? policy.name.zh : policy.name.en}
-                            </span>
-                            <div className="flex gap-1 flex-shrink-0 ml-2">
-                              {policy.levels.map((lvl) => (
-                                <div 
-                                  key={lvl.level} 
-                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
-                                    lvl.level === currentValue 
-                                      ? 'bg-cnt-red group-hover:bg-paper' 
-                                      : (lvl.level < currentValue 
-                                          ? 'bg-ink/40 group-hover:bg-paper/40'
-                                          : 'bg-transparent group-hover:bg-paper/10')
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
-                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {categoryOrder.map(renderCategoryPanel)}
               </div>
-
-              {/* Overview Mode: Right Column - Security */}
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-ink/5 border-l-0 md:border-l-2 border-ink border-opacity-30">
-                <h3 className="font-typewriter text-xl font-bold mb-2 flex items-center gap-2 border-b-2 border-ink pb-2">
-                  <ShieldCheck className="w-6 h-6 text-ink-light" />
-                  {isZh ? '社会安全' : 'Social Security'}
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {POLICIES_DEF.security.map((policy) => {
-                    const currentValue = state.domesticPolicy[policy.id];
-                    const currentLevel = policy.levels.find(l => l.level === currentValue);
-                    const currentLevelName = currentLevel?.name;
-
-                    return (
-                      <button
-                        key={policy.id}
-                        onClick={() => setActivePolicy(policy)}
-                        className="text-left p-4 border border-ink transition-all flex gap-4 bg-paper hover:bg-ink hover:text-paper group shadow-sm"
-                      >
-                        {/* Current Law Icon on Left */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm relative group-hover:border-paper/20">
-                          <img 
-                            src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(policy.id, currentLevel?.level ?? 0)}`}
-                            alt={policy.levels.find(l => l.level === currentValue)?.name.en || ''}
-                            referrerPolicy="no-referrer"
-                            className="absolute inset-0 w-full h-full object-cover"
-                            style={{ display: 'none' }}
-                            onLoad={(e) => {
-                              e.currentTarget.style.display = 'block';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'none';
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                          <div className="flex items-center justify-center text-ink/40 group-hover:text-paper/60 w-full h-full">
-                            {policy.icon}
-                          </div>
-                        </div>
-
-                        {/* Content on Right */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div className="flex justify-between items-center w-full">
-                            <span className="font-bold font-typewriter text-lg group-hover:text-paper truncate">
-                              {isZh ? policy.name.zh : policy.name.en}
-                            </span>
-                            <div className="flex gap-1 flex-shrink-0 ml-2">
-                              {policy.levels.map((lvl) => (
-                                <div 
-                                  key={lvl.level} 
-                                  className={`w-3 h-3 rounded-full border border-ink/20 ${
-                                    lvl.level === currentValue 
-                                      ? 'bg-cnt-red group-hover:bg-paper' 
-                                      : (lvl.level < currentValue 
-                                          ? 'bg-ink/40 group-hover:bg-paper/40'
-                                          : 'bg-transparent group-hover:bg-paper/10')
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-ink-light group-hover:text-paper/80 mt-1 truncate">
-                            {isZh ? currentLevelName?.zh : currentLevelName?.en}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          ) : (
-            /* Detail Mode: Single Column */
-            <div className="w-full p-6 md:p-10 flex flex-col overflow-y-auto bg-ink/5 relative items-center">
-              <div className="w-full max-w-3xl">
-                <div className="flex items-center gap-4 mb-10 border-b-2 border-ink/20 pb-6">
-                  <div className="p-4 bg-ink text-paper rounded-sm shadow-md">
-                    {activePolicy.icon}
-                  </div>
-                  <h3 className="font-typewriter text-4xl font-bold">
-                    {isZh ? activePolicy.name.zh : activePolicy.name.en}
-                  </h3>
-                </div>
-
-                <div className="flex flex-col gap-6 relative isolate">
-                  {/* Timeline line */}
-                  <div className="absolute left-6 top-6 bottom-6 w-1 bg-ink/10 -z-10" />
-
-                  {activePolicy.levels.map((lvl) => {
-                    const isCurrent = state.domesticPolicy[activePolicy.id] === lvl.level;
-                    const effectLines = getPolicyEffectLines(activePolicy.id, lvl.level, state, isZh);
-                    
-                    return (
-                      <div 
-                        key={lvl.level} 
-                        className={`flex items-start gap-6 p-6 border-2 transition-colors ${
-                          isCurrent 
-                            ? 'border-ink bg-paper shadow-xl scale-[1.02] z-10' 
-                            : 'border-transparent hover:border-ink/30 hover:bg-paper/50'
-                        }`}
-                      >
-                        <div className="mt-1 flex-shrink-0 relative">
-                          <div className="relative w-14 h-14 bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden rounded-sm">
-                            <img 
-                              src={`${(import.meta as any).env.BASE_URL || '/'}img/Law/${getLawIconFilename(activePolicy.id, lvl.level)}`}
-                              alt={lvl.name.en}
-                              referrerPolicy="no-referrer"
-                              className="absolute inset-0 w-full h-full object-cover"
-                              style={{ display: 'none' }}
-                              onLoad={(e) => {
-                                e.currentTarget.style.display = 'block';
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'none';
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'flex';
-                              }}
-                            />
-                            <div className="flex items-center justify-center text-ink/40 w-full h-full">
-                              {activePolicy.icon}
-                            </div>
-                          </div>
-                          
-                          {/* Level badge */}
-                          <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center font-bold text-xs bg-paper ${
-                            isCurrent ? 'border-cnt-red text-cnt-red shadow-sm' : 'border-ink/20 text-ink-light'
-                          }`}>
-                            {lvl.level}
-                          </div>
-                        </div>
-                        <div className="flex flex-col flex-1">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className={`font-typewriter font-bold text-2xl ${isCurrent ? 'text-cnt-red' : ''}`}>
-                              {isZh ? lvl.name.zh : lvl.name.en}
-                            </span>
-                            {isCurrent && (
-                              <span className="text-sm border-2 px-3 py-1 border-cnt-red text-cnt-red font-bold uppercase tracking-widest bg-cnt-red/10 animate-pulse">
-                                {isZh ? '当前生效' : 'Active'}
-                              </span>
-                            )}
-                          </div>
-                          <p className={`text-base leading-relaxed ${isCurrent ? 'text-ink font-medium' : 'text-ink-light'}`}>
-                            {isZh ? lvl.description.zh : lvl.description.en}
-                          </p>
-                          {effectLines.length > 0 && (
-                            <div className="mt-2.5 p-3 bg-ink/5 border-l-4 border-cnt-red text-xs font-mono flex flex-col gap-1">
-                              <span className="font-bold text-ink uppercase tracking-wider">
-                                {isZh ? '■ 月度效果:' : '■ Monthly Effect:'}
-                              </span>
-                              <div className="text-ink-light leading-relaxed flex flex-col gap-1">
-                                {effectLines.map((line, idx) => (
-                                  <div key={idx} className="flex items-start gap-1">
-                                    <span className="text-cnt-red">•</span>
-                                    <span>{line}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
+          <HerculesRail side="right" />
         </div>
       </div>
     </div>

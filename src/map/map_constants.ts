@@ -9,6 +9,7 @@ import { MapFaction as Faction, Army, ArmyFormation, Province, type ResourceSet 
 export const createDefaultMapResources = (): Record<Faction, ResourceSet> => ({
   [Faction.REPUBLICAN]: { manpower: 15000, industrialCapacity: 100, commandPoints: 2, supplies: 8000, tankReserve: 10 },
   [Faction.NATIONALIST]: { manpower: 12000, industrialCapacity: 80, commandPoints: 2, supplies: 6000, tankReserve: 5 },
+  [Faction.CARLIST]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
   [Faction.IBERIAN_DEFENSE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
   [Faction.PORTUGAL]: { manpower: 5000, industrialCapacity: 30, commandPoints: 2, supplies: 3000, tankReserve: 0 },
   [Faction.WORKERS_ALLIANCE]: { manpower: 0, industrialCapacity: 0, commandPoints: 0, supplies: 0, tankReserve: 0 },
@@ -761,6 +762,7 @@ export const PROVINCE_REGIONS: Record<string, { group: string; nameCn: string; n
 export const FACTION_COLORS = {
   [Faction.REPUBLICAN]: '#6F4C8E', // Desaturated Purple (Historical look)
   [Faction.NATIONALIST]: '#E2B04E', // Earthy Yellow (Historical look)
+  [Faction.CARLIST]: '#8E2636', // Carlist red berets
   [Faction.IBERIAN_DEFENSE]: '#B33A5E', // Iberian Defense Committee (reserved)
   [Faction.PORTUGAL]: '#738C6C', // Sage Green
   [Faction.NEUTRAL]: '#D4C9B3', // Beige/Parchment

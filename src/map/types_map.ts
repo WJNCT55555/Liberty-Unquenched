@@ -6,6 +6,7 @@
 export enum MapFaction {
   REPUBLICAN = 'REPUBLICAN',
   NATIONALIST = 'NATIONALIST',
+  CARLIST = 'CARLIST',
   IBERIAN_DEFENSE = 'IBERIAN_DEFENSE',
   PORTUGAL = 'PORTUGAL',
   NEUTRAL = 'NEUTRAL',
@@ -127,6 +128,7 @@ export interface ResourceSet {
 }
 
 export interface IberianDefenseState {
+  carlistEntered?: boolean;
   formedAt: { year: number; month: number };
   allies: { poum: boolean; psoeLeft: boolean };
   leftSocialistReserve: number;

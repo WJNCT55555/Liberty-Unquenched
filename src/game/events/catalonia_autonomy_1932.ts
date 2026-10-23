@@ -1,6 +1,6 @@
 import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -32,7 +32,7 @@ export const cataloniaAutonomy1932: GameEvent = {
         },
         domesticPolicy: {
           ...state.domesticPolicy,
-          language_policy: clampLawLevel('language_policy', state.domesticPolicy.language_policy + 1)
+          ...changeLaws(state, { language_policy: 'up' })
         }
       })
     }

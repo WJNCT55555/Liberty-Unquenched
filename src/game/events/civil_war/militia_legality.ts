@@ -1,6 +1,6 @@
 import type { GameEvent, GameState } from '../../types';
 import { adjustFactionDissents } from '../../utils';
-import { clampLawLevel } from '../../lawStances';
+import { ensureLawAtLeast } from '../../rules/lawChange';
 import { isSpanishCivilWarOngoing, monthIndex } from '../../rules/wartimeCoalition';
 
 /**
@@ -65,7 +65,7 @@ const isRungDue = (
 const raiseMilitiaLegality = (state: GameState, level: number): Partial<GameState> => ({
   domesticPolicy: {
     ...state.domesticPolicy,
-    militia_legality_law: clampLawLevel('militia_legality_law', level),
+    militia_legality_law: ensureLawAtLeast(state, 'militia_legality_law', level),
   },
 });
 

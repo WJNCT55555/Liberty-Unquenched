@@ -109,6 +109,8 @@ export const getMilitiaRecruitmentPools = (
   camp: MapFaction,
 ): RecruitmentPoolView[] => MILITIA_RECRUITMENT_POOLS
   .filter((pool) => {
+    if (pool.entityId === 'requetes' && state.nationalistIntegration?.stage === 'carlist_secession')
+      return camp === MapFaction.CARLIST && (!state.iberianDefense || !state.iberianDefense.eliminated.includes(camp));
     if (!state.iberianDefense) return pool.camp === camp;
     if (state.iberianDefense.eliminated.includes(camp)) return false;
     if (pool.entityId === 'cnt_defense_committees') return camp === MapFaction.IBERIAN_DEFENSE;

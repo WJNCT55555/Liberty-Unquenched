@@ -67,6 +67,196 @@ body {
   background-size: 4px 4px;
 }
 
+.game-shell {
+  --game-sidebar-width: 18rem;
+  --game-nav-height: 44px;
+}
+
+.game-main {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Clearance scrolls with the content. The actual scroll viewport begins at
+   the top bar, so content remains visible through the empty carrier area. */
+.game-main-content {
+  padding: calc(var(--game-nav-height) + 12px) 32px 32px;
+}
+
+.game-phase-heading {
+  max-width: 100%;
+  padding-bottom: 16px;
+  pointer-events: none;
+}
+
+.game-phase-heading[data-inline-event='true'] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.game-phase-heading[data-inline-event='true'] h2 {
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+}
+
+.game-phase-heading[data-inline-event='true'] p {
+  font-size: 14px;
+  line-height: 24px;
+}
+
+@media (min-width: 1200px) {
+  .game-phase-heading {
+    position: absolute;
+    top: 8px;
+    right: 32px;
+    max-width: calc(100% - 540px);
+    padding: 0;
+  }
+}
+
+.game-map {
+  padding-top: calc(var(--game-nav-height) + 16px);
+}
+
+/* The carrier stays transparent. Each tab is a single flat paper surface;
+   neighboring rounded edges overlap so no background leaks through a seam. */
+.archive-nav {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  left: var(--game-sidebar-width);
+  display: flex;
+  height: var(--game-nav-height);
+  background: transparent;
+  pointer-events: none;
+}
+
+.archive-nav__scroll {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+  padding: 0 12px 0 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.archive-nav__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.archive-tab {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 126px;
+  height: 40px;
+  margin-left: -12px;
+  padding: 0 16px;
+  pointer-events: auto;
+  border: 1px solid #796c59;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background-color: #e8dfcc;
+  color: var(--color-ink);
+  box-shadow: 0 1px 0 rgba(45, 39, 31, 0.18);
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.archive-tab:first-child {
+  margin-left: 0;
+}
+
+.archive-tab:nth-child(1) { z-index: 4; }
+.archive-tab:nth-child(2) { z-index: 3; }
+.archive-tab:nth-child(3) { z-index: 2; }
+.archive-tab:nth-child(4) { z-index: 1; }
+
+.archive-tab::after {
+  content: '';
+  position: absolute;
+  right: 20px;
+  bottom: 6px;
+  left: 20px;
+  height: 1px;
+  pointer-events: none;
+  background: var(--color-cnt-red);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.archive-tab__content {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.archive-tab__index {
+  font-family: var(--font-typewriter);
+  font-size: 10px;
+  line-height: 12px;
+  letter-spacing: 0.06em;
+  color: #6b5e4c;
+  border: 1px solid #b4a68c;
+  padding: 2px 4px;
+}
+
+.archive-tab__label {
+  white-space: nowrap;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.archive-nav:lang(en) .archive-tab__label {
+  font-family: var(--font-typewriter);
+  font-size: 13px;
+  letter-spacing: 0.07em;
+}
+
+.archive-tab:hover {
+  background-color: #eee5d2;
+  border-color: #5f5141;
+}
+
+.archive-tab[data-active='true'] {
+  z-index: 10;
+  color: var(--color-ink);
+  background-color: #f3ebda;
+  border-color: #5e5142;
+}
+
+.archive-tab[data-active='true']::after {
+  opacity: 1;
+}
+
+.archive-tab[data-active='true'] .archive-tab__index {
+  color: var(--color-cnt-red);
+}
+
+.archive-tab:focus-visible {
+  outline: 2px dashed var(--color-cnt-red);
+  outline-offset: -5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-tab,
+  .archive-tab::after {
+    transition: none;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    DEPRECATED — radio material styles. Kept for reference; nothing in src/
    references these four classes anymore.
@@ -249,4 +439,212 @@ body {
   .economy-modal__panel {
     box-shadow: 4px 4px 0 rgba(20, 18, 14, 0.72);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Domestic policy archive. The LAW page is framed as a 1931 archival window:
+   flat paper sheets, 1px ink rules, corner ticks and a republican tricolor.
+   Scoped to .law-page so the rest of the game is untouched.
+   --------------------------------------------------------------------------- */
+.law-page {
+  --law-paper: #e6decb;
+  --law-sheet: #f0e9da;
+  --law-card: #f7f2e7;
+  --law-card-active: #fdfaf3;
+  --law-well: #dcd2bc;
+  --law-ink: #211f1c;
+  --law-ink-muted: #5d574e;
+  --law-line: #524c44;
+  --law-line-dark: #2a2723;
+  --law-line-light: #8a8175;
+  --law-crimson: #7d2226;
+  --law-red: #c1272d;
+  --law-gualda: #9c7321;
+  --law-morado: #51335c;
+  color: var(--law-ink);
+}
+
+.law-page__backdrop {
+  background-color: #1b1816;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 48px);
+}
+
+.law-page__window {
+  border: 3px solid #28201a;
+  outline: 1px solid #6a5846;
+  background-color: var(--law-paper);
+}
+
+.law-page__tricolor {
+  height: 4px;
+  border-bottom: 1px solid var(--law-line-dark);
+  background-image: linear-gradient(
+    90deg,
+    var(--law-crimson) 0%,
+    var(--law-crimson) 33.33%,
+    var(--law-gualda) 33.33%,
+    var(--law-gualda) 66.66%,
+    var(--law-morado) 66.66%,
+    var(--law-morado) 100%
+  );
+}
+
+.law-page__sheet {
+  background-image: repeating-linear-gradient(0deg, rgba(33, 31, 28, 0.016) 0 1px, transparent 1px 3px);
+}
+
+.law-page__rail {
+  align-self: flex-start;
+  height: min(640px, calc(100% - 2rem));
+  margin-top: 1rem;
+  overflow: hidden;
+  background-color: #e2d8c3;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(33, 31, 28, 0.028) 0 1px, transparent 1px 4px),
+    linear-gradient(
+      90deg,
+      #d6cbb4 0%,
+      #e9e0cc 12%,
+      #f3ecdd 38%,
+      #f7f2e7 50%,
+      #f3ecdd 62%,
+      #e9e0cc 88%,
+      #d6cbb4 100%
+    );
+}
+
+.law-page__rail--left {
+  border-right: 1px solid var(--law-line);
+}
+
+.law-page__rail--right {
+  border-left: 1px solid var(--law-line);
+}
+
+.law-page ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.law-page ::-webkit-scrollbar-track {
+  background: var(--law-well);
+  border-left: 1px solid var(--law-line);
+}
+
+.law-page ::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background: var(--law-ink-muted);
+}
+
+.law-page ::-webkit-scrollbar-thumb:hover {
+  background: var(--law-line-dark);
+}
+
+.law-page__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 104px;
+  background-color: var(--law-card);
+  border: 1px solid var(--law-line);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.law-page__card--interactive {
+  cursor: pointer;
+  text-align: left;
+}
+
+.law-page__card--interactive:hover {
+  background-color: var(--law-card-active);
+  border-color: var(--law-line-dark);
+}
+
+.law-page__card--interactive:focus-visible {
+  outline: 2px solid var(--law-morado);
+  outline-offset: 2px;
+}
+
+.law-page__card--current {
+  background-color: var(--law-card-active);
+  border-color: var(--law-line-dark);
+  border-left: 2px solid var(--law-red);
+}
+
+.law-page__card::before,
+.law-page__card::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  pointer-events: none;
+}
+
+.law-page__card::before {
+  top: 3px;
+  left: 3px;
+  border-top: 1px solid var(--law-line-light);
+  border-left: 1px solid var(--law-line-light);
+}
+
+.law-page__card::after {
+  right: 3px;
+  bottom: 3px;
+  border-right: 1px solid var(--law-line-light);
+  border-bottom: 1px solid var(--law-line-light);
+}
+
+.law-page__icon {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--law-paper);
+  border: 1px solid var(--law-line);
+}
+
+.law-page__icon img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: 100%;
+  width: 100%;
+  padding: 6px;
+  object-fit: contain;
+}
+
+.law-page__icon::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 4px;
+  border: 1px solid rgba(82, 76, 68, 0.3);
+  pointer-events: none;
+}
+
+.law-page__hairline {
+  border-top: 1px solid rgba(82, 76, 68, 0.28);
+}
+
+.law-page__pip {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--law-line-light);
+  border-radius: 9999px;
+  background-color: transparent;
+}
+
+.law-page__pip--past {
+  background-color: #a39f93;
+  border-color: #a39f93;
+}
+
+.law-page__pip--current {
+  background-color: var(--law-red);
+  border-color: var(--law-red);
 }

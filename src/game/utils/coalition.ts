@@ -195,7 +195,11 @@ export function reshapeWartimeCabinet(state: GameState, reason: 'centralize' | '
   const fallbacks: Array<typeof state.ministers.labor> = ['PSOE', 'IR', 'UR', 'ERC', 'PNV', 'PCE', 'PS', 'CNT'];
   const fallback = fallbacks.find(eligible) ?? 'Other';
   const template: GameState['ministers'] = reason === 'centralize'
-    ? { labor: 'ERC', health: 'ERC', justice: 'PNV', industry: 'PSOE', interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', finance: 'PSOE', estado: 'IR' }
+    ? {
+        labor: 'ERC', health: 'ERC', justice: 'PNV', industry: 'PSOE', commerce: 'PSOE',
+        interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', education: 'IR', publicWorks: 'IR',
+        finance: 'PSOE', estado: 'IR',
+      }
     : state.ministers;
   const ministers = Object.fromEntries(Object.entries(template).map(([office, party]) => [
     office, reason === 'centralize' ? (eligible(party) ? party : fallback) : party === 'POUM' ? fallback : party,

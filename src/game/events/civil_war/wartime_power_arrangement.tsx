@@ -8,6 +8,7 @@ import {
   WARTIME_COALITION_ID,
 } from '../../rules/wartimeCoalition';
 import { WartimeCoalitionDetails } from '../../../components/WartimeCoalitionDetails';
+import { CABINET_OFFICE_LABELS } from '../../rules/cabinet';
 
 // 路线只结算政治与法律：三条路线都不动两张所有权饼，也不写经济改造计数器（用户定稿）。
 const ROUTE_EFFECTS: Record<WartimeGovernmentRoute, {
@@ -18,10 +19,7 @@ const ROUTE_EFFECTS: Record<WartimeGovernmentRoute, {
   council: { stats: { republicanAuthority: 6, revolutionaryFervor: 5, bureaucratization: 3 }, dissent: { Faistas: -4, Puristas: 4 } },
   external: { stats: { republicanAuthority: 3, revolutionaryFervor: 3 }, dissent: { Faistas: -5, Puristas: -8 } },
 };
-const OFFICES: Record<keyof GameState['ministers'], [string, string]> = {
-  labor: ['Labour', '劳动'], health: ['Health', '卫生'], justice: ['Justice', '司法'], industry: ['Industry and commerce', '工业与商业'],
-  interior: ['Interior', '内政'], war: ['War', '战争'], agriculture: ['Agriculture', '农业'], finance: ['Finance', '财政'], estado: ['Foreign affairs', '外交'],
-};
+const OFFICES = CABINET_OFFICE_LABELS;
 const STAT_LABELS: Partial<Record<keyof GameState['stats'], [string, string]>> = {
   republicanAuthority: ['Republican authority', '共和国权威'], bureaucratization: ['Bureaucratization', '官僚化'],
   revolutionaryFervor: ['Revolutionary fervor', '革命热情'],

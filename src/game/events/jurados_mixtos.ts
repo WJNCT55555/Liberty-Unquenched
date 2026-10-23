@@ -1,5 +1,6 @@
 import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
+import { ensureLawAtLeast } from '../rules/lawChange';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -7,6 +8,14 @@ const lawMeta = {
   tags: ['law'],
 };
 
+/**
+ * 混合陪审团法（1931 年 11 月）。
+ *
+ * 两个选项都要把 `union_status` 提到 L2「混合陪审团」，但这一步**不能无条件写成 2**：
+ * 如果该法律已经在 3 级以上（集体谈判或工人委员会），同一条历史新闻就不该把它拉回去。
+ * 因此这里用 `ensureLawAtLeast`（「至少到 2 级」），与全项目的法律写入约定一致：
+ * 改法律只有政府卡与事件可以做，且每次都先读当前等级。
+ */
 export const juradosMixtos: GameEvent = {
   id: 'jurados_mixtos',
   meta: lawMeta,
@@ -31,7 +40,7 @@ export const juradosMixtos: GameEvent = {
           domesticPolicy: {
             ...state.domesticPolicy,
             mixed_jury_cnt_opposed: true,
-            union_status: 2
+            union_status: ensureLawAtLeast(state, 'union_status', 2)
           }
         };
       }
@@ -46,7 +55,7 @@ export const juradosMixtos: GameEvent = {
           domesticPolicy: {
             ...state.domesticPolicy,
             mixed_jury_cnt_opposed: false,
-            union_status: 2
+            union_status: ensureLawAtLeast(state, 'union_status', 2)
           }
         };
       }

@@ -27,7 +27,7 @@ export const burningConvents: GameEvent = {
         newClasses = adjustClassSupport(newClasses, 'PequenaBurguesia', 'IR', 5);
         return {
           classes: newClasses,
-          factions: adjustFactionInfluence(state.factions, 'Cenetistas', 10),
+          factions: adjustFactionInfluence(state.factions, 'Cenetistas', 8),
         };
       },
     },
@@ -37,8 +37,8 @@ export const burningConvents: GameEvent = {
       subtitle: 'Increases revolutionary fervor and Faistas influence.',
       subtitleZh: '增加革命热情和无政府主义者（Faistas）的影响力。',
       effect: (state) => ({
-        stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 15) },
-        factions: adjustFactionInfluence(state.factions, 'Faistas', 10),
+        stats: { ...state.stats, revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 5) },
+        factions: adjustFactionInfluence(state.factions, 'Faistas', 8),
       }),
     },
   ],

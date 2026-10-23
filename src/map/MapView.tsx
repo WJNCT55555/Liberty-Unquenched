@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProvinceMap } from './ProvinceMap';
-import { MapFaction as Faction } from './types_map';
 import { useGameActions, useGameSelector, useMapRuntimeState } from '../game/GameContext';
 import { areRecruitmentPoolViewsEqual, selectMapRecruitmentPools } from '../game/selectors';
 import { Sidebar } from './Sidebar';
@@ -39,9 +38,8 @@ export const MapView: React.FC = () => {
   };
 
   const currentPlayer = gameState.mapCurrentPlayer;
-  const aiFaction = gameState.activeWar === 'asturias_war' ? Faction.REPUBLICAN : Faction.NATIONALIST;
   const isPlayerTurn = currentPlayer === playerFaction && !gameState.iberianDefense?.playerDefeated && !gameState.iberianDefense?.winner;
-  const isAiTurn = gameState.iberianDefense ? !isPlayerTurn && !gameState.iberianDefense.winner && !gameState.iberianDefense.playerDefeated : currentPlayer === aiFaction;
+  const isAiTurn = !isPlayerTurn && !gameState.iberianDefense?.winner && !gameState.iberianDefense?.playerDefeated;
   const commandPoints = gameState.mapResources[playerFaction].commandPoints;
   const selectedArmy = armies.find((army) => army.id === selectedArmyId);
   const canMoveSelectedArmy = Boolean(
@@ -74,10 +72,10 @@ export const MapView: React.FC = () => {
   }, [countdown, dispatch]);
 
   return (
-    <div className="flex-1 flex flex-col p-4 w-full h-full relative overflow-hidden bg-halftone">
+    <div className="game-map flex-1 min-h-0 flex flex-col p-4 w-full h-full relative overflow-hidden">
       {/* Unframed map heading: retain the title and controls without the old header panel. */}
-      <div className="shrink-0 min-h-[42px] mb-2 flex items-center justify-between gap-4 px-1">
-        <h2 className="font-display text-2xl md:text-3xl uppercase text-ink opacity-95 tracking-widest leading-none">
+      <div className="shrink-0 min-h-[42px] mb-2 flex flex-wrap items-center justify-between gap-4 px-1">
+        <h2 className="min-w-0 font-display text-2xl md:text-3xl uppercase text-ink opacity-95 tracking-widest leading-none break-words">
           {gameState.iberianDefense ? getMapFactionName(playerFaction, isZh) : isZh ? '战略形势图' : 'Strategic Map View'}
         </h2>
 
@@ -90,7 +88,7 @@ export const MapView: React.FC = () => {
               className="px-3 py-1.5 bg-[#2D3748] text-[#F7FAFC] text-[10px] uppercase tracking-wider font-bold border-2 border-[#1A202C] hover:bg-[#1A202C] transition-colors cursor-pointer shadow-sm"
             >
               {isZh 
-                ? (gameState.iberianDefense ? '结束委员会回合 → 两方 AI' : gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合')
+                ? (gameState.iberianDefense ? '结束委员会回合 → AI 阵营' : gameState.activeWar === 'asturias_war' ? '结束工人联盟回合' : '结束共和军回合')
                 : (gameState.iberianDefense ? 'End Committee Turn → AI Turns' : gameState.activeWar === 'asturias_war' ? 'End Workers Turn' : 'End Republican Turn')}
             </button>
           )}

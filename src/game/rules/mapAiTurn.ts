@@ -6,6 +6,7 @@ import { canEnterMapProvince } from '../../map/rules/factions';
 import { settleIberianCapitulations } from './iberianDefense';
 import { resolveBattle } from './combat';
 import { random } from './rng';
+import type { GameState } from '../types';
 
 export interface MapAiTurnDependencies {
   calculateMoves: typeof calculateAiMoves;
@@ -35,6 +36,28 @@ export function executeAiTurn<State extends MapRuntimeState>(
   let provinces = { ...tempState.provinces };
   let armies = [...tempState.armies];
   let history = [...tempState.mapHistory];
+  // The independent Carlist camp draws soldiers from the existing Requetés reserve.
+  // It does not receive a second national manpower pool.
+  if (aiFaction === MapFaction.CARLIST) {
+    const armedForces = (state as State & Pick<GameState, 'armedForces'>).armedForces;
+    const pool = armedForces?.entityPools?.requetes;
+    const province = Object.values(provinces).find(item => item.owner === MapFaction.CARLIST);
+    const available = mapResources[MapFaction.CARLIST];
+    const manpower = Math.min(1500, pool?.manpower ?? 0);
+    const cost = armyRecruitCost({ infantry: manpower, artillery: 0, tanks: 0 });
+    const levyId = `carlist_levy_${state.year}_${state.month}`;
+    if (province && pool?.status === 'active' && manpower > 0 && available.supplies >= cost.supplies
+      && !armies.some(army => army.id === levyId)) {
+      armies.push({ id: levyId, faction: MapFaction.CARLIST,
+        identity: 'requetes', sourceEntityId: 'requetes', provinceId: province.id,
+        name: 'Requetés Levy', nameZh: '呼啸兵征募队', movesLeft: 0,
+        manpower, maxManpower: manpower, composition: { infantry: manpower, artillery: 0, tanks: 0 },
+        designedComposition: { infantry: manpower, artillery: 0, tanks: 0 }, morale: 55 });
+      mapResources[MapFaction.CARLIST] = { ...available, supplies: available.supplies - cost.supplies };
+      tempState = { ...tempState, armedForces: { ...armedForces, entityPools: { ...armedForces.entityPools,
+        requetes: { ...pool, manpower: pool.manpower - manpower } } } };
+    }
+  }
 
   // Set AI command points to 2 for the AI turn to let them make decisions!
   if (mapResources[aiFaction]) {
@@ -57,8 +80,8 @@ export function executeAiTurn<State extends MapRuntimeState>(
 
   const aiActions = dependencies.calculateMoves(aiState, aiFaction, diff);
 
-  const factionNameZh = aiFaction === MapFaction.REPUBLICAN ? '共和国政府军' : '国民军';
-  const factionNameEn = aiFaction === MapFaction.REPUBLICAN ? 'Republican' : 'Nationalist';
+  const factionNameZh = aiFaction === MapFaction.REPUBLICAN ? '共和国政府军' : aiFaction === MapFaction.CARLIST ? '卡洛斯派' : '国民军';
+  const factionNameEn = aiFaction === MapFaction.REPUBLICAN ? 'Republican' : aiFaction === MapFaction.CARLIST ? 'Carlist' : 'Nationalist';
 
   aiActions.forEach(action => {
     if (tempState.iberianDefense?.winner || tempState.iberianDefense?.playerDefeated || tempState.iberianDefense?.eliminated.includes(aiFaction)) return;
@@ -169,7 +192,8 @@ export function executeAiTurn<State extends MapRuntimeState>(
         );
       }
     } else if (action.type === 'RECRUIT') {
-      const { provinceId, composition } = action.payload || {};
+      const { provinceId, comp, composition: injectedComposition } = action.payload || {};
+      const composition = comp ?? injectedComposition;
       if (!provinceId || !composition) return;
       const { infantry, artillery, tanks } = composition;
       const playerRes = mapResources[aiFaction];

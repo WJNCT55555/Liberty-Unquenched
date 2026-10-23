@@ -103,6 +103,7 @@ const POLITICAL_LEGEND_ORDER: Faction[] = [
   Faction.WORKERS_ALLIANCE,
   Faction.REPUBLICAN,
   Faction.NATIONALIST,
+  Faction.CARLIST,
   Faction.PORTUGAL,
   Faction.UNITED_KINGDOM,
   Faction.ANDORRA,

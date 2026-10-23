@@ -1,12 +1,16 @@
 import { Card, GameState } from '../types';
 import { raiseSecurityCorpsLoyalty } from '../rules/securityForces';
 import { adjustMilitarization } from '../rules/militarization';
+import { ensureLawAtLeast, getLawLevel } from '../rules/lawChange';
 
 /**
  * Police Affairs lets the CNT, holding the Interior Ministry, make the state's
  * police reliable and then reshape it by law. The loyalty raised here is exactly
  * what the higher Security Corps Law levels are gated on, so the two feed each
  * other: build reliability first, reform the law second.
+ *
+ * 治安机关法是一条**逐级阶梯**：每个选项的 `condition` 都要求当前等级正好是目标的前一级，
+ * 效果里用 `ensureLawAtLeast` 表示「至少到这一级」，法律写入统一走 `rules/lawChange.ts`。
  */
 type LoyaltyCorpsId = 'guardiaNacional' | 'guardiaAsalto' | 'guardiaRepublicana';
 
@@ -30,7 +34,7 @@ const loyaltyOption = (
   }),
 });
 
-const lawLevel = (state: GameState) => Number(state.domesticPolicy?.security_corps_law) || 0;
+const lawLevel = (state: GameState) => getLawLevel(state, 'security_corps_law');
 const corpsLoyalty = (state: GameState, corpsId: 'guardiaNacional' | 'guardiaAsalto') =>
   state.armedForces?.[corpsId]?.loyalty || 0;
 const atWar = (state: GameState) => state.civilWarStatus === 'ongoing' || Boolean(state.activeWar);
@@ -88,7 +92,7 @@ export const policeAffairs: Card = {
           unavailableSubtitleZh: () => '需要治安机关法为 0 级，且国民警卫队忠诚度达到 60。',
           effect: (s: GameState): Partial<GameState> => ({
             police_affairs_timer: 6,
-            domesticPolicy: { ...s.domesticPolicy, security_corps_law: 1 },
+            domesticPolicy: { ...s.domesticPolicy, security_corps_law: ensureLawAtLeast(s, 'security_corps_law', 1) },
           }),
         },
         {
@@ -104,7 +108,7 @@ export const policeAffairs: Card = {
           unavailableSubtitleZh: () => '需要治安机关法为 1 级，国民警卫队忠诚度达到 70，突击卫队忠诚度达到 90。',
           effect: (s: GameState): Partial<GameState> => ({
             police_affairs_timer: 6,
-            domesticPolicy: { ...s.domesticPolicy, security_corps_law: 2 },
+            domesticPolicy: { ...s.domesticPolicy, security_corps_law: ensureLawAtLeast(s, 'security_corps_law', 2) },
           }),
         },
         {
@@ -120,7 +124,7 @@ export const policeAffairs: Card = {
           unavailableSubtitleZh: () => '需要治安机关法为 2 级，国民警卫队忠诚度达到 80，突击卫队忠诚度达到 95。',
           effect: (s: GameState): Partial<GameState> => ({
             police_affairs_timer: 6,
-            domesticPolicy: { ...s.domesticPolicy, security_corps_law: 3 },
+            domesticPolicy: { ...s.domesticPolicy, security_corps_law: ensureLawAtLeast(s, 'security_corps_law', 3) },
           }),
         },
         {
@@ -133,7 +137,7 @@ export const policeAffairs: Card = {
           unavailableSubtitleZh: () => '需要治安机关法为 2 级或 3 级，且国家处于战争状态。',
           effect: (s: GameState): Partial<GameState> => ({
             police_affairs_timer: 6,
-            domesticPolicy: { ...s.domesticPolicy, security_corps_law: 4 },
+            domesticPolicy: { ...s.domesticPolicy, security_corps_law: ensureLawAtLeast(s, 'security_corps_law', 4) },
           }),
         },
         {
@@ -149,7 +153,7 @@ export const policeAffairs: Card = {
           unavailableSubtitleZh: () => '需要治安机关法为 3 级，且国家处于非战争状态。',
           effect: (s: GameState): Partial<GameState> => ({
             police_affairs_timer: 6,
-            domesticPolicy: { ...s.domesticPolicy, security_corps_law: 4 },
+            domesticPolicy: { ...s.domesticPolicy, security_corps_law: ensureLawAtLeast(s, 'security_corps_law', 4) },
           }),
         },
       ],

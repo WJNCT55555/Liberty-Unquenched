@@ -737,7 +737,9 @@ assert(falangeJons.organizations?.JONS?.status === 'integrated', 'The FE-JONS me
 // The Rabassaire union moved off the `UR` id, which now belongs to the party.
 assert(organizations1931.UR?.established === true && organizations1931.UNIO_RABASSAIRES?.established === true, 'The party and the Rabassaire union must be separate organizations that both exist in 1931');
 
-const formedByEvent = new Set(['FIJL', 'ML', 'FNA', 'DC', 'PRRevS', 'MAOC', 'CONS', 'POUM', 'FE', 'AP', 'PS', 'JONS', 'SEU', 'SECCION_FEMENINA', 'JSU', 'MUJERES_ANTIFASCISTAS', 'EGI', 'JCI']);
+const formedByEvent = new Set(['FIJL', 'ML', 'FNA', 'DC', 'PRRevS', 'MAOC', 'CONS', 'POUM', 'FE', 'AP', 'PS', 'JONS', 'SEU', 'SECCION_FEMENINA', 'JSU', 'MUJERES_ANTIFASCISTAS', 'EGI', 'JCI',
+  // The Nationalist chain forms these in its T0+9/+13/+15 events (see test-nationalist-integration.ts).
+  'FET', 'FET_NATIONAL_MILITIA', 'FET_POLITICAL_BOARD', 'FET_NATIONAL_COUNCIL']);
 const formedByMobilisation = new Set([
   'PSOE_MILITIA', 'FIFTH_REGIMENT', 'POUM_MILITIA', 'REQUETE_MILITIA',
   'FALANGE_MILITIA', 'EUZKO_GUDAROSTEA', 'INTERNATIONAL_BRIGADES', 'ITALIAN_CTV',

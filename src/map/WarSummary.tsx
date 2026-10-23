@@ -74,6 +74,10 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
   let f2TotalFactories = 0;
 
   const provinceList = Object.values(provinces) as Province[];
+  const carlistProvinces = isAsturias ? [] : provinceList.filter(province => province.owner === Faction.CARLIST);
+  const carlistStrategicValue = carlistProvinces.reduce((sum, province) => sum + province.strategicValue, 0);
+  const carlistArmies = armies.filter(army => army.faction === Faction.CARLIST);
+  const carlistActive = carlistProvinces.length > 0 || carlistArmies.length > 0;
   provinceList.forEach((prov) => {
     if (prov.owner === f1) {
       f1StrategicValue += prov.strategicValue || 0;
@@ -87,9 +91,10 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
   });
 
   // Prevent divide-by-zero
-  const totalSV = f1StrategicValue + f2StrategicValue || 1;
+  const totalSV = f1StrategicValue + f2StrategicValue + carlistStrategicValue || 1;
   const f1SVPercent = Math.round((f1StrategicValue / totalSV) * 100);
-  const f2SVPercent = 100 - f1SVPercent;
+  const carlistSVPercent = Math.min(100 - f1SVPercent, Math.round((carlistStrategicValue / totalSV) * 100));
+  const f2SVPercent = 100 - f1SVPercent - carlistSVPercent;
 
   // 2. Calculate Army Stats
   let f1DivisionsCount = 0;
@@ -190,7 +195,7 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
               </span>
             </div>
             <div className="bg-cnt-red text-paper font-typewriter text-[10px] font-black px-3 py-1 uppercase tracking-wider transform -skew-x-12 border border-ink/20">
-              {f1Name} VS {f2Name}
+              {f1Name} VS {f2Name}{carlistActive ? (isZh ? ' ＋ 卡洛斯派' : ' + CARLISTS') : ''}
             </div>
           </div>
 
@@ -240,6 +245,8 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                   </span>
                 )}
               </div>
+              {carlistActive && <div style={{ width: `${carlistSVPercent}%`, backgroundColor: '#8E2636' }}
+                className="h-full border-l border-ink text-right text-xs font-bold text-white">{carlistSVPercent > 12 ? `${carlistSVPercent}%` : ''}</div>}
               {/* Center pointer */}
               <div 
                 style={{ left: `${f1SVPercent}%` }}
@@ -253,6 +260,12 @@ export const WarSummary: React.FC<WarSummaryProps> = ({
                 : 'The war balance reflects the total combined Strategic Value of controlled sectors. Securing urban hubs is vital to swing the strategic frontline.'}
             </p>
           </div>
+
+          {carlistActive && <div className="border-2 border-[#8E2636] bg-paper-dark/20 p-4 font-typewriter text-xs">
+            <h3 className="mb-2 font-bold text-[#8E2636]">{isZh ? '卡洛斯派独立战线' : 'INDEPENDENT CARLIST FRONT'}</h3>
+            <p>{isZh ? '省份' : 'Provinces'}: {carlistProvinces.length} · SV: {carlistStrategicValue} · {isZh ? '现役兵力' : 'Field troops'}: {carlistArmies.reduce((sum, army) => sum + army.manpower, 0).toLocaleString()}</p>
+            <p>{isZh ? '补给' : 'Supplies'}: {resources[Faction.CARLIST].supplies.toLocaleString()} · IC: {resources[Faction.CARLIST].industrialCapacity}</p>
+          </div>}
 
           {/* 2. Side-by-Side Comparison Blocks */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

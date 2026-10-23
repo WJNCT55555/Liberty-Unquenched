@@ -1,12 +1,20 @@
 import type { GameEvent, GameState } from '../types';
 import { isAtOrAfter } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 
 const militaryReformMeta = {
   category: 'politics' as const,
   flow: 'solo' as const,
   tags: ['law', 'military'],
 };
+
+/**
+ * 阿萨尼亚军事改革（1931 年 5 月）。
+ *
+ * 陆军改革法与治安机关法各升一级：内阁在同一次改革里既清退军官团、也组建了忠于共和国
+ * 的城市治安部队，所以两条法律一起推进。写法是相对升一级（`up`），法律写入统一走
+ * `rules/lawChange.ts`。
+ */
 
 export const azanaMilitaryReform: GameEvent = {
   id: 'azana_military_reform',
@@ -28,8 +36,7 @@ export const azanaMilitaryReform: GameEvent = {
         // that purged the officer corps, so this event advances both laws together.
         const domesticPolicy = {
           ...state.domesticPolicy,
-          army_reform_law: clampLawLevel('army_reform_law', state.domesticPolicy.army_reform_law + 1),
-          security_corps_law: clampLawLevel('security_corps_law', state.domesticPolicy.security_corps_law + 1),
+          ...changeLaws(state, { army_reform_law: 'up', security_corps_law: 'up' }),
         };
 
         return { domesticPolicy };

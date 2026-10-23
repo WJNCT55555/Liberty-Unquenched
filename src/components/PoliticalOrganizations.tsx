@@ -64,7 +64,8 @@ const OrganizationTooltip: React.FC<{ open: OpenOrganization; state: GameState; 
   const organization = state.organizations?.[definition.id];
   const status = getStatus(organization);
   const active = isOrganizationActive(state, definition.id);
-  const color = getPartyColor(state, definition.owner);
+  const currentOwner = organization?.affiliatedOwner ?? definition.owner;
+  const color = getPartyColor(state, currentOwner);
   const capability = isZh ? definition.capabilityTextZh : definition.capabilityText;
 
   useLayoutEffect(() => {
@@ -90,7 +91,7 @@ const OrganizationTooltip: React.FC<{ open: OpenOrganization; state: GameState; 
         </span>
       </div>
       <p className="text-sm font-bold leading-relaxed">{isZh ? definition.nameZh : definition.name}</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-ink-light">{TYPE_LABELS[definition.type][language]} · {getPartyName(state, definition.owner, isZh, true)}</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-light">{definition.id === 'ITALIAN_CTV' ? (isZh ? '意大利外援' : 'Italian foreign aid') : TYPE_LABELS[definition.type][language]} · {getPartyName(state, currentOwner, isZh, true)}</p>
       {organization?.established && organization.establishedAt && (
         <p className="mt-2 flex items-center gap-1.5 text-[11px] text-ink-light">
           <CalendarDays className="h-3 w-3 shrink-0" />
@@ -153,7 +154,7 @@ export const PoliticalOrganizations = ({ state, isZh }: { state: GameState; isZh
 
       <div className="flex flex-col gap-4">
         {owners.map(owner => {
-          const definitions = ORGANIZATION_DEFINITIONS.filter(definition => definition.owner === owner);
+          const definitions = ORGANIZATION_DEFINITIONS.filter(definition => (state.organizations?.[definition.id]?.affiliatedOwner ?? definition.owner) === owner);
           const color = getPartyColor(state, owner);
           const groupActiveCount = definitions.filter(definition => isOrganizationActive(state, definition.id)).length;
           return (
@@ -183,6 +184,7 @@ export const PoliticalOrganizations = ({ state, isZh }: { state: GameState; isZh
                         <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-paper ring-1 ring-ink/15 ${STATUS_DOTS[status]}`} />
                       </span>
                       <span className={`mt-2 w-full break-words text-center font-typewriter text-[11px] font-bold leading-tight ${active ? 'text-ink' : 'text-ink-light'}`}>{abbreviation}</span>
+                      {definition.id === 'ITALIAN_CTV' && <span className="mt-0.5 text-[9px] text-ink-light">{isZh ? '意大利外援' : 'Foreign aid'}</span>}
                     </button>
                   );
                 })}

@@ -1,6 +1,7 @@
 import type { GameEvent } from '../types';
 import { isAtOrAfter } from '../utils';
 import { isOrganizationEstablished } from '../organizations';
+import { ensureLawAtLeast } from '../rules/lawChange';
 
 const governmentCrisisMeta = {
   category: 'politics' as const,
@@ -8,6 +9,13 @@ const governmentCrisisMeta = {
   series: ['government_crisis'],
 };
 
+/**
+ * 桑胡尔霍事件（1932 年 8 月）。
+ *
+ * 两个选项都在向政府施压推进改革：土地改革法进到 L1，军官改革法至少进到 L1。这里用
+ * `ensureLawAtLeast`（「至少到这一级」）而不是直接写 1——事件本身是「共和派借镇压政变
+ * 之机推进立法」，如果相关法律已经走得比 1 级更远，它不该被这条新闻拉回去。
+ */
 export const laSanjurjada: GameEvent = {
   id: 'la_sanjurjada',
   meta: governmentCrisisMeta,
@@ -26,7 +34,7 @@ export const laSanjurjada: GameEvent = {
         coupSystemActive: true,
         domesticPolicy: {
           ...state.domesticPolicy,
-          land_law: 1,
+          land_law: ensureLawAtLeast(state, 'land_law', 1),
           land_reform_progress: Math.min(100, state.domesticPolicy.land_reform_progress + 10),
         },
         stats: {
@@ -46,7 +54,7 @@ export const laSanjurjada: GameEvent = {
           coupSystemActive: true,
           domesticPolicy: {
             ...state.domesticPolicy,
-            army_reform_law: 1
+            army_reform_law: ensureLawAtLeast(state, 'army_reform_law', 1)
           },
           stats: {
             ...state.stats,

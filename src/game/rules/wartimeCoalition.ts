@@ -80,16 +80,74 @@ export const adjustMemberContribution = (
 export const getWartimeMembers = (state: GameState): CoalitionMember[] =>
   WARTIME_MEMBERS.filter(member => isRepublicanPartyPresent(state, member));
 
+/**
+ * 下调**所有在册联盟**成员的相互承诺度。
+ *
+ * 与上面的 `adjustMemberContribution` 的区别：那个只动战时人民阵线里的某一个成员，
+ * 这个是"这件事让整个阵线离心"的通用写法，用于政府卡（例如司法改革的激进路线）。
+ *
+ * `delta` 可以是统一数值，也可以是**按党派区分的表**——后者用于"某些党比另一些党
+ * 更不可接受这次决定"的场合（例如激进司法改革：社会党只降 2，共和左翼与共和联盟降 6—8）。
+ * 不在表里的成员保持不变。
+ *
+ * **不要直接写 `cohesion`。** `updateCoalitions()` 在每次 reducer 之后都会按
+ * `memberContributions` 重算凝聚力（见 `utils/coalition.ts`），直接写 cohesion 会在
+ * 下一步被抹掉；承诺度才是唯一真相来源。
+ */
+export const applyCoalitionCommitmentDelta = (
+  state: Pick<GameState, 'activeCoalitions'>,
+  delta: number | Partial<Record<CoalitionMember, number>>,
+): CoalitionState[] => {
+  const coalitions = state.activeCoalitions || [];
+  const isUniform = typeof delta === 'number';
+  if (isUniform && !delta) return coalitions;
+  return coalitions.map(coalition => ({
+    ...coalition,
+    memberContributions: Object.fromEntries(
+      Object.entries(coalition.memberContributions ?? {}).map(([member, value]) => {
+        const memberDelta = isUniform ? delta : (delta[member as CoalitionMember] ?? 0);
+        return [member, memberDelta ? clamp((value ?? 80) + memberDelta) : value];
+      }),
+    ) as CoalitionState['memberContributions'],
+  }));
+};
+
 export const WARTIME_COMMITMENTS: Record<WartimeGovernmentRoute, Partial<Record<CoalitionMember, number>>> = {
   cabinet: { CNT_FAI: 65, PSOE: 85, PCE: 80, IR: 80, UR: 80, ERC: 75, PNV: 70, POUM: 60, PS: 75 },
   council: { CNT_FAI: 85, PSOE: 75, PCE: 50, IR: 55, UR: 55, ERC: 70, PNV: 65, POUM: 85, PS: 80 },
   external: { CNT_FAI: 80, PSOE: 80, PCE: 80, IR: 80, UR: 80, ERC: 75, PNV: 70, POUM: 65, PS: 75 },
 };
 
+/**
+ * 三条路线的战时内阁表。
+ *
+ * 战时人民阵线的成立**就是**一次部长重新划分，这张表本身就是那次改组的载体：
+ *  - `health` 从劳动部分出。史实上 1936 年 9 月组阁、11 月 4 日改组时才单设
+ *    `Sanidad y Asistencia Social`，两件事是同一场谈判的两半；若内战提前爆发，这次
+ *    改组同样提前，因此这里不设任何固定日期闸门。在
+ *    `events/civil_war/health_ministry.ts` 确认之前 `health` 与 `labor` 同党，
+ *    以免内阁面板出现一个尚未成立的部。
+ *  - `commerce` 从「工业与商业部」拆出，`industry` 只保留工业；史实上 1936 年 11 月
+ *    佩罗掌工业、洛佩斯·桑切斯掌商业。
+ *  - `publicWorks` 为公共工程部（1931 年称 Fomento，1933 年 12 月起为 Obras
+ *    Públicas），铁路与港口的集体化走这个部。
+ */
 const CABINETS: Record<WartimeGovernmentRoute, Required<GameState['ministers']>> = {
-  cabinet: { labor: 'PSOE', health: 'CNT', justice: 'CNT', industry: 'CNT', interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', finance: 'PSOE', estado: 'PSOE' },
-  council: { labor: 'CNT', health: 'CNT', justice: 'POUM', industry: 'CNT', interior: 'PSOE', war: 'PSOE', agriculture: 'CNT', finance: 'PSOE', estado: 'IR' },
-  external: { labor: 'ERC', health: 'ERC', justice: 'IR', industry: 'PSOE', interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', finance: 'PSOE', estado: 'PSOE' },
+  cabinet: {
+    labor: 'PSOE', health: 'PSOE', justice: 'POUM', industry: 'CNT', commerce: 'CNT',
+    interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', education: 'IR', publicWorks: 'UR',
+    finance: 'PSOE', estado: 'PSOE',
+  },
+  council: {
+    labor: 'CNT', health: 'CNT', justice: 'POUM', industry: 'CNT', commerce: 'CNT',
+    interior: 'PSOE', war: 'PSOE', agriculture: 'CNT', education: 'CNT', publicWorks: 'CNT',
+    finance: 'PSOE', estado: 'IR',
+  },
+  external: {
+    labor: 'ERC', health: 'ERC', justice: 'IR', industry: 'PSOE', commerce: 'PSOE',
+    interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', education: 'ERC', publicWorks: 'IR',
+    finance: 'PSOE', estado: 'PSOE',
+  },
 };
 
 export const getWartimeCabinet = (state: GameState, route: WartimeGovernmentRoute): GameState['ministers'] => {
@@ -97,9 +155,12 @@ export const getWartimeCabinet = (state: GameState, route: WartimeGovernmentRout
   const eligible = (party: MinisterParty) => members.includes(party === 'CNT' ? 'CNT_FAI' : party)
     && !(route === 'external' && party === 'CNT');
   const fallbacks: MinisterParty[] = ['PSOE', 'IR', 'UR', 'ERC', 'PCE', 'PNV', 'PS', 'POUM', 'CNT'];
-  return Object.fromEntries(Object.entries(CABINETS[route]).map(([office, party]) => [
+  const cabinet = Object.fromEntries(Object.entries(CABINETS[route]).map(([office, party]) => [
     office, eligible(party) ? party : party === 'POUM' && eligible('UR') ? 'UR' : fallbacks.find(eligible) || 'Other',
-  ])) as GameState['ministers'];
+  ])) as unknown as GameState['ministers'];
+  // 卫生职能在单设该部之前仍属劳动部：两者必须同党，否则内阁面板会显示一个尚未
+  // 成立的部，并且比劳动部更早被 CNT 掌管。
+  return state.wartimeSanidadMinistry ? cabinet : { ...cabinet, health: cabinet.labor };
 };
 
 export const createWartimeCoalition = (state: GameState, route: WartimeGovernmentRoute): CoalitionState => {

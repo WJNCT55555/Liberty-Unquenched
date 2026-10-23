@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
+import { CABINET, CABINET_FIELDS } from '../game/rules/cabinet';
 import { GameState, Party } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
 import { getPartySupport } from '../game/parties';
@@ -32,6 +33,7 @@ const PARTY_IDEOLOGIES: Record<Party | 'CNT_FAI', { en: string; zh: string }> = 
   PCE: { en: 'Communism (Marxism-Leninism)', zh: '共产主义 (马列主义)' },
   PS: { en: 'Revolutionary Syndicalism', zh: '工团主义参政派' },
   FE: { en: 'Fascism / National Syndicalism', zh: '法西斯主义/国家工团主义' },
+  FET: { en: 'Unified Falangist-Traditionalist Movement', zh: '统一长枪党—传统主义运动' },
   POUM: { en: 'Anti-Stalinist Marxism', zh: '反斯大林主义马克思主义' },
   AP: { en: 'Catholic Conservatism / Right-wing Autonomism', zh: '天主教保守主义/右翼自治联盟' },
   CT: { en: 'Carlist Traditionalism', zh: '卡洛斯传统主义 / 保王派' },
@@ -183,17 +185,10 @@ const PartyInfoPopover: React.FC<PartyInfoPopoverProps> = ({
   );
 };
 
-const MINISTRIES_DEF = [
-  { id: 'labor', name: { en: 'Ministry of Labor', zh: '劳工部' } },
-  { id: 'health', name: { en: 'Ministry of Health & Social Welfare', zh: '卫生与社会福利部' } },
-  { id: 'justice', name: { en: 'Ministry of Justice', zh: '司法部' } },
-  { id: 'industry', name: { en: 'Ministry of Industry & Commerce', zh: '工业与商业部' } },
-  { id: 'interior', name: { en: 'Ministry of Interior', zh: '内政部' } },
-  { id: 'war', name: { en: 'Ministry of War', zh: '战争部' } },
-  { id: 'agriculture', name: { en: 'Ministry of Agriculture', zh: '农业部' } },
-  { id: 'finance', name: { en: 'Ministry of Finance', zh: '财政部' } },
-  { id: 'estado', name: { en: 'Ministry of State (Foreign Affairs)', zh: '外交与国务部' } },
-] as const;
+const MINISTRIES_DEF = CABINET_FIELDS.map(field => ({
+  id: field,
+  name: CABINET[field].name,
+}));
 
 interface CabinetDeptCardProps {
   dept: typeof MINISTRIES_DEF[number];
@@ -452,7 +447,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] md:h-[85vh] flex flex-col shadow-2xl relative">
+      <div className="bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
         
         {/* Header */}
         <div className="border-b-2 border-ink border-opacity-30 p-4 flex justify-between items-center bg-ink/5">

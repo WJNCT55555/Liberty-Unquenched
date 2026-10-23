@@ -30,6 +30,10 @@ const PARTY_DESCRIPTIONS: Record<Party | 'CNT_FAI', { en: string; zh: string }> 
     en: 'A fascist and national-syndicalist movement hostile to liberal republican pluralism.',
     zh: '反对自由共和多元主义的法西斯与国家工团主义运动。'
   },
+  FET: {
+    en: 'Franco’s unified Nationalist movement formed from the Falange and the Traditionalist Communion during the civil war.',
+    zh: '内战期间在佛朗哥领导下由长枪党与传统主义共同体组成的国民军统一政治运动。'
+  },
   POUM: {
     en: 'An anti-Stalinist Marxist party combining revolutionary socialism with opposition to communist centralism.',
     zh: '结合革命社会主义与反对共产主义集权路线的反斯大林主义马克思主义政党。'

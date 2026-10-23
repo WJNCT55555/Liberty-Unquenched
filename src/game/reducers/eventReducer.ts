@@ -31,10 +31,7 @@ const hydrateAdvisors = (advisors: (Advisor | null)[]) => advisors.map(advisor =
   if (!original) return advisor;
   return {
     ...advisor,
-    actions: advisor.actions.map(action => {
-      const originalAction = original.actions.find(candidate => candidate.id === action.id);
-      return originalAction ? { ...action, condition: originalAction.condition, effect: originalAction.effect } : action;
-    }),
+    actions: original.actions,
   };
 });
 
@@ -131,6 +128,7 @@ export const reduceEvent: DomainReducer = (state, action) => {
     }
     case 'ADD_ADVISOR': {
       const { advisor, slotIndex } = action.payload;
+      if (advisor.id === 'Buenaventura Durruti' && !state.durrutiAlive) return state;
       const activeAdvisors = [...state.activeAdvisors];
       const oldAdvisor = activeAdvisors[slotIndex];
       activeAdvisors[slotIndex] = advisor;

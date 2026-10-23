@@ -1,6 +1,8 @@
-﻿import { Advisor, GameState } from '../types';
-import { adjustFactionInfluence } from '../utils';
-import { advanceEconomyPush } from '../rules/economyReforms';
+import { Advisor, GameState } from '../types';
+import { adjustClassSupport, adjustFactionInfluence } from '../utils';
+import { applyUnionShareDelta } from '../unions';
+import { isOrganizationEstablished } from '../organizations';
+import { advanceEconomyPush, getEconomyCounter } from '../rules/economyReforms';
 import { applyControlInfluence, applyEconomicOption } from '../rules/controlShares';
 import { economyCooperativePath } from '../events/economy/cooperative_path';
 
@@ -9,6 +11,9 @@ import { economyCooperativePath } from '../events/economy/cooperative_path';
  * (docs/经济改造方案.md §9.3). Mirrors `ECONOMY_PUSH_LIMITS.cooperativePushes`.
  */
 export const COOPERATIVE_ROUTE_PUSH_LIMIT = 2;
+
+/** Coal nationalization runs in two steps, mirroring `ECONOMY_REFORM_CAPS.coal_nationalization`. */
+const COAL_NATIONALIZATION_CAP = 2;
 
 /** The cooperative journal is already open (the advisor action then has nothing left to do). */
 const isCooperativeRouteOpen = (state: Pick<GameState, 'journal'>): boolean =>
@@ -93,6 +98,42 @@ export const joanPeiro: Advisor = {
       },
       description: 'Peiró has spent the year in the villages, and the balance sheets are beginning to mean more than the pamphlets. If the confederation commits to this programme, the countryside gets an institution it can defend.',
       descriptionZh: '佩罗在村子里待了整整一年，而资产负债表开始比传单更有说服力。如果联合会承诺这条路，乡村就得到了一所它愿意保卫的机构。',
+    },
+    {
+      // Mirrors the Industry and Commerce card's "Take over the coal mines" option,
+      // minus that card's own session cooldown: the advisor keeps its own timer.
+      id: 'peiro_coal_nationalization',
+      title: 'Coal Nationalization',
+      titleZh: '煤炭国有化',
+      subtitle: 'Asturias and Río Tinto pass to the confederation\'s pit committees. Requires 2 resources.',
+      subtitleZh: '阿斯图里亚斯与里奥廷托交给联合会的矿工委员会。需要 2 资源。',
+      unavailableSubtitle: (state) => (getEconomyCounter(state, 'coal_nationalization') >= COAL_NATIONALIZATION_CAP
+        ? 'The mines are already under workers\' control.'
+        : 'Requires the CNT to be established and 2 resources.'),
+      unavailableSubtitleZh: (state) => (getEconomyCounter(state, 'coal_nationalization') >= COAL_NATIONALIZATION_CAP
+        ? '煤矿已在工人控制之下。'
+        : '需要 CNT 已成立，且拥有 2 资源。'),
+      condition: (state) => state.advisorActionTimer <= 0
+        && getEconomyCounter(state, 'coal_nationalization') < COAL_NATIONALIZATION_CAP
+        && state.resources >= 2
+        && isOrganizationEstablished(state, 'CNT'),
+      effect: (state: GameState) => {
+        // The second round hands the pits over for good, which is what pays the CNT
+        // share bonus — the same threshold the card checks.
+        const completed = getEconomyCounter(state, 'coal_nationalization') + 1 >= COAL_NATIONALIZATION_CAP;
+
+        return {
+          advisorActionTimer: 6,
+          resources: state.resources - 2,
+          // The pit committees take the mines for themselves: this produces *union*
+          // ownership rather than state ownership.
+          ...applyEconomicOption(state, 'coal_nationalization', { industry: { bigCapital: -5, union: 5 } }),
+          ...(completed ? applyUnionShareDelta(state, { CNT: 3, other: -3 }) : {}),
+          classes: adjustClassSupport(state.classes, 'Braceros', 'CNT_FAI', 5)
+        };
+      },
+      description: 'The pit committees of Asturias and Río Tinto answer to the confederation now. The owners were paid in promises and the miners in ownership.',
+      descriptionZh: '阿斯图里亚斯与里奥廷托的矿工委员会如今听命于联合会。矿主拿到的是承诺，矿工拿到的是所有权。',
     }
   ]
 };

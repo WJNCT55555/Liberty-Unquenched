@@ -54,25 +54,6 @@ export const buenaventuraDurruti: Advisor = {
       }),
       description: 'We must ensure our militias are an effective fighting force, even if it means adopting traditional military discipline.',
       descriptionZh: '我们必须确保我们的民兵是一支有效的战斗力量，即使这意味着采用传统的军事纪律。',
-    },
-    {
-      id: 'direct_action',
-      title: 'Direct Action',
-      titleZh: '直接行动',
-      subtitle: 'Launch a direct strike against fascist elements.',
-      subtitleZh: '对法西斯分子发动直接打击。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          revolutionaryFervor: Math.min(100, state.stats.revolutionaryFervor + 10),
-        }
-      }),
-      description: 'We cannot wait for the government to act. We must take the fight directly to the enemy.',
-      descriptionZh: '我们不能等待政府采取行动。我们必须直接向敌人发起战斗。',
     }
   ]
 };

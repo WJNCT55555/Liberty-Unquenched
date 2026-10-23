@@ -29,13 +29,13 @@ const GameContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-paper text-ink font-serif overflow-hidden">
+    <div className="game-shell flex flex-col h-screen w-full bg-paper bg-halftone text-ink font-serif overflow-hidden">
       <Toaster position="top-center" richColors />
       <TopBar />
       <SandboxMenu />
       <div className="flex flex-1 overflow-hidden">
         <SidePanel />
-        <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="game-main flex-1 flex flex-col relative overflow-hidden">
           {currentView === 'map' ? (
             <MapView />
           ) : (

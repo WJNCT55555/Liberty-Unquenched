@@ -1,7 +1,7 @@
-﻿import type { Card, GameEvent, GameState } from '../types';
+import type { Card, GameEvent, GameState } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { applyUnionShareDelta } from '../unions';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 import { isOrganizationEstablished } from '../organizations';
 import { getEconomyCounter } from '../rules/economyReforms';
 import { applyEconomicOption } from '../rules/controlShares';
@@ -73,7 +73,7 @@ const industryPolicyEvent = (state: GameState): GameEvent => ({
             ? {
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  union_status: clampLawLevel('union_status', Math.max(s.domesticPolicy.union_status, 3))
+                  ...changeLaws(s, { union_status: { atLeast: 3 } })
                 },
                 ...applyUnionShareDelta(s, { CNT: 2, other: -2 })
               }

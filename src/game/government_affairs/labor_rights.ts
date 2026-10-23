@@ -1,7 +1,14 @@
 import { Card, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, adjustClassSupport, getDissentMultiplier } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { ensureLawAtLeast, raiseLaw } from '../rules/lawChange';
 
+/**
+ * 劳工权利（劳动部）。
+ *
+ * 三条工时路线是**逐级递进**的：每个选项的 `condition` 都要求当前等级正好是目标的前一级，
+ * 因此不可能跳级；第四条（工作安全）是相对升一级。法律写入统一走 `rules/lawChange.ts`，
+ * 不再手写 `clampLawLevel`。
+ */
 export const laborRights: Card = {
   id: 'labor_rights',
   title: 'Labor Rights',
@@ -51,7 +58,7 @@ export const laborRights: Card = {
                 factions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  max_hours_law: clampLawLevel('max_hours_law', 2)
+                  max_hours_law: ensureLawAtLeast(s, 'max_hours_law', 2)
                 },
                 stats: {
                   ...s.stats,
@@ -87,7 +94,7 @@ export const laborRights: Card = {
                 factions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  max_hours_law: clampLawLevel('max_hours_law', 3)
+                  max_hours_law: ensureLawAtLeast(s, 'max_hours_law', 3)
                 },
                 stats: {
                   ...s.stats,
@@ -122,7 +129,7 @@ export const laborRights: Card = {
                 factions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  max_hours_law: clampLawLevel('max_hours_law', 4)
+                  max_hours_law: ensureLawAtLeast(s, 'max_hours_law', 4)
                 },
                 stats: {
                   ...s.stats,
@@ -156,7 +163,7 @@ export const laborRights: Card = {
                 factions,
                 domesticPolicy: {
                   ...s.domesticPolicy,
-                  workplace_safety: clampLawLevel('workplace_safety', s.domesticPolicy.workplace_safety + 1)
+                  workplace_safety: raiseLaw(s, 'workplace_safety')
                 },
                 stats: {
                   ...s.stats,

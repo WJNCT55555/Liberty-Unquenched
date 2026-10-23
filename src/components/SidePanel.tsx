@@ -36,6 +36,14 @@ import {
   selectMilitiaOrganizationViewModels,
   selectSidePanelState,
 } from '../game/selectors';
+import {
+  CABINET,
+  CABINET_FIELDS,
+  MINISTER_OFFICE_EFFECTS,
+  getDepartmentName,
+  getMinisterParty,
+  type CabinetField,
+} from '../game/rules/cabinet';
 
 type PartyDisplayState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'falange_jons' | 'organizations'>;
 
@@ -211,6 +219,7 @@ export const SidePanel = () => {
     RE: { en: 'Monarchist party, seeking to restore the King.', zh: '君主主义政党，寻求恢复国王。' },
     CT: { en: 'Traditionalist and Carlist party, deeply conservative.', zh: '传统主义与卡洛斯派政党，极其保守。' },
     FE: { en: 'Party using syndicalism as a means but with opposite goals.', zh: '同样以工团作为手段的政党但目的相反。' },
+    FET: { en: 'Francoist unified movement of Falangists and Carlists.', zh: '佛朗哥统合长枪党与卡洛斯派的政治运动。' },
     Other: { en: 'Small parties and undecided voters.', zh: '小党派与未定派系。' },
     PRRevS: { en: 'Our revolutionary syndicalist party representing the CNT in the Cortes.', zh: '我们在议会中代表 CNT 的革命共和工团党。' }
   };
@@ -726,15 +735,21 @@ export const SidePanel = () => {
       {state.cortes && (
         <AccordionSection title={isZh ? '内阁部长' : 'Cabinet Ministers'} defaultOpen={true}>
           <div className="flex flex-col gap-2 text-xs font-mono">
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="labor" nameEn="Labor" nameZh="劳工部" party={state.ministers.labor} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="health" nameEn="Health" nameZh="卫生部" party={state.ministers.health} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="justice" nameEn="Justice" nameZh="司法部" party={state.ministers.justice} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="industry" nameEn="Industry" nameZh="工业部" party={state.ministers.industry} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="interior" nameEn="Interior" nameZh="内政部" party={state.ministers.interior} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="finance" nameEn="Finance" nameZh="财政部" party={state.ministers.finance || 'AP'} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="agriculture" nameEn="Agriculture" nameZh="农业部" party={state.ministers.agriculture || 'AP'} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="war" nameEn="War" nameZh="战争部" party={state.ministers.war} />
-            <MinisterRow partyState={partyDisplayState} isZh={isZh} deptKey="estado" nameEn="State (Foreign)" nameZh="国务部" party={state.ministers.estado || 'AP'} />
+            {CABINET_FIELDS.map(field => {
+              const label = getDepartmentName(field, state.year);
+              return (
+                <MinisterRow
+                  key={field}
+                  partyState={partyDisplayState}
+                  isZh={isZh}
+                  deptKey={field}
+                  nameEn={label.en}
+                  nameZh={label.zh}
+                  party={getMinisterParty(state, field)}
+                  isMinister={state.ministers[field] === 'CNT'}
+                />
+              );
+            })}
           </div>
         </AccordionSection>
       )}
@@ -1567,76 +1582,33 @@ export const PARTY_INFLUENCE_INFO: Record<string, {
   }
 };
 
+/**
+ * 部门说明包。
+ *
+ * 这里曾经是九项名单的第二份手写副本（与 `SidePanel` 部长行、`DomesticPoliticsModal`、
+ * 入阁菜单、沙盒菜单各不一致）。现在它只是 `rules/cabinet.ts` 权威表的只读视图，
+ * 名称与说明都来自同一处，新增部委不必再改五个文件。
+ */
 export const DEPT_INFO_PACK: Record<string, {
   name: { en: string; zh: string };
   focus: { en: string; zh: string };
-}> = {
-  labor: {
-    name: { en: "Ministry of Labor", zh: "劳工部" },
-    focus: { 
-      en: "Maintains industrial peace and arbitrates strikes. A CNT Labor Minister can pass humane 40-hour workweeks and safety standards, directly building union legitimacy.",
-      zh: "负责维护工业生产稳定、裁决大范围停工与工人大罢工。CNT部长在位时，可发布历史性的「四十小时工作周」与工业安全章程，极大抬升工会统摄力。"
-    }
-  },
-  health: {
-    name: { en: "Ministry of Health", zh: "卫生与社会工作部" },
-    focus: { 
-      en: "Manages healthcare, welfare centers, and regional clinics. Crucial to support cooperative supply networks and socialized local welfare structures.",
-      zh: "掌管医院体系、育幼院、社会福利站和互助抗疫网。是联合会推广自主化、去集权化的公共卫生活动与社会福利的有力平台。"
-    }
-  },
-  justice: {
-    name: { en: "Ministry of Justice", zh: "司法部" },
-    focus: { 
-      en: "Oversees criminal courts, legal code amendments, and general amnesty. Critical to legally shield collective acquisitions and release political prisoners.",
-      zh: "执掌司法裁决、法案宪法修订以及发布国家特赦令。是解除地主司法纠缠、在法律上确认工人强占土地房屋有效、并赦免革命战士的防护盾。"
-    }
-  },
-  industry: {
-    name: { en: "Ministry of Industry", zh: "工业部" },
-    focus: { 
-      en: "Shapes industrial planning, trade regulations, and factory collectivization codes. Directs raw material allocations for weapons production and civilian infrastructure.",
-      zh: "管辖工矿采掘、原材料配给、关税调节以及集体化工厂监督。决定战时军事供应链和民用产品供需的大后方生产力布局。"
-    }
-  },
-  interior: {
-    name: { en: "Ministry of the Interior", zh: "内政部 (治安与政法)" },
-    focus: { 
-      en: "Commands the municipal security forces, assault guards, and public order. The primary shield to suppress coup attempts, dismantle spy cells, and patrol urban stability.",
-      zh: "调遣国民警警卫队、突击警卫队并操持全境公共秩序。是刺探右翼军官暗谋、实施定点逮捕、压制反革命暴动及战时清特务的关键安全堡垒。"
-    }
-  },
-  agriculture: {
-    name: { en: "Ministry of Agriculture", zh: "农业部" },
-    focus: { 
-      en: "Overlooks land reforms, estate expropriations, and grain distribution. A CNT Agriculture Minister enables collective farming card selections to mobilize rural laborers.",
-      zh: "农牧业事务及土地改革，决定西班牙境内数百万饥饿的无地日雇农对政权的态度。CNT部长在位时可执行大农场征收。"
-    }
-  },
-  finance: {
-    name: { en: "Ministry of Finance", zh: "财政部" },
-    focus: { 
-      en: "Oversees public budget, tax rates, tariff levels, and national currency/gold reserves. Excellent for implementing libertarian communist wealth redistribution policies.",
-      zh: "主管国家预算、所得税税率、海陆关税与国家金库/外汇储备。是在财政层面上贯彻自由共产主义、重塑社会分配机制、实现财富再分配的最强工具。"
-    }
-  },
-  war: {
-    name: { en: "Ministry of War", zh: "战争部 (国防)" },
-    focus: { 
-      en: "Governs troop enlistments, heavy weapons factories, and regular army command. Critical for central military policy cards to reform defensive chains against reactionary forces.",
-      zh: "统御国防陆海军编制、战训以及国防预算，是把持合法重武装力量的最终底牌，可极大增强抵抗叛乱叛军的战备。"
-    }
-  }
-};
+}> = Object.fromEntries(
+  CABINET_FIELDS.map(field => [
+    field,
+    { name: CABINET[field].name, focus: CABINET[field].focus },
+  ]),
+);
 
 const MinisterRow: React.FC<{
   partyState: PartyDisplayState;
   isZh: boolean;
-  deptKey: string;
+  deptKey: CabinetField;
   nameEn: string;
   nameZh: string;
   party: string;
-}> = ({ partyState, isZh, deptKey, nameEn, nameZh, party }) => {
+  /** 该部当前由 CNT 掌管：卡片权限由此开放，行内以红色标注。 */
+  isMinister: boolean;
+}> = ({ partyState, isZh, deptKey, nameEn, nameZh, party, isMinister }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
   const cleanParty = party || 'Other';
@@ -1645,8 +1617,10 @@ const MinisterRow: React.FC<{
     ? getPartyName(partyState, 'CNT_FAI', isZh)
     : getPartyName(partyState, party as Party, isZh);
   const deptInfo = DEPT_INFO_PACK[deptKey] || { name: { en: nameEn, zh: nameZh }, focus: { en: '', zh: '' } };
+  const officeEffect = MINISTER_OFFICE_EFFECTS[deptKey];
 
-  const isUpward = ['interior', 'agriculture', 'war', 'finance'].includes(deptKey);
+  // The last three rows open their tooltip upward so it stays inside the panel.
+  const isUpward = ['education', 'finance', 'estado'].includes(deptKey);
 
   return (
     <div 
@@ -1655,7 +1629,7 @@ const MinisterRow: React.FC<{
       onMouseLeave={() => setIsHovered(false)}
     >
       <span>{isZh ? nameZh : nameEn}</span>
-      <span className={party === 'CNT' ? 'text-cnt-red font-bold' : ''}>{partyLabel}</span>
+      <span className={isMinister ? 'text-cnt-red font-bold' : ''}>{partyLabel}</span>
 
       {/* Tooltip on Hover positioned to stay within the SidePanel bounds and prevent horizontal clipping */}
       <AnimatePresence>
@@ -1678,6 +1652,19 @@ const MinisterRow: React.FC<{
               <p className="italic text-ink-light mb-2 text-[10px] leading-tight">
                 {isZh ? deptInfo.focus.zh : deptInfo.focus.en}
               </p>
+
+              {officeEffect && (
+                <>
+                  <div className="font-bold border-b border-ink/20 pb-0.5 mb-1 text-ink uppercase tracking-wide text-[10px]">
+                    {isZh ? '掌部权限' : 'What the office unlocks'}
+                  </div>
+                  <p className={`mb-2 text-[10px] leading-tight ${
+                    isMinister ? 'text-cnt-red font-bold' : 'text-ink-light'
+                  }`}>
+                    {isZh ? officeEffect.text.zh : officeEffect.text.en}
+                  </p>
+                </>
+              )}
               
               <div className="font-bold border-b border-ink/20 pb-0.5 mb-1 text-ink uppercase tracking-wide text-[10px]">
                 {isZh ? '部长政党背景的影响' : 'Minister Party Influence'}

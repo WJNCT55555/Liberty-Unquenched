@@ -13,6 +13,7 @@ import {
   WARTIME_EVENT_ID,
 } from '../rules/wartimeCoalition';
 import { MAY_DAYS_EVENT_IDS } from '../rules/mayDays';
+import { NATIONALIST_CHAIN_IDS } from '../rules/nationalistIntegration';
 import { isCoalitionDissolutionEventId } from '../events/coalition_dissolution';
 
 /**
@@ -67,7 +68,7 @@ export const applyPostReducerPipeline = (
       }
     }
     if (!isSpanishCivilWarOngoing(newState)) {
-      const wartimeOnlyIds = [WARTIME_EVENT_ID, WARTIME_CRISIS_ID, ...MAY_DAYS_EVENT_IDS];
+      const wartimeOnlyIds: string[] = [WARTIME_EVENT_ID, WARTIME_CRISIS_ID, ...MAY_DAYS_EVENT_IDS, ...NATIONALIST_CHAIN_IDS];
       newState.pendingEvents = newState.pendingEvents.filter(event => !wartimeOnlyIds.includes(event.id));
       if (newState.currentEvent && wartimeOnlyIds.includes(newState.currentEvent.id)) newState.currentEvent = null;
     }
@@ -233,5 +234,11 @@ export const applyPostReducerPipeline = (
   }
 
   const stateWithEndings = checkEndings(newState);
+  if (stateWithEndings.isGameOver) {
+    stateWithEndings.pendingEvents = stateWithEndings.pendingEvents.filter(event =>
+      !NATIONALIST_CHAIN_IDS.some(id => id === event.id));
+    if (stateWithEndings.currentEvent && NATIONALIST_CHAIN_IDS.some(id => id === stateWithEndings.currentEvent?.id))
+      stateWithEndings.currentEvent = null;
+  }
   return checkAchievements(stateWithEndings);
 };

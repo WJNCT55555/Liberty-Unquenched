@@ -12,6 +12,31 @@ export const ramonFranco: Advisor = {
   image: 'img/Advisors/Ramon_Franco.png',
   actions: [
     {
+      id: 'ramon_franco_recruit_queipo',
+      title: 'Win Over Queipo de Llano',
+      titleZh: '拉拢利亚诺将军',
+      subtitle: 'Persuade Queipo de Llano to leave the Nationalists and return to the Republic.',
+      subtitleZh: '劝说已投向国民军的利亚诺重返共和国。',
+      unavailableSubtitle: (state) => state.queipoStatus !== 'nationalist'
+        ? 'Queipo de Llano has not joined the Nationalists.'
+        : `${state.advisorActionTimer} months before next advisor action.`,
+      unavailableSubtitleZh: (state) => state.queipoStatus !== 'nationalist'
+        ? '利亚诺将军尚未加入国民军。'
+        : `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
+      condition: (state) => state.queipoStatus === 'nationalist' && state.advisorActionTimer <= 0,
+      effect: (state) => ({
+        queipoStatus: 'republic',
+        queipoRamonRecruited: true,
+        advisorActionTimer: 6,
+        stats: {
+          ...state.stats,
+          armyLoyalty: Math.min(100, state.stats.armyLoyalty + 5),
+        },
+      }),
+      description: 'Ramón Franco uses his personal ties to bring Queipo de Llano back to the Republic. Army loyalty rises; if the war has not begun, Queipo will also keep Seville loyal during the opening setup.',
+      descriptionZh: '拉蒙·佛朗哥凭借私交使利亚诺重返共和国，军队忠诚度提高；若内战尚未爆发，塞维利亚的开战归属也将随之改变。',
+    },
+    {
       id: 'ramon_franco_federalist_agitation',
       title: 'Federalist Agitation',
       titleZh: '联邦主义宣传',

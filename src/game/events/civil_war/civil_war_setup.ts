@@ -24,6 +24,9 @@ const civilWarSetupLeafMeta = {
   flow: 'inline.leaf' as const,
 };
 
+const queipoSecuredForRepublic = (state: GameState): boolean =>
+  state.queipoRamonRecruited === true && state.queipoStatus === 'republic';
+
 // Helper to project armies based on choice log
 export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, choices: Record<string, string>) {
   // Peace keeps no troops on the map, so the war instantiates the standing army
@@ -73,7 +76,9 @@ export function setupArmiesForCivilWar(state: GameState, isOptionA: boolean, cho
     
     // 2. Sevilla Division (rep_4)
     if (army.id === 'rep_4') {
-      const sevillaNationalist = isOptionA ? true : (choices['step1'] === 'A' || choices['step1'] === 'B' || choices['step1'] === 'C');
+      const sevillaNationalist = isOptionA
+        ? !queipoSecuredForRepublic(state)
+        : (choices['step1'] === 'A' || choices['step1'] === 'B' || choices['step1'] === 'C');
       if (sevillaNationalist) {
         return {
           ...army,
@@ -223,7 +228,8 @@ export const civilWarSetup: GameEvent = {
       effect: (state) => {
         const nextProvinces = { ...state.provinces };
         const nationalistProvinces = [
-          'sevilla', 'cadiz', 'cordoba', 'granada', 'zaragoza', 'huesca', 'teruel', 
+          ...(queipoSecuredForRepublic(state) ? [] : ['sevilla', 'cadiz']),
+          'cordoba', 'granada', 'zaragoza', 'huesca', 'teruel',
           'navarra', 'alava', 'oviedo', 'coruna', 'lugo', 'orense', 'pontevedra', 
           'balears', 'avila', 'burgos', 'rioja', 'palencia', 'segovia', 'soria', 
           'valladolid', 'leon', 'salamanca', 'zamora', 'caceres',
@@ -237,6 +243,11 @@ export const civilWarSetup: GameEvent = {
             nextProvinces[id] = { ...nextProvinces[id], owner: MapFaction.NATIONALIST };
           }
         });
+        if (queipoSecuredForRepublic(state)) {
+          for (const id of ['sevilla', 'cadiz']) {
+            if (nextProvinces[id]) nextProvinces[id] = { ...nextProvinces[id], owner: MapFaction.REPUBLICAN };
+          }
+        }
 
         const mobilization = setupArmiesForCivilWar(state, true, {});
         const activated = activateCivilWarOrganizations({ ...state, civilWarStatus: 'ongoing' });
@@ -254,7 +265,10 @@ export const civilWarSetup: GameEvent = {
           armedForces: loyaltySplit.armedForces,
           mapResources: applyMobilizationToMapResources(loyaltySplit.mapResources, mobilization),
           sanjurjoStatus: 'dead',
+          queipoStatus: state.queipoStatus === 'dead' ? 'dead'
+            : queipoSecuredForRepublic(state) ? 'republic' : 'nationalist',
           francoAfricaControl: true,
+          francoStatus: state.francoStatus === 'dead' || state.francoStatus === 'republic' ? state.francoStatus : 'nationalist',
           // Stats updates
           stats: {
             ...state.stats,
@@ -303,12 +317,15 @@ export const civilWarStep1: GameEvent = {
   meta: civilWarSetupNodeMeta,
   title: 'The Trick of Seville',
   titleZh: '塞维利亚的诡计',
-  description: 'Seville, capital of Andalusia. General Queipo de Llano — the conspirator the government overlooked — has slipped into the city under a false name. He has not yet been exposed, and plots to seize the radio station. The workers of Andalusia have no weapons, while the civil governor keeps vouching for the loyalty of the garrison.',
-  descriptionZh: '安达卢西亚首府塞维利亚。凯波·德·利亚诺将军——这位被政府疏忽的阴谋家——用假名潜入城中。他尚未暴露，正密谋夺取广播电台。安达卢西亚的工人没有武器，而省长还在为驻军的忠诚打包票。',
+  description: 'Seville, capital of Andalusia. General Queipo de Llano was linked to the conspiracy and planned to seize the radio station. Ramón Franco may already have persuaded him to return to the Republic. His allegiance will decide whether the plot proceeds; the workers have no weapons, and the civil governor still trusts the garrison.',
+  descriptionZh: '安达卢西亚首府塞维利亚。利亚诺将军曾参与叛乱阴谋，打算夺取广播电台；拉蒙·佛朗哥也可能已说服他重返共和国。他此刻的归属将决定阴谋能否继续。工人尚无武器，而省长仍信任驻军。',
   options: [
     {
       text: 'Respect the local government\'s judgment (historical option)',
       textZh: '尊重地方政府的判断（历史选项）',
+      condition: (state) => !queipoSecuredForRepublic(state),
+      unavailableSubtitle: () => 'Queipo de Llano has already been won back to the Republic.',
+      unavailableSubtitleZh: () => '利亚诺已被拉拢回共和国。',
       effect: (state) => {
         const nextProvinces = { ...state.provinces };
         if (nextProvinces['sevilla']) nextProvinces['sevilla'] = { ...nextProvinces['sevilla'], owner: MapFaction.NATIONALIST };
@@ -318,6 +335,8 @@ export const civilWarStep1: GameEvent = {
         return {
           ...state,
           provinces: nextProvinces,
+          queipoStatus: 'nationalist',
+          queipoRamonRecruited: false,
           civilWarChoices: choices,
           currentEvent: civilWarStep2Result
         };
@@ -327,10 +346,14 @@ export const civilWarStep1: GameEvent = {
       text: 'Join forces with the UGT and force a general strike!',
       textZh: '联合UGT，强行发起总罢工！',
       condition: (state) => {
-        return (state.partyRelations?.PSOE ?? 0) >= 80;
+        return !queipoSecuredForRepublic(state) && (state.partyRelations?.PSOE ?? 0) >= 80;
       },
-      unavailableSubtitle: (state) => 'Requires PSOE relations of at least 80.',
-      unavailableSubtitleZh: (state) => '需要与PSOE的关系不低于80。',
+      unavailableSubtitle: (state) => queipoSecuredForRepublic(state)
+        ? 'Queipo de Llano has already been won back to the Republic.'
+        : 'Requires PSOE relations of at least 80.',
+      unavailableSubtitleZh: (state) => queipoSecuredForRepublic(state)
+        ? '利亚诺已被拉拢回共和国。'
+        : '需要与PSOE的关系不低于80。',
       effect: (state) => {
         const nextProvinces = { ...state.provinces };
         if (nextProvinces['sevilla']) nextProvinces['sevilla'] = { ...nextProvinces['sevilla'], owner: MapFaction.NATIONALIST };
@@ -340,6 +363,8 @@ export const civilWarStep1: GameEvent = {
         return {
           ...state,
           provinces: nextProvinces,
+          queipoStatus: 'nationalist',
+          queipoRamonRecruited: false,
           civilWarChoices: choices,
           currentEvent: civilWarStep2Result
         };
@@ -348,9 +373,13 @@ export const civilWarStep1: GameEvent = {
     {
       text: 'Immediately use our radio to tell the people of the coup',
       textZh: '立刻利用我们的电台告知民众政变发生的消息',
-      condition: (state) => (state.radio || 0) >= 2, // Radio condition representation
-      unavailableSubtitle: (state) => 'Requires at least 2 radio networks.',
-      unavailableSubtitleZh: (state) => '需要至少2座广播电台。',
+      condition: (state) => !queipoSecuredForRepublic(state) && (state.radio || 0) >= 2, // Radio condition representation
+      unavailableSubtitle: (state) => queipoSecuredForRepublic(state)
+        ? 'Queipo de Llano has already been won back to the Republic.'
+        : 'Requires at least 2 radio networks.',
+      unavailableSubtitleZh: (state) => queipoSecuredForRepublic(state)
+        ? '利亚诺已被拉拢回共和国。'
+        : '需要至少2座广播电台。',
       effect: (state) => {
         const nextProvinces = { ...state.provinces };
         if (nextProvinces['granada']) nextProvinces['granada'] = { ...nextProvinces['granada'], owner: MapFaction.NATIONALIST };
@@ -359,6 +388,8 @@ export const civilWarStep1: GameEvent = {
         return {
           ...state,
           provinces: nextProvinces,
+          queipoStatus: 'nationalist',
+          queipoRamonRecruited: false,
           civilWarChoices: choices,
           currentEvent: civilWarStep2Result
         };
@@ -367,13 +398,18 @@ export const civilWarStep1: GameEvent = {
     {
       text: 'Ramón Franco has ensured his old comrade Queipo de Llano stays loyal to the Republic',
       textZh: '拉蒙佛朗哥已经确保老战友利亚诺继续忠于共和',
-      condition: (state) => state.activeAdvisors?.some(a => a?.id === 'Ramón Franco') || false,
-      unavailableSubtitle: (state) => 'Requires Ramón Franco as an active advisor.',
-      unavailableSubtitleZh: (state) => '需要拉蒙·佛朗哥担任顾问。',
+      condition: (state) => state.queipoStatus !== 'dead'
+        && (queipoSecuredForRepublic(state) || Boolean(state.activeAdvisors?.some(a => a?.id === 'Ramón Franco'))),
+      unavailableSubtitle: (state) => state.queipoStatus === 'dead'
+        ? 'Queipo de Llano is dead.' : 'Requires Ramón Franco as an active advisor.',
+      unavailableSubtitleZh: (state) => state.queipoStatus === 'dead'
+        ? '利亚诺将军已死亡。' : '需要拉蒙·佛朗哥担任顾问。',
       effect: (state) => {
         const choices = { ...state.civilWarChoices, step1: 'D' };
         return {
           ...state,
+          queipoStatus: 'republic',
+          queipoRamonRecruited: true,
           civilWarChoices: choices,
           currentEvent: civilWarStep2Result
         };
@@ -1742,6 +1778,8 @@ export const civilWarStep31: GameEvent = {
           armies: mobilization.armies,
           armedForces: loyaltySplit.armedForces,
           mapResources: applyMobilizationToMapResources(loyaltySplit.mapResources, mobilization),
+          francoStatus: state.francoStatus === 'dead' || state.francoStatus === 'republic' ? state.francoStatus
+            : choices.step14 === 'nationalist' ? 'nationalist' : 'alive',
           currentEvent: null,
           phase: 'action',
           actionsLeft: 2

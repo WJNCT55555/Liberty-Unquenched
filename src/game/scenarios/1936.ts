@@ -1,4 +1,4 @@
-﻿/**
+/**
  * July 1936 — the Popular Front governs, Azaña has replaced Alcalá-Zamora as
  * president after the impeachment, and the civil war is already running. The
  * start opens directly into the mobilization chain.
@@ -33,10 +33,17 @@ export const SCENARIO_1936: ScenarioDefinition = {
     labor: 'ERC',
     health: 'ERC',
     justice: 'UR',
+    // 工业与商业部在 1936 年仍是一个部（佩罗在内战内阁中掌的就是它）；战时事件才把
+    // 商业拆出来交给洛佩斯·桑切斯。
     industry: 'Other',
+    commerce: 'Other',
     interior: 'Other',
     war: 'IR',
     agriculture: 'IR',
+    // 人民阵线内阁的公共教育部由左翼共和派掌管（1936 年 7 月为弗朗西斯科·巴内斯）。
+    education: 'IR',
+    // 公共工程部：人民阵线时期由左翼共和派掌管。
+    publicWorks: 'IR',
     finance: 'IR',
     estado: 'IR',
   },
@@ -68,6 +75,8 @@ export const SCENARIO_1936: ScenarioDefinition = {
     militia_legality_law: 1,
     land_reform_progress: 0,
     regional_autonomy_progress: 0,
+    judiciary_reform_progress: 0,
+    health_reform_progress: 0,
     max_hours_law: 0,
     min_wage: 0,
     workplace_safety: 0,

@@ -37,104 +37,107 @@ export const MainArea = () => {
   const [selectedDeckForChoice, setSelectedDeckForChoice] = React.useState<CardType | null>(null);
   const mainAreaRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
-    // A long choice menu must not leave the next event's heading above the viewport.
-    if (state.currentEvent && mainAreaRef.current) mainAreaRef.current.scrollTop = 0;
-  }, [state.currentEvent?.id]);
+    // A new phase or event starts at its first line. The entire pane scrolls
+    // from the top-bar edge, without a second clipping edge below navigation.
+    if (mainAreaRef.current) mainAreaRef.current.scrollTop = 0;
+  }, [state.phase, state.currentEvent?.id]);
 
   return (
-    <div ref={mainAreaRef} className="flex-1 flex flex-col p-8 relative overflow-y-auto bg-halftone">
-      
-      {/* Header for Phase */}
-      <div className="absolute top-8 right-8 text-right">
-        <h2 className="font-display text-5xl uppercase text-ink opacity-20 tracking-widest">
-          {state.phase === 'event' 
-            ? (isZh ? '事件阶段' : 'Event Phase') 
-            : state.phase === 'action'
-              ? (isZh ? '行动阶段' : 'Action Phase')
-              : (isZh ? '战争阶段' : 'War Phase')}
-        </h2>
-        {state.phase === 'action' && (
-          <p className="font-typewriter text-lg font-bold text-cnt-red">
-            {isZh ? `剩余行动点: ${state.actionsLeft}` : `Actions Remaining: ${state.actionsLeft}`}
-          </p>
-        )}
-      </div>
+    <div ref={mainAreaRef} className="game-main-area flex-1 min-h-0 relative overflow-y-auto">
+      <div className="game-main-content relative flex min-h-full flex-col">
 
-      <AnimatePresence mode="wait">
-        {state.currentEvent ? (
-          <EventModal key={state.currentEvent.id} event={state.currentEvent} />
-        ) : state.phase === 'event' && state.pendingEvents.length > 0 ? (
-          <EventBoard key="event-board" />
-        ) : state.phase === 'action' ? (
-          <motion.div 
-            key="action"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1 flex flex-col justify-center items-center gap-8 w-full"
-          >
-            <div className="flex flex-col items-center gap-12 w-full max-w-7xl">
-              {/* Decks (Top Layer) */}
-              <div className="flex flex-row gap-8 justify-center">
-                <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
-                <DeckView type="Government" onSelectOpen={setSelectedDeckForChoice} />
-                {(state.civilWarStatus !== 'not_started' || isOrganizationEstablished(state, 'DC')) && (
-                  <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
-                )}
-              </div>
-              
-              {/* Hand (Middle Layer) */}
-              <div className="w-full flex justify-center">
-                <div className="flex flex-row flex-wrap justify-center gap-6">
-                  {state.hand.map((card) => (
-                    <CardView key={card.id} card={card} />
-                  ))}
-                  {/* Empty slots placeholders */}
-                  {Array.from({ length: (state.difficulty === 'hard' ? 3 : 4) - state.hand.length }).map((_, i) => (
-                    <div key={`empty-${i}`} className="border-2 border-dashed border-ink opacity-20 w-48 aspect-[2/3] flex items-center justify-center">
-                      <span className="font-typewriter text-sm uppercase tracking-widest text-center">
-                        {isZh ? '空手牌槽' : 'Empty Slot'}
-                      </span>
-                    </div>
-                  ))}
+        {/* Header for Phase */}
+        <div className="game-phase-heading shrink-0 text-right" data-inline-event={Boolean(state.currentEvent)}>
+          <h2 className="font-display text-2xl xl:text-3xl uppercase text-ink opacity-20 tracking-widest break-words">
+            {state.phase === 'event'
+              ? (isZh ? '事件阶段' : 'Event Phase')
+              : state.phase === 'action'
+                ? (isZh ? '行动阶段' : 'Action Phase')
+                : (isZh ? '战争阶段' : 'War Phase')}
+          </h2>
+          {state.phase === 'action' && (
+            <p className="font-typewriter text-lg font-bold text-cnt-red">
+              {isZh ? `剩余行动点: ${state.actionsLeft}` : `Actions Remaining: ${state.actionsLeft}`}
+            </p>
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {state.currentEvent ? (
+            <EventModal key={state.currentEvent.id} event={state.currentEvent} />
+          ) : state.phase === 'event' && state.pendingEvents.length > 0 ? (
+            <EventBoard key="event-board" />
+          ) : state.phase === 'action' ? (
+            <motion.div
+              key="action"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="my-auto shrink-0 flex flex-col items-center gap-8 w-full"
+            >
+              <div className="flex flex-col items-center gap-12 w-full max-w-7xl">
+                {/* Decks (Top Layer) */}
+                <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
+                  <DeckView type="Action" onSelectOpen={setSelectedDeckForChoice} />
+                  <DeckView type="Government" onSelectOpen={setSelectedDeckForChoice} />
+                  {(state.civilWarStatus !== 'not_started' || isOrganizationEstablished(state, 'DC')) && (
+                    <DeckView type="Military" onSelectOpen={setSelectedDeckForChoice} />
+                  )}
+                </div>
+
+                {/* Hand (Middle Layer) */}
+                <div className="w-full flex justify-center">
+                  <div className="flex flex-row flex-wrap justify-center gap-6">
+                    {state.hand.map((card) => (
+                      <CardView key={card.id} card={card} />
+                    ))}
+                    {/* Empty slots placeholders */}
+                    {Array.from({ length: (state.difficulty === 'hard' ? 3 : 4) - state.hand.length }).map((_, i) => (
+                      <div key={`empty-${i}`} className="border-2 border-dashed border-ink opacity-20 w-48 aspect-[2/3] flex items-center justify-center">
+                        <span className="font-typewriter text-sm uppercase tracking-widest text-center">
+                          {isZh ? '空手牌槽' : 'Empty Slot'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {state.actionsLeft === 0 && (
-              <button
-                onClick={() => dispatch({ type: 'NEXT_PHASE' })}
-                className="mt-8 px-8 py-4 bg-cnt-red text-paper font-display text-2xl uppercase tracking-widest border-print hover:bg-ink transition-colors"
-              >
-                {isZh ? '结束回合' : 'End Turn'}
-              </button>
-            )}
-          </motion.div>
-        ) : state.phase === 'war' ? (
-          <motion.div 
-            key="war-phase-prompt"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1 flex flex-col justify-center items-center gap-6 text-center max-w-xl mx-auto"
-          >
-            <h3 className="font-display text-3xl uppercase text-cnt-red tracking-wider">
-              {isZh ? '西班牙内战：战争阶段' : 'Spanish Civil War: War Phase'}
-            </h3>
-            <p className="font-serif text-lg leading-relaxed text-ink/80">
-              {isZh 
-                ? '内战前线已燃起硝烟。在此阶段，你需要打开战略形势图，下达军事指令、调动军队及扩建行省设施。' 
-                : 'The front lines are ablaze. During this phase, you must access the Strategic Map View to issue military commands, relocate armies, and expand provincial infrastructure.'}
-            </p>
-            <button 
-              onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
-              className="px-8 py-3 bg-ink text-paper hover:bg-cnt-red transition-colors font-display text-lg uppercase tracking-wider border-2 border-black font-semibold shadow-[2px_2px_0_0_rgba(30,28,26,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+
+              {state.actionsLeft === 0 && (
+                <button
+                  onClick={() => dispatch({ type: 'NEXT_PHASE' })}
+                  className="mt-8 px-8 py-4 bg-cnt-red text-paper font-display text-2xl uppercase tracking-widest border-print hover:bg-ink transition-colors"
+                >
+                  {isZh ? '结束回合' : 'End Turn'}
+                </button>
+              )}
+            </motion.div>
+          ) : state.phase === 'war' ? (
+            <motion.div
+              key="war-phase-prompt"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="my-auto shrink-0 flex flex-col items-center gap-6 text-center max-w-xl mx-auto"
             >
-              {isZh ? '打开战略形势图' : 'Open Strategic Map'}
-            </button>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+              <h3 className="font-display text-3xl uppercase text-cnt-red tracking-wider">
+                {isZh ? '西班牙内战：战争阶段' : 'Spanish Civil War: War Phase'}
+              </h3>
+              <p className="font-serif text-lg leading-relaxed text-ink/80">
+                {isZh
+                  ? '内战前线已燃起硝烟。在此阶段，你需要打开战略形势图，下达军事指令、调动军队及扩建行省设施。'
+                  : 'The front lines are ablaze. During this phase, you must access the Strategic Map View to issue military commands, relocate armies, and expand provincial infrastructure.'}
+              </p>
+              <button
+                onClick={() => dispatch({ type: 'TOGGLE_MAP_VIEW' })}
+                className="px-8 py-3 bg-ink text-paper hover:bg-cnt-red transition-colors font-display text-lg uppercase tracking-wider border-2 border-black font-semibold shadow-[2px_2px_0_0_rgba(30,28,26,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              >
+                {isZh ? '打开战略形势图' : 'Open Strategic Map'}
+              </button>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
 
       <AnimatePresence>
         {selectedDeckForChoice && (
@@ -161,7 +164,7 @@ const EventModal: React.FC<{ event: GameEvent }> = ({ event }) => {
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
-      className="m-auto bg-paper border-print p-8 max-w-2xl shadow-2xl relative z-10"
+      className="m-auto shrink-0 w-full bg-paper border-print p-8 max-w-2xl shadow-2xl relative z-10"
     >
       <div className="absolute top-0 left-0 w-full h-2 bg-cnt-red"></div>
       <h3 className="font-display text-4xl uppercase mb-4 text-ink leading-none">

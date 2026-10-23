@@ -1,6 +1,6 @@
 import type { GameEvent, GameState } from '../types';
 import { adjustFactionDissents, adjustFactionInfluence, isAtOrAfter } from '../utils';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 
 const lawMeta = {
   category: 'politics' as const,
@@ -53,7 +53,7 @@ export const leyOrdenPublico: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            public_order_law: clampLawLevel('public_order_law', 1),
+            ...changeLaws(state, { public_order_law: { atLeast: 1 } }),
           },
           stats: {
             ...state.stats,
@@ -87,9 +87,11 @@ export const leyOrdenPublico: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            public_order_law: clampLawLevel('public_order_law', 2),
             // The renewed statute keeps the guarantees suspended, as the 1931 act did.
-            political_rights: clampLawLevel('political_rights', state.domesticPolicy.political_rights - 1),
+            ...changeLaws(state, {
+              public_order_law: { atLeast: 2 },
+              political_rights: 'down',
+            }),
           },
           stats: {
             ...state.stats,
@@ -123,7 +125,7 @@ export const leyOrdenPublico: GameEvent = {
           },
           domesticPolicy: {
             ...state.domesticPolicy,
-            public_order_law: clampLawLevel('public_order_law', 1),
+            ...changeLaws(state, { public_order_law: { atLeast: 1 } }),
           },
           stats: {
             ...state.stats,

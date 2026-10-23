@@ -8,17 +8,17 @@ import {
   type ResourceSet,
 } from '../../map/types_map';
 import { PROVINCE_ADJACENCY, PROVINCE_REGIONS } from '../../map/map_constants';
-import { CIVIL_WAR_FACTIONS, getMapFactionName } from '../../map/rules/factions';
+import { CIVIL_WAR_FACTIONS, getMapFactionName, isCivilWarFaction } from '../../map/rules/factions';
 import { isOrganizationActive } from '../organizations';
 import { getArmyPoliticalMember, isSpanishCivilWarOngoing, monthIndex } from './wartimeCoalition';
 import { adjustFactionDissents } from '../utils/factionEffects';
 import { secedeWartimeGovernment } from '../utils/coalition';
 
 export const IBERIAN_CAPITALS = {
-  [MapFaction.NATIONALIST]: 'burgos', [MapFaction.REPUBLICAN]: 'madrid', [MapFaction.IBERIAN_DEFENSE]: 'barcelona',
+  [MapFaction.NATIONALIST]: 'burgos', [MapFaction.REPUBLICAN]: 'madrid', [MapFaction.IBERIAN_DEFENSE]: 'barcelona', [MapFaction.CARLIST]: 'navarra',
 } as const;
 export const IBERIAN_SURRENDER_THRESHOLDS = {
-  [MapFaction.NATIONALIST]: 60, [MapFaction.REPUBLICAN]: 50, [MapFaction.IBERIAN_DEFENSE]: 50,
+  [MapFaction.NATIONALIST]: 60, [MapFaction.REPUBLICAN]: 50, [MapFaction.IBERIAN_DEFENSE]: 50, [MapFaction.CARLIST]: 7,
 } as const;
 /** A scenario rule, not a claim that all UGT members belonged to the PSOE left. */
 export const PSOE_LEFT_SHARE = 0.4;
@@ -72,7 +72,7 @@ export const getIberianTransferProvinces = (state: GameState, allies: IberianAll
   const occupied = new Set(units.filter(army => army.faction === MapFaction.IBERIAN_DEFENSE).map(army => army.provinceId));
   return Object.values(state.provinces ?? {}).filter(province =>
     (province.owner === MapFaction.REPUBLICAN && ['catalonia', 'valencia', 'aragon'].includes(PROVINCE_REGIONS[province.id]?.group))
-    || (CIVIL_WAR_FACTIONS.some(faction => faction === province.owner) && occupied.has(province.id)),
+    || (isCivilWarFaction(province.owner) && occupied.has(province.id)),
   ).map(province => province.id);
 };
 
@@ -118,6 +118,7 @@ export const formIberianDefense = (state: GameState, allies: IberianAllies): Gam
   let next: GameState = {
     ...state, provinces, armies,
     iberianDefense: { formedAt: { year: state.year, month: state.month }, allies: { ...allies }, leftSocialistReserve,
+      carlistEntered: Object.values(state.provinces).some(province => province.owner === MapFaction.CARLIST),
       eliminated: [], eliminations: [], surrenderThresholds: { ...IBERIAN_SURRENDER_THRESHOLDS }, initialProvinces, contributions: projected.contributions },
     mapResources: { ...state.mapResources!, [MapFaction.REPUBLICAN]: remainder, [MapFaction.IBERIAN_DEFENSE]: committee },
     ...(ugtPool ? { armedForces: { ...state.armedForces, entityPools: { ...state.armedForces.entityPools,
@@ -143,13 +144,15 @@ export const settleIberianCapitulations = <State extends MapRuntimeState>(state:
   while (changed) {
     changed = false;
     // A defeated player must not be rescued by an enemy's simultaneous transfer.
-    for (const faction of [MapFaction.IBERIAN_DEFENSE, MapFaction.NATIONALIST, MapFaction.REPUBLICAN] as const) {
+    for (const faction of [MapFaction.IBERIAN_DEFENSE, MapFaction.NATIONALIST, MapFaction.REPUBLICAN, MapFaction.CARLIST] as const) {
       const campaign = next.iberianDefense;
       if (!campaign) return next;
       if (campaign.eliminated.includes(faction)) continue;
+      if (faction === MapFaction.CARLIST && !campaign.carlistEntered
+        && !Object.values(next.provinces).some(province => province.owner === MapFaction.CARLIST)) continue;
       const occupier = next.provinces[IBERIAN_CAPITALS[faction]]?.owner;
       const threshold = campaign.surrenderThresholds[faction] ?? IBERIAN_SURRENDER_THRESHOLDS[faction];
-      if (!occupier || occupier === faction || !CIVIL_WAR_FACTIONS.some(item => item === occupier)
+      if (!occupier || occupier === faction || !isCivilWarFaction(occupier)
         || campaign.eliminated.includes(occupier) || getFactionStrategicValue(next, faction) >= threshold) continue;
       const eliminated = [...campaign.eliminated, faction];
       next = {
@@ -172,7 +175,11 @@ export const settleIberianCapitulations = <State extends MapRuntimeState>(state:
   }
   const campaign = next.iberianDefense;
   if (!campaign) return next;
-  const survivors = CIVIL_WAR_FACTIONS.filter(faction => !campaign.eliminated.includes(faction));
+  const carlistsEntered = campaign.carlistEntered || next.armies.some(army => army.faction === MapFaction.CARLIST)
+    || Object.values(next.provinces).some(province => province.owner === MapFaction.CARLIST)
+    || campaign.eliminated.includes(MapFaction.CARLIST);
+  const survivors = [...CIVIL_WAR_FACTIONS, MapFaction.CARLIST].filter(faction => !campaign.eliminated.includes(faction)
+    && (faction !== MapFaction.CARLIST || carlistsEntered));
   if (survivors.length === 1) {
     const winner = survivors[0];
     const status = winner === MapFaction.IBERIAN_DEFENSE ? 'won' : 'lost';

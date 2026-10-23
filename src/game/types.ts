@@ -31,7 +31,7 @@ export type OrganizationId =
   | 'PSOE' | 'UGT' | 'PSOE_MILITIA' | 'JJSS' | 'FNTT'
   | 'PCE' | 'MAOC' | 'FIFTH_REGIMENT' | 'UJCE' | 'JSU' | 'MUJERES_ANTIFASCISTAS'
   | 'POUM' | 'POUM_MILITIA' | 'JCI'
-  | 'RE'
+  | 'RE' | 'FET' | 'FET_NATIONAL_MILITIA' | 'FET_POLITICAL_BOARD' | 'FET_NATIONAL_COUNCIL'
   | 'CT' | 'REQUETE' | 'REQUETE_MILITIA' | 'PELAYOS' // REQUETE is a legacy save alias.
   | 'FE' | 'FALANGE_MILITIA' | 'JONS' | 'SEU' | 'SECCION_FEMENINA'
   | 'PNV' | 'EUZKO_GUDAROSTEA' | 'EGI'
@@ -57,6 +57,7 @@ export interface OrganizationState {
   established: boolean;
   establishedAt?: { year: number; month: number };
   status?: 'unformed' | 'active' | 'integrated' | 'dissolved';
+  affiliatedOwner?: OrganizationOwner;
 }
 
 export type OrganizationStateMap = Partial<Record<OrganizationId, OrganizationState>>;
@@ -76,6 +77,38 @@ export type UnionShare = Record<UnionShareKey, number>;
 // `Right` is not a party identity and must not be stored as a minister value.
 // PRRevS is the CNT's electoral phase, not a separate ministerial identity.
 export type MinisterParty = Exclude<Party, 'PRRevS'> | 'CNT';
+
+/**
+ * 内阁部委字段。字段名是稳定 key，**显示名随年份变化**（见 `rules/cabinet.ts`）。
+ *
+ * 三个字段的**存在时间**与其余字段不同，不要按「1931 年就都在」来读：
+ *  - `education` 自 1931 年 4 月起即存在（Instrucción Pública y Bellas Artes）；
+ *  - `publicWorks` 在 1931 年叫 Fomento，1933 年 12 月改组为 Obras Públicas；
+ *  - `health`（Sanidad y Asistencia Social）与商业部原本都不是独立的部：卫生迟至
+ *    1936 年 11 月才从劳动部独立，商业则与工业同属「工业与商业部」，由
+ *    `industry_commerce_ministry` 与 `health_ministry` 两个事件拆分。
+ */
+export interface Ministers {
+  labor: MinisterParty;
+  /** 卫生与社会援助部。1936 年 11 月设立，首任部长为 CNT 的蒙特塞尼。 */
+  health: MinisterParty;
+  justice: MinisterParty;
+  /** 工业部。1933 年 12 月之前与商业同属一个部。 */
+  industry: MinisterParty;
+  /** 商业部。与工业同一来源；战时 CNT 的洛佩斯·桑切斯掌管此部。 */
+  commerce: MinisterParty;
+  /** 内政部（Gobernación，史实西文名 Ministerio de la Gobernación）。 */
+  interior: MinisterParty;
+  war: MinisterParty;
+  agriculture: MinisterParty;
+  /** 公共教育部（Instrucción Pública y Bellas Artes）。1931 年 4 月起即存在。 */
+  education: MinisterParty;
+  /** 公共工程部（Obras Públicas，1931 年称 Fomento）。 */
+  publicWorks: MinisterParty;
+  finance?: MinisterParty;
+  estado?: MinisterParty;
+}
+
 export type SocialClass = 'Obreros' | 'Braceros' | 'Labradores' | 'Latifundistas' | 'PequenaBurguesia' | 'Intelectuales' | 'Burguesia' | 'Clero';
 // Targets of the Propaganda by the Deed assassination card.
 export type AssassinationTarget =
@@ -565,6 +598,16 @@ export interface GameState extends MapRuntimeState {
   agricultural_policy_timer: number;
   labor_rights_timer: number;
   labor_affairs_timer: number;
+  /** 公共教育部的政府事务卡冷却（`government_affairs/public_instruction.ts`）。 */
+  education_policy_timer: number;
+  /** 公共工程部的政府事务卡冷却（`government_affairs/public_works.ts`）。 */
+  public_works_timer: number;
+  /** 商业部的政府事务卡冷却（`government_affairs/commerce_policy.ts`）。 */
+  commerce_policy_timer: number;
+  /** 司法改革卡的冷却（`government_affairs/judiciary_reform.ts`）。 */
+  judiciary_timer: number;
+  /** 公共卫生改革卡的冷却（`government_affairs/health_reform.ts`）。 */
+  health_timer: number;
   fiscal_policy_timer: number;
   aragon_front_timer: number;
   militia_reorg_timer: number;
@@ -715,7 +758,29 @@ export interface GameState extends MapRuntimeState {
   earlyElectionInProgress: boolean;
   generalElectionSchedule: GeneralElectionSchedule;
   civilWarSetupCompletedAt?: { year: number; month: number };
+  nationalistIntegration?: {
+    nationalistCapitulatedAt?: { year: number; month: number };
+    carlistCapitulatedAt?: { year: number; month: number };
+    stage: 'provisional' | 'alignment_reported' | 'fet' | 'military_unity' | 'fragmented' | 'carlist_secession';
+    francoAtReport?: boolean;
+    resolvedAt?: { year: number; month: number };
+    splitAt?: { year: number; month: number };
+    statutesAt?: { year: number; month: number };
+    councilAt?: { year: number; month: number };
+    servicesAt?: { year: number; month: number };
+  };
+  lastCompletedAiMonth?: number;
   wartimePowerArrangement?: WartimePowerArrangement;
+  /**
+   * 战时内阁是否已把卫生职能从劳动部分出、单设「卫生与社会援助部」。
+   *
+   * 史实上这一步与战时人民阵线的组建是同一场谈判的两半：1936 年 9 月组成拉尔戈·卡瓦列罗
+   * 内阁，11 月 4 日改组时卫生才独立出来并交给蒙特塞尼。因此它不写进剧本，也不按固定
+   * 日期触发——若内战提前爆发，那次改组同样提前——而由
+   * `events/civil_war/health_ministry.ts` 在战时协定落定后的下一个月写入。
+   * 在此之前 `wartimeCoalition.ts` 让 `health` 与 `labor` 同党。
+   */
+  wartimeSanidadMinistry?: boolean;
   mayDays?: MayDaysState;
   /** Republican political eligibility only; rebel organizations retain their assets. */
   republicanPartyStatus?: Partial<Record<Party, 'excluded' | 'withdrawn'>>;
@@ -742,17 +807,7 @@ export interface GameState extends MapRuntimeState {
   fiscal_income_tax_submitted?: boolean;
   fiscal_trade_tax_submitted?: boolean;
 
-  ministers: {
-    labor: MinisterParty;
-    health: MinisterParty;
-    justice: MinisterParty;
-    industry: MinisterParty;
-    interior: MinisterParty;
-    war: MinisterParty;
-    agriculture: MinisterParty;
-    finance?: MinisterParty;
-    estado?: MinisterParty;
-  };
+  ministers: Ministers;
 
   factions: Record<Faction, { influence: number; dissent: number }>;
   classes: Record<SocialClass, {
@@ -803,6 +858,17 @@ export interface GameState extends MapRuntimeState {
     militia_legality_law: number;
     land_reform_progress: number;
     regional_autonomy_progress: number;
+    /**
+     * 司法改革进度（0—100）。与土改、区域自治同属"进度"字段，不是法律等级：
+     * 法律等级用 `LawId` 那套（0—4 级、走 `rules/lawChange.ts`），这三个是流水进度。
+     * 唯一写入者是 `government_affairs/judiciary_reform.ts`。
+     */
+    judiciary_reform_progress: number;
+    /**
+     * 公共卫生改革进度（0—100）。同上，是流水进度而非法律等级。
+     * 唯一写入者是 `government_affairs/health_reform.ts`。
+     */
+    health_reform_progress: number;
     max_hours_law: number;
     min_wage: number;
     workplace_safety: number;
@@ -900,6 +966,7 @@ export interface GameState extends MapRuntimeState {
   coupSystemActive: boolean;
   molaStatus: 'republic' | 'nationalist';
   queipoStatus: 'republic' | 'nationalist' | 'dead';
+  queipoRamonRecruited?: boolean;
   coupTriggered10: boolean;
   coupTriggered20: boolean;
   coupTriggered30: boolean;

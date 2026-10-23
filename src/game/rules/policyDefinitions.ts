@@ -460,6 +460,15 @@ const LAW_STANCE_PREFERENCES: PolicyStanceMatrix = {
     army_reform_law: [9, 8, 8, 3, -9],
     militia_legality_law: [5, 8, 2, -4, -8],
   },
+  FET: {
+    max_hours_law: [4, 6, 4, 0, -7], min_wage: [3, 6, 5, 1, -6],
+    workplace_safety: [3, 6, 5, 1, -6], union_status: [7, 1, -2, -8, -10],
+    land_law: [4, 6, 1, -9], political_rights: [10, -1, -7, -10],
+    womens_rights: [9, -2, -9, -10, -8], religion_policy: [7, 6, -3, -8],
+    education_institutions: [7, 8, -2, -6], language_policy: [10, 6, -8, -10, -10],
+    public_order_law: [8, 6, 10, 5, -10], security_corps_law: [8, 8, 9, 7, -9],
+    army_reform_law: [9, 8, 8, 3, -9], militia_legality_law: [5, 8, 2, -4, -8],
+  },
 };
 
 export const LAW_DEFINITIONS: readonly PolicyDefinition[] = BASE_LAW_DEFINITIONS.map(definition => ({

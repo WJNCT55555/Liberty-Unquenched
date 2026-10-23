@@ -1,7 +1,7 @@
 import type { GameState, JournalEntryDef } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { applyUnionShareDelta } from '../unions';
-import { clampLawLevel } from '../lawStances';
+import { changeLaws } from '../rules/lawChange';
 import { isOrganizationEstablished } from '../organizations';
 import {
   ECONOMY_ROUTE_RULES,
@@ -66,7 +66,7 @@ export const economySyndicalistJournal: JournalEntryDef = {
     ...applyUnionShareDelta(state, { CNT: 3, UGT: -1, unorganized: -2 }),
     domesticPolicy: {
       ...state.domesticPolicy,
-      union_status: clampLawLevel('union_status', Math.max(state.domesticPolicy.union_status, 3)),
+      ...changeLaws(state, { union_status: { atLeast: 3 } }),
     },
   }),
 };

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { gameReducer } from '../src/game/reducers/gameReducer';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import type { GameState, WartimeGovernmentRoute } from '../src/game/types';
-import { civilWarSetup, civilWarStep31 } from '../src/game/events/civil_war/civil_war_setup';
+import { civilWarSetup, civilWarStep1, civilWarStep31 } from '../src/game/events/civil_war/civil_war_setup';
 import { wartimePowerArrangement, wartimePowerArrangementResult, wartimeCabinetCoordination } from '../src/game/events/civil_war/wartime_power_arrangement';
 import { elections1931Results } from '../src/game/events/elections_1931_results';
 import { SCHEDULED_EVENT_REGISTRY } from '../src/game/registries/scheduledEventRegistry';
@@ -15,6 +15,8 @@ import { calculateMonthlyEventQueue, applyMonthlyPoliticalMaintenance } from '..
 import { shouldQueueEvent, checkCoalitionDissolve, updateCoalitions } from '../src/game/utils';
 import { canFormDefenceCouncil, createWartimeCoalition, getArmyEffectiveManpower, getArmyPoliticalMember, getWartimeCabinet, getWartimeCoalitionPower, isMilitarizationCrossroadsDue, isSpanishCivilWarOngoing, isWartimeCrisisDue, monthIndex, updateWartimeCoalition } from '../src/game/rules/wartimeCoalition';
 import { militarizationCrossroads } from '../src/game/events/civil_war/militarization_crossroads';
+import { healthMinistry } from '../src/game/events/civil_war/health_ministry';
+import { industryCommerceMinistry } from '../src/game/events/industry_commerce_ministry';
 import { militiaLegalityArmedUnions, militiaLegalityRearSecurity, militiaLegalityCommittee } from '../src/game/events/civil_war/militia_legality';
 import { countCntMilitiaUnits, mergeMilitiaPoolsIntoStateArmy, SPANISH_MILITIA_POOL_ENTITY_IDS } from '../src/game/rules/armyPools';
 import { popularArmyJournal } from '../src/game/journal/popular_army';
@@ -60,6 +62,52 @@ const troop = (id: string, identity: Army['identity'], manpower: number, extras:
 const close = (actual: number, expected: number, message: string) => assert.ok(Math.abs(actual - expected) < 1e-8, `${message}: ${actual} versus ${expected}`);
 let checks = 0;
 const test = (name: string, fn: () => void) => { fn(); checks++; console.log(`PASS ${name}`); };
+
+test('Ramón can win Queipo back after his defection, including both war openings and legacy advisor loads', () => {
+  const ramon = INITIAL_ADVISORS.find((advisor) => advisor.id === 'Ramón Franco')!;
+  const recruit = ramon.actions.find((action) => action.id === 'ramon_franco_recruit_queipo')!;
+  const initial = seed();
+  assert.equal(recruit.condition(initial), false);
+  assert.equal(recruit.condition({ ...initial, queipoStatus: 'dead' }), false);
+  const defected: GameState = {
+    ...initial, queipoStatus: 'nationalist', coupTriggered60: true, advisorActionTimer: 0,
+    activeAdvisors: [ramon, null, null],
+  };
+  assert.equal(recruit.condition({ ...defected, advisorActionTimer: 2 }), false);
+  assert.equal(recruit.condition(defected), true);
+  const returned = { ...defected, ...recruit.effect(defected) };
+  assert.equal(returned.queipoStatus, 'republic');
+  assert.equal(returned.queipoRamonRecruited, true);
+  assert.equal(returned.advisorActionTimer, 6);
+  assert.equal(returned.stats.armyLoyalty, Math.min(100, defected.stats.armyLoyalty + 5));
+  assert.equal(recruit.condition(returned), false);
+
+  const historical = { ...initial, ...civilWarSetup.options[0].effect(initial) };
+  assert.equal(historical.provinces.sevilla.owner, MapFaction.NATIONALIST);
+  const quick = { ...returned, ...civilWarSetup.options[0].effect(returned) };
+  assert.equal(quick.provinces.sevilla.owner, MapFaction.REPUBLICAN);
+  assert.equal(quick.provinces.cadiz.owner, MapFaction.REPUBLICAN);
+  assert.equal(quick.armies.find((army) => army.id === 'rep_4')?.faction, MapFaction.REPUBLICAN);
+
+  const detailed = {
+    ...returned, ...civilWarSetup.options[1].effect(returned),
+    activeAdvisors: [null, null, null],
+  };
+  assert.equal(civilWarStep1.options[0].condition?.(detailed), false);
+  assert.equal(civilWarStep1.options[3].condition?.(detailed), true);
+  const secured = { ...detailed, ...civilWarStep1.options[3].effect(detailed) };
+  assert.equal(secured.civilWarChoices.step1, 'D');
+  assert.equal(secured.queipoStatus, 'republic');
+  const detailedStart = { ...secured, ...civilWarStep31.options[0].effect(secured) };
+  assert.equal(detailedStart.provinces.sevilla.owner, MapFaction.REPUBLICAN);
+  assert.equal(detailedStart.armies.find((army) => army.id === 'rep_4')?.faction, MapFaction.REPUBLICAN);
+
+  const legacyAdvisor = { ...ramon, actions: ramon.actions.filter((action) => action.id !== recruit.id) };
+  const loaded = gameReducer({ ...defected, activeAdvisors: [legacyAdvisor, null, null] }, {
+    type: 'LOAD_STATE', payload: { ...defected, activeAdvisors: [legacyAdvisor, null, null] },
+  });
+  assert.equal(loaded.activeAdvisors[0]?.actions.some((action) => action.id === recruit.id), true);
+});
 
 test('All scenarios and difficulties: both setup exits trigger exactly next month, including December rollover', () => {
   for (const scenario of ['1931', '1933', '1936'] as const) for (const difficulty of ['easy', 'normal', 'hard', 'historical', 'sandbox'] as const) {
@@ -126,8 +174,85 @@ test('Government settlement preserves social support, historical seats, presiden
   assert.equal(isRepublicanPartyEligible(next, 'PNV'), true);
   assert.ok(next.coalitionHistory.some(item => item.id === state.rulingCoalition));
   assert.ok(!cntInterPartyRelationships.effect(next).currentEvent!.options.some(option => typeof option.text === 'string' && option.text.includes('Republican Radical')));
-  assert.equal(next.ministers.health, 'CNT');
+  // 战时人民阵线的成立就是一次部长重新划分：卫生在劳动部分出之前与劳动同党，
+  // 随后由卫生与社会援助部事件把它交给 CNT（见下一个测试）。
+  assert.equal(next.ministers.health, next.ministers.labor);
+  assert.equal(next.ministers.health, 'PSOE');
+  assert.equal(next.wartimeSanidadMinistry, undefined);
+  // 工业与商业在战时拆成两个部，两个口都交给 CNT（史实为佩罗与洛佩斯·桑切斯）。
+  assert.equal(next.ministers.industry, 'CNT');
+  assert.equal(next.ministers.commerce, 'CNT');
   assert.equal(next.cntStance, 'govern');
+});
+
+test('Health and Social Assistance is created by the wartime reshuffle, not by a fixed date', () => {
+  const arrived = arrange('cabinet');
+  // 触发条件是「内战进行中 + 战时协定已落定 + 该部尚未成立」，没有月份闸门：
+  // 内战提前爆发时，史实上 1936 年 11 月的那次改组同样提前。
+  assert.equal(healthMinistry.condition!({ ...arrived, year: 1936, month: 7 }), true);
+  assert.equal(healthMinistry.condition!({ ...arrived, year: 1934, month: 2 }), true);
+  assert.equal(healthMinistry.condition!({ ...arrived, wartimeSanidadMinistry: true }), false);
+  assert.equal(healthMinistry.condition!({ ...arrived, wartimePowerArrangement: undefined }), false);
+  assert.equal(healthMinistry.condition!({ ...arrived, civilWarStatus: 'not_started' }), false);
+
+  // 接受部门：蒙特塞尼的任命，卫生从劳动部分出并交给 CNT。
+  const taken = { ...arrived, year: 1936, month: 11, ...healthMinistry.options[0].effect({ ...arrived, year: 1936, month: 11 }) };
+  assert.equal(taken.wartimeSanidadMinistry, true);
+  assert.equal(taken.ministers.health, 'CNT');
+  assert.equal(taken.ministers.labor, 'PSOE');
+  assert.equal(Object.values(taken.ministers).includes('CNT'), true);
+  assert.equal(taken.resources, arrived.resources - 2);
+  assert.ok(taken.stats.republicanAuthority > arrived.stats.republicanAuthority);
+
+  // 阁外合作路线拿不到部长职位，但仍可就这个部表态（此处选择交给 PCE）。
+  const external = arrange('external', { ...due(), cntStance: 'oppose' });
+  assert.equal(healthMinistry.options[0].condition!({ ...external, year: 1936, month: 11 }), false);
+  const handed = { ...external, year: 1936, month: 11, ...healthMinistry.options[3].effect({ ...external, year: 1936, month: 11 }) };
+  assert.equal(handed.ministers.health, 'PCE');
+  assert.equal(handed.wartimeSanidadMinistry, true);
+
+  // 事件只在正常情况下入队一次：已成立后不再入队。
+  const queued = calculateMonthlyEventQueue(taken, { ...taken, month: 12 }, 1936, 12);
+  assert.equal(queued.some(event => event.id === healthMinistry.id), false);
+});
+
+test('The Industry and Commerce ministry creation fires only in December 1933, and never in the 1936 start', () => {
+  const base = seed('1931');
+  assert.equal(industryCommerceMinistry.condition!({ ...base, year: 1931, month: 4 }), false);
+  assert.equal(industryCommerceMinistry.condition!({ ...base, year: 1933, month: 11 }), false);
+  assert.equal(industryCommerceMinistry.condition!({ ...base, year: 1933, month: 12 }), true);
+  assert.equal(industryCommerceMinistry.condition!({ ...base, year: 1936, month: 1 }), true);
+  // 1936 剧本从内战开局，这个机构节点已经过去。
+  assert.equal(industryCommerceMinistry.condition!({ ...seed('1936'), year: 1936, month: 12 }), false);
+  // 日期字段让它只在确切的月份入队一次。
+  const options = { mode: 'historical' as const };
+  assert.equal(shouldQueueEvent(industryCommerceMinistry, { ...base, year: 1933, month: 11 }, options), false);
+  assert.equal(shouldQueueEvent(industryCommerceMinistry, { ...base, year: 1933, month: 12 }, options), true);
+  // 工业与商业在 1933 年 12 月的剧本表里都已存在（同属一个部体系），事件本身不改归属。
+  for (const option of industryCommerceMinistry.options) {
+    const next = { ...base, year: 1933, month: 12, ...option.effect({ ...base, year: 1933, month: 12 }) };
+    assert.deepEqual(next.ministers, base.ministers);
+  }
+});
+
+test('The wartime reshuffle splits industry from commerce and opens Public Works', () => {
+  const cabinet = arrange('cabinet');
+  const council = arrange('council', { ...due(), cntStance: 'govern' });
+  for (const state of [cabinet, council]) {
+    // 工业与商业是两个不同的字段，且两个口都在战时内阁表里（史实为佩罗与洛佩斯·桑切斯）。
+    assert.notEqual(state.ministers.industry, undefined);
+    assert.notEqual(state.ministers.commerce, undefined);
+    // 公共工程部（1931 年称 Fomento）在战时内阁表里也有归属。
+    assert.notEqual(state.ministers.publicWorks, undefined);
+  }
+  assert.equal(cabinet.ministers.industry, 'CNT');
+  assert.equal(cabinet.ministers.commerce, 'CNT');
+  assert.equal(council.ministers.publicWorks, 'CNT');
+  // 三条路线都给出十二个部委，没有任何字段落空。
+  for (const route of ['cabinet', 'council', 'external'] as const) {
+    const cabinetForRoute = getWartimeCabinet(arrange(route, { ...due(), cntStance: route === 'external' ? 'oppose' : 'govern' }), route);
+    assert.equal(Object.values(cabinetForRoute).filter(Boolean).length, 12);
+  }
 });
 
 test('All routes use the same new coalition; external CNT keeps power without ministries or electoral conversion', () => {

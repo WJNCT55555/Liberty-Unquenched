@@ -3,6 +3,7 @@ import { adjustClassSupport } from '../utils';
 import { getMilitarization } from '../rules/militarization';
 import { mergeMilitiaPoolsIntoStateArmy } from '../rules/armyPools';
 import { adjustMemberContribution, monthIndex } from '../rules/wartimeCoalition';
+import { changeLaws } from '../rules/lawChange';
 
 /** 完成门槛：CNT 民兵军事化率必须**超过** 85（严格大于）。 */
 export const POPULAR_ARMY_MILITARIZATION_TARGET = 85;
@@ -68,7 +69,12 @@ export const popularArmyJournal: JournalEntryDef = {
 
   onComplete: (state) => ({
     ...mergeMilitiaPoolsIntoStateArmy(state),
-    domesticPolicy: { ...state.domesticPolicy, army_reform_law: 3 },
+    // 与「民兵自主」路线互斥，因此这里可以放心地把军队改革法定到 3 级（统一指挥）：
+    // 合并民兵池之后军队本身就是正规军，法律必须跟上。写入走统一 helper。
+    domesticPolicy: {
+      ...state.domesticPolicy,
+      ...changeLaws(state, { army_reform_law: { to: 3 } }),
+    },
   }),
 
   onFail: (state) => adjustMemberContribution(state, 'CNT_FAI', -40),

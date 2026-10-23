@@ -15,7 +15,7 @@ export const EventBoard: React.FC = () => {
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
-      className="m-auto bg-paper border-print p-8 max-w-2xl w-full shadow-2xl relative z-10"
+      className="m-auto shrink-0 bg-paper border-print p-8 max-w-2xl w-full shadow-2xl relative z-10"
     >
       <div className="absolute top-0 left-0 w-full h-2 bg-cnt-red"></div>
       <h2 className="font-display text-4xl uppercase mb-4 text-ink leading-none">
