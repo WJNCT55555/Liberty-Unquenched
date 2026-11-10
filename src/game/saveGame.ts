@@ -323,6 +323,20 @@ export const deserializeGameState = (
   state.governmentDeck = restoreCards(snapshot.runtime.governmentDeck || []);
   state.militaryDeck = restoreCards(snapshot.runtime.militaryDeck || []);
   state.discard = restoreCards(snapshot.runtime.discard || []);
+  // Saves from before these cards existed have no copy in any card pile.
+  const savedCardIds = new Set([
+    ...state.hand,
+    ...state.actionDeck,
+    ...state.governmentDeck,
+    ...state.militaryDeck,
+    ...state.discard,
+  ].map((card) => card.id));
+  for (const cardId of ['arms_acquisition', 'paseo']) {
+    const card = runtime.cards.find((candidate) => candidate.id === cardId);
+    if (card && !savedCardIds.has(card.id)) {
+      state.militaryDeck = [...state.militaryDeck, card];
+    }
+  }
   state.activeAdvisors = (snapshot.runtime.activeAdvisors || []).map((id) => id ? restoreAdvisor(id) : null);
   state.advisorPool = (snapshot.runtime.advisorPool || []).map(restoreAdvisor);
   state.pendingEvents = [];
@@ -331,9 +345,17 @@ export const deserializeGameState = (
     ? deserializeGameState(snapshot.runtime.easyUndoState, runtime)
     : null;
 
+  // Earlier versions could queue the July 1931 strike after a 1933 cabinet collapse.
+  const isExpiredTelephoneStrike = (event: SerializedGameEvent): boolean => (
+    state.year > 1931 && event.id === 'huelga_telefonica_1931'
+  );
+  const savedPendingEvents = (snapshot.runtime.pendingEvents || []).filter(event => !isExpiredTelephoneStrike(event));
+  const savedCurrentEvent = snapshot.runtime.currentEvent && !isExpiredTelephoneStrike(snapshot.runtime.currentEvent)
+    ? snapshot.runtime.currentEvent
+    : null;
   const serializedEvents = [
-    ...(snapshot.runtime.pendingEvents || []),
-    ...(snapshot.runtime.currentEvent ? [snapshot.runtime.currentEvent] : []),
+    ...savedPendingEvents,
+    ...(savedCurrentEvent ? [savedCurrentEvent] : []),
   ];
   const requiredEventIds = new Set(serializedEvents.map((event) => event.id));
   const eventCatalog = buildEventCatalog(state, runtime, requiredEventIds);
@@ -345,8 +367,8 @@ export const deserializeGameState = (
     return restoreEvent(event, definition);
   };
 
-  state.pendingEvents = (snapshot.runtime.pendingEvents || []).map(hydrateEvent);
-  state.currentEvent = snapshot.runtime.currentEvent ? hydrateEvent(snapshot.runtime.currentEvent) : null;
+  state.pendingEvents = savedPendingEvents.map(hydrateEvent);
+  state.currentEvent = savedCurrentEvent ? hydrateEvent(savedCurrentEvent) : null;
   // 工会占比：旧档缺失时按剧本默认值初始化，并保证未成立组织为零、和恒为 100。
   const normalized = normalizeUnionShare(normalizeOrganizationState(state));
   const activated = normalized.civilWarStatus !== 'not_started'

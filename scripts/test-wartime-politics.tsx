@@ -12,7 +12,7 @@ import { RESTORABLE_EVENT_REGISTRY } from '../src/game/registries/restorableEven
 import { CARD_REGISTRY } from '../src/game/registries/cardRegistry';
 import { INITIAL_ADVISORS } from '../src/game/advisors';
 import { calculateMonthlyEventQueue, applyMonthlyPoliticalMaintenance } from '../src/game/rules/monthlyPipeline';
-import { shouldQueueEvent, checkCoalitionDissolve, updateCoalitions } from '../src/game/utils';
+import { shouldQueueEvent, checkCoalitionDissolve, formWartimeGovernment, updateCoalitions } from '../src/game/utils';
 import { canFormDefenceCouncil, createWartimeCoalition, getArmyEffectiveManpower, getArmyPoliticalMember, getWartimeCabinet, getWartimeCoalitionPower, isMilitarizationCrossroadsDue, isSpanishCivilWarOngoing, isWartimeCrisisDue, monthIndex, updateWartimeCoalition } from '../src/game/rules/wartimeCoalition';
 import { militarizationCrossroads } from '../src/game/events/civil_war/militarization_crossroads';
 import { healthMinistry } from '../src/game/events/civil_war/health_ministry';
@@ -51,7 +51,10 @@ const seed = (scenario: GameState['scenario'] = '1936', difficulty: GameState['d
 const setup = (state = seed()): GameState => ({ ...state, ...civilWarSetup.options[0].effect(state) });
 const due = (state = setup()): GameState => ({ ...state, year: state.month === 12 ? state.year + 1 : state.year, month: state.month === 12 ? 1 : state.month + 1 });
 const arrange = (route: WartimeGovernmentRoute, state = due()): GameState => {
-  const option = wartimePowerArrangement.options[{ cabinet: 0, council: 1, external: 2 }[route]];
+  // The council option was removed from the event; legacy/internal callers can
+  // still form that government through the appointment API.
+  if (route === 'council') return formWartimeGovernment(state, 'council');
+  const option = wartimePowerArrangement.options[{ cabinet: 0, external: 1 }[route]];
   return { ...state, ...option.effect(state) };
 };
 const troop = (id: string, identity: Army['identity'], manpower: number, extras: Partial<Army> = {}): Army => ({
@@ -174,10 +177,10 @@ test('Government settlement preserves social support, historical seats, presiden
   assert.equal(isRepublicanPartyEligible(next, 'PNV'), true);
   assert.ok(next.coalitionHistory.some(item => item.id === state.rulingCoalition));
   assert.ok(!cntInterPartyRelationships.effect(next).currentEvent!.options.some(option => typeof option.text === 'string' && option.text.includes('Republican Radical')));
-  // 战时人民阵线的成立就是一次部长重新划分：卫生在劳动部分出之前与劳动同党，
-  // 随后由卫生与社会援助部事件把它交给 CNT（见下一个测试）。
-  assert.equal(next.ministers.health, next.ministers.labor);
-  assert.equal(next.ministers.health, 'PSOE');
+  // The coalition government gives the CNT Justice and Health directly; the
+  // separate Health ministry event still formalizes the split afterwards.
+  assert.equal(next.ministers.health, 'CNT');
+  assert.equal(next.ministers.justice, 'CNT');
   assert.equal(next.wartimeSanidadMinistry, undefined);
   // 工业与商业在战时拆成两个部，两个口都交给 CNT（史实为佩罗与洛佩斯·桑切斯）。
   assert.equal(next.ministers.industry, 'CNT');

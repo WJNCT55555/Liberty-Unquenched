@@ -267,7 +267,11 @@ const CabinetDeptCard: React.FC<CabinetDeptCardProps> = ({ dept, state, isZh, ru
               </p>
               
               <div className="font-bold border-b border-ink/20 pb-0.5 mb-1 text-ink uppercase tracking-wide text-[10px]">
-                {isZh ? '部长政党背景的影响' : 'Minister Party Influence'}
+                {state.polity?.type === 'free_commune_federation'
+                  ? (isZh ? '协调委员派系背景' : 'Coordinator Tendency')
+                  : state.polity?.type === 'council_republic'
+                    ? (isZh ? '人民委员党派背景的影响' : 'Commissar Party Influence')
+                    : (isZh ? '部长政党背景的影响' : 'Minister Party Influence')}
               </div>
               <div className="text-cnt-red font-bold mb-1.5">
                 {ministerPartyLabel}
@@ -295,24 +299,47 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
   // 1. Parliament Details
   const cortes = getEffectiveCortes(state, state.cortes || calculateElectionResults(state));
-  const vacantSeats = getVacantCortesSeats(state);
-  const totalCortesSeats = Object.values(cortes).reduce((sum, seats) => sum + seats, 0) + vacantSeats;
+  const isCouncil = state.polity?.type === 'council_republic';
+  const isCommune = state.polity?.type === 'free_commune_federation';
+  const isNonParliamentary = isCouncil || isCommune;
+  const chamberSeats = isCommune ? state.polity?.congressSeats : state.polity?.cecSeats;
+  const chamberSeatEntries = Object.entries(chamberSeats ?? {}) as Array<[string, number]>;
+  const vacantSeats = isNonParliamentary ? 0 : getVacantCortesSeats(state);
+  const parliamentaryTotal = Object.values(cortes).reduce((sum, seats) => sum + seats, 0) + vacantSeats;
+  const totalCortesSeats = isNonParliamentary && chamberSeats
+    ? chamberSeatEntries.reduce((sum, [, seats]) => sum + seats, 0)
+    : parliamentaryTotal;
+  const majoritySeats = Math.floor(totalCortesSeats / 2) + 1;
   const hasCortes = totalCortesSeats > 0;
 
   // Map to ParliamentChart data
-  const chartData: ParliamentData[] = getParliamentSeatEntries(cortes)
-    .map(([party, seats]) => ({
-      id: party,
-      name: getPartyName(state, party, isZh, true),
-      seats,
-      color: getPartyColor(state, party)
-    }));
+  const chartData: ParliamentData[] = isNonParliamentary && chamberSeats
+    ? chamberSeatEntries
+      .filter(([, seats]) => seats > 0)
+      .sort((left, right) => right[1] - left[1])
+      .map(([actor, seats]) => ({
+        id: actor,
+        name: actor === 'CNT' ? 'CNT' : getPartyName(state, actor as Party, isZh, true),
+        seats,
+        color: actor === 'CNT' ? '#cc0000' : getPartyColor(state, actor as Party),
+      }))
+    : getParliamentSeatEntries(cortes)
+      .map(([party, seats]) => ({
+        id: party,
+        name: getPartyName(state, party, isZh, true),
+        seats,
+        color: getPartyColor(state, party)
+      }));
   if (vacantSeats > 0) chartData.push({ id: 'vacant', name: isZh ? '战时空缺' : 'Wartime vacancies', seats: vacantSeats, color: '#d1ccc2' });
 
-  const nextElectionText = formatGeneralElectionViewModel(
-    selectGeneralElectionViewModel(state),
-    isZh,
-  );
+  const nextElectionText = isCouncil
+    ? (isZh ? '无议会选举；CEC 改选待定' : 'No parliamentary elections; CEC renewal pending')
+    : isCommune
+      ? (isZh ? '无议会选举；联邦大会按召回/两年期召开' : 'No parliamentary elections; Federal Congress by recall/two-year cycle')
+      : formatGeneralElectionViewModel(
+        selectGeneralElectionViewModel(state),
+        isZh,
+      );
 
 
   const allParties = ['POUM', 'PCE', 'PSOE', 'PS', 'ERC', 'IR', 'UR', 'PNV', 'PRR', 'DLR', 'AP', 'RE', 'CT', 'FE', 'CNT_FAI'] as const;
@@ -321,6 +348,13 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
   const activeCoalitionDef = activeCoalitionId ? COALITION_DEFS.find(c => c.id === activeCoalitionId) : null;
   const activeRulingCoalition = state.activeCoalitions.find(coalition => coalition.activeId === activeCoalitionId);
   const rulingMembers = activeRulingCoalition ? getCoalitionMembers(state, activeRulingCoalition).filter(m => presentParties.includes(m as any)) : [];
+  const getChamberSeatCount = (party: Party | 'CNT_FAI'): number => {
+    if (isNonParliamentary && chamberSeats) {
+      const key = party === 'CNT_FAI' ? 'CNT' : party;
+      return (chamberSeats as Record<string, number>)[key] ?? 0;
+    }
+    return cortes[party as Party] ?? 0;
+  };
 
   const getPartyGroups = () => {
     const groups: {
@@ -478,12 +512,24 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                   <div>
                     <h3 className="font-typewriter text-lg font-bold flex items-center gap-2">
                       <Vote className="w-5 h-5 text-ink-light" />
-                      {isZh ? '西班牙国民议会 (Cortes Generales)' : 'Cortes Generales of Spain'}
+                      {isCommune
+                        ? (isZh ? '联邦大会 (Federal Congress)' : 'Federal Congress')
+                        : isCouncil
+                          ? (isZh ? '中央执行委员会 (CEC)' : 'Central Executive Committee (CEC)')
+                          : (isZh ? '西班牙国民议会 (Cortes Generales)' : 'Cortes Generales of Spain')}
                     </h3>
                     <p className="text-xs text-ink/60 mt-1">
-                      {isZh 
-                        ? '最高立法机构，总席位470席，通过法案需半数以上 (236席)。' 
-                        : 'The legislature consists of 470 deputies. Enacting laws requires 236 seats.'}
+                      {isCommune
+                        ? (isZh
+                          ? `联邦大会共 ${totalCortesSeats} 席，是唯一主权机关。联邦委员会只是联邦大会的常设代表团，不单独计席、没有独立立法权或否决权。`
+                          : `The Federal Congress has ${totalCortesSeats} seats and is the sole sovereign body. The Federal Council is only its standing delegation: no separate seats, no independent legislative or veto power.`)
+                        : isCouncil
+                          ? (isZh
+                            ? `CEC 共 ${totalCortesSeats} 席；工农兵代表会议（Congress）为 400 席。CEC 过半数所需 ${majoritySeats} 席。`
+                            : `The CEC has ${totalCortesSeats} seats; the Congress of Councils has 400. A CEC majority requires ${majoritySeats} seats.`)
+                          : (isZh
+                            ? `最高立法机构，总席位${totalCortesSeats}席，通过法案需半数以上 (${majoritySeats}席)。`
+                            : `The legislature consists of ${totalCortesSeats} deputies. Enacting laws requires ${majoritySeats} seats.`)}
                     </p>
                   </div>
                 </div>
@@ -531,17 +577,25 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                   <div className="grid grid-cols-3 gap-3">
                     <div className="border border-ink/15 p-2 bg-paper">
                       <span className="text-[9px] uppercase font-bold text-ink-light block">
-                        {isZh ? '法定议席总数' : 'Total Seats'}
+                        {isCommune
+                          ? (isZh ? '联邦大会席位' : 'Federal Congress Seats')
+                          : isCouncil
+                            ? (isZh ? 'CEC 席位总数' : 'CEC Seats')
+                            : (isZh ? '法定议席总数' : 'Total Seats')}
                       </span>
-                      <span className="font-display text-lg font-bold text-ink mt-1.5 block">470</span>
+                      <span className="font-display text-lg font-bold text-ink mt-1.5 block">{totalCortesSeats}</span>
                       {vacantSeats > 0 && <span className="text-xs">{isZh ? `战时空缺 ${vacantSeats} 席` : `${vacantSeats} wartime vacancies`}</span>}
                     </div>
 
                     <div className="border border-ink/15 p-2 bg-paper">
                       <span className="text-[9px] uppercase font-bold text-ink-light block">
-                        {isZh ? '半数起步门槛' : 'Majority Barrier'}
+                        {isCommune
+                          ? (isZh ? '联邦大会过半数' : 'Federal Congress Majority')
+                          : isCouncil
+                            ? (isZh ? 'CEC 过半数' : 'CEC Majority')
+                            : (isZh ? '半数起步门槛' : 'Majority Barrier')}
                       </span>
-                      <span className="font-display text-lg font-bold text-ink mt-1.5 block">236</span>
+                      <span className="font-display text-lg font-bold text-ink mt-1.5 block">{majoritySeats}</span>
                     </div>
 
                     <div className="border border-ink/15 p-2 bg-paper flex flex-col justify-between">
@@ -562,7 +616,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         </span>
                         <span className="font-display text-lg font-bold text-cnt-red">
                           {rulingMembers.length > 0 
-                            ? rulingMembers.reduce((sum, party) => sum + (cortes[party as Party] || 0), 0)
+                            ? rulingMembers.reduce((sum, party) => sum + getChamberSeatCount(party as Party | 'CNT_FAI'), 0)
                             : (isZh ? '看守内阁 / 无数据' : 'Caretaker / None')}
                         </span>
                       </div>
@@ -573,9 +627,9 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-ink-light block">
                           {(() => {
                             if (rulingMembers.length === 0) return isZh ? '弱势看守政府' : 'Weak Caretaker';
-                            const govSeats = rulingMembers.reduce((sum, party) => sum + (cortes[party as Party] || 0), 0);
-                            const pct = ((govSeats / 470) * 100).toFixed(1);
-                            const isMajority = govSeats >= 236;
+                            const govSeats = rulingMembers.reduce((sum, party) => sum + getChamberSeatCount(party as Party | 'CNT_FAI'), 0);
+                            const pct = ((govSeats / totalCortesSeats) * 100).toFixed(1);
+                            const isMajority = govSeats >= majoritySeats;
                             return `${pct}% / ${isMajority ? (isZh ? '多数' : 'Majority') : (isZh ? '少数' : 'Minority')}`;
                           })()}
                         </span>
@@ -715,7 +769,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                         {isRuling && activeRulingCoalition?.activeId === 'popular_front_wartime' && <div className="my-4"><WartimeCoalitionDetails state={state} coalition={activeRulingCoalition} isZh={isZh} /></div>}
                         <div className="divide-y divide-ink/10">
                           {group.members.map((party) => {
-                            const seats = party === 'CNT_FAI' ? 0 : (cortes[party as Party] || 0);
+                            const seats = getChamberSeatCount(party);
                             const seatPct = totalCortesSeats > 0 ? ((seats / totalCortesSeats) * 100).toFixed(1) : '0.0';
                             const support = getPartySupport(state, party);
                             const isRulingParty = rulingMembers.includes(party) && (activeRulingCoalition?.activeId !== 'popular_front_wartime' || activeRulingCoalition.participation?.[party] === 'government');
@@ -826,7 +880,11 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                     {/* Content below Avatar */}
                     <div className="w-full flex-1 min-w-0 z-10 flex flex-col items-center">
                       <span className="text-[10px] uppercase font-bold tracking-wider text-cnt-red font-typewriter block mb-1">
-                        {isZh ? '共和国总统' : 'President of the Republic'}
+                        {isCommune
+                          ? (isZh ? '联邦常设代表团轮值主席（无国家元首）' : 'Federal Delegation Rotating Chair (no head of state)')
+                          : isCouncil
+                            ? (isZh ? '中央执行委员会主席' : 'CEC Chairman')
+                            : (isZh ? '共和国总统' : 'President of the Republic')}
                       </span>
                       <h4 className="font-bold font-typewriter text-base truncate mb-1">
                         {isZh ? (state.government.presidentZh || state.government.president) : state.government.president}
@@ -862,7 +920,11 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                     {/* Content below Avatar */}
                     <div className="w-full flex-1 min-w-0 z-10 flex flex-col items-center">
                       <span className="text-[10px] uppercase font-bold tracking-wider text-cnt-red font-typewriter block mb-1">
-                        {isZh ? '政府总理' : 'Prime Minister'}
+                        {isCommune
+                          ? (isZh ? '无政府首脑（协调委员会只有轮值主席）' : 'No head of government (rotating chair only)')
+                          : isCouncil
+                            ? (isZh ? '人民委员会议主席' : 'Chairman of the Council of People’s Commissars')
+                            : (isZh ? '政府总理' : 'Prime Minister')}
                       </span>
                       <h4 className="font-bold font-typewriter text-base truncate mb-1">
                         {isZh ? (state.government.primeMinisterZh || state.government.primeMinister) : state.government.primeMinister}
@@ -877,12 +939,24 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                 <div className="border-b border-ink/20 pb-3 mb-4">
                   <h3 className="font-typewriter text-lg font-bold flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-ink-light" />
-                    {isZh ? '内阁各部委阁员分布' : 'Distribution of Ministerial Portfolios'}
+                    {isCommune
+                      ? (isZh ? '联邦协调委员会' : 'Federal Coordination Council')
+                      : isCouncil
+                        ? (isZh ? '人民委员部分布' : 'Distribution of People’s Commissariats')
+                        : (isZh ? '内阁各部委阁员分布' : 'Distribution of Ministerial Portfolios')}
                   </h3>
                   <p className="text-xs text-ink/60 mt-1">
-                    {isZh 
-                      ? '政府各行政部门部长职位由各参政党派担任，施政需要各部部长协同配合。' 
-                      : 'Governing parties direct individual ministries to run the state administration.'}
+                    {isCommune
+                      ? (isZh
+                        ? '联邦协调委员会由 CNT 派系与政党组成；委员会只有协调权，没有部长式的强制权。公社可以拒绝执行联邦协定。'
+                        : 'The Federal Coordination Council is composed of CNT tendencies and parties; its commissions coordinate, they do not command like ministers. Communes may reject federal accords.')
+                      : isCouncil
+                        ? (isZh
+                          ? '人民委员由 CEC 多数支持产生，按各党/CNT 的 CEC 席位筹码分配；CNT 取得的人民委员职位决定政府事务卡权限。'
+                          : 'Commissars are confirmed by a CEC majority and allocated by each party/CNT’s CEC seat leverage; CNT-held commissariats unlock government cards.')
+                        : (isZh
+                          ? '政府各行政部门部长职位由各参政党派担任，施政需要各部部长协同配合。'
+                        : 'Governing parties direct individual ministries to run the state administration.')}
                   </p>
                 </div>
 

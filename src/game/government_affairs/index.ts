@@ -14,6 +14,7 @@ import { publicWorks } from './public_works';
 import { commercePolicy } from './commerce_policy';
 import { judiciaryReform } from './judiciary_reform';
 import { healthReform } from './health_reform';
+import { communeStrategyCard } from '../events/commune_federation';
 
 export const GOVERNMENT_AFFAIRS = [
   militaryPolicy,
@@ -36,5 +37,7 @@ export const GOVERNMENT_AFFAIRS = [
   // 经济改造的三张政府卡（docs/经济改造方案.md §6）：工业与商业、商业与贸易、财政手段。
   industryPolicy,
   tradePolicy,
-  fiscalMeasures
+  fiscalMeasures,
+  // 公社联邦：委员会方略（1 资源）→ 联邦协调委员会组成。
+  communeStrategyCard,
 ];

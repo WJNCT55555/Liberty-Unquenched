@@ -56,6 +56,9 @@ export const selectMapRuntimeState = (state: GameState): MapRuntimeState => ({
   wars: state.wars,
   provinces: state.provinces,
   armies: state.armies,
+  // Combat resolution reads faction-level rates; the map runtime must carry
+  // them too, otherwise the sidebar/army panel falls back to the 1931 table.
+  militarization: state.militarization,
   mapHistory: state.mapHistory,
   mapResources: state.mapResources,
   mapCurrentPlayer: state.mapCurrentPlayer,

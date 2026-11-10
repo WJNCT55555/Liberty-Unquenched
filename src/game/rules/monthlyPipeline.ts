@@ -13,6 +13,7 @@ import { isSpanishCivilWarOngoing, settleWartimeCoalition, WARTIME_EVENT_ID } fr
 import { getMayDaysProductionFactor, isMayDaysEvent, settleMayDaysPressure } from './mayDays';
 import { isWartimeEconomyRouteDue } from './wartimeEconomy';
 import { applyPceMilitarizationMonthlyDrift } from './militarization';
+import { applySupplyAttrition } from './supply';
 import { getPlayerMapFaction, isCivilWarFaction } from '../../map/rules/factions';
 
 export interface MonthlyPipelineResult {
@@ -26,17 +27,24 @@ export interface MonthlyMapStage {
   armies: GameState['armies'];
   mapCurrentPlayer: GameState['mapCurrentPlayer'];
   asturiasWarTurns: number;
+  /** Supply-attrition reports, newest first, to be prepended to `mapHistory`. */
+  supplyMessages: string[];
 }
 
 /** Computes map resource income and monthly movement resets without mutating state. */
 export const calculateMonthlyMapStage = (state: GameState): MonthlyMapStage => {
   const mapResources = { ...state.mapResources } as Record<MapFaction, ResourceSet>;
-  const armies = (state.armies || []).map(army => ({ ...army, movesLeft: 2 }));
   // Provincial manpower, supplies and industry are wartime mobilization output.
   // Accruing them every peacetime month let the Republic bank an unusable pool
   // before the civil war ever started, so peace months leave the pools frozen at
   // their seeded values and only war months add provincial income.
   const isWartime = state.civilWarStatus === 'ongoing' || Boolean(state.activeWar);
+  const monthStartArmies = (state.armies || []).map(army => ({ ...army, movesLeft: 2 }));
+  // Supply attrition is a month-start event: a province that could not feed its
+  // garrison last month loses men and morale before the new month's orders.
+  const supply = isWartime
+    ? applySupplyAttrition(monthStartArmies, state.provinces || INITIAL_PROVINCES, state.language === 'zh')
+    : { armies: monthStartArmies, messages: [] };
   Object.keys(mapResources).forEach(factionKey => {
     const faction = factionKey as MapFaction;
     const current = mapResources[faction];
@@ -73,9 +81,10 @@ export const calculateMonthlyMapStage = (state: GameState): MonthlyMapStage => {
   });
   return {
     mapResources,
-    armies,
+    armies: supply.armies,
     mapCurrentPlayer: getPlayerMapFaction(state),
     asturiasWarTurns: state.activeWar === 'asturias_war' ? (state.asturiasWarTurns || 0) + 1 : (state.asturiasWarTurns || 0),
+    supplyMessages: supply.messages,
   };
 };
 
@@ -103,25 +112,20 @@ const getEventTriggerMode = (difficulty: GameState['difficulty']) =>
   difficulty === 'historical' ? 'historical' : 'nonHistorical';
 
 /**
- * 经济改造的两个强制入队规则（docs/经济改造方案.md §4.3）。
+ * 经济改造的强制入队规则（docs/经济改造方案.md §4.3）。
  *
- * 两个开始事件的 `condition` 都是 `() => false`——它们不属于事件板的普通筛选，
- * 出现的时点由编排决定：
- *
- *  1. **自由公社路线开局自带**：三份剧本的第一个月就把开始事件推到队首；
- *  2. **战时两条路线**：战时权力安排落定后的下一个月，由 `isWartimeEconomyRouteDue` 决定。
+ * 自由公社日志不再由月结强制开始：1936 剧本开局即激活，1931/1933 剧本在
+ * CNT 第四次代表大会“构绘蓝图”节点激活；这里只保留战时两条路线的强制选择。
  *
  * 幂等由 `eventHistory.triggered` 保证：这个集合随存档保存，因此已经出现过的事件不会被
  * 再次推入，也不会因为读档而重复弹窗。
  */
-const queueForcedEconomyStart = (
+const queueForcedEconomyEvents = (
   pendingEvents: GameEvent[],
   previousState: GameState,
   nextState: GameState,
 ): GameEvent[] => {
-  const freeCommuneInactive = (nextState.journal?.journal_economy_free_commune?.status ?? 'inactive') === 'inactive';
   const forcedIds: string[] = [];
-  if (freeCommuneInactive) forcedIds.push('economy_free_commune_start');
   if (isWartimeEconomyRouteDue(nextState)) forcedIds.push('economy_wartime_route_choice');
 
   let next = pendingEvents;
@@ -161,9 +165,13 @@ export const calculateMonthlyEventQueue = (
     }
   }
   pendingEvents = [...pendingEvents, ...monthlyEvents];
+  // A queued 1931 telephone strike cannot survive into a later year.
+  if (nextYear > 1931) {
+    pendingEvents = pendingEvents.filter(event => event.id !== 'huelga_telefonica_1931');
+  }
   // 经济改造的开始事件由编排层强制入队（见上）。放在这里而不是月度筛选里，是因为它们
   // 既不能被 date/condition 筛选捞出，又必须在指定的月份出现。
-  pendingEvents = queueForcedEconomyStart(pendingEvents, previousState, nextState);
+  pendingEvents = queueForcedEconomyEvents(pendingEvents, previousState, nextState);
   if (nextState.iberianDefense) pendingEvents = pendingEvents.filter(event => !['nationalist_surrender', 'republican_surrender', 'asturias_revolution'].includes(event.id));
   if (isMayDaysEvent(nextState.currentEvent?.id) || pendingEvents.some(event => isMayDaysEvent(event.id))) {
     pendingEvents = pendingEvents.filter(event => event.id !== 'wartime_cabinet_coordination');
@@ -188,6 +196,16 @@ export const calculateMonthlyEventQueue = (
     'presidential_dissolution_of_cortes',
     'presidential_election_decision',
   ]);
+  if (nextState.polity
+    && nextState.polity.type !== 'parliamentary_republic'
+    && nextState.polity.type !== 'federal_republic') {
+    // Council/commune polities do not hold parliamentary elections; their own
+    // congress/council schedule will queue a different event family.
+    pendingEvents = pendingEvents.filter(event => (
+      !electionChainIds.has(event.id)
+      && !event.id.startsWith('presidential_election_')
+    ));
+  }
   if (isSpanishCivilWarOngoing(nextState)) {
     pendingEvents = pendingEvents.filter(event => !electionChainIds.has(event.id) && !event.id.startsWith('presidential_election_'));
   }

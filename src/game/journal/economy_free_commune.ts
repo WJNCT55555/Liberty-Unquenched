@@ -5,9 +5,9 @@ import { ECONOMY_ROUTE_RULES, isJournalCompleted } from '../rules/economyReforms
 /**
  * 自由公社路线（docs/经济改造方案.md §5.2）。
  *
- * 三份剧本开局即自带此日志：开始事件 `economy_free_commune_start` 由月结管线在开局月
- * 强制入队（`rules/monthlyPipeline.ts` 的 `forceFreeCommuneStartNextMonth`），它只有一个
- * 确认选项，玩家不需要做选择。
+ * 1936 剧本开局即激活此日志（第四次代表大会已在 1936·5 开过，土地蓝图已经通过）；
+ * 1931/1933 剧本则在 CNT 第四次代表大会“构绘蓝图”节点由选项激活。旧的
+ * `economy_free_commune_start` 单确认事件不再由月结管线强制入队，只保留用于旧存档兼容。
  *
  * **永不失败，也没有月度效果**（用户定稿：经济路线日志只回答"走到哪一步"）：
  * 公社的代价与收益只能来自玩家自己的行动与事件选项。

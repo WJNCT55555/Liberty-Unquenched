@@ -14,6 +14,8 @@ import {
 import { addEasyUndoOption } from '../src/game/easyMode';
 import { ECONOMY_COUNTERS } from '../src/game/rules/economyReforms';
 import { JOURNAL_ENTRIES } from '../src/game/journal';
+import { armsAcquisition } from '../src/game/military_affairs/arms_acquisition';
+import { huelgaTelefonica1931 } from '../src/game/events/huelga_telefonica_1931';
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -147,6 +149,25 @@ assert.equal(restored.mapResources[MapFaction.WORKERS_ALLIANCE].manpower, 0, 'Ev
 assert.deepEqual(restored.generalElectionSchedule, state.generalElectionSchedule);
 assert.equal(typeof restored.currentEvent?.options[0].effect, 'function');
 assert.equal(restored.currentEvent?.options[0].effect(restored).resources, 10);
+
+const runtimeWithNewCard = { cards: [card, armsAcquisition], advisors: [advisor], events: [] };
+const upgradedSave = deserializeGameState(JSON.parse(serializedText), runtimeWithNewCard);
+assert.deepEqual(upgradedSave.militaryDeck.map((candidate) => candidate.id), [armsAcquisition.id], 'Older saves must gain the new military card');
+const reloadedUpgrade = deserializeGameState(serializeGameState(upgradedSave), runtimeWithNewCard);
+assert.deepEqual(reloadedUpgrade.militaryDeck.map((candidate) => candidate.id), [armsAcquisition.id], 'Reloading must not duplicate the new card');
+
+const staleStrikeSnapshot = serializeGameState({
+  ...state,
+  year: 1933,
+  month: 2,
+  currentEvent: huelgaTelefonica1931,
+  pendingEvents: [huelgaTelefonica1931],
+} as GameState);
+const restoredStaleStrike = deserializeGameState(staleStrikeSnapshot, {
+  cards: [card], advisors: [advisor], events: [],
+});
+assert.equal(restoredStaleStrike.currentEvent, null, 'Loading a 1933 save must dismiss the impossible 1931 strike');
+assert.equal(restoredStaleStrike.pendingEvents.some(event => event.id === huelgaTelefonica1931.id), false);
 
 // Economy-reform migration (docs/经济改造方案.md §10): a save written before the
 // production-relations counters existed must come back with every counter at 0,

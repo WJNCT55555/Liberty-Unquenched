@@ -97,75 +97,33 @@ for (const event of [economyFreeCommuneStart, economyWartimeRouteChoice] as cons
   assert(event.condition?.({ ...PRE_START_STATE }) === false, `${event.id} must be entered by the orchestrator, not by the scheduler`);
 }
 
-// ---- 3. 开局自带的自由公社路线 ----
+// ---- 3. 自由公社日志的剧本/大会激活 ----
 
 const opening = createScenarioState('1931', 'normal', 'en');
-assert.equal(opening.journal.journal_economy_free_commune?.status, 'inactive', 'The free-commune journal must start inactive');
+assert.equal(opening.journal.journal_economy_free_commune?.status, 'inactive', 'The free-commune journal must start inactive in 1931');
 assert.equal(opening.journal.journal_economy_syndicalist?.status, 'inactive', 'The syndicalist journal must start inactive');
 
-// 第一个月的月结必须把开始事件推到队首（方案 §4.3①）。
+// 1931/1933 no longer receive the old one-confirmation start event from the
+// monthly pipeline; they activate it through the Fourth Congress blueprint.
 const afterAction = advancePhase({ ...opening, phase: 'action' });
 const afterMonth = advancePhase(afterAction);
-const queuedFreeCommune = afterMonth.pendingEvents.find(event => event.id === 'economy_free_commune_start');
-assert(queuedFreeCommune, 'The free-commune start event must be queued at the first monthly settlement');
-assert.equal(afterMonth.pendingEvents[0]?.id, 'economy_free_commune_start', 'The forced event must go to the front of the queue');
-
-// 确认选项激活日志（放弃玩家不需要做选择）。
-const activated = { ...afterMonth, ...queuedFreeCommune!.options[0].effect(afterMonth) };
-assert.equal(
-  activated.journal.journal_economy_free_commune?.status,
-  'active',
-  'Confirming the start event must activate the free-commune journal',
+assert(
+  !afterMonth.pendingEvents.some(event => event.id === 'economy_free_commune_start'),
+  'The old free-commune start event must not be forced by the monthly settlement',
 );
-
-// 幂等：日志已经激活之后，月结不再重复入队。
-//
-// 注意月结会重建整份 pendingEvents（`pendingEvents: newPendingEvents`），所以"队列里有
-// 什么"只能作为当月的观察；真正跨月生效的守卫是日志状态本身——开始事件的选项把它写成
-// `active`，下一月的强制入队检查读到的就是 active。这里同时覆盖两个守卫：
-//   ① 日志已激活 → 不再入队；② 事件已经在 history 里 → 即使日志条目缺失也不再入队。
-// 注意 spread 顺序：`activated` 本身带着上个月的 pendingEvents，必须在它之后覆盖队列字段。
-const triggeredState = {
-  ...activated,
-  currentEvent: null,
-  pendingEvents: [],
-};
-assert.equal(
-  triggeredState.journal.journal_economy_free_commune?.status,
-  'active',
-  'The activated state must keep the journal active',
-);
-assert.equal(triggeredState.pendingEvents.length, 0, 'The probe state must start from an empty queue');
-const secondMonth = advancePhase({ ...triggeredState, phase: 'action' });
+const secondMonth = advancePhase({ ...afterMonth, phase: 'action' });
 assert(
   !secondMonth.pendingEvents.some(event => event.id === 'economy_free_commune_start'),
-  'An already-active journal must not re-queue its start event',
+  'The old free-commune start event must stay retired in later months',
 );
 
-// ② history 守卫：日志条目缺失（模拟极端旧档）时靠 history 兜住。
-const historyOnlyGuard = {
-  ...afterMonth,
-  ...activated,
-  currentEvent: null,
-  pendingEvents: [],
-  journal: Object.fromEntries(
-    Object.entries(activated.journal ?? afterMonth.journal)
-      .filter(([journalId]) => journalId !== 'journal_economy_free_commune'),
-  ),
-  eventHistory: {
-    ...afterMonth.eventHistory,
-    triggered: [...afterMonth.eventHistory.triggered, 'economy_free_commune_start'],
-  },
-};
+// 1936 starts after the Fourth Congress, so the journal is already active and
+// there is no opening "land question" event to confirm.
+const opening1936 = createScenarioState('1936', 'normal', 'en');
 assert.equal(
-  historyOnlyGuard.journal.journal_economy_free_commune,
-  undefined,
-  'The history-guard probe must run without the journal entry',
-);
-const thirdMonth = advancePhase({ ...historyOnlyGuard, phase: 'action' });
-assert(
-  !thirdMonth.pendingEvents.some(event => event.id === 'economy_free_commune_start'),
-  'An already-triggered start event must not be queued again even without a journal entry',
+  opening1936.journal.journal_economy_free_commune?.status,
+  'active',
+  'The 1936 start must already have the free-commune journal active',
 );
 
 // ---- 4. 温和工团路线由 CNT 三大激活 ----

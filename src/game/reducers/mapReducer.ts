@@ -1,7 +1,7 @@
 import type { DomainReducer, GameAction } from './types';
 import type { Army, ArmyIdentity, Province } from '../../map/types_map';
 import { MapFaction, MAX_BUILT_FORTRESS } from '../../map/types_map';
-import { INITIAL_PROVINCES, PROVINCE_ADJACENCY } from '../../map/map_constants';
+import { INITIAL_PROVINCES, PROVINCE_ADJACENCY, getSupplyLimit } from '../../map/map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
 import { getMilitiaRecruitmentPool, spendMilitiaPoolManpower } from '../rules/warSetup';
 import type { GameState } from '../types';
@@ -250,6 +250,17 @@ export const reduceMapWarAction = (state: GameState, action: GameAction, helpers
       const armies = state.armies || [];
       const army = armies.find(a => a.id === armyId);
       if (!army) break;
+
+      // An over-supplied province cannot absorb replacements: the men are
+      // already beyond what the province can feed. This mirrors the monthly
+      // attrition in `rules/supply.ts` and applies to the player as well.
+      const supplyProvince = (state.provinces || INITIAL_PROVINCES)[army.provinceId];
+      if (supplyProvince) {
+        const provinceLoad = armies
+          .filter(item => item.provinceId === army.provinceId)
+          .reduce((total, item) => total + Math.max(0, item.manpower), 0);
+        if (provinceLoad >= getSupplyLimit(supplyProvince)) break;
+      }
 
       const playerFaction = state.mapCurrentPlayer || MapFaction.REPUBLICAN;
       const mapResources = { ...state.mapResources };

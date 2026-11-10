@@ -84,6 +84,7 @@ export const PRE_START_STATE: GameState = {
   militia_reorg_timer: 0,
   anarchy_tanks_timer: 0,
   prepare_revolution_timer: 0,
+  paseo_timer: 0,
   industry_policy_timer: 0,
   trade_policy_timer: 0,
   fiscal_measures_timer: 0,

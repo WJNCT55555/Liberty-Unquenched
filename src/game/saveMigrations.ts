@@ -358,9 +358,20 @@ const migrateMapState = (state: GameState): GameState => {
     const saved = savedResources?.[faction];
     if (saved) resources[faction] = { ...resources[faction], ...saved };
   }
+  // Older AI fortress builds overwrote `fortification` (the province's
+  // intrinsic terrain defence) instead of only adding `buildings.fortress`,
+  // which made their forts count twice. Restore the intrinsic level and keep
+  // the built level, so an existing save is repaired on load.
+  const provinces = Object.fromEntries(
+    Object.entries(state.provinces || INITIAL_PROVINCES).map(([id, province]) => {
+      const initial = INITIAL_PROVINCES[id];
+      if (!initial || province.fortification === initial.fortification) return [id, province];
+      return [id, { ...province, fortification: initial.fortification }];
+    }),
+  );
   return {
     ...state,
-    provinces: state.provinces || { ...INITIAL_PROVINCES },
+    provinces,
     armies: Array.isArray(state.armies) ? state.armies : [],
     mapSelectedProvinceId: state.mapSelectedProvinceId ?? null,
     mapSelectedArmyId: state.mapSelectedArmyId ?? null,
@@ -430,6 +441,7 @@ export const migrateSaveState = (rawState: unknown): GameState => {
   );
   return {
     ...migrated,
+    paseo_timer: Number.isFinite(migrated.paseo_timer) ? Math.max(0, migrated.paseo_timer) : 0,
     ...(migrated.classes ? { classes: Object.fromEntries(Object.entries(migrated.classes).map(([socialClass, entry]) =>
       [socialClass, { ...entry, support: { ...entry.support, FET: entry.support.FET ?? 0 } }])) as GameState['classes'] } : {}),
     ...(migrated.partySupport ? { partySupport: { ...migrated.partySupport, FET: migrated.partySupport.FET ?? 0 } } : {}),

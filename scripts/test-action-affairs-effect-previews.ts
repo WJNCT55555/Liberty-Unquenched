@@ -11,7 +11,9 @@ import { aragonFront } from '../src/game/military_affairs/aragon_front';
 import { militiaReorg } from '../src/game/military_affairs/militia_reorg';
 import { anarchyTanks } from '../src/game/military_affairs/anarchy_tanks';
 import { prepareForRevolution } from '../src/game/military_affairs/prepare_for_revolution';
+import { armsAcquisition } from '../src/game/military_affairs/arms_acquisition';
 import { INITIAL_MILITARIZATION } from '../src/game/rules/militarization';
+import { getRng, setRng } from '../src/game/rules/rng';
 import { getOptionEffectPreview } from '../src/game/effectPreview';
 import { PRE_START_STATE } from '../src/game/scenarios';
 import { INITIAL_CLASSES } from '../src/game/parties';
@@ -573,9 +575,8 @@ equal(tankResearchResult.armaments, militaryState.armaments - 1, 'Tank R&D must 
 equal(tankResearchResult.tankResearchProgress, 75, 'Tank R&D must add 25 research progress');
 equal(tankResearchResult.currentEvent?.id, 'tank_rd_report', 'Tank R&D must open the research report');
 
-// Prepare for Revolution is a peacetime military menu card: the same event re-opens
-// after every lever pull and the three-pull limit is a global programme counter, so
-// the war gate, the armament cost and the nine-pull budget are all exercised here.
+// Prepare for Revolution allows one measure per play. Each measure has five uses
+// across the campaign, with a four-month cooldown after each choice.
 const revolutionState = buildState({
   civilWarStatus: 'not_started',
   armaments: 5,
@@ -593,7 +594,7 @@ const prepareOptionTitles = [
   'Arm the Militias',
   'Win Over the Armed Forces',
   'Sabotage the Reactionaries',
-  'Conclude the Preparation',
+  'Postpone Preparation',
 ] as const;
 equal(
   prepareOpened.event.options.length,
@@ -610,7 +611,7 @@ ok(
   optionText(
     findOptionStartingWith(prepareOpened.event, prepareOpened.state, 'Arm the Militias'),
     prepareOpened.state
-  ).includes('3/3 left'),
+  ).includes('5/5 left'),
   'The militia lever must show how many global pulls are left'
 );
 
@@ -623,10 +624,12 @@ equal(
   'Arming the militias must raise the CNT force group rate by 2'
 );
 equal(armTheMilitiasResult.prepareRevolution?.militiaUses, 1, 'Arming the militias must count one pull');
+equal(armTheMilitiasResult.currentEvent, null, 'Choosing a measure must close the preparation menu');
+equal(armTheMilitiasResult.prepare_revolution_timer, 4, 'Choosing a measure must start the four-month cooldown');
 equal(
-  armTheMilitiasResult.currentEvent?.id,
-  'prepare_revolution_event',
-  'Every lever must return to the preparation menu'
+  prepareForRevolution.condition?.({ ...revolutionState, ...armTheMilitiasResult }),
+  false,
+  'The card cannot be played again immediately after choosing a measure'
 );
 equal(
   armTheMilitias.condition?.(buildState({ armaments: 0, organizations: cloneData(getDefaultOrganizationState('1931')) })),
@@ -643,8 +646,8 @@ equal(
 );
 equal(
   armTheMilitias.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 3, armyUses: 0, sabotageUses: 0 } }),
-  false,
-  'Arming the militias must stop after three pulls in the whole programme'
+  true,
+  'A saved count of three must leave two militia uses available'
 );
 
 const cappedMilitarization = armTheMilitias.effect({
@@ -673,34 +676,35 @@ equal(
   'Prepare for Revolution must require the defence committees'
 );
 
-const threePulls = [0, 1, 2].reduce<GameState>(
-  (state) => applyOption(state, armTheMilitias),
+const fivePulls = [0, 1, 2, 3, 4].reduce<GameState>(
+  (state) => applyOption({ ...state, prepare_revolution_timer: 0 }, armTheMilitias),
   revolutionState
 );
-equal(threePulls.prepareRevolution?.militiaUses, 3, 'Three pulls must be counted');
-equal(threePulls.armaments, 2, 'Three pulls must spend three armaments');
+equal(fivePulls.prepareRevolution?.militiaUses, 5, 'Five separate militia choices must be counted');
+equal(fivePulls.armaments, 0, 'Five militia choices must spend five armaments');
 equal(
-  armTheMilitias.condition?.(threePulls),
+  armTheMilitias.condition?.(fivePulls),
   false,
-  'A fourth pull of the same lever must be unavailable'
+  'A sixth choice of the same measure must be unavailable'
 );
 equal(
-  prepareForRevolution.effect(threePulls).prepareRevolution,
+  prepareForRevolution.effect(fivePulls).prepareRevolution,
   undefined,
   'Playing the card must not reset the global programme counters'
 );
 equal(
-  prepareForRevolution.condition?.(threePulls),
+  prepareForRevolution.condition?.({ ...fivePulls, prepare_revolution_timer: 0 }),
   true,
-  'The card must stay playable while other levers still have pulls left'
+  'The card must stay playable while other measures still have uses left'
 );
 equal(
   prepareForRevolution.condition?.({
-    ...threePulls,
-    prepareRevolution: { militiaUses: 3, armyUses: 3, sabotageUses: 3 },
+    ...fivePulls,
+    prepare_revolution_timer: 0,
+    prepareRevolution: { militiaUses: 5, armyUses: 5, sabotageUses: 5 },
   }),
   false,
-  'The card must leave the deck once all nine pulls are spent'
+  'The card must leave the deck once all fifteen uses are spent'
 );
 
 const winOverTheArmedForces = findOptionStartingWith(
@@ -716,10 +720,12 @@ equal(
   'Winning over the armed forces must raise officer loyalty by 3'
 );
 equal(officerResult.prepareRevolution?.armyUses, 1, 'Winning over the armed forces must count one pull');
+equal(officerResult.currentEvent, null, 'Winning over the armed forces must close the menu');
+equal(officerResult.prepare_revolution_timer, 4, 'Winning over the armed forces must start cooldown');
 equal(
-  winOverTheArmedForces.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 0, armyUses: 3, sabotageUses: 0 } }),
+  winOverTheArmedForces.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 0, armyUses: 5, sabotageUses: 0 } }),
   false,
-  'Winning over the armed forces must stop after three pulls in the whole programme'
+  'Winning over the armed forces must stop after five choices in the whole programme'
 );
 
 const sabotage = findOptionStartingWith(prepareOpened.event, prepareOpened.state, 'Sabotage the Reactionaries');
@@ -736,6 +742,8 @@ equal(
   'The Falange must keep its rate while its first line does not exist'
 );
 equal(requeteOnly.prepareRevolution?.sabotageUses, 1, 'Sabotage must count one pull');
+equal(requeteOnly.currentEvent, null, 'Sabotage must close the menu');
+equal(requeteOnly.prepare_revolution_timer, 4, 'Sabotage must start cooldown');
 const falangeRaised = {
   ...revolutionState,
   organizations: {
@@ -762,8 +770,13 @@ equal(
   false,
   'Sabotage must be unavailable when no right-wing militia has been raised'
 );
+equal(
+  sabotage.condition?.({ ...revolutionState, prepareRevolution: { militiaUses: 0, armyUses: 0, sabotageUses: 5 } }),
+  false,
+  'Sabotage must stop after five choices in the whole programme'
+);
 
-const conclude = findOption(prepareOpened.event, prepareOpened.state, 'Conclude the Preparation');
+const conclude = findOption(prepareOpened.event, prepareOpened.state, 'Postpone Preparation');
 const concluded = conclude.effect(revolutionState);
 equal(concluded.prepare_revolution_timer, 4, 'Concluding must set the four-month cooldown');
 equal(
@@ -783,5 +796,51 @@ equal(
   'Prepare for Revolution must observe its own cooldown'
 );
 equal(prepareForRevolution.type, 'Military', 'Prepare for Revolution must be a military card');
+
+// French covert operations improve the chance and quantity of border arms.
+const acquisitionState = buildState({ resources: 2, armaments: 3, covert_ops_france: 0 });
+equal(armsAcquisition.cost, 1, 'Arms Acquisition must cost one action point');
+equal(armsAcquisition.condition?.(buildState({ resources: 0 })), false, 'Arms Acquisition requires a resource');
+const acquisitionOpened = openCardEvent(armsAcquisition, acquisitionState);
+equal(acquisitionOpened.event.options.length, 1, 'Arms Acquisition must have one decision option');
+deepStrictEqual(acquisitionOpened.event.date, { year: acquisitionState.year, month: acquisitionState.month });
+const borderOption = findOption(acquisitionOpened.event, acquisitionOpened.state, 'Try to Obtain Weapons from the French Border');
+equal(optionTextZh(borderOption, acquisitionOpened.state), '尝试从法国边境获取武器');
+equal(borderOption.condition?.(acquisitionOpened.state), true);
+equal(borderOption.condition?.(buildState({ resources: 0 })), false);
+ok(borderOption.subtitle && borderOption.subtitleZh && borderOption.unavailableSubtitle && borderOption.unavailableSubtitleZh);
+ok(borderOption.effectPreview, 'Border arms option must explain both random outcomes');
+assertBilingual(borderOption.effectPreview(acquisitionOpened.state), 'Arms Acquisition');
+ok(borderOption.effectPreview(acquisitionOpened.state).some(line => line.text?.includes('50%')));
+
+const previousRng = getRng();
+try {
+  setRng({ next: () => 0.49 });
+  const baseSuccess = borderOption.effect(acquisitionOpened.state);
+  equal(baseSuccess.resources, 1, 'A successful attempt spends one resource');
+  equal(baseSuccess.armaments, 4, 'With no French operations, success gains one armament');
+  equal(baseSuccess.currentEvent, null, 'The decision must close the event');
+
+  setRng({ next: () => 0.5 });
+  const baseFailure = borderOption.effect(acquisitionOpened.state);
+  equal(baseFailure.resources, 1, 'A failed attempt still spends one resource');
+  equal(baseFailure.armaments, 3, 'At the 50% boundary, no armament is gained');
+
+  const fourOperations = { ...acquisitionOpened.state, covert_ops_france: 4 };
+  ok(borderOption.effectPreview(fourOperations).some(line => line.text?.includes('90%')));
+  setRng({ next: () => 0.89 });
+  equal(borderOption.effect(fourOperations).armaments, 8, 'Four operations give five armaments on success');
+  setRng({ next: () => 0.9 });
+  equal(borderOption.effect(fourOperations).armaments, 3, 'The 90% ceiling must still allow failure');
+
+  const sixOperations = { ...acquisitionOpened.state, covert_ops_france: 6 };
+  const cappedPreview = borderOption.effectPreview(sixOperations);
+  ok(cappedPreview.some(line => line.text?.includes('90%')), 'Chance must remain capped at 90%');
+  ok(cappedPreview.some(line => line.text?.includes('7 armaments')), 'Armament gain must keep scaling beyond the chance cap');
+  setRng({ next: () => 0.89 });
+  equal(borderOption.effect(sixOperations).armaments, 10, 'Six operations give seven armaments on success');
+} finally {
+  setRng(previousRng);
+}
 
 console.log('Action-affairs effect preview tests passed.');

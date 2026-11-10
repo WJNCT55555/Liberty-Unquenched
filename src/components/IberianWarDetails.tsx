@@ -14,7 +14,7 @@ export const IberianWarDetails = ({ state }: { state: Pick<GameState, 'iberianDe
     <p>{zh ? '委员会成员：CNT' : 'Committee members: CNT'}{war.allies.poum ? ' + POUM' : ''}{war.allies.psoeLeft ? (zh ? ' + PSOE 左翼' : ' + PSOE left') : ''}</p>
     <p>{zh ? '成立时带入兵力' : 'Troops contributed at formation'}：CNT {war.contributions.cnt} · POUM {war.contributions.poum} · {zh ? 'PSOE 左翼' : 'PSOE left'} {war.contributions.psoeLeft}</p>
     <p>{zh ? `每月顺序：委员会 → 马德里政府 → 国民军${carlistsActive ? ' → 卡洛斯派' : ''}；各 2 CP，出局方跳过。首都失守且 SV 严格低于阈值才出局。` : `Monthly order: Committee → Madrid → Nationalists${carlistsActive ? ' → Carlists' : ''}; 2 CP each, eliminated camps skipped. Capitulation requires capital loss AND SV strictly below the threshold.`}</p>
-    {war.playerDefeated && <p className="font-bold">{zh ? '防御委员会失败。委员会出局后立即结束本局。' : 'The Defense Committee is defeated. Its capitulation immediately ends this game.'}</p>}
+    {war.playerDefeated && <p className="font-bold">{zh ? '委员会已被击败。若最后只剩共和国、且是共和国击败了委员会，本局以“被背叛的革命”收束；否则以“我们已经通过”收束。' : 'The Committee has been beaten. If the Republic is the last camp standing and it was the Republic that defeated the Committee, the game ends with “The Revolution Betrayed”; otherwise it ends with “We Have Passed”.'}</p>}
     <div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead><tr>{(zh ? ['阵营', '首都归属', 'SV / 出局线', '省份', '兵力', '状态'] : ['Faction', 'Capital owner', 'SV / limit', 'Provinces', 'Troops', 'Status']).map(label => <th key={label} className="p-1 border-b border-ink/30">{label}</th>)}</tr></thead><tbody>
       {[...CIVIL_WAR_FACTIONS, ...(carlistsActive ? [MapFaction.CARLIST] : [])].map(faction => {
         const capital = IBERIAN_CAPITALS[faction], owner = state.provinces?.[capital]?.owner;

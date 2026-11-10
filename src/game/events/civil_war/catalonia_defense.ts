@@ -8,6 +8,21 @@ const civilWarMeta = {
   tags: ['map'],
 };
 
+/**
+ * LEGACY EVENT — kept for save compatibility and immersion.
+ *
+ * This is the old two-choice "Defense of Catalonia" stub. It intentionally
+ * prioritises narrative flavour over hard mechanical gates: the final design
+ * will replace it with an immersive chain (Barcelona defence → Catalan power
+ * arrangement → May Days), with CNT strength, ERC relations, Generalitat
+ * institutions and militia control expressed through events rather than a
+ * single binary menu.
+ *
+ * Do not add new hard requirements here; put them in the future chain instead.
+ * The only immediate fix kept here is the `stats` merge below: the old spread
+ * replaced the whole stats object with `applyControlInfluence`'s partial
+ * `{ workerControl }`, which produced NaN in other stats.
+ */
 export const cataloniaDefense: GameEvent = {
   id: 'catalonia_defense',
   meta: civilWarMeta,
@@ -18,14 +33,26 @@ export const cataloniaDefense: GameEvent = {
   descriptionZh: '无政府主义民兵在巴塞罗那各处设立路障。安全部队加入抵抗；突击警卫与无政府主义守军共享武器。无政府主义领袖会见加泰罗尼亚政府主席孔帕尼斯。',
   options: [
     {
+      // Legacy binary choice. The eventual immersive chain will let the player
+      // negotiate the Generalitat's survival, CNT/UGT committees, POUM
+      // participation and the militia command instead of a free flag flip.
       text: 'The Anarchists Seize Power!',
       textZh: '无政府主义者夺取政权！',
-      effect: (state) => ({
-        cataloniaControl: 'cnt_fai',
-        ...applyControlInfluence(state, 10, { land: 0.2, industry: 0.8 })
-      })
+      effect: (state) => {
+        const control = applyControlInfluence(state, 10, { land: 0.2, industry: 0.8 });
+        return {
+          cataloniaControl: 'cnt_fai',
+          ...(control.controlShares ? { controlShares: control.controlShares } : {}),
+          stats: {
+            ...state.stats,
+            ...(control.stats ?? {}),
+          },
+        };
+      }
     },
     {
+      // Legacy alliance stub: it records the political outcome but not the
+      // terms of the deal. Those terms belong in the future Catalonia chain.
       text: 'Temporary Alliance with Companys',
       textZh: '无政府主义者与孔帕尼斯暂时结盟',
       effect: () => ({

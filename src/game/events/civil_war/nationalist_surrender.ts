@@ -1,5 +1,6 @@
 import type { GameEvent } from '../../types';
 import { MapFaction } from '../../../map/types_map';
+import { beginPostwarSettlement } from '../postwar_settlement';
 
 const civilWarTerminalMeta = {
   category: 'war' as const,
@@ -39,7 +40,11 @@ export const nationalistSurrender: GameEvent = {
         return {
           civilWarStatus: carlistsFight ? 'ongoing' : 'won',
           ...(carlistsFight ? { nationalistIntegration: { ...(state.nationalistIntegration ?? { stage: 'fragmented' as const }),
-            nationalistCapitulatedAt: { year: state.year, month: state.month } } } : { superEvent: 'spanish_civil_war_ends' }),
+            nationalistCapitulatedAt: { year: state.year, month: state.month } } } : {
+              superEvent: 'spanish_civil_war_ends',
+              // A clean Republican victory opens the postwar settlement before the ending screen.
+              ...beginPostwarSettlement(state),
+            }),
           provinces: Object.fromEntries(Object.entries(state.provinces).map(([id, province]) => [id,
             province.owner === MapFaction.NATIONALIST ? { ...province, owner: recipient } : province])),
           armies: state.armies.filter(army => army.faction !== MapFaction.NATIONALIST),

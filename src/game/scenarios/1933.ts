@@ -49,10 +49,10 @@ export const SCENARIO_1933: ScenarioDefinition = {
     estado: 'Other',
   },
 
-  // November 1933 Cortes: the right's victory, CEDA as the largest single bloc.
+  // November 1933 Cortes: 473 seats; the right's victory, CEDA as the largest single bloc.
   cortes: {
     AP: 115, PRR: 102, PSOE: 59, ERC: 17, RE: 14, CT: 20, FE: 1, IR: 5, UR: 1, PNV: 11,
-    DLR: 0, POUM: 0, PCE: 1, PS: 0, Other: 124, PRRevS: 0,
+    DLR: 0, POUM: 0, PCE: 1, PS: 0, Other: 127, PRRevS: 0,
   },
 
   classes: SCENARIO_1933_CLASSES,
@@ -65,6 +65,7 @@ export const SCENARIO_1933: ScenarioDefinition = {
    *   1931-11  Mixed Juries law          union_status 1->2, mixed_jury_cnt_opposed -> true
    *   1931-12  Constitution of 1931      political_rights 1->2, womens_rights 0->1,
    *                                      religion_policy 0->2, education_institutions 0->1
+   *   1932-02  Divorce Law              womens_rights 1->2
    *   1932-08  Sanjurjada                land_law 0->1
    *   1932-09  Catalan statute           language_policy 0->1
    *   1933-07  Public Order Law          public_order_law 0->1 (repeals the 1931 Defense Act)
@@ -93,7 +94,7 @@ export const SCENARIO_1933: ScenarioDefinition = {
     min_wage: 0,
     workplace_safety: 0,
     political_rights: 2,
-    womens_rights: 1,
+    womens_rights: 2,
     religion_policy: 2,
     education_institutions: 1,
     language_policy: 1,

@@ -1,4 +1,4 @@
-import { PROVINCE_ADJACENCY } from '../../map/map_constants';
+import { PROVINCE_ADJACENCY, getSupplyLimit } from '../../map/map_constants';
 import { MapFaction, type Army, type MapRuntimeState } from '../../map/types_map';
 import { calculateAiMoves } from '../../map/lib/gameAi';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from '../../map/rules/costs';
@@ -111,11 +111,14 @@ export function executeAiTurn<State extends MapRuntimeState>(
         };
         provinces[provinceId] = {
           ...province,
+          // A fortress is an addition to `buildings.fortress`. `fortification`
+          // is the province's inherent terrain defence and must not be
+          // overwritten here, or `getEffectiveFortressLevel` counts the AI's
+          // new level twice (the player only ever writes `buildings.fortress`).
           buildings: {
             ...currentBuildings,
             [buildingType]: nextLevel,
           },
-          ...(buildingType === 'fortress' ? { fortification: Math.min(3, nextLevel) } : {}),
         };
         const buildingName = isZh 
           ? (buildingType === 'barracks' ? '兵营' : buildingType === 'fortress' ? '要塞' : buildingType === 'recruitingOffice' ? '征兵处' : '弹药厂')
@@ -132,6 +135,15 @@ export function executeAiTurn<State extends MapRuntimeState>(
       const army = armies.find(a => a.id === armyId);
       const playerRes = mapResources[aiFaction];
       if (!army || !playerRes) return;
+
+      // A province at or over its supply limit cannot absorb replacements.
+      const supplyProvince = provinces[army.provinceId];
+      if (supplyProvince) {
+        const provinceLoad = armies
+          .filter(item => item.provinceId === army.provinceId)
+          .reduce((total, item) => total + Math.max(0, item.manpower), 0);
+        if (provinceLoad >= getSupplyLimit(supplyProvince)) return;
+      }
 
       const maxRestored = reinforceTarget(army);
       const maxInfRestored = maxRestored.infantry;

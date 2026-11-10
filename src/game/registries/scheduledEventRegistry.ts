@@ -13,6 +13,8 @@ import { foundingSyndicalistParty } from '../events/founding_syndicalist_party';
 import { cedaFormation } from '../events/ceda_formation';
 import { industryCommerceMinistry } from '../events/industry_commerce_ministry';
 import { healthMinistry } from '../events/civil_war/health_ministry';
+import { councilRepublicTransition } from '../events/council_republic';
+import { communeFederationTransition } from '../events/commune_federation';
 import { accionNacionalFormation } from '../events/accion_nacional_formation';
 import { jonsFormation, seuFormation, seccionFemeninaFormation } from '../events/falange_organizations';
 import { jsuFormation, mujeresAntifascistasFormation, egiFormation, jciFormation } from '../events/party_auxiliary_organizations';
@@ -177,4 +179,6 @@ export const SCHEDULED_EVENT_REGISTRY = defineScheduledEventRegistry([
   economyAfterTheRevolution,
   economyWartimeRouteChoice,
   landCollectivizationStart,
+  councilRepublicTransition,
+  communeFederationTransition,
 ]);

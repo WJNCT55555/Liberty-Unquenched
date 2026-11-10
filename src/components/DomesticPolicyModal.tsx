@@ -76,7 +76,7 @@ const LawIcon: React.FC<{
         />
       )}
       {failed && (
-        <span className="flex h-full w-full items-center justify-center">{fallback}</span>
+        <span className="flex h-full w-full items-center justify-center [&_svg]:h-6 [&_svg]:w-6">{fallback}</span>
       )}
     </span>
   );
@@ -130,15 +130,15 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
         onClick={() => setActivePolicy(policy)}
         className="law-page__card law-page__card--interactive p-3"
       >
-        <div className="flex gap-2.5">
+        <div className="flex gap-3">
           <LawIcon
             key={`${policy.id}-${levelValue}`}
             policyId={policy.id}
             level={levelValue}
             fallback={policy.icon}
-            className="h-12 w-12"
+            className="w-[60px] self-stretch"
           />
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate font-sans text-[11px] font-semibold leading-none tracking-[0.06em] text-[#5d574e]">
                 {isZh ? policy.name.zh : policy.name.en}
@@ -148,19 +148,18 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
             <h4 className="mt-1.5 font-serif text-[17px] font-bold leading-snug text-[#211f1c]">
               {isZh ? levelDefinition.name.zh : levelDefinition.name.en}
             </h4>
-          </div>
-        </div>
-
-        <div className="mt-auto pt-2">
-          <div className="law-page__hairline" />
-          <div
-            className="mt-1.5 flex items-center gap-1.5"
-            title={effectLines.join(isZh ? '；' : '; ')}
-          >
-            <span className="h-1.5 w-1.5 shrink-0 bg-[#9c7321]" aria-hidden="true" />
-            <span className="truncate font-mono text-[10.5px] leading-relaxed text-[#3c3832]">
-              {primaryEffect}
-            </span>
+            <div className="mt-auto pt-2">
+              <div className="law-page__hairline" />
+              <div
+                className="mt-1.5 flex items-center gap-1.5"
+                title={effectLines.join(isZh ? '；' : '; ')}
+              >
+                <span className="h-1.5 w-1.5 shrink-0 bg-[#9c7321]" aria-hidden="true" />
+                <span className="truncate font-mono text-[10.5px] leading-relaxed text-[#3c3832]">
+                  {primaryEffect}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </button>
@@ -205,9 +204,9 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
             policyId={activePolicy.id}
             level={levelDefinition.level}
             fallback={activePolicy.icon}
-            className="h-14 w-14"
+            className="h-16 w-16"
           />
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-typewriter text-[9px] uppercase leading-none tracking-[0.14em] text-[#5d574e]">
@@ -229,27 +228,27 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
             <p className={`mt-2 text-[12.5px] leading-relaxed ${isCurrent ? 'text-[#211f1c]' : 'text-[#3c3832]'}`}>
               {isZh ? levelDefinition.description.zh : levelDefinition.description.en}
             </p>
+
+            {effectLines.length > 0 && (
+              <div className="mt-3">
+                <div className="law-page__hairline" />
+                <div className="mt-2">
+                  <div className="font-typewriter text-[9px] uppercase leading-none tracking-[0.18em] text-[#8a8175]">
+                    {isZh ? '月度效果' : 'Monthly effect'}
+                  </div>
+                  <div className="mt-1.5 grid gap-1">
+                    {effectLines.map((line, index) => (
+                      <div key={index} className="flex items-start gap-1.5">
+                        <span className="mt-[5px] h-1 w-1 shrink-0 bg-[#9c7321]" aria-hidden="true" />
+                        <span className="font-mono text-[10.5px] leading-relaxed text-[#3c3832]">{line}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        {effectLines.length > 0 && (
-          <div className="mt-auto pt-3">
-            <div className="law-page__hairline" />
-            <div className="mt-2">
-              <div className="font-typewriter text-[9px] uppercase leading-none tracking-[0.18em] text-[#8a8175]">
-                {isZh ? '月度效果' : 'Monthly effect'}
-              </div>
-              <div className="mt-1.5 grid gap-1">
-                {effectLines.map((line, index) => (
-                  <div key={index} className="flex items-start gap-1.5">
-                    <span className="mt-[5px] h-1 w-1 shrink-0 bg-[#9c7321]" aria-hidden="true" />
-                    <span className="font-mono text-[10.5px] leading-relaxed text-[#3c3832]">{line}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </article>
     );
   };
@@ -278,7 +277,7 @@ export const DomesticPolicyModal: React.FC<Props> = ({ isOpen, onClose, state, i
                   policyId={activePolicy.id}
                   level={activeLevelValue}
                   fallback={activePolicy.icon}
-                  className="h-11 w-11"
+                  className="h-12 w-12"
                 />
               )}
               <div className="min-w-0">

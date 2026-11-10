@@ -92,10 +92,14 @@ export const SidePanel = () => {
   const state = useGameSelector(selectSidePanelState, areSidePanelStatesEqual);
   const { dispatch } = useGameActions();
   const isZh = state.language === 'zh';
-  const nextElectionText = formatGeneralElectionViewModel(
-    selectGeneralElectionViewModel(state),
-    isZh,
-  );
+  const nextElectionText = state.polity?.type === 'council_republic'
+    ? (isZh ? '无议会选举；CEC 改选待定' : 'No parliamentary elections; CEC renewal pending')
+    : state.polity?.type === 'free_commune_federation'
+      ? (isZh ? '无议会选举；联邦大会按召回/两年期' : 'No parliamentary elections; Federal Congress by recall/two-year cycle')
+      : formatGeneralElectionViewModel(
+        selectGeneralElectionViewModel(state),
+        isZh,
+      );
   const partyDisplayState: PartyDisplayState = {
     year: state.year,
     month: state.month,
@@ -106,8 +110,17 @@ export const SidePanel = () => {
     organizations: state.organizations,
   };
   const effectiveCortes = getEffectiveCortes(state);
-  const parliamentSeats = getParliamentSeatEntries(effectiveCortes);
-  const vacantCortesSeats = getVacantCortesSeats(state);
+  const isCouncil = state.polity?.type === 'council_republic';
+  const isCommune = state.polity?.type === 'free_commune_federation';
+  const isNonParliamentary = isCouncil || isCommune;
+  const chamberSeats = isCommune ? state.polity?.congressSeats : state.polity?.cecSeats;
+  const parliamentSeats: Array<[string, number]> = isNonParliamentary && chamberSeats
+    ? (Object.entries(chamberSeats) as Array<[string, number]>)
+      .filter(([, seats]) => seats > 0)
+      .sort((left, right) => right[1] - left[1])
+    : getParliamentSeatEntries(effectiveCortes);
+  const totalParliamentSeats = parliamentSeats.reduce((sum, [, seats]) => sum + seats, 0);
+  const vacantCortesSeats = isNonParliamentary ? 0 : getVacantCortesSeats(state);
 
   const unionShare = getUnionShare(state);
   const organizedShare = getOrganizedShare(unionShare);
@@ -470,7 +483,13 @@ export const SidePanel = () => {
         <div className="flex flex-col gap-2 text-xs font-mono">
           {/* Next Election Date indicator */}
           <div className="flex justify-between items-center border-b border-ink/20 pb-1.5 mb-1 text-[11px]">
-            <span className="text-ink-light font-bold uppercase tracking-wider">{isZh ? '下一次选举' : 'NEXT ELECTION'}</span>
+            <span className="text-ink-light font-bold uppercase tracking-wider">
+              {state.polity?.type === 'council_republic'
+                ? (isZh ? 'CEC 改选' : 'CEC RENEWAL')
+                : state.polity?.type === 'free_commune_federation'
+                  ? (isZh ? '联邦大会' : 'FEDERAL CONGRESS')
+                  : (isZh ? '下一次选举' : 'NEXT ELECTION')}
+            </span>
             <span className="font-bold text-accent">{nextElectionText}</span>
           </div>
 
@@ -505,11 +524,23 @@ export const SidePanel = () => {
             <span className="font-bold">{isZh ? state.government.typeZh : state.government.type}</span>
           </div>
           <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-            <span className="text-ink-light">{isZh ? '总统' : 'President'}</span>
+            <span className="text-ink-light">
+              {state.polity?.type === 'free_commune_federation'
+                ? (isZh ? '联邦常设代表团轮值主席' : 'Federal Delegation Chair')
+                : state.polity?.type === 'council_republic'
+                  ? (isZh ? 'CEC 主席' : 'CEC Chairman')
+                  : (isZh ? '总统' : 'President')}
+            </span>
             <span>{isZh ? state.government.presidentZh : state.government.president}</span>
           </div>
           <div className="flex justify-between items-center border-b border-ink/20 pb-1">
-            <span className="text-ink-light">{isZh ? '总理' : 'PM'}</span>
+            <span className="text-ink-light">
+              {state.polity?.type === 'free_commune_federation'
+                ? (isZh ? '无政府首脑' : 'No head of government')
+                : state.polity?.type === 'council_republic'
+                  ? (isZh ? '人民委员会议主席' : 'Commissar Chairman')
+                  : (isZh ? '总理' : 'PM')}
+            </span>
             <span>{isZh ? state.government.primeMinisterZh : state.government.primeMinister}</span>
           </div>
 
@@ -699,8 +730,12 @@ export const SidePanel = () => {
         </div>
       </AccordionSection>
 
-      {state.cortes && (
-        <AccordionSection title={isZh ? '议会分布' : 'Parliamentary Distribution'} defaultOpen={true}>
+      {(state.cortes || chamberSeats) && (
+        <AccordionSection title={isCommune
+          ? (isZh ? '联邦大会分布' : 'Federal Congress Distribution')
+          : isCouncil
+            ? (isZh ? 'CEC 分布' : 'CEC Distribution')
+            : (isZh ? '议会分布' : 'Parliamentary Distribution')} defaultOpen={true}>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs font-mono mb-1">
               <span>{isZh ? '左翼' : 'Left'}</span>
@@ -712,8 +747,8 @@ export const SidePanel = () => {
                   key={party}
                   className="h-full transition-all duration-1000"
                   style={{ 
-                    width: `${(seats / 470) * 100}%`,
-                    backgroundColor: getPartyColor(state, party as any) || '#9ca3af'
+                    width: `${(seats / (totalParliamentSeats || 1)) * 100}%`,
+                    backgroundColor: party === 'CNT' ? '#cc0000' : (getPartyColor(state, party as any) || '#9ca3af')
                   }}
                   title={`${party}: ${seats}`}
                 />
@@ -722,7 +757,7 @@ export const SidePanel = () => {
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono mt-1">
               {parliamentSeats.map(([party, seats]) => (
                 <div key={party} className="flex items-center gap-1">
-                  <div className="w-2 h-2 border border-ink" style={{ backgroundColor: getPartyColor(state, party as any) || '#9ca3af' }} />
+                  <div className="w-2 h-2 border border-ink" style={{ backgroundColor: party === 'CNT' ? '#cc0000' : (getPartyColor(state, party as any) || '#9ca3af') }} />
                   {party}: {seats}
                 </div>
               ))}
@@ -732,8 +767,12 @@ export const SidePanel = () => {
         </AccordionSection>
       )}
 
-      {state.cortes && (
-        <AccordionSection title={isZh ? '内阁部长' : 'Cabinet Ministers'} defaultOpen={true}>
+      {(state.cortes || chamberSeats) && (
+        <AccordionSection title={isCommune
+          ? (isZh ? '联邦协调委员会' : 'Federal Coordination Council')
+          : isCouncil
+            ? (isZh ? '人民委员' : 'People’s Commissars')
+            : (isZh ? '内阁部长' : 'Cabinet Ministers')} defaultOpen={true}>
           <div className="flex flex-col gap-2 text-xs font-mono">
             {CABINET_FIELDS.map(field => {
               const label = getDepartmentName(field, state.year);

@@ -37,7 +37,11 @@ export const getLaborPressureResistance = (state: GameState, lawId: LaborPressur
         sum + (isSupportive(state, actor, lawId, targetLevel) ? getLegalActorSeats(state, actor, cortes) : 0)
       ), 0)
     : 0;
-  const parliament = !cortes || supportingSeats < 236 ? 1 : 0;
+  const totalSeats = cortes
+    ? Object.values(cortes).reduce((sum, seats) => sum + seats, 0)
+    : 0;
+  const majority = Math.floor(totalSeats / 2) + 1;
+  const parliament = !cortes || supportingSeats < majority ? 1 : 0;
   const laborMinister = state.ministers.labor;
   const ministerActor = laborMinister === 'CNT' ? 'CNT_FAI' : laborMinister === 'Other' ? null : laborMinister;
   const ministry = ministerActor && isSupportive(state, ministerActor, lawId, targetLevel) ? 0 : 1;

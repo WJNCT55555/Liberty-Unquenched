@@ -51,21 +51,45 @@ assert.equal(shouldQueueEvent(congress, resolved, { mode: 'nonHistorical' }), fa
 assert.equal(deserializeGameState(serializeGameState(resolved), runtime).pceAcceptsComintern, true);
 
 // Constructed states test predicate boundaries and priority, not route reachability.
-const victory: GameState = { ...createScenarioState('1936', 'normal', 'zh'), year: 1937,
+const victory: GameState = { ...createScenarioState('1936', 'normal', 'zh'), year: 1940, month: 5,
   civilWarStatus: 'won', cntStance: 'govern', moscowGoldTransferred: true, pceInPower: true,
   stats: { ...resolved.stats, revolutionaryFervor: 60 } };
+
+const allPceMinisters = Object.fromEntries(
+  Object.keys(victory.ministers).map(key => [key, 'PCE']),
+) as unknown as GameState['ministers'];
+const pceOnlyBase: GameState = {
+  ...victory,
+  postwarSettlement: {
+    startedAt: { year: 1939, month: 3 },
+    completedAt: { year: 1939, month: 4 },
+    regime: 'parliamentary_republic',
+  },
+  ministers: allPceMinisters,
+  pceAcceptsComintern: true,
+  moscowGoldTransferred: true,
+  pceInPower: false,
+};
+const atPceOnly = (patch: Partial<GameState> = {}) => checkEndings({ ...pceOnlyBase, ...patch });
+
+// The old support threshold and pceInPower flag are gone: only the regime,
+// PCE-only cabinet, Comintern line and Moscow gold matter.
+assert.equal(atPceOnly().ending, ENDINGS.RUSSIAN_SPAIN);
+assert.equal(atPceOnly({ ministers: { ...allPceMinisters, interior: 'PSOE' } }).ending, 'GENERIC_WIN');
+assert.equal(atPceOnly({ postwarSettlement: { ...pceOnlyBase.postwarSettlement!, regime: 'council_republic' } }).ending, ENDINGS.RUSSIAN_SPAIN);
+assert.equal(atPceOnly({ postwarSettlement: { ...pceOnlyBase.postwarSettlement!, regime: 'federal_republic' } }).ending, 'GENERIC_WIN');
+assert.equal(atPceOnly({ moscowGoldTransferred: false }).ending, 'GENERIC_WIN');
+assert.equal(atPceOnly({ pceAcceptsComintern: false }).ending, 'GENERIC_WIN');
+assert.equal(atPceOnly({ pceInPower: true }).ending, ENDINGS.RUSSIAN_SPAIN);
+
 const atSupport = (support: number, patch: Partial<GameState> = {}) => checkEndings({
   ...victory, partySupport: { ...victory.partySupport, PCE: support }, ...patch,
 });
 assert.equal(atSupport(70).ending, 'GENERIC_WIN');
-assert.equal(atSupport(70.0001).ending, ENDINGS.RUSSIAN_SPAIN);
-assert.equal(atSupport(75).ending, ENDINGS.RUSSIAN_SPAIN);
+assert.equal(atSupport(75).ending, 'GENERIC_WIN');
 assert.equal(atSupport(75.0001).ending, ENDINGS.THE_GREAT_PURGE);
-assert.equal(atSupport(76, { cntStance: 'oppose' }).ending, ENDINGS.RUSSIAN_SPAIN);
-for (const patch of [{ moscowGoldTransferred: false }, { pceInPower: false }, { pceAcceptsComintern: false }] as const) {
-  assert.equal(atSupport(71, patch).ending, 'GENERIC_WIN');
-}
-assert.equal(atSupport(75, { civilWarStatus: 'ongoing' }).isGameOver, false);
+assert.equal(atSupport(76, { cntStance: 'oppose' }).ending, 'GENERIC_WIN');
+assert.equal(atSupport(75, { civilWarStatus: 'ongoing', month: 4 }).isGameOver, false);
 assert.equal(atSupport(75.0001, { civilWarStatus: 'ongoing' }).ending, ENDINGS.THE_GREAT_PURGE);
-assert.equal(atSupport(71, { civilWarStatus: 'ongoing' }).isGameOver, false);
-console.log('Comintern event scheduling, one-time resolution, save hydration and strict ending boundaries passed.');
+assert.equal(atSupport(71, { civilWarStatus: 'ongoing', month: 4 }).isGameOver, false);
+console.log('Comintern event scheduling, one-time resolution, PCE-only Russian Spain and strict ending boundaries passed.');

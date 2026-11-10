@@ -163,8 +163,8 @@ assert.equal(afterNationalist.civilWarStatus, 'ongoing');
 const afterCarlist = checkWarStatus({ ...afterNationalist, provinces: { ...afterNationalist.provinces,
   navarra: { ...afterNationalist.provinces.navarra, owner: MapFaction.REPUBLICAN } } }, true);
 assert.equal(afterCarlist.civilWarStatus, 'won');
-assert.equal(checkEndings({ ...afterNationalist, civilWarStatus: 'lost' }).ending, ENDINGS.CARLIST_VICTORY);
-assert.equal(checkEndings({ ...split, civilWarStatus: 'lost' }).ending, ENDINGS.DIVIDED_REBEL_VICTORY);
+assert.equal(checkEndings({ ...afterNationalist, civilWarStatus: 'lost' }).ending, ENDINGS.WE_HAVE_PASSED);
+assert.equal(checkEndings({ ...split, civilWarStatus: 'lost' }).ending, ENDINGS.WE_HAVE_PASSED);
 
 const campaign: NonNullable<GameState['iberianDefense']> = { formedAt: { year: 1937, month: 5 }, allies: { poum: false, psoeLeft: false },
   leftSocialistReserve: 0, eliminated: [], eliminations: [], surrenderThresholds: {},

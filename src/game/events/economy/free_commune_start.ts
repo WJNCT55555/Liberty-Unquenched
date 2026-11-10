@@ -1,12 +1,14 @@
-﻿import type { GameEvent } from '../../types';
+import type { GameEvent } from '../../types';
 import { activateJournal } from '../../rules/journalEvents';
 
 /**
- * 自由公社路线的开始事件（docs/经济改造方案.md §5.2）。
+ * 自由公社路线的旧开始事件（docs/经济改造方案.md §5.2）。
  *
- * 草案要求"任一开局均自带此日志"，但日志不能自我激活（事件—日志—事件契约第 1 条），
- * 所以由月结管线在开局月强制入队（`rules/monthlyPipeline.ts` 的
- * `forceFreeCommuneStartNextMonth`），这里的事件只有一个确认选项。
+ * 新游戏不再强制触发它：
+ * - 1936 剧本开局即激活日志（第四次代表大会已在 1936·5 开过）；
+ * - 1931/1933 剧本在 CNT 第四次代表大会“构绘蓝图”的三个选项里激活。
+ *
+ * 这个单确认事件只保留用于旧存档兼容；月结管线不再把它塞进开局队列。
  */
 export const economyFreeCommuneStart: GameEvent = {
   id: 'economy_free_commune_start',

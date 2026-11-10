@@ -20,8 +20,8 @@ const OFFICER_LOYALTY_GAIN = 3;
 const REACTIONARY_MILITARIZATION_LOSS = 2;
 /** Peacetime preparation only: the columns can be drilled no further than this. */
 const PEACETIME_MILITARIZATION_CEILING = 40;
-/** Each lever may be pulled three times over the whole programme: nine pulls in total. */
-const MAX_USES_PER_LEVER = 3;
+/** Each lever may be chosen five times across separate plays: fifteen choices in total. */
+const MAX_USES_PER_LEVER = 5;
 const LEVERS: Array<keyof PrepareRevolutionUses> = ['militiaUses', 'armyUses', 'sabotageUses'];
 const PREPARE_REVOLUTION_COOLDOWN = 4;
 
@@ -49,7 +49,7 @@ const remainingUses = (state: GameState, lever: keyof PrepareRevolutionUses): nu
   MAX_USES_PER_LEVER - currentUses(state)[lever]
 );
 
-/** Once all nine pulls are spent the programme is over and the card leaves the deck. */
+/** Once all fifteen choices are spent the programme is over and the card leaves the deck. */
 const hasUsesLeft = (state: GameState): boolean => {
   const uses = currentUses(state);
   return LEVERS.some((lever) => uses[lever] < MAX_USES_PER_LEVER);
@@ -75,7 +75,8 @@ const armTheMilitias: PrepareRevolutionEffect = (state: GameState): Partial<Game
     armaments: state.armaments - ARMAMENT_COST,
     ...adjustMilitarization(state, 'cnt', MILITIA_MILITARIZATION_GAIN, PEACETIME_MILITARIZATION_CEILING),
     prepareRevolution: { ...uses, militiaUses: uses.militiaUses + 1 },
-    currentEvent: prepareForRevolutionEvent(state)
+    prepare_revolution_timer: PREPARE_REVOLUTION_COOLDOWN,
+    currentEvent: null
   };
 };
 
@@ -89,7 +90,8 @@ const winOverTheArmedForces: PrepareRevolutionEffect = (state: GameState): Parti
       armyLoyalty: Math.min(100, state.stats.armyLoyalty + OFFICER_LOYALTY_GAIN)
     },
     prepareRevolution: { ...uses, armyUses: uses.armyUses + 1 },
-    currentEvent: prepareForRevolutionEvent(state)
+    prepare_revolution_timer: PREPARE_REVOLUTION_COOLDOWN,
+    currentEvent: null
   };
 };
 
@@ -100,7 +102,8 @@ const sabotageTheReactionaries: PrepareRevolutionEffect = (state: GameState): Pa
     armaments: state.armaments - ARMAMENT_COST,
     ...adjustMilitarizations(state, reactionaryMilitarizationLosses(state)),
     prepareRevolution: { ...uses, sabotageUses: uses.sabotageUses + 1 },
-    currentEvent: prepareForRevolutionEvent(state)
+    prepare_revolution_timer: PREPARE_REVOLUTION_COOLDOWN,
+    currentEvent: null
   };
 };
 
@@ -115,12 +118,12 @@ const prepareForRevolutionEvent = (state: GameState): GameEvent => ({
   date: { year: state.year, month: state.month },
   title: 'Prepare for Revolution',
   titleZh: '准备革命',
-  description: 'The confederation can pull three levers before the storm breaks, each of them paid for in armaments and each of them good for three pulls over the whole programme. Conclude when the work is done.',
-  descriptionZh: '在风暴来临之前，联合会可以动用三种手段：每种都要消耗军备，每种在这场革命准备中总共只能实施三次。准备完成后请结束本次准备。',
+  description: 'Choose one preparation measure this time. Each of the three measures costs armaments and can be used up to five times across separate plays of this card. Any choice ends this preparation and starts a four-month cooldown.',
+  descriptionZh: '本次只能选择一种革命准备手段。三种手段各消耗军备，且各自在多次打出这张卡牌的过程中最多可选择五次。选择后结束本次准备，并进入四个月冷却。',
   options: [
     {
-      text: (state: GameState) => `Arm the Militias (-1 Armament, ${remainingUses(state, 'militiaUses')}/3 left)`,
-      textZh: (state: GameState) => `武装民兵（-1 军备，剩余 ${remainingUses(state, 'militiaUses')}/3 次）`,
+      text: (state: GameState) => `Arm the Militias (-1 Armament, ${remainingUses(state, 'militiaUses')}/5 left)`,
+      textZh: (state: GameState) => `武装民兵（-1 军备，剩余 ${remainingUses(state, 'militiaUses')}/5 次）`,
       subtitle: 'CNT militia militarization +2, never above 40 while the country is at peace. Spend paramilitary stock to put rifles into confederal hands.',
       subtitleZh: 'CNT 民兵军事化率 +2；和平时期最高只能提升到 40。消耗准军事储备，把步枪交到联合民兵手中。',
       condition: (state: GameState) => state.armaments >= ARMAMENT_COST
@@ -131,37 +134,37 @@ const prepareForRevolutionEvent = (state: GameState): GameEvent => ({
         if (getMilitarization(state, 'cnt') >= PEACETIME_MILITARIZATION_CEILING) {
           return `CNT militia militarization is already at ${PEACETIME_MILITARIZATION_CEILING}.`;
         }
-        return 'This lever has already been pulled three times in this preparation.';
+        return 'This measure has already been chosen five times.';
       },
       unavailableSubtitleZh: (state: GameState) => {
         if (state.armaments < ARMAMENT_COST) return '需要至少 1 军备。';
         if (getMilitarization(state, 'cnt') >= PEACETIME_MILITARIZATION_CEILING) {
           return `CNT 民兵军事化率已经达到 ${PEACETIME_MILITARIZATION_CEILING}。`;
         }
-        return '该手段在这场革命准备中已经用过三次。';
+        return '该手段累计已经选择五次。';
       },
       effectPreview: preview(armTheMilitias),
       effect: armTheMilitias
     },
     {
-      text: (state: GameState) => `Win Over the Armed Forces (-1 Armament, ${remainingUses(state, 'armyUses')}/3 left)`,
-      textZh: (state: GameState) => `争取武装部队（-1 军备，剩余 ${remainingUses(state, 'armyUses')}/3 次）`,
+      text: (state: GameState) => `Win Over the Armed Forces (-1 Armament, ${remainingUses(state, 'armyUses')}/5 left)`,
+      textZh: (state: GameState) => `争取武装部队（-1 军备，剩余 ${remainingUses(state, 'armyUses')}/5 次）`,
       subtitle: 'Officer loyalty +3. Money and favours for the officers who would otherwise march with the coup.',
       subtitleZh: '军官忠诚度 +3。用金钱与人情拉拢那些本可能随政变而去的军官。',
       condition: (state: GameState) => state.armaments >= ARMAMENT_COST
         && currentUses(state).armyUses < MAX_USES_PER_LEVER,
       unavailableSubtitle: (state: GameState) => state.armaments < ARMAMENT_COST
         ? 'Requires 1 armament.'
-        : 'This lever has already been pulled three times in this programme.',
+        : 'This measure has already been chosen five times.',
       unavailableSubtitleZh: (state: GameState) => state.armaments < ARMAMENT_COST
         ? '需要至少 1 军备。'
-        : '该手段在这场革命准备中已经用过三次。',
+        : '该手段累计已经选择五次。',
       effectPreview: preview(winOverTheArmedForces),
       effect: winOverTheArmedForces
     },
     {
-      text: (state: GameState) => `Sabotage the Reactionaries (-1 Armament, ${remainingUses(state, 'sabotageUses')}/3 left)`,
-      textZh: (state: GameState) => `破坏反动派（-1 军备，剩余 ${remainingUses(state, 'sabotageUses')}/3 次）`,
+      text: (state: GameState) => `Sabotage the Reactionaries (-1 Armament, ${remainingUses(state, 'sabotageUses')}/5 left)`,
+      textZh: (state: GameState) => `破坏反动派（-1 军备，剩余 ${remainingUses(state, 'sabotageUses')}/5 次）`,
       subtitle: 'Militarization −2 for every right-wing militia that already exists: the Carlist Requeté and the Falangist first line.',
       subtitleZh: '所有已经存在的右翼民兵（卡洛斯派雷盖特与长枪党一线）军事化率 −2。',
       condition: (state: GameState) => state.armaments >= ARMAMENT_COST
@@ -170,21 +173,21 @@ const prepareForRevolutionEvent = (state: GameState): GameEvent => ({
       unavailableSubtitle: (state: GameState) => {
         if (state.armaments < ARMAMENT_COST) return 'Requires 1 armament.';
         if (!hasExistingReactionaryMilitia(state)) return 'No right-wing militia organisation exists yet.';
-        return 'This lever has already been pulled three times in this programme.';
+        return 'This measure has already been chosen five times.';
       },
       unavailableSubtitleZh: (state: GameState) => {
         if (state.armaments < ARMAMENT_COST) return '需要至少 1 军备。';
         if (!hasExistingReactionaryMilitia(state)) return '目前还没有成立任何右翼民兵组织。';
-        return '该手段在这场革命准备中已经用过三次。';
+        return '该手段累计已经选择五次。';
       },
       effectPreview: preview(sabotageTheReactionaries),
       effect: sabotageTheReactionaries
     },
     {
-      text: 'Conclude the Preparation',
-      textZh: '结束准备',
-      subtitle: 'Close the preparation and let the card enter cooldown.',
-      subtitleZh: '结束本次准备，卡牌进入冷却。',
+      text: 'Postpone Preparation',
+      textZh: '本次暂不准备',
+      subtitle: 'Take no preparation measure this time and let the card enter cooldown.',
+      subtitleZh: '本次不采取准备手段，卡牌进入冷却。',
       effectPreview: preview(concludePreparation),
       effect: concludePreparation
     }
@@ -201,14 +204,14 @@ export const prepareForRevolution: Card = {
   cost: 1,
   // Peacetime preparation of the confederal militia: the defence committees must
   // exist, the country must not be at war yet, and the programme must still have
-  // one of its nine pulls left.
+  // one of its fifteen choices left.
   condition: (state: GameState) => state.civilWarStatus === 'not_started'
     && isOrganizationActive(state, 'DC')
     && (state.prepare_revolution_timer || 0) <= 0
     && hasUsesLeft(state),
   effect: (state: GameState): Partial<GameState> => ({
     // The programme counters are global: the card only opens the menu, and the menu
-    // spends one pull of a lever each time it is used.
+    // spends one use of a single measure before closing the menu.
     currentEvent: prepareForRevolutionEvent(state)
   })
 };

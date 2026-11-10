@@ -7,6 +7,7 @@ import { getParliamentSeatEntries } from '../parliamentOrder';
 import { cn } from '../../lib/utils';
 import { calculateElectionResults, formRulingCoalitionFromElection, adjustFactionDissents } from '../utils';
 import { getDepartmentName } from '../rules/cabinet';
+import { FIRST_ELECTION_MINISTER_LEVERAGE, MINISTER_COSTS, TOTAL_MINISTER_COST } from '../rules/ministerAllocation';
 
 const election1931Meta = {
   category: 'politics' as const,
@@ -32,7 +33,7 @@ const ministerAllocationMeta = {
   tags: ['election'],
 };
 
-export const MINISTER_ALLOCATION_LEVERAGE = 15;
+export const MINISTER_ALLOCATION_LEVERAGE = FIRST_ELECTION_MINISTER_LEVERAGE;
 
 export const elections1931Results: GameEvent = {
   id: 'elections_1931_results',
@@ -338,13 +339,22 @@ export const cabinetFormation1931: GameEvent = {
 const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEventDispatch }> = ({ state, dispatch }) => {
   const isZh = state.language === 'zh';
   const initialLeverage = state.leverage ?? MINISTER_ALLOCATION_LEVERAGE;
+  const prrevsSeats = state.cortes?.PRRevS ?? 0;
+  const totalSeats = Object.values((state.cortes ?? {}) as Record<string, number>)
+    .reduce((sum, seats) => sum + seats, 0);
+  const isCouncil = state.polity?.type === 'council_republic';
+  const cecSeats = state.polity?.cecSeats;
+  const cecTotal = cecSeats
+    ? Object.values(cecSeats as Record<string, number>).reduce((sum, seats) => sum + seats, 0)
+    : 81;
+  const cecCntSeats = cecSeats?.CNT ?? 0;
+  const isFirstElection = !isCouncil && state.year <= 1931;
 
-  const ministriesList = [
+  const ministriesListBase = [
     {
       id: 'labor',
       name: getDepartmentName('labor', state.year).en,
       nameZh: getDepartmentName('labor', state.year).zh,
-      cost: 5,
       description: 'Assigns the Labor portfolio to a CNT minister. Until the wartime reshuffle splits it out, this department also carries the health administration.',
       descriptionZh: '由 CNT 阁员掌管劳工部。在战时改组把卫生拆出去之前，卫生行政也归此部管辖。',
     },
@@ -352,7 +362,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'agriculture',
       name: getDepartmentName('agriculture', state.year).en,
       nameZh: getDepartmentName('agriculture', state.year).zh,
-      cost: 5,
       description: 'Assigns the Agriculture portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管农业部。',
     },
@@ -360,7 +369,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'education',
       name: getDepartmentName('education', state.year).en,
       nameZh: getDepartmentName('education', state.year).zh,
-      cost: 5,
       description: 'Assigns Public Instruction to a CNT minister: the secular-school programme, the Pedagogical Missions and the rural libraries.',
       descriptionZh: '由 CNT 阁员掌管公共教育部：世俗学校纲领、教育使团与农村图书馆。',
     },
@@ -368,7 +376,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'health',
       name: 'Ministry of Health and Social Assistance',
       nameZh: '卫生与社会援助部',
-      cost: 5,
       description: 'Assigns the health administration to a CNT minister. Until the wartime reshuffle creates it as a separate ministry, these functions sit inside the Labor ministry, so this entry follows whoever holds Labor.',
       descriptionZh: '由 CNT 阁员掌管卫生行政。在战时改组把它单设成部之前，该职能属于劳动部，因此这一项随劳工部长归属。',
     },
@@ -376,7 +383,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'finance',
       name: getDepartmentName('finance', state.year).en,
       nameZh: getDepartmentName('finance', state.year).zh,
-      cost: 10,
       description: 'Assigns the Finance portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管财政部。',
     },
@@ -384,7 +390,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'justice',
       name: getDepartmentName('justice', state.year).en,
       nameZh: getDepartmentName('justice', state.year).zh,
-      cost: 10,
       description: 'Assigns the Justice portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管司法部。',
     },
@@ -392,7 +397,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'industry',
       name: getDepartmentName('industry', state.year).en,
       nameZh: getDepartmentName('industry', state.year).zh,
-      cost: 10,
       description: 'Assigns the Industry portfolio to a CNT minister: pits, mills, metalworks and the war plants.',
       descriptionZh: '由 CNT 阁员掌管工业部：矿井、纺织、冶金与兵工生产。',
     },
@@ -400,7 +404,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'commerce',
       name: getDepartmentName('commerce', state.year).en,
       nameZh: getDepartmentName('commerce', state.year).zh,
-      cost: 5,
       description: 'Assigns the Commerce portfolio to a CNT minister: customs, foreign trade and the shops.',
       descriptionZh: '由 CNT 阁员掌管商业部：海关、对外贸易与商铺。',
     },
@@ -408,7 +411,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'publicWorks',
       name: getDepartmentName('publicWorks', state.year).en,
       nameZh: getDepartmentName('publicWorks', state.year).zh,
-      cost: 10,
       description: 'Assigns Public Works to a CNT minister: railways, roads, ports and telegraphs.',
       descriptionZh: '由 CNT 阁员掌管公共工程部：铁路、公路、港口与电报。',
     },
@@ -416,7 +418,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'interior',
       name: getDepartmentName('interior', state.year).en,
       nameZh: getDepartmentName('interior', state.year).zh,
-      cost: 15,
       description: 'Assigns the Interior portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管内政部。',
     },
@@ -424,7 +425,6 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'estado',
       name: getDepartmentName('estado', state.year).en,
       nameZh: getDepartmentName('estado', state.year).zh,
-      cost: 5,
       description: 'Assigns the State portfolio to a CNT minister.',
       descriptionZh: '由 CNT 阁员掌管国务部。',
     },
@@ -435,11 +435,15 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
       id: 'war',
       name: getDepartmentName('war', state.year).en,
       nameZh: getDepartmentName('war', state.year).zh,
-      cost: 15,
       description: 'Assigns the War portfolio to a CNT minister: military funding, officer postings and the loyalty of the regular army.',
       descriptionZh: '由 CNT 阁员掌管战争部：军费、军官任免与正规军的忠诚。',
     },
   ];
+
+  const ministriesList = ministriesListBase.map((ministry) => ({
+    ...ministry,
+    cost: MINISTER_COSTS[ministry.id as keyof typeof MINISTER_COSTS],
+  }));
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
@@ -503,7 +507,7 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
         }
 
         return {
-          leverage: currentState.leverage - totalCost,
+          leverage: 0,
           ministers: newMinisters,
           currentEvent: null,
         };
@@ -515,10 +519,31 @@ const MinisterSelectionComponent: React.FC<{ state: GameState; dispatch: GameEve
     <div className="flex flex-col gap-4 w-full">
       <div className="font-sans text-sm font-bold border-b border-ink/20 pb-2 mb-2 flex justify-between items-center text-ink flex-wrap gap-2">
         <span className="font-display uppercase tracking-widest text-base">
-          {isZh ? '内阁阁员谈判协商' : 'Cabinet Negotiation'}
+          {isCouncil
+            ? (isZh ? '人民委员分配' : 'Commissariat Allocation')
+            : (isZh ? '内阁阁员谈判协商' : 'Cabinet Negotiation')}
         </span>
         <span className={`font-mono px-3 py-1 border font-bold text-xs ${isOverLimit ? 'border-cnt-red bg-cnt-red text-paper' : 'border-ink bg-ink text-paper'}`}>
           {isZh ? `剩余筹码: ${remainingLeverage} / ${initialLeverage}` : `Leverage Left: ${remainingLeverage} / ${initialLeverage}`}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-1 border border-ink/15 bg-ink/[0.03] px-3 py-2 text-[11px] font-mono text-ink/70">
+        <span>
+          {isCouncil
+            ? (isZh
+              ? `CEC 中的 CNT 席位 ${cecCntSeats} / ${cecTotal} × 100 = ${initialLeverage} 筹码`
+              : `CNT CEC seats ${cecCntSeats} / ${cecTotal} × 100 = ${initialLeverage} leverage`)
+            : isFirstElection
+              ? (isZh ? '1931 立宪会议：固定 15 筹码' : '1931 Constituent Cortes: fixed 15 leverage')
+              : (isZh
+                ? `PRREVS ${prrevsSeats} / ${totalSeats} × 100 = ${initialLeverage} 筹码`
+                : `PRREVS ${prrevsSeats} / ${totalSeats} × 100 = ${initialLeverage} leverage`)}
+        </span>
+        <span>
+          {isZh
+            ? `全部人民委员职位总成本：${TOTAL_MINISTER_COST}；未选中的人民委员由其他党/无党派保留，确认后剩余筹码清零。`
+            : `Total commissariat cost: ${TOTAL_MINISTER_COST}; unselected commissars keep their other-party/independent holder, and leftover leverage is cleared on confirmation.`}
         </span>
       </div>
 
@@ -591,7 +616,7 @@ export const ministerAllocation: GameEvent = {
   meta: ministerAllocationMeta,
   title: 'Ministerial Allocation',
   titleZh: '部长分配',
-  description: 'We have agreed to join the cabinet. We now have political leverage to demand specific ministries. The more powerful the ministry, the more leverage it requires. What shall we demand?',
+  description: 'We have agreed to enter the government. We now have political leverage to demand specific portfolios. The more powerful the office, the more leverage it requires. What shall we demand?',
   descriptionZh: '我们同意加入内阁。我们现在拥有政治筹码来要求特定的部长职位。部门越强大，需要的筹码就越多。我们要要求什么？',
   renderContent: (state, dispatch) => {
     return dispatch ? <MinisterSelectionComponent state={state} dispatch={dispatch} /> : null;

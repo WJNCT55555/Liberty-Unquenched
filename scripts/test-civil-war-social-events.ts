@@ -29,7 +29,7 @@ const seed = (scenario: GameState['scenario'] = '1936', difficulty: GameState['d
     eventHistory: { triggered: [], resolved: [] } };
   state = { ...state, ...civilWarSetup.options[0].effect(state), currentEvent: null, pendingEvents: [] };
   state = { ...state, month: 8 };
-  state = { ...state, ...wartimePowerArrangement.options[2].effect(state), currentEvent: null, pendingEvents: [] };
+  state = { ...state, ...wartimePowerArrangement.options[1].effect(state), currentEvent: null, pendingEvents: [] };
   return { ...state, phase: 'event', budget: 0, resources: 10, gold_reserves: 1000,
     ministers: { ...state.ministers, estado: 'IR', finance: 'PSOE' }, republicanPartyStatus: { ...WARTIME_PARTY_STATUS } };
 };

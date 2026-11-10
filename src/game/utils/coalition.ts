@@ -269,6 +269,22 @@ export function enterCaretakerAfterFailedElection(state: GameState): GameState {
   };
 }
 
+/**
+ * Clear the parliamentary ruling coalition when a new, non-parliamentary
+ * polity (currently the Council Republic) takes over. Keeping the old Cortes
+ * coalition would let a parliamentary dissolution crisis fire inside the new
+ * regime.
+ */
+export function clearRulingCoalitionForRegime(state: GameState): GameState {
+  return {
+    ...state,
+    rulingCoalition: null,
+    activeCoalitions: [],
+    governmentCrisis: null,
+    earlyElectionInProgress: false,
+  };
+}
+
 /** Debug-only ruling-coalition installation for the sandbox controls. */
 export function formRulingCoalitionFromSandbox(state: GameState, id: CoalitionId): GameState {
   if (id === WARTIME_COALITION_ID || COALITION_DEFS.find(def => def.id === id)?.members.some(member => !isRepublicanPartyEligible(state, member))) return state;

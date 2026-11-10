@@ -3,7 +3,7 @@ import type { EffectPreviewLine, Faction, GameEvent, GameState, WartimeGovernmen
 import { adjustFactionDissents, formWartimeGovernment, updateCoalitions } from '../../utils';
 import { getPartyName } from '../../partyNames';
 import {
-  canFormDefenceCouncil, createWartimeCoalition, getWartimeCabinet, getWartimeCoalitionPower,
+  createWartimeCoalition, getWartimeCabinet, getWartimeCoalitionPower,
   isWartimeArrangementDue, isWartimeCrisisDue, monthIndex, updateWartimeCoalition,
   WARTIME_COALITION_ID,
 } from '../../rules/wartimeCoalition';
@@ -66,15 +66,15 @@ export const wartimePowerArrangement: GameEvent = {
   condition: isWartimeArrangementDue,
   title: 'Wartime Power Arrangements',
   titleZh: '战时权力安排',
-  description: 'The rebellion has divided Spain. The old cabinet’s formal authority must now reckon with the unions, regional governments and militias sustaining the Republic. A common wartime front will replace the old governing pact. Should the CNT take ministries, press for a National Defence Council, or cooperate from outside the cabinet? This decision condenses the political struggles of 1936 into the first month after the civil-war setup.',
-  descriptionZh: '叛乱将西班牙撕成两个阵营。旧内阁的名义权威必须面对支撑共和国的工会、地方政府与民兵力量。新的战时人民阵线将取代原有执政协定。CNT 应当接受部长席位、推动全国国防委员会，还是保持阁外合作？本事件将1936年的战时权力争论压缩到内战开局设置完成后的第一个月份。',
+  description: 'The rebellion has divided Spain. The old cabinet’s formal authority must now reckon with the unions, regional governments and militias sustaining the Republic. A common wartime front will replace the old governing pact. Should the CNT take ministries, or cooperate from outside the cabinet? This decision condenses the political struggles of 1936 into the first month after the civil-war setup.',
+  descriptionZh: '叛乱将西班牙撕成两个阵营。旧内阁的名义权威必须面对支撑共和国的工会、地方政府与民兵力量。新的战时人民阵线将取代原有执政协定。CNT 应当接受部长席位，还是保持阁外合作？本事件将1936年的战时权力争论压缩到内战开局设置完成后的第一个月份。',
   renderContent: state => {
     const isZh = state.language === 'zh';
-    const projections = (['cabinet', 'council', 'external'] as const).map(route => updateWartimeCoalition(state, createWartimeCoalition(state, route)).cohesion);
+    const projections = (['cabinet', 'external'] as const).map(route => updateWartimeCoalition(state, createWartimeCoalition(state, route)).cohesion);
     return <details className="font-typewriter text-sm border border-ink/20 p-3">
-      <summary className="cursor-pointer font-bold">{isZh ? `比较职务安排 · 预计凝聚力：联合政府 ${projections[0]} / 国防委员会 ${projections[1]} / 阁外合作 ${projections[2]}` : `Compare cabinets · Projected cohesion: coalition government ${projections[0]} / defence council ${projections[1]} / external support ${projections[2]}`}</summary>
-      <div className="grid sm:grid-cols-3 gap-4 mt-3">{(['cabinet', 'council', 'external'] as const).map(route => <section key={route}>
-        <h4 className="font-bold border-b border-ink/20 mb-2">{({ cabinet: ['Coalition government', '联合政府'], council: ['Defence council', '国防委员会'], external: ['External support', '阁外合作'] })[route][isZh ? 1 : 0]}</h4>
+      <summary className="cursor-pointer font-bold">{isZh ? `比较职务安排 · 预计凝聚力：联合政府 ${projections[0]} / 阁外合作 ${projections[1]}` : `Compare cabinets · Projected cohesion: coalition government ${projections[0]} / external support ${projections[1]}`}</summary>
+      <div className="grid sm:grid-cols-2 gap-4 mt-3">{(['cabinet', 'external'] as const).map(route => <section key={route}>
+        <h4 className="font-bold border-b border-ink/20 mb-2">{({ cabinet: ['Coalition government', '联合政府'], external: ['External support', '阁外合作'] })[route][isZh ? 1 : 0]}</h4>
         <p className="text-xs mb-2">{isZh ? 'CNT 联盟权重' : 'CNT coalition weight'}: {((getWartimeCoalitionPower(state, createWartimeCoalition(state, route)).find(row => row.member === 'CNT_FAI')?.weight ?? 0) * 100).toFixed(1)}%</p>
         {Object.entries(getWartimeCabinet(state, route)).map(([office, party]) => <p key={office} className="text-xs py-1">{OFFICES[office as keyof typeof OFFICES][isZh ? 1 : 0]}：{getPartyName(state, party === 'CNT' ? 'CNT_FAI' : party, isZh, true)}</p>)}
       </section>)}</div>
@@ -88,17 +88,6 @@ export const wartimePowerArrangement: GameEvent = {
       subtitleZh: '与社会党及共和派共同执政，承担参政带来的内部争议。',
       effectPreview: state => previewArrangement(state, 'cabinet'),
       effect: state => applyArrangement(state, 'cabinet'),
-    },
-    {
-      text: 'Establish a National Defence Council anchored in the unions.',
-      textZh: '以工会为支柱，建立全国国防委员会',
-      subtitle: 'An alternate outcome inspired by the CNT’s historical proposal.',
-      subtitleZh: '以 CNT 历史提案为基础的架空结果，共和派与共产党对此保留疑虑。',
-      condition: canFormDefenceCouncil,
-      unavailableSubtitle: () => 'CNT and PSOE need at least 55% of coalition power, plus PSOE relations of 60 or an existing Workers’ Alliance.',
-      unavailableSubtitleZh: () => '需要 CNT 与 PSOE 合计权重至少55%，且 PSOE 关系至少60，或已有工人联盟。',
-      effectPreview: state => previewArrangement(state, 'council'),
-      effect: state => applyArrangement(state, 'council'),
     },
     {
       text: 'Sign the wartime pact while remaining outside the cabinet.',

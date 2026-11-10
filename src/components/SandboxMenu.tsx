@@ -937,6 +937,18 @@ export const SandboxMenu = () => {
                   <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'WE_HAVE_PASSED' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide justify-self-center col-span-2 md:col-span-1 w-full">
                     {isZh ? '我们已经通过' : 'We Have Passed'}
                   </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'THE_REVOLUTION_BETRAYED' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide justify-self-center col-span-2 md:col-span-1 w-full">
+                    {isZh ? '被背叛的革命' : 'The Revolution Betrayed'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'LAND_AND_FREEDOM' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '土地与自由' : 'Land and Freedom'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'SYNDICATE_DREAM' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '工团非梦' : 'The Syndicate Is No Dream'}
+                  </button>
+                  <button onClick={() => { dispatch({ type: 'DEBUG_TRIGGER_ENDING', payload: 'REVOLUTION_WITHOUT_END' }); setIsOpen(false); }} className="p-2 border border-ink text-xs hover:bg-ink hover:text-paper font-typewriter uppercase tracking-wide">
+                    {isZh ? '革命不止' : 'The Revolution Does Not End'}
+                  </button>
                 </div>
               </div>
             </div>

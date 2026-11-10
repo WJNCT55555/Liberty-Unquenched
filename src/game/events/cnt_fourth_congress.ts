@@ -1,6 +1,7 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, adjustFactionDissents, adjustFactionInfluence } from '../utils';
 import { adjustUnemploymentRate } from '../rules/economy';
+import { activateJournal } from '../rules/journalEvents';
 
 const cntFourthCongressMeta = {
   category: 'cnt' as const,
@@ -111,6 +112,10 @@ export const cnt_fourth_congress_6: GameEvent = {
         });
         return {
           factions: newFactions,
+          // All three blueprints commit the Congress to the land question in
+          // some form; whichever wording is chosen, it opens the Free Commune
+          // economy journal from this point.
+          ...activateJournal(state, 'journal_economy_free_commune'),
           currentEvent: cnt_fourth_congress_8
         };
       }
@@ -125,6 +130,7 @@ export const cnt_fourth_congress_6: GameEvent = {
           ...state.stats,
           bureaucratization: Math.max(0, (state.stats.bureaucratization || 0) - 10)
         },
+        ...activateJournal(state, 'journal_economy_free_commune'),
         currentEvent: cnt_fourth_congress_8
       })
     },
@@ -138,6 +144,7 @@ export const cnt_fourth_congress_6: GameEvent = {
           ...state.stats,
           bureaucratization: Math.min(100, (state.stats.bureaucratization || 0) + 5)
         },
+        ...activateJournal(state, 'journal_economy_free_commune'),
         currentEvent: cnt_fourth_congress_8
       })
     }

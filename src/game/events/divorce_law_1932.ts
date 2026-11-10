@@ -27,7 +27,11 @@ export const divorceLaw1932: GameEvent = {
   id: 'divorce_law_1932',
   meta: lawMeta,
   date: { year: 1932, month: 2 },
-  condition: (state) => isAtOrAfter(state, 1932, 2),
+  // The law is a one-way L1 -> L2 step. A 1933/1936 scenario already starts at
+  // L2 (see the scenario domesticPolicy), so without the level guard it would
+  // replay the 1932 news at the start of a later scenario.
+  condition: (state) => (state.domesticPolicy?.womens_rights ?? 0) < 2
+    && isAtOrAfter(state, 1932, 2),
   title: 'The Divorce Law',
   titleZh: '离婚法',
   description: 'The Constituent Cortes has passed the Divorce Law. Marriage is no longer indissoluble: a civil court can dissolve it at the request of both spouses, or of one on stated grounds, and the Church has no standing in the matter or in the register. The Republic has separated a sacrament from a civil status. Bishops, conservative deputies and a good part of the military have taken note; so have the women who have been writing to the ministry for a year.',

@@ -45,9 +45,15 @@ export const PARTY_NAMES_SHORT_MAPPING: Record<Party | 'CNT_FAI', { en: string; 
   PRRevS: { en: 'PRRevS', zh: 'PRRevS' }
 };
 
-type PartyNameState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'falange_jons' | 'organizations'>;
+type PartyNameState = Pick<GameState, 'year' | 'month' | 'ceda_formed' | 'ir_formed' | 'ur_formed' | 'falange_jons' | 'organizations'>
+  & { partyAliases?: GameState['partyAliases'] };
 
 export function getPartyName(state: PartyNameState, party: Party | 'CNT_FAI', isZh: boolean, short: boolean = false): string {
+  // Post-victory renamings (see events/asturias_victory_chain.ts) are display-only:
+  // support, seats, coalitions and relations keep using the original party key.
+  const alias = party === 'CNT_FAI' ? undefined : state.partyAliases?.[party];
+  if (alias) return isZh ? (short ? alias.shortZh : alias.zh) : (short ? alias.shortEn : alias.en);
+
   // Acción Popular reorganizes as CEDA in March 1933 while retaining one AP
   // identity in the underlying party key.
   if (party === 'AP' && !state.ceda_formed) {

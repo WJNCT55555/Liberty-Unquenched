@@ -14,8 +14,14 @@ coverage/
 !/docs/游戏设计文档.md
 !/docs/经济系统说明.md
 !/docs/顾问文档.md
+!/docs/行动卡牌详解.md
+!/docs/政府卡牌详解.md
+!/docs/武装卡牌详解.md
 /output/
 /tools/
+/promo_work/
+
+
 
 .DS_Store
 *.log

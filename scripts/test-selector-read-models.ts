@@ -124,6 +124,19 @@ const unrelatedMapRuntime = selectMapRuntimeState({ ...baseState, resources: bas
 assert.deepEqual(mapRuntime, unrelatedMapRuntime, 'Political resources must not leak into the strategic-map read model.');
 assert(!('organizations' in mapRuntime), 'The map runtime must not expose organization state.');
 assert(!('armedForces' in mapRuntime), 'Recruitment domain state belongs behind its own selector.');
+assert.deepEqual(
+  mapRuntime.militarization,
+  baseState.militarization,
+  'The map runtime must expose faction militarization for combat readouts.',
+);
+assert.notDeepEqual(
+  selectMapRuntimeState({
+    ...baseState,
+    militarization: { ...baseState.militarization, cnt: 51 },
+  }).militarization,
+  mapRuntime.militarization,
+  'A CNT militarization change must reach the map runtime instead of falling back to the initial 17.',
+);
 assert.notDeepEqual(
   mapRuntime,
   selectMapRuntimeState({ ...baseState, mapSelectedProvinceId: 'madrid' }),

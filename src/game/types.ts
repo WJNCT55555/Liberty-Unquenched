@@ -343,6 +343,103 @@ export interface MayDaysState {
   };
 }
 
+/** Regime chosen by the victorious Workers' Alliance after the Asturias war. */
+export type AsturiasVictoryRegime =
+  | 'council_republic'
+  | 'free_commune_federation'
+  | 'federal_republic';
+
+/** Top-level constitutional family for the post-war state. */
+export type PolityType =
+  | 'parliamentary_republic'
+  | 'council_republic'
+  | 'free_commune_federation'
+  | 'federal_republic';
+
+/** Non-parliamentary chambers can contain a CNT union delegation in addition to parties. */
+export type CouncilSeatActor = Exclude<Party, 'PRRevS'> | 'CNT';
+
+export type CommitteeStrategy =
+  | 'commune_primacy'
+  | 'union_primacy'
+  | 'united_front'
+  | 'coordination_primacy';
+
+export type CntFaction = 'Faistas' | 'Treintistas' | 'Puristas' | 'Jabalistas';
+
+export interface PolityState {
+  type: PolityType;
+  since: { year: number; month: number };
+  /** Congress of Councils / Federal Congress, 400 seats. */
+  congressSeats?: Record<CouncilSeatActor, number>;
+  /** Central Executive Committee / Federal Council, 81 seats derived from Congress. */
+  cecSeats?: Record<CouncilSeatActor, number>;
+  cecChairman?: string;
+  commissarChairman?: string;
+  /** Commune Federation only: the current Federal Coordination Council model. */
+  committeeStrategy?: CommitteeStrategy;
+  /** Commune Federation only: which CNT faction holds each commission. */
+  commissionFactions?: Partial<Record<keyof Ministers, CntFaction>>;
+}
+/** Industrial settlement; the two options currently record intent only. */
+export type AsturiasVictoryEconomy = 'state_plan' | 'union_self_management' | 'mixed_economy';
+
+/** Which parties remain legal after the Workers' Alliance takes power. */
+export type AsturiasVictoryPartyPolicy =
+  | 'broad_front'
+  | 'workers_with_regions'
+  | 'workers_only'
+  | 'alliance_dictatorship'
+  | 'no_parties';
+
+/** People's Army or confederal militia. */
+export type AsturiasVictoryMilitary = 'people_army' | 'militia';
+
+export interface AsturiasVictoryState {
+  regime: AsturiasVictoryRegime;
+  economy?: AsturiasVictoryEconomy;
+  partyPolicy?: AsturiasVictoryPartyPolicy;
+  military?: AsturiasVictoryMilitary;
+  completedAt?: { year: number; month: number };
+}
+
+/** Regime chosen by the postwar congress after a non-split Republican victory. */
+export type PostwarRegime = 'parliamentary_republic' | AsturiasVictoryRegime;
+
+export interface PostwarSettlementState {
+  regime?: PostwarRegime;
+  economy?: AsturiasVictoryEconomy;
+  partyPolicy?: AsturiasVictoryPartyPolicy;
+  military?: 'reserve_army';
+  startedAt: { year: number; month: number };
+  completedAt?: { year: number; month: number };
+}
+
+/** Regime chosen after the Iberian Defence Committee wins the three-sided war. */
+export type CommitteeRegime = 'free_commune_federation' | 'revolutionary_committee';
+export type CommitteeEconomy = 'union_coordination' | 'total_socialization' | 'committee_directive';
+export type CommitteePartyPolicy = 'free_principles' | 'party_shells' | 'cnt_only';
+export type CommitteeMilitary = 'committee_command' | 'confederal_militia' | 'black_army';
+
+export interface IberianSettlementState {
+  regime?: CommitteeRegime;
+  /** Two distinct free-commune roads: municipal federation or industrial federation. */
+  variant?: 'municipal_federation' | 'industrial_federation';
+  economy?: CommitteeEconomy;
+  partyPolicy?: CommitteePartyPolicy;
+  military?: CommitteeMilitary;
+  startedAt: { year: number; month: number };
+  completedAt?: { year: number; month: number };
+}
+
+/** Display-only renaming used by the "abolish parties" settlement. */
+export interface PartyAlias {
+  en: string;
+  zh: string;
+  shortEn: string;
+  shortZh: string;
+}
+
 export interface CoalitionState {
   activeId: CoalitionId;
   memberContributions: Partial<Record<CoalitionMember, number>>;
@@ -508,8 +605,8 @@ export interface MilitarizationPaths {
 
 /**
  * Global progress of the Prepare for Revolution programme. Each lever can be pulled
- * three times over the whole game, so the menu spends one pull at a time and the card
- * leaves the deck once all nine are gone.
+ * five times over the whole game. Each play can choose one measure, and the card
+ * leaves the deck once all fifteen uses are gone.
  */
 export interface PrepareRevolutionUses {
   militiaUses: number;
@@ -613,12 +710,13 @@ export interface GameState extends MapRuntimeState {
   militia_reorg_timer: number;
   anarchy_tanks_timer: number;
   prepare_revolution_timer: number;
+  paseo_timer: number;
   /** 经济改造卡牌冷却（方案 §6.1）。 */
   industry_policy_timer: number;
   trade_policy_timer: number;
   fiscal_measures_timer: number;
   land_and_freedom_timer: number;
-  /** Persistent progress of the Prepare for Revolution programme: three pulls per lever, nine in total. */
+  /** Persistent progress of the Prepare for Revolution programme: five uses per measure, fifteen in total. */
   prepareRevolution: PrepareRevolutionUses;
   
   coupProgress: number;
@@ -784,6 +882,17 @@ export interface GameState extends MapRuntimeState {
   mayDays?: MayDaysState;
   /** Republican political eligibility only; rebel organizations retain their assets. */
   republicanPartyStatus?: Partial<Record<Party, 'excluded' | 'withdrawn'>>;
+
+  /** Set by the post-victory Asturias chain (prologue + four settlement events). */
+  asturiasVictory?: AsturiasVictoryState;
+  /** Set when the Republic wins without the CNT splitting; completed by the postwar chain. */
+  postwarSettlement?: PostwarSettlementState;
+  /** Set when the Iberian Defence Committee wins the three-sided war. */
+  iberianSettlement?: IberianSettlementState;
+  /** Constitutional family after the war; undefined means parliamentary republic (old saves). */
+  polity?: PolityState;
+  /** Display aliases only; party keys and all mechanics stay unchanged. */
+  partyAliases?: Partial<Record<Party, PartyAlias>>;
 
   coalition_dissent?: number;
   gibraltar_resolved?: boolean;

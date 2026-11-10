@@ -17,11 +17,18 @@ export const PLAYLISTS: Record<PlaylistName, Track[]> = {
     { title: 'A las Barricadas', src: '/music/Republicana-A las Barricadas.mp3' },
     { title: 'Hijos del Pueblo', src: '/music/Republicana-Hijos del Pueblo.mp3' },
     { title: 'Himno de Riego', src: '/music/Republicana-Himno de Riego.mp3' },
-    { title: 'Lied der Internationalen Brigaden', src: '/music/Republicana-Lied der Internationalen Brigaden.mp3' }
+    { title: 'Lied der Internationalen Brigaden', src: '/music/Republicana-Lied der Internationalen Brigaden.mp3' },
+    { title: 'Jarama Valley', src: '/music/Republicana-Jarama Valley.mp3' },
+    { title: 'Milicianos de la FAI', src: '/music/Republicana-Milicianos de la FAI.mp3' },
+    { title: 'Viva la FAI', src: '/music/Republicana-Viva la Fai.mp3' }
   ],
   Nacional: [
+    { title: 'Cara al Sol', src: '/music/Nacional-Cara al Sol.mp3' },
     { title: '¡Ya hemos pasao! (remastered)', src: '/music/Nacional-¡Ya hemos pasao! (remastered).mp3' },
-    { title: 'Tómala Sí Un Día, Tómala Sí Un Dos', src: '/music/Nacional-Tómala Sí Un Día,Tómala Sí Un Dos.mp3' }
+    { title: 'Tómala Sí Un Día, Tómala Sí Un Dos', src: '/music/Nacional-Tómala Sí Un Día,Tómala Sí Un Dos.mp3' },
+    { title: 'Oriamendi', src: '/music/Nacional-Oriamendi.mp3' },
+    { title: 'Ni Fascismo, ni Marxismo', src: '/music/Nacional-Ni Fascismo, ni Marxismo.mp3' },
+    { title: 'Viva, Viva La Revolución', src: '/music/Nacional-Viva, Viva La Revolucion.mp3' }
   ]
 };
 

@@ -5,13 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapFaction as Faction, type MapRuntimeState, type ArmedEntityId } from './types_map';
-import { FACTION_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
+import { FACTION_COLORS, getCombatWidth, getSupplyLimit, PROVINCE_ADJACENCY, PROVINCE_CULTURES, PROVINCE_REGIONS, getCultureGridCoords, getProvinceName } from './map_constants';
 import { armyRecruitCost, getBuildingCost, reinforceCost, reinforceTarget } from './rules/costs';
 import { getEffectiveFortressLevel } from './types_map';
 import type { RecruitmentPoolView } from '../game/rules/warSetup';
 import { getMapFactionName } from './rules/factions';
 import { getMilitarization } from '../game/rules/militarization';
 import { ArmyPowerBoxes, DetailBox } from './ArmyDetail';
+import { CombatPreviewCard } from './CombatPreviewCard';
 import { Shield, Target, ScrollText, Swords, Plus, Minus, Info, Flame, Users, Crosshair, Building, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -521,6 +522,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isArmyReinforceable = selectedArmy && 
     state.provinces[selectedArmy.provinceId]?.owner === state.mapCurrentPlayer;
 
+  // A province at or over its supply limit cannot absorb replacements. The
+  // authoritative gate lives in the reducer; this mirror only disables the
+  // button and explains why.
+  const selectedArmyProvince = selectedArmy ? state.provinces[selectedArmy.provinceId] : undefined;
+  const selectedArmyProvinceLoad = selectedArmy
+    ? state.armies
+      .filter(army => army.provinceId === selectedArmy.provinceId)
+      .reduce((total, army) => total + Math.max(0, army.manpower), 0)
+    : 0;
+  const selectedArmyProvinceLimit = selectedArmyProvince ? getSupplyLimit(selectedArmyProvince) : 0;
+  const isSelectedArmyOverSupply = Boolean(
+    selectedArmyProvince && selectedArmyProvinceLoad >= selectedArmyProvinceLimit,
+  );
+
+  const mapCommandPoints = state.mapResources[state.mapCurrentPlayer]?.commandPoints ?? 0;
+  const canPreviewCombat = Boolean(
+    selectedArmy
+    && selectedProvince
+    && selectedArmy.faction === state.mapCurrentPlayer
+    && selectedProvince.owner !== selectedArmy.faction
+    && (PROVINCE_ADJACENCY[selectedArmy.provinceId] || []).includes(selectedProvince.id),
+  );
+  const canActOnPreview = Boolean(
+    selectedArmy && selectedArmy.movesLeft > 0 && mapCommandPoints > 0,
+  );
+
   return (
     <aside className="w-80 shrink-0 h-full bg-[#FAF6EC] border-l-[5px] border-l-[#1E1C1A] flex flex-col overflow-hidden text-[#1E1C1A] font-serif select-none relative">
       {/* Details Area */}
@@ -828,7 +855,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         clientManpower >= costManpower && 
                         clientSupplies >= costSupplies && 
                         clientIndustrial >= costIndustrial &&
-                        clientTankReserve >= costTankReserve;
+                        clientTankReserve >= costTankReserve &&
+                        !isSelectedArmyOverSupply;
 
                       return (
                         <div className="bg-[#FAF6EC] p-3 border border-[#1E1C1A]/25 space-y-3 relative shadow-sm rounded-none">
@@ -899,6 +927,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   <span className="font-bold">{costTankReserve} / {clientTankReserve}</span>
                                 </div>
                               </div>
+
+                              {isSelectedArmyOverSupply && (
+                                <div className="p-2 bg-[#A62626]/10 border border-[#A62626]/30 text-[10px] text-[#A62626] font-serif leading-tight">
+                                  {lang === 'zh'
+                                    ? `⚠️ 该省驻军 ${selectedArmyProvinceLoad.toLocaleString()} 人已达/超过补给上限 ${selectedArmyProvinceLimit.toLocaleString()}，无法补员。`
+                                    : `⚠️ This province holds ${selectedArmyProvinceLoad.toLocaleString()} troops against a ${selectedArmyProvinceLimit.toLocaleString()} supply limit; reinforcement is unavailable.`}
+                                </div>
+                              )}
 
                               <button
                                 onClick={() => onReinforceArmy(selectedArmy.id)}
@@ -1253,7 +1289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               const width = getCombatWidth(selectedProvince.terrain as any || 'plains');
                               
                               const currManpower = armiesInProvince.reduce((sum, a) => sum + a.manpower, 0);
-                              const excess = currManpower > limit;
+                              const overSupply = currManpower > 0 && currManpower >= limit;
                               
                               return (
                                 <div className="flex flex-col gap-1.5 pt-1.5 border-t border-[#1E1C1A]/10 mt-1">
@@ -1267,15 +1303,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       value={(width / 1000).toFixed(0) + 'k'} 
                                     />
                                   </div>
-                                  {excess && (
+                                  {overSupply && (
                                     <div className="text-[7.5px] text-[#A62626] font-sans font-bold uppercase tracking-wider animate-pulse flex items-center gap-1 bg-[#A62626]/10 px-1 py-1 border border-[#A62626]/20 mt-0.5">
                                       <Flame size={10} className="text-[#A62626]" />
-                                      {lang === 'zh' ? '⚠️ 补给过载：部队将遭严重损耗惩罚及士气崩溃' : '⚠️ OUT OF SUPPLY: SEVERE TROOP ATTRITION & MORALE COLLAPSE'}
+                                      {lang === 'zh' ? '⚠️ 补给已达/超上限：无法补员；超限月份损失人力与士气' : '⚠️ AT/OVER SUPPLY LIMIT: NO REINFORCEMENT; MONTHLY MANPOWER & MORALE LOSS'}
                                     </div>
                                   )}
                                 </div>
                               );
                             })()}
+
+                            {selectedArmy && selectedProvince && canPreviewCombat && (
+                              <CombatPreviewCard
+                                state={state}
+                                attacker={selectedArmy}
+                                province={selectedProvince}
+                                canAct={canActOnPreview}
+                                lang={lang === 'zh' ? 'zh' : 'en'}
+                              />
+                            )}
                           </div>
                         );
                       })()}

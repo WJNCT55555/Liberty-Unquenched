@@ -4,7 +4,6 @@ import type {
   GameEvent,
   GameState,
   GeneralElectionParticipation,
-  MinisterParty,
 } from '../types';
 import { ParliamentChart } from '../../components/ParliamentChart';
 import { PARTY_COLORS } from '../constants';
@@ -25,7 +24,9 @@ import {
 import { isOrganizationEstablished } from '../organizations';
 import { applyUnionShareDelta } from '../unions';
 import { changeLaws } from '../rules/lawChange';
-import { MINISTER_ALLOCATION_LEVERAGE, ministerAllocation } from './elections_1931_results';
+import { getMinisterLeverage, MINISTER_MINIMUM_COST } from '../rules/ministerAllocation';
+import { getCabinetTable } from './cabinetTables';
+import { ministerAllocation } from './elections_1931_results';
 
 const generalElectionRootMeta = {
   category: 'politics' as const,
@@ -161,23 +162,23 @@ const getGovernmentProfile = (coalitionId: CoalitionId): {
   typeZh: string;
   primeMinister: string;
   primeMinisterZh: string;
-  ministerParty: MinisterParty;
+
 } => {
   switch (coalitionId) {
     case 'republican_socialist':
-      return { type: 'Republican-Socialist Cabinet', typeZh: '共和—社会党内阁', primeMinister: 'Manuel Azaña', primeMinisterZh: '曼努埃尔·阿萨尼亚', ministerParty: 'PSOE' };
+      return { type: 'Republican-Socialist Cabinet', typeZh: '共和—社会党内阁', primeMinister: 'Manuel Azaña', primeMinisterZh: '曼努埃尔·阿萨尼亚' };
     case 'popular_front':
-      return { type: 'Popular Front Cabinet', typeZh: '人民阵线内阁', primeMinister: 'Manuel Azaña', primeMinisterZh: '曼努埃尔·阿萨尼亚', ministerParty: 'IR' };
+      return { type: 'Popular Front Cabinet', typeZh: '人民阵线内阁', primeMinister: 'Manuel Azaña', primeMinisterZh: '曼努埃尔·阿萨尼亚' };
     case 'ceda_radical':
-      return { type: 'Radical-CEDA Government', typeZh: '激进党—CEDA政府', primeMinister: 'Alejandro Lerroux', primeMinisterZh: '亚历杭德罗·勒鲁', ministerParty: 'PRR' };
+      return { type: 'Radical-CEDA Government', typeZh: '激进党—CEDA政府', primeMinister: 'Alejandro Lerroux', primeMinisterZh: '亚历杭德罗·勒鲁' };
     case 'national_front':
-      return { type: 'National Front Government', typeZh: '国家阵线政府', primeMinister: 'José María Gil-Robles', primeMinisterZh: '何塞·玛丽亚·吉尔-罗夫莱斯', ministerParty: 'AP' };
+      return { type: 'National Front Government', typeZh: '国家阵线政府', primeMinister: 'José María Gil-Robles', primeMinisterZh: '何塞·玛丽亚·吉尔-罗夫莱斯' };
     case 'workers_alliance':
-      return { type: "Workers' Alliance Cabinet", typeZh: '工人联盟内阁', primeMinister: 'Francisco Largo Caballero', primeMinisterZh: '弗朗西斯科·拉尔戈·卡巴列罗', ministerParty: 'PSOE' };
+      return { type: "Workers' Alliance Cabinet", typeZh: '工人联盟内阁', primeMinister: 'Francisco Largo Caballero', primeMinisterZh: '弗朗西斯科·拉尔戈·卡巴列罗' };
     case 'prrevs_parliamentary_majority':
-      return { type: 'PRRevS Majority Government', typeZh: 'PRRevS多数政府', primeMinister: 'Ángel Pestaña', primeMinisterZh: '安赫尔·佩斯塔尼亚', ministerParty: 'Other' };
+      return { type: 'PRRevS Majority Government', typeZh: 'PRRevS多数政府', primeMinister: 'Ángel Pestaña', primeMinisterZh: '安赫尔·佩斯塔尼亚' };
     default:
-      return { type: 'Republican Coalition Cabinet', typeZh: '共和派联合内阁', primeMinister: 'Diego Martínez Barrio', primeMinisterZh: '迭戈·马丁内斯·巴里奥', ministerParty: 'PRR' };
+      return { type: 'Republican Coalition Cabinet', typeZh: '共和派联合内阁', primeMinister: 'Diego Martínez Barrio', primeMinisterZh: '迭戈·马丁内斯·巴里奥' };
   }
 };
 
@@ -189,31 +190,35 @@ const installElectionGovernment = (
 ): GameState => {
   const outcome = summarizeGeneralElection(state);
   const profile = getGovernmentProfile(coalitionId);
-  const ministers = { ...state.ministers };
-  for (const office of Object.keys(ministers)) {
-    ministers[office as keyof typeof ministers] = profile.ministerParty;
-  }
+  const ministers = { ...getCabinetTable(coalitionId) };
   const isRightGovernment = coalitionId === 'ceda_radical' || coalitionId === 'national_front';
   const unionLoss = coalitionId === 'national_front' ? 15 : coalitionId === 'ceda_radical' ? 10 : 0;
   const participation = state.generalElectionSchedule.participation;
-  const cntStance = cntStanceOverride
+  const requestedStance = cntStanceOverride
     || (coalitionId === 'workers_alliance' || coalitionId === 'prrevs_parliamentary_majority'
       ? 'govern'
       : isRightGovernment || participation === 'abstain'
         ? 'oppose'
         : 'cooperate');
+  const totalSeats = Object.values(outcome.cortes).reduce((sum, seats) => sum + seats, 0);
+  const cntLeverage = getMinisterLeverage(outcome.cortes, false, totalSeats);
+  const canEnterCabinet = cntLeverage >= MINISTER_MINIMUM_COST;
+  const cntStance = requestedStance === 'govern' && !canEnterCabinet
+    ? 'cooperate'
+    : requestedStance;
+  const shouldAllocate = cntStance === 'govern'
+    && coalitionId !== 'prrevs_parliamentary_majority'
+    && canEnterCabinet;
   const baseState: GameState = {
     ...state,
     cortes: outcome.cortes,
     cntStance,
     ministers,
-    ...(cntStance === 'govern' ? {
-      leverage: MINISTER_ALLOCATION_LEVERAGE,
-      pendingEvents: [
-        { ...ministerAllocation },
-        ...state.pendingEvents.filter((event) => event.id !== ministerAllocation.id),
-      ],
-    } : {}),
+    leverage: shouldAllocate ? cntLeverage : 0,
+    pendingEvents: [
+      ...(shouldAllocate ? [{ ...ministerAllocation }] : []),
+      ...state.pendingEvents.filter((event) => event.id !== ministerAllocation.id),
+    ],
     government: {
       ...state.government,
       type: profile.type,
@@ -243,8 +248,8 @@ const installElectionGovernment = (
 };
 
 export const generalElectionResultDescription = {
-  en: 'The votes have been counted. Only political alliances publicly formed before the election may aggregate their member parties’ seats. The sole exception is PRRevS, which may govern in its own name if it independently wins 236 seats. If no eligible formation has an absolute majority, the Cortes enters a separate government-formation crisis.',
-  zh: '选票已经清点完毕。只有在选举前已经公开成立的政党联盟，才能汇总其成员党的议席。唯一例外是 PRRevS：它若独立获得236席，可以以自身名义组阁。若没有任何符合资格的组阁力量取得绝对多数，议会将进入独立的组阁危机。',
+  en: 'The votes have been counted. Only political alliances publicly formed before the election may aggregate their member parties’ seats. The sole exception is PRRevS, which may govern in its own name if it independently wins an absolute majority (236 seats in 1931, 237 in 1933/1936). If no eligible formation has an absolute majority, the Cortes enters a separate government-formation crisis.',
+  zh: '选票已经清点完毕。只有在选举前已经公开成立的政党联盟，才能汇总其成员党的议席。唯一例外是 PRRevS：它若独立获得绝对多数（1931 年 236 席，1933/1936 年 237 席），可以以自身名义组阁。若没有任何符合资格的组阁力量取得绝对多数，议会将进入独立的组阁危机。',
 };
 
 export const renderGeneralElectionResults: NonNullable<GameEvent['renderContent']> = (state) => {

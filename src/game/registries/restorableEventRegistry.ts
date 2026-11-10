@@ -13,6 +13,10 @@ import { coalitionDissolutionEvents } from '../events/coalition_dissolution';
 import * as ramonCampaignDefinitions from '../events/ramon_campaign_events';
 import * as presidentialElectionDefinitions from '../events/presidential_election_chain';
 import * as asturiasDefinitions from '../events/asturias_revolution';
+import * as asturiasVictoryDefinitions from '../events/asturias_victory_chain';
+import * as postwarSettlementDefinitions from '../events/postwar_settlement';
+import * as iberianVictoryDefinitions from '../events/iberian_victory_chain';
+import * as communeFederationDefinitions from '../events/commune_federation';
 import * as cntThirdCongressDefinitions from '../events/cnt_third_congress';
 import * as cntFourthCongressDefinitions from '../events/cnt_fourth_congress';
 import { SCHEDULED_EVENT_REGISTRY } from './scheduledEventRegistry';
@@ -70,6 +74,11 @@ export const RESTORABLE_EVENT_REGISTRY: GameEvent[] = mergeRegistryDefinitions('
   ...eventDefinitionsFrom(ramonCampaignDefinitions),
   ...eventDefinitionsFrom(presidentialElectionDefinitions),
   ...eventDefinitionsFrom(asturiasDefinitions),
+  ...eventDefinitionsFrom(asturiasVictoryDefinitions),
+  ...eventDefinitionsFrom(postwarSettlementDefinitions),
+  ...eventDefinitionsFrom(iberianVictoryDefinitions),
+  ...eventDefinitionsFrom(communeFederationDefinitions)
+    .filter(event => event.id !== 'commune_federation_transition'),
   ...eventDefinitionsFrom(cntThirdCongressDefinitions),
   ...eventDefinitionsFrom(cntFourthCongressDefinitions),
   ...Object.values(LABOR_PRESSURE_RESULT_EVENTS),

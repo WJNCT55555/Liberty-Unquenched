@@ -4,6 +4,19 @@ import { COALITION_DEFS } from '../coalitions';
 import { isOrganizationEstablished } from '../organizations';
 import { getEffectiveCortes, isRepublicanPartyPresent } from '../politicalEligibility';
 
+/** The 1931 Constituent Cortes had 470 seats. */
+export const CONSTITUENT_CORTES_SEATS = 470;
+/** The 1933 and 1936 Cortes had 473 seats (two more than in 1931). */
+export const POST_1933_CORTES_SEATS = 473;
+
+/**
+ * Seat total of the Cortes elected in the current cycle.
+ * 1931: 470; from the 1933 election onward: 473.
+ */
+export const getCortesSeatTotal = (state: Pick<GameState, 'year'>): number => (
+  state.year >= 1933 ? POST_1933_CORTES_SEATS : CONSTITUENT_CORTES_SEATS
+);
+
 export function calculateRawVotes(state: GameState): Record<Party, number> {
   const votes: Record<Party, number> = {
     POUM: 0, PCE: 0, PSOE: 0, PS: 0, ERC: 0, IR: 0, UR: 0, PNV: 0, PRR: 0, DLR: 0, AP: 0, RE: 0, CT: 0, FE: 0, FET: 0, Other: 0, PRRevS: 0
@@ -105,9 +118,12 @@ export function votesToSeats(votes: Record<Party, number>, totalSeats: number): 
   return seats;
 }
 
-export function calculateElectionResults(state: GameState): Record<Party, number> {
+export function calculateElectionResults(
+  state: GameState,
+  totalSeats: number = getCortesSeatTotal(state),
+): Record<Party, number> {
   const rawVotes = calculateRawVotes(state);
-  return votesToSeats(rawVotes, 470);
+  return votesToSeats(rawVotes, totalSeats);
 }
 
 export type GeneralElectionBloc = 'left' | 'center' | 'right' | 'prrevs';

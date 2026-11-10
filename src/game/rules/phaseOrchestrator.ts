@@ -124,6 +124,9 @@ export const advancePhase = (
       armies: monthlyMapStage.armies,
       mapCurrentPlayer: monthlyMapStage.mapCurrentPlayer,
       asturiasWarTurns: monthlyMapStage.asturiasWarTurns,
+      mapHistory: monthlyMapStage.supplyMessages.length > 0
+        ? [...monthlyMapStage.supplyMessages, ...(state.mapHistory ?? [])]
+        : state.mapHistory,
     };
     tempState = {
       ...tempState,
@@ -273,6 +276,7 @@ export const advancePhase = (
       militia_reorg_timer: Math.max(0, (state.militia_reorg_timer || 0) - 1),
       anarchy_tanks_timer: Math.max(0, (state.anarchy_tanks_timer || 0) - 1),
       prepare_revolution_timer: Math.max(0, (state.prepare_revolution_timer || 0) - 1),
+      paseo_timer: Math.max(0, (state.paseo_timer || 0) - 1),
       // 经济改造卡牌冷却（docs/经济改造方案.md §6.1）
       industry_policy_timer: Math.max(0, (state.industry_policy_timer || 0) - 1),
       trade_policy_timer: Math.max(0, (state.trade_policy_timer || 0) - 1),

@@ -134,7 +134,7 @@ export const WARTIME_COMMITMENTS: Record<WartimeGovernmentRoute, Partial<Record<
  */
 const CABINETS: Record<WartimeGovernmentRoute, Required<GameState['ministers']>> = {
   cabinet: {
-    labor: 'PSOE', health: 'PSOE', justice: 'POUM', industry: 'CNT', commerce: 'CNT',
+    labor: 'PSOE', health: 'CNT', justice: 'CNT', industry: 'CNT', commerce: 'CNT',
     interior: 'PSOE', war: 'PSOE', agriculture: 'PCE', education: 'IR', publicWorks: 'UR',
     finance: 'PSOE', estado: 'PSOE',
   },
@@ -158,9 +158,12 @@ export const getWartimeCabinet = (state: GameState, route: WartimeGovernmentRout
   const cabinet = Object.fromEntries(Object.entries(CABINETS[route]).map(([office, party]) => [
     office, eligible(party) ? party : party === 'POUM' && eligible('UR') ? 'UR' : fallbacks.find(eligible) || 'Other',
   ])) as unknown as GameState['ministers'];
-  // 卫生职能在单设该部之前仍属劳动部：两者必须同党，否则内阁面板会显示一个尚未
-  // 成立的部，并且比劳动部更早被 CNT 掌管。
-  return state.wartimeSanidadMinistry ? cabinet : { ...cabinet, health: cabinet.labor };
+  // 卫生职能在单设该部之前仍属劳动部；但联合政府（cabinet）从一开始就
+  // 把司法与卫生作为 CNT 的独立部委列出（用户定稿），因此只有阁外/旧路线
+  // 才在卫生与社会援助部事件之前把 health 并回 labor。
+  return state.wartimeSanidadMinistry || route === 'cabinet'
+    ? cabinet
+    : { ...cabinet, health: cabinet.labor };
 };
 
 export const createWartimeCoalition = (state: GameState, route: WartimeGovernmentRoute): CoalitionState => {

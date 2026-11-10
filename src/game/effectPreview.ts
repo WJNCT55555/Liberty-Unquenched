@@ -65,6 +65,7 @@ const TOP_LEVEL_FIELDS: Record<string, FieldConfig> = {
   militia_reorg_timer: { label: 'Militia reorganization cooldown', labelZh: '民兵整编冷却', reverseTone: true },
   anarchy_tanks_timer: { label: 'Tank program cooldown', labelZh: '坦克项目冷却', reverseTone: true },
   prepare_revolution_timer: { label: 'Revolutionary preparation cooldown', labelZh: '革命准备冷却', reverseTone: true },
+  paseo_timer: { label: 'Paseo cooldown', labelZh: '散步冷却', reverseTone: true },
   internationalBrigades: { label: 'International Brigades', labelZh: '国际纵队' },
   tankResearchProgress: { label: 'Tank research progress', labelZh: '坦克研发进度' },
   covert_ops_france: { label: 'Covert operations in France', labelZh: '法国秘密行动' },

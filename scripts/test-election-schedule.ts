@@ -11,6 +11,7 @@ import {
 } from '../src/game/utils/coalition';
 import {
   GENERAL_ELECTION_BLOC_PARTIES,
+  calculateElectionResults,
   calculateRawVotes,
   summarizeGeneralElection,
 } from '../src/game/utils/election';
@@ -19,10 +20,11 @@ import { calculateMonthlyEventQueue } from '../src/game/rules/monthlyPipeline';
 import { elections1933 } from '../src/game/events/elections_1933';
 import { elections1936 } from '../src/game/events/elections_1936';
 import {
-  MINISTER_ALLOCATION_LEVERAGE,
   elections1931Results,
   ministerAllocation,
 } from '../src/game/events/elections_1931_results';
+import { getMinisterLeverage } from '../src/game/rules/ministerAllocation';
+import { getCabinetTable } from '../src/game/events/cabinetTables';
 import {
   cnt_third_congress_1,
   cnt_third_congress_6,
@@ -262,6 +264,16 @@ assert.equal(
 );
 assert.equal(initial1936.governmentCrisisSequence, 2);
 
+for (const [scenario, expectedSeats] of [['1931', 470], ['1933', 473], ['1936', 473]] as const) {
+  const scenarioState = createScenarioState(scenario, 'normal', 'zh');
+  const scenarioCortes = calculateElectionResults(scenarioState);
+  assert.equal(
+    Object.values(scenarioCortes).reduce((sum, seats) => sum + seats, 0),
+    expectedSeats,
+    `${scenario} must allocate ${expectedSeats} Cortes seats.`,
+  );
+}
+
 const emptyCortes = Object.fromEntries(
   Object.values(GENERAL_ELECTION_BLOC_PARTIES).flat().map((party) => [party, 0]),
 ) as Record<Party, number>;
@@ -336,7 +348,21 @@ const cntCabinet = generalElectionResultOptions[2].effect({
   pendingEvents: [],
 });
 assert.equal(cntCabinet.cntStance, 'govern');
-assert.equal(cntCabinet.leverage, MINISTER_ALLOCATION_LEVERAGE);
+const workersBaseline = getCabinetTable('workers_alliance');
+const cntCabinetMinisters = cntCabinet.ministers!;
+for (const office of Object.keys(workersBaseline) as Array<keyof typeof workersBaseline>) {
+  assert.equal(
+    cntCabinetMinisters[office],
+    workersBaseline[office],
+    `Workers' Alliance baseline must preserve ${office}.`,
+  );
+}
+const workersAllianceOutcome = summarizeGeneralElection(resultStateWithWorkersAlliance);
+const workersAllianceSeats = Object.values(workersAllianceOutcome.cortes).reduce((sum, seats) => sum + seats, 0);
+assert.equal(
+  cntCabinet.leverage,
+  getMinisterLeverage(workersAllianceOutcome.cortes, false, workersAllianceSeats),
+);
 assert(
   cntCabinet.pendingEvents?.some((event) => event.id === ministerAllocation.id),
   'A CNT cabinet formed after any later election must queue free ministerial allocation.',
@@ -345,6 +371,23 @@ assert.equal(
   Object.values(cntCabinet.ministers || {}).includes('CNT'),
   false,
   'Later elections must let the player choose CNT portfolios instead of assigning fixed ministries.',
+);
+const noPrrevsSeatsState = {
+  ...resultStateWithWorkersAlliance,
+  cntVotingRate: 0,
+  generalElectionSchedule: {
+    ...resultStateWithWorkersAlliance.generalElectionSchedule,
+    participation: 'abstain' as const,
+  },
+  pendingEvents: [],
+};
+const noAllocationCabinet = generalElectionResultOptions[2].effect(noPrrevsSeatsState);
+assert.equal(noAllocationCabinet.leverage, 0);
+assert.equal(noAllocationCabinet.cntStance, 'cooperate');
+assert.equal(
+  noAllocationCabinet.pendingEvents?.some(event => event.id === ministerAllocation.id),
+  false,
+  'A CNT cabinet without PRRevS seats must not open the minister-allocation menu.',
 );
 const prrevsMajorityCortes: Record<Party, number> = {
   ...emptyCortes,
@@ -389,10 +432,17 @@ assert.equal(
 const prrevsGovernment = generalElectionResultOptions[4].effect(prrevsMajorityState);
 assert.equal(prrevsGovernment.rulingCoalition, 'prrevs_parliamentary_majority');
 assert.equal(prrevsGovernment.cntStance, 'govern');
+assert.equal(prrevsGovernment.leverage, 0);
 assert.equal(prrevsGovernment.government?.type, 'PRRevS Majority Government');
-assert(
+assert.equal(
+  Object.values(prrevsGovernment.ministers).every(party => party === 'CNT'),
+  true,
+  'A PRRevS majority must form an all-CNT single-party cabinet.',
+);
+assert.equal(
   prrevsGovernment.pendingEvents?.some(event => event.id === ministerAllocation.id),
-  'A PRRevS majority government must retain the later-election minister allocation flow.',
+  false,
+  'A PRRevS majority must skip the coalition bargaining menu.',
 );
 const repeatElection = hungParliamentFormation.options[1].effect({
   ...resultState,

@@ -15,6 +15,7 @@ import type { GameState } from '../types';
 import { SCHEDULED_EVENT_REGISTRY } from '../registries/scheduledEventRegistry';
 import { initializeStartingCoalition, shouldQueueEvent } from '../utils';
 import { activateCivilWarOrganizations, getDefaultArmedEntityPools } from '../organizations';
+import { activateJournal } from '../rules/journalEvents';
 import { getDefaultArmyFormations, initializeMapState } from '../../map/map_constants';
 import { ECONOMIC_RULES } from '../rules/economy';
 import { getAnnualEconomicImpulse } from '../rules/annualEconomicImpulse';
@@ -81,6 +82,7 @@ export const createScenarioState = (
     domesticPolicy: { ...definition.domesticPolicy },
     scenario,
     difficulty,
+    falange_jons: definition.history.falangeJons,
     organizations: definition.organizations(),
     year: startYear,
     month: startMonth,
@@ -200,6 +202,13 @@ export const createScenarioState = (
   };
 
   if (scenario === '1936') {
+    // The Fourth Congress (May 1936) already adopted the libertarian-communist
+    // blueprint before this July start. The Free Commune journal is therefore
+    // already active; there is no opening "land question" event to confirm.
+    newState = {
+      ...newState,
+      ...activateJournal(newState, 'journal_economy_free_commune'),
+    };
     newState = {
       ...newState,
       ...activateCivilWarOrganizations(newState),

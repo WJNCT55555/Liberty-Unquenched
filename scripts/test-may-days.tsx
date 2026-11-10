@@ -14,7 +14,7 @@ import { mayDays, mayDaysCeasefire, mayDaysGovernmentCrisis, mayDaysResult, mayD
 import { beginMayDays, canAgreeMayDays, canBackMayDaysCommittees, canPreserveMayDaysGovernment, getMayDaysPower, getMayDaysProductionFactor, getMayDaysSupportWeight, isMayDaysDue, isMayDaysPOUMDue, resolveMayDaysGovernment, resolveMayDaysPOUM, settleMayDaysCeasefire, settleMayDaysPressure } from '../src/game/rules/mayDays';
 import { calculateMonthlyEventQueue, calculateMonthlyMapStage } from '../src/game/rules/monthlyPipeline';
 import { getArmyPoliticalMember, isWartimeCrisisDue, monthIndex } from '../src/game/rules/wartimeCoalition';
-import { shouldQueueEvent, updateCoalitions } from '../src/game/utils';
+import { formWartimeGovernment, shouldQueueEvent, updateCoalitions } from '../src/game/utils';
 import { getEffectiveCortes, isRepublicanPartyEligible } from '../src/game/politicalEligibility';
 import { getLegalStanceActors } from '../src/game/lawStances';
 import { activateCivilWarOrganizations, isOrganizationActive, normalizeOrganizationState, setOrganizationEstablished } from '../src/game/organizations';
@@ -58,9 +58,16 @@ const seed = (route: WartimeGovernmentRoute = 'cabinet', difficulty: GameState['
   for (const party of ['POUM', 'PS', 'IR', 'UR', 'ERC', 'PNV', 'PCE', 'PSOE'] as const) state = { ...state, ...setOrganizationEstablished(state, party) };
   state.poum_founded = true;
   state.armies = [troop('cnt_may', 'cnt', 40000), troop('poum_may', 'poum', 6000), ...state.armies!];
-  const option = wartimePowerArrangement.options[{ cabinet: 0, council: 1, external: 2 }[route]];
-  assert.ok(!option.condition || option.condition(state));
-  state = { ...state, ...option.effect(state), year: 1937, month: 5, language: 'zh', currentEvent: null, pendingEvents: [], phase: 'event', resources: 20 };
+  // The council option was removed from the event; keep the legacy route
+  // reachable through the appointment API for the May Days fixtures.
+  if (route === 'council') {
+    state = formWartimeGovernment(state, 'council');
+  } else {
+    const option = wartimePowerArrangement.options[{ cabinet: 0, external: 1 }[route]];
+    assert.ok(!option.condition || option.condition(state));
+    state = { ...state, ...option.effect(state) };
+  }
+  state = { ...state, year: 1937, month: 5, language: 'zh', currentEvent: null, pendingEvents: [], phase: 'event', resources: 20 };
   state.provinces = { ...state.provinces, barcelona: { ...state.provinces!.barcelona, owner: MapFaction.REPUBLICAN } };
   state.regionalStatuses = { ...state.regionalStatuses, catalonia: 'autonomy' };
   state.cataloniaControl = 'committee';
@@ -561,7 +568,7 @@ test('Every capitulation uses strict SV and capital loss together; remaining ter
   assert.ok(settleIberianCapitulations(custom).iberianDefense!.eliminated.includes(MapFaction.NATIONALIST));
 });
 
-test('Nationalist elimination leaves the left-wing war running; Committee defeat ends play immediately', () => {
+test('Nationalist elimination leaves the left-wing war running; a Committee defeat beaten by the right ends as We Have Passed', () => {
   const leftWar = settleIberianCapitulations(thresholdFixture(MapFaction.NATIONALIST, 59, true));
   assert.equal(leftWar.civilWarStatus, 'ongoing');
   assert.equal(leftWar.iberianDefense!.winner, undefined);
@@ -574,7 +581,7 @@ test('Nationalist elimination leaves the left-wing war running; Committee defeat
   assert.equal(defeated.civilWarStatus, 'lost');
   assert.equal(defeated.activeWar, null);
   assert.equal(checkEndings({ ...defeated, year: 1942 }).isGameOver, true);
-  assert.equal(checkEndings(defeated).ending, 'IBERIAN_COMMITTEE_DEFEAT');
+  assert.equal(checkEndings(defeated).ending, 'WE_HAVE_PASSED');
   const calls: MapFaction[] = [];
   assert.equal(finishPlayerMapTurn(defeated, battleHelpers(calls)), defeated);
   assert.deepEqual(calls, []);
@@ -583,7 +590,7 @@ test('Nationalist elimination leaves the left-wing war running; Committee defeat
   assert.equal(income.mapResources.IBERIAN_DEFENSE.commandPoints, 0);
 });
 
-test('Committee victory requires the last survivor; either enemy causes the same player defeat ending', () => {
+test('Committee victory requires the last survivor; a Republican victory over the Committee is the Revolution Betrayed', () => {
   for (const winner of CIVIL_WAR_FACTIONS) {
     let state = secede();
     state = { ...state, provinces: Object.fromEntries(Object.entries(state.provinces!).map(([id, province]) => [id, CIVIL_WAR_FACTIONS.some(faction => faction === province.owner) ? { ...province, owner: winner } : province])) };
@@ -591,8 +598,16 @@ test('Committee victory requires the last survivor; either enemy causes the same
     assert.equal(next.iberianDefense!.winner, winner === MapFaction.IBERIAN_DEFENSE ? winner : undefined);
     assert.equal(next.iberianDefense!.eliminated.length, winner === MapFaction.IBERIAN_DEFENSE ? 2 : 1);
     assert.equal(next.activeWar, null);
-    assert.equal(checkEndings(next).isGameOver, true);
-    assert.equal(checkEndings(next).ending, winner === MapFaction.IBERIAN_DEFENSE ? 'IBERIAN_COMMITTEE_VICTORY' : 'IBERIAN_COMMITTEE_DEFEAT');
+    const terminal = checkEndings(next);
+    if (winner === MapFaction.IBERIAN_DEFENSE) {
+      // The Committee's victory now opens its settlement chain before the ending screen.
+      assert.equal(terminal.isGameOver, false);
+      assert.equal(terminal.currentEvent?.id, 'iberian_victory_prologue');
+      assert.ok(terminal.iberianSettlement);
+    } else {
+      assert.equal(terminal.isGameOver, true);
+      assert.equal(terminal.ending, winner === MapFaction.REPUBLICAN ? 'THE_REVOLUTION_BETRAYED' : 'WE_HAVE_PASSED');
+    }
     assert.deepEqual(settleIberianCapitulations(next), next);
   }
 });
@@ -607,7 +622,7 @@ test('Simultaneous enemy capitulation cannot rescue an already defeated Committe
   const next = settleIberianCapitulations(state);
   assert.equal(next.iberianDefense!.playerDefeated, true);
   assert.deepEqual(next.iberianDefense!.eliminated, [MapFaction.IBERIAN_DEFENSE]);
-  assert.equal(checkEndings(next).ending, 'IBERIAN_COMMITTEE_DEFEAT');
+  assert.equal(checkEndings(next).ending, 'WE_HAVE_PASSED');
 });
 
 test('Committee defeat stops both the current AI action list and the next AI faction', () => {
@@ -640,17 +655,22 @@ test('Committee defeat stops both the current AI action list and the next AI fac
   // avoiding dependence on random combat for the terminal transition.
   const terminal = gameReducer({ ...state, provinces: { ...state.provinces!, barcelona: { ...state.provinces!.barcelona, owner: MapFaction.NATIONALIST } } }, { type: 'END_MAP_PLAYER_TURN' });
   assert.equal(terminal.isGameOver, true);
-  assert.equal(terminal.ending, 'IBERIAN_COMMITTEE_DEFEAT');
+  assert.equal(terminal.ending, 'WE_HAVE_PASSED');
 });
 
-test('Legacy Madrid and Nationalist victories restore as Committee defeat', () => {
+test('Legacy Committee and rebel victory saves restore as the merged loss endings', () => {
   for (const winner of [MapFaction.REPUBLICAN, MapFaction.NATIONALIST]) {
     const state = secede();
     const legacy = { ...state, isGameOver: true, ending: winner === MapFaction.REPUBLICAN ? 'IBERIAN_MADRID_VICTORY' : 'WE_HAVE_PASSED',
       iberianDefense: { ...state.iberianDefense!, winner, eliminated: [MapFaction.IBERIAN_DEFENSE], playerDefeated: true } };
     const loaded = gameReducer(seed(), { type: 'LOAD_STATE', payload: restore(legacy) });
     assert.equal(loaded.isGameOver, true);
-    assert.equal(loaded.ending, 'IBERIAN_COMMITTEE_DEFEAT');
+    assert.equal(loaded.ending, winner === MapFaction.REPUBLICAN ? 'THE_REVOLUTION_BETRAYED' : 'WE_HAVE_PASSED');
+  }
+  for (const retired of ['NATIONALIST_JUNTA_VICTORY', 'DIVIDED_REBEL_VICTORY', 'CARLIST_VICTORY']) {
+    const state = secede();
+    const loaded = gameReducer(seed(), { type: 'LOAD_STATE', payload: restore({ ...state, isGameOver: true, ending: retired }) });
+    assert.equal(loaded.ending, 'WE_HAVE_PASSED');
   }
   const ordinary = { ...seed(), isGameOver: true, ending: 'WE_HAVE_PASSED' };
   assert.equal(checkEndings(ordinary), ordinary);

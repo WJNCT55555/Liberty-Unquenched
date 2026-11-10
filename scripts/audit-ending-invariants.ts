@@ -71,13 +71,13 @@ const idealUpperBound=Object.entries(CLASS_INFO).reduce((sum,[socialClass,info])
 const report={
   scope:'Current source tree; ordinary gameplay excludes load/debug/sandbox state injection.',
   unreachable:[
-    {ending:'RUSSIAN_SPAIN',reason:'pceInPower initializes false and has no gameplay writer. The 1935 Comintern event now supplies pceAcceptsComintern; the 1936 start pre-applies that historical flag.'},
+    {ending:'RUSSIAN_SPAIN',reason:'Requires a PCE-only cabinet inside a parliamentary/council republic plus Comintern acceptance and Moscow gold; no normal government formation path currently produces a PCE-only cabinet.'},
   ],
   supportBounds:{idealUpperBound,baseline,thresholds:PCE_ENDING_THRESHOLDS,
-    excludedByUpperBound:{greatPurge:idealUpperBound<=PCE_ENDING_THRESHOLDS.greatPurge,russianSpain:idealUpperBound<=PCE_ENDING_THRESHOLDS.russianSpain},
-    note:'A loose upper bound does not prove a legal route can attain either threshold. The new >75 / >70 thresholds are no longer excluded by this bound.'},
+    excludedByUpperBound:{greatPurge:idealUpperBound<=PCE_ENDING_THRESHOLDS.greatPurge},
+    note:'A loose upper bound does not prove a legal route can attain the >75 purge threshold. Russian Spain no longer uses a support threshold.'},
   modeRestrictions:[{ending:'SILENT_REPUBLIC',mode:'historical',reason:'1931/1933 force the civil-war announcement in July 1936; 1936 starts with the civil war ongoing.'}],
-  overlap:{earlier:'THE_GREAT_PURGE',later:'RUSSIAN_SPAIN',reason:'While CNT governs, PCE >75 preempts Russian Spain; 70 < PCE <=75 permits Russian Spain if its remaining conditions are supplied.'},
+  overlap:{earlier:'THE_GREAT_PURGE',later:'RUSSIAN_SPAIN',reason:'If the PCE-only cabinet also has PCE >75 and CNT governs, the earlier purge check wins.'},
   supportWrites:writes.filter(write=>write.force==='PCE'),dynamicCalls,
   normalizationStressCheck:{transitions,largestRoundingExcursion,note:'Helper invariant stress check for classes without direct PCE gains, not an end-to-end playability test.'},
 };

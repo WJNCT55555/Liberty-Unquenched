@@ -547,7 +547,6 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 104px;
   background-color: var(--law-card);
   border: 1px solid var(--law-line);
   transition: background-color 120ms ease, border-color 120ms ease;

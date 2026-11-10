@@ -15,7 +15,12 @@ export const jonsFormation: GameEvent = {
   id: 'jons_formation',
   meta: newsMeta,
   date: { year: 1931, month: 10 },
-  condition: (state) => !isOrganizationEstablished(state, 'JONS') && isAtOrAfter(state, 1931, 10),
+  // In 1936 the JONS no longer exists as a separate organization: it merged
+  // into the Falange in 1934, which is recorded as `falangeJons`. Without this
+  // guard a 1936 start re-announces the 1931 founding as if it were current news.
+  condition: (state) => !isOrganizationEstablished(state, 'JONS')
+    && !state.falange_jons
+    && isAtOrAfter(state, 1931, 10),
   title: 'The Juntas de Ofensiva Nacional-Sindicalista',
   titleZh: '国家工团主义进攻委员会成立',
   description: 'Ramiro Ledesma Ramos\'s La Conquista del Estado and Onésimo Redondo\'s Juntas Castellanas de Actuación Hispánica have merged into the Juntas de Ofensiva Nacional-Sindicalista. The JONS are not a parliamentary party but a tiny, violent sect of students and clerks who preach the conquest of the state by a national-syndicalist dictatorship. They despise the Republic, and they despise us.',

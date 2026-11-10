@@ -320,9 +320,9 @@ writeFileSync('output/ending-review.json',JSON.stringify({
   endings:rows,attemptedRoutes:currentRuns.length,
   restrictions:[{ending:'SILENT_REPUBLIC',mode:'historical',status:'unreachable',reason:'Forced July 1936 war in 1931/1933; 1936 starts at war.'}],
   issues:[
-    {priority:1,problem:'Russian Spain still has no gameplay writer for pceInPower. The 1935 Comintern event and 1936 start now supply pceAcceptsComintern.'},
-    {priority:2,problem:'Great Purge requires national PCE support >75 and Russian Spain >70. The loose upper bound of 78 no longer excludes these thresholds; reaching them still needs complete ordinary-route evidence.'},
-    {priority:1,problem:'Catalonia seizure spreads a control-share patch containing stats.workerControl alone; full stats are replaced and fervor becomes undefined/NaN, disabling both fervor-specific victory checks.'},
+    {priority:1,problem:'Russian Spain now requires a PCE-only cabinet inside a parliamentary/council republic plus Comintern acceptance and Moscow gold; no normal government formation path currently produces a PCE-only cabinet.'},
+    {priority:2,problem:'Great Purge requires national PCE support >75. The loose upper bound of 78 no longer excludes the threshold; reaching it still needs complete ordinary-route evidence.'},
+    {priority:1,problem:'Catalonia seizure spreads a control-share patch containing stats.workerControl alone; full stats are replaced and fervor becomes undefined/NaN, disabling the fervor-specific Popular Front check.'},
   ],
   evidence:{routes:'output/ending-reachability.json',invariants:'output/ending-invariants.json'},
 },null,2));

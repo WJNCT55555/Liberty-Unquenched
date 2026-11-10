@@ -1,6 +1,6 @@
 # Liberty Unquenched
 
-**自由未烬**是一款以第二西班牙共和国为背景的政治与战争模拟游戏。玩家以 CNT-FAI 为主要视角，在 1931 年共和国建立后介入党派政治、工人运动、政府决策、军事动员和内战进程。目前游戏包含25张卡牌、19位可选择的顾问、105个事件、19个成就、14类法律、6个任务日志、9个结局。
+**自由未烬**是一款以第二西班牙共和国为背景的政治与战争模拟游戏。玩家以 CNT-FAI 为主要视角，在 1931 年共和国建立后介入党派政治、工人运动、政府决策、军事动员和内战进程。目前游戏包含25张卡牌、19位可选择的顾问、105个事件、19个成就、14类法律、6个任务日志、13个结局。
 
 > This is an actively developed historical political simulation. The game is inspired by the Spanish Second Republic and the Spanish Civil War, but it is not intended to be a complete historical reconstruction or an academic source.
 

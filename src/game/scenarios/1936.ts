@@ -48,10 +48,10 @@ export const SCENARIO_1936: ScenarioDefinition = {
     estado: 'IR',
   },
 
-  // February 1936 Cortes: the Popular Front majority.
+  // February 1936 Cortes: 473 seats; the Popular Front majority.
   cortes: {
     PSOE: 99, IR: 87, UR: 37, ERC: 36, PCE: 17, POUM: 1, PS: 2, AP: 88, RE: 12, CT: 10,
-    FE: 0, PRR: 5, PNV: 10, DLR: 0, Other: 66, PRRevS: 0,
+    FE: 0, PRR: 5, PNV: 10, DLR: 0, Other: 69, PRRevS: 0,
   },
 
   classes: SCENARIO_1936_CLASSES,
@@ -63,6 +63,9 @@ export const SCENARIO_1936: ScenarioDefinition = {
    * election restores amnesty rather than a statute level, and the historical
    * Azaña presidency only advances land-reform progress. The July 1933 Public
    * Order Law is therefore still the regime in force here, at level 1.
+   *
+   * The 1932 Divorce Law is included in the 1933 replay (womens_rights 1->2),
+   * so this 1936 start inherits level 2 rather than replaying the 1932 event.
    *
    * `land_reform_progress` stays at 0 for the same reason as in 1933: the
    * land-reform journal is inactive when a scenario opens.
@@ -81,7 +84,7 @@ export const SCENARIO_1936: ScenarioDefinition = {
     min_wage: 0,
     workplace_safety: 0,
     political_rights: 2,
-    womens_rights: 1,
+    womens_rights: 2,
     religion_policy: 2,
     education_institutions: 1,
     language_policy: 1,
