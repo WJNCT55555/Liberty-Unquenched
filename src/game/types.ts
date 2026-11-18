@@ -708,6 +708,8 @@ export interface GameState extends MapRuntimeState {
   fiscal_policy_timer: number;
   aragon_front_timer: number;
   militia_reorg_timer: number;
+  /** 「军备获取」军事事务卡的冷却（`military_affairs/arms_acquisition.ts`）。 */
+  arms_acquisition_timer: number;
   anarchy_tanks_timer: number;
   prepare_revolution_timer: number;
   paseo_timer: number;

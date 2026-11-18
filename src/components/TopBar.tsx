@@ -9,15 +9,18 @@ import { EconomyModal } from './EconomyModal';
 import { DomesticPoliticsModal } from './DomesticPoliticsModal';
 import { DomesticPolicyModal } from './DomesticPolicyModal';
 import { LawStanceModal } from './LawStanceModal';
+import { PartiesOrganizationsModal } from './PartiesOrganizationsModal';
 import { SaveManagerModal } from './SaveManagerModal';
 import {
   areDomesticPolicyModalStatesEqual,
   areEconomyModalStatesEqual,
   areLawStanceModalStatesEqual,
+  arePartiesOrganizationsModalStatesEqual,
   arePoliticalModalStatesEqual,
   selectDomesticPolicyModalState,
   selectEconomyModalState,
   selectLawStanceModalState,
+  selectPartiesOrganizationsModalState,
   selectPoliticalModalState,
 } from '../game/selectors';
 
@@ -35,6 +38,7 @@ export const TopBar = () => {
   const [isPoliticsModalOpen, setIsPoliticsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isLawStanceModalOpen, setIsLawStanceModalOpen] = useState(false);
+  const [isPartiesModalOpen, setIsPartiesModalOpen] = useState(false);
   const [isSaveManagerOpen, setIsSaveManagerOpen] = useState(false);
   const state = useGameSelector(snapshot => ({
     language: snapshot.language,
@@ -148,6 +152,12 @@ export const TopBar = () => {
             isActive={isLawStanceModalOpen}
             index="04"
             label={isZh ? '法律立场' : 'STANCES'}
+          />
+          <TabButton
+            onClick={() => setIsPartiesModalOpen(true)}
+            isActive={isPartiesModalOpen}
+            index="05"
+            label={isZh ? '政治力量与组织' : 'FORCES & ORGS'}
           />
         </div>
       </nav>
@@ -275,6 +285,7 @@ export const TopBar = () => {
       {isPoliticsModalOpen && <PoliticsModalLayer onClose={() => setIsPoliticsModalOpen(false)} isZh={isZh} />}
       {isPolicyModalOpen && <PolicyModalLayer onClose={() => setIsPolicyModalOpen(false)} isZh={isZh} />}
       {isLawStanceModalOpen && <LawStanceModalLayer onClose={() => setIsLawStanceModalOpen(false)} isZh={isZh} />}
+      {isPartiesModalOpen && <PartiesModalLayer onClose={() => setIsPartiesModalOpen(false)} isZh={isZh} />}
       <SaveManagerModal
         isOpen={isSaveManagerOpen}
         onClose={() => setIsSaveManagerOpen(false)}
@@ -310,6 +321,11 @@ const PolicyModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) =>
 const LawStanceModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
   const state = useGameSelector(selectLawStanceModalState, areLawStanceModalStatesEqual);
   return <LawStanceModal isOpen onClose={onClose} state={state} isZh={isZh} />;
+};
+
+const PartiesModalLayer: React.FC<DetailModalLayerProps> = ({ onClose, isZh }) => {
+  const state = useGameSelector(selectPartiesOrganizationsModalState, arePartiesOrganizationsModalStatesEqual);
+  return <PartiesOrganizationsModal isOpen onClose={onClose} state={state} isZh={isZh} />;
 };
 
 const TabButton = ({ onClick, isActive = false, label, index }: { onClick: () => void, isActive?: boolean, label: string, index: string }) => (

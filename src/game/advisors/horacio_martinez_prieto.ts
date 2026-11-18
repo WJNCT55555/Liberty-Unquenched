@@ -37,6 +37,31 @@ export const horacioMartinezPrieto: Advisor = {
       },
       description: "Horacio's mediation has lowered the factional friction within the CNT, allowing the union to present a united front against our real class enemies.",
       descriptionZh: '通过在狂热激进派与稳健实用派之间穿针引线，成功降低了无政府主义阵营的长期内耗，使全国工会以更坚毅、更团结的姿态应对真正的阶级敌人。',
+    },
+    {
+      // Same option as Orobón's "Improve Relations with UGT": the gain shrinks as the
+      // Cenetistas' own dissent rises, so the two Cenetistas advisors share one formula.
+      id: 'horacio_improve_ugt_relations',
+      title: 'Improve Relations with UGT',
+      titleZh: '改善与 UGT 的关系',
+      subtitle: 'We must put aside historical grievances and form a united proletarian front.',
+      subtitleZh: '我们必须放下历史恩怨，结成统一的无产阶级战线。',
+      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
+      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
+      condition: (state) => state.advisorActionTimer <= 0,
+      effect: (state) => {
+        const multiplier = 1 - (state.factions.Cenetistas.dissent / 100);
+
+        return {
+          advisorActionTimer: 6,
+          partyRelations: {
+            ...state.partyRelations,
+            PSOE: Math.min(100, state.partyRelations.PSOE + 5 * multiplier)
+          }
+        };
+      },
+      description: 'Horacio has taken the chair between the two confederations: the UGT will not march beside us, but it will talk.',
+      descriptionZh: '霍拉西奥在两大会谈桌前坐了下来：总工会不会与我们并肩游行，但它愿意谈。',
     }
   ]
 };

@@ -1,6 +1,6 @@
 import type { GameEvent } from '../types';
 import { adjustClassSupport, isAtOrAfter } from '../utils';
-import { setOrganizationEstablished } from '../organizations';
+import { adjustMilitiaManpower, FALANGE_FIRST_LINE_FOUNDING_MANPOWER, setOrganizationEstablished } from '../organizations';
 
 const newsMeta = {
   category: 'news' as const,
@@ -20,8 +20,8 @@ export const foundingOfFalange: GameEvent = {
     {
       text: 'Let us wait and see',
       textZh: '让我们静观其变',
-      subtitle: 'Founds Falange and increases FE support among landowners, the small bourgeoisie, and the clergy.',
-      subtitleZh: '成立长枪党，并提高贵族大地主、小资产阶级和天主教会对长枪党（FE）的支持。',
+      subtitle: 'Founds Falange with a first-line cadre of about 1,500 and increases FE support among landowners, the small bourgeoisie, and the clergy.',
+      subtitleZh: '成立长枪党，并带来约 1,500 名第一线骨干，同时提高贵族大地主、小资产阶级和天主教会对长枪党（FE）的支持。',
       effect: (state) => {
         let newClasses = state.classes;
         newClasses = adjustClassSupport(newClasses, 'Latifundistas', 'FE', 10);
@@ -32,6 +32,7 @@ export const foundingOfFalange: GameEvent = {
           classes: newClasses,
           fe_founded: true,
           ...setOrganizationEstablished(state, 'FE'),
+          ...adjustMilitiaManpower(state, 'falange_first_line', FALANGE_FIRST_LINE_FOUNDING_MANPOWER),
         };
       },
     },

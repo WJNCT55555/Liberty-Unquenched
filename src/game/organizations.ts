@@ -36,6 +36,97 @@ export type OrganizationStateReader = {
   organizations: OrganizationStateMap;
 };
 
+type YouthMilitiaMonthlyTarget = {
+  targets: Array<{
+    militiaOrganization: OrganizationId;
+    entityId: ArmedEntityId;
+  }>;
+  amount: number;
+};
+
+/**
+ * Youth organizations feed their party militia every month. The CNT is
+ * deliberately absent: its youth organization (FIJL) and the confederal
+ * militia do not use this monthly recruitment channel.
+ *
+ * Amounts differ because the organisations had different sizes: the unified
+ * JSU and the Carlist Pelayos were the largest youth networks, while the
+ * smaller party youth wings supplied a more modest cadre.
+ *
+ * The PCE youth feeds whichever PCE militia currently exists: the MAOC before
+ * the Fifth Regiment absorbs it, and the Fifth Regiment afterwards.
+ */
+const YOUTH_MILITIA_MONTHLY: Partial<Record<OrganizationId, YouthMilitiaMonthlyTarget>> = {
+  JJSS: {
+    targets: [{ militiaOrganization: 'PSOE_MILITIA', entityId: 'ugt_socialist_militias' }],
+    amount: 500,
+  },
+  UJCE: {
+    targets: [
+      { militiaOrganization: 'MAOC', entityId: 'maoc' },
+      { militiaOrganization: 'FIFTH_REGIMENT', entityId: 'fifth_regiment' },
+    ],
+    amount: 500,
+  },
+  JSU: {
+    targets: [
+      { militiaOrganization: 'MAOC', entityId: 'maoc' },
+      { militiaOrganization: 'FIFTH_REGIMENT', entityId: 'fifth_regiment' },
+    ],
+    amount: 600,
+  },
+  JCI: {
+    targets: [{ militiaOrganization: 'POUM_MILITIA', entityId: 'poum_militias' }],
+    amount: 500,
+  },
+  SEU: {
+    targets: [{ militiaOrganization: 'FALANGE_MILITIA', entityId: 'falange_first_line' }],
+    amount: 500,
+  },
+  EGI: {
+    targets: [{ militiaOrganization: 'EUZKO_GUDAROSTEA', entityId: 'euzko_gudarostea' }],
+    amount: 500,
+  },
+  PELAYOS: {
+    targets: [{ militiaOrganization: 'REQUETE_MILITIA', entityId: 'requetes' }],
+    amount: 600,
+  },
+};
+
+const isRawOrganizationActive = (state: GameState, id: OrganizationId): boolean => {
+  const organization = state.organizations?.[id];
+  return organization?.established === true
+    && (organization.status === undefined || organization.status === 'active');
+};
+
+const youthMilitiaMonthlyEffect = (organizationId: OrganizationId) => (state: GameState): Partial<GameState> => {
+  const target = YOUTH_MILITIA_MONTHLY[organizationId];
+  if (!target) return {};
+  if (!isRawOrganizationActive(state, organizationId)) return {};
+
+  const activeTarget = target.targets.find(({ militiaOrganization }) => (
+    isRawOrganizationActive(state, militiaOrganization)
+  ));
+  if (!activeTarget) return {};
+
+  const pool = state.armedForces.entityPools[activeTarget.entityId];
+  if (!pool) return {};
+
+  return {
+    armedForces: {
+      ...state.armedForces,
+      entityPools: {
+        ...state.armedForces.entityPools,
+        [activeTarget.entityId]: {
+          ...pool,
+          status: 'active' as const,
+          manpower: Math.max(0, pool.manpower + target.amount),
+        },
+      },
+    },
+  };
+};
+
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 
 /**
@@ -255,14 +346,18 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/JJSS_Emblem.png',
     type: 'youth', owner: 'PSOE', defaultEstablished: { '1931': true, '1933': true, '1936': true },
     defaultEstablishedAt: { '1931': { year: 1906, month: 1 }, '1933': { year: 1906, month: 1 }, '1936': { year: 1906, month: 1 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('JJSS'),
+    monthlyEffectText: '+500 UGT/PSOE militia manpower each month while the socialist militia is active.',
+    monthlyEffectTextZh: '每月 +500 UGT/PSOE 民兵池人力（须该民兵组织已激活）。',
   },
   {
     id: 'UJCE', abbreviation: 'UJCE', name: 'Unión de Juventudes Comunistas de España', nameZh: '西班牙共产主义青年联盟',
     icon: '/img/Organization/UJCE_Emblem.png',
     type: 'youth', owner: 'PCE', defaultEstablished: { '1931': true, '1933': true, '1936': true },
     defaultEstablishedAt: { '1931': { year: 1921, month: 11 }, '1933': { year: 1921, month: 11 }, '1936': { year: 1921, month: 11 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('UJCE'),
+    monthlyEffectText: '+500 MAOC militia manpower each month while the MAOC is active.',
+    monthlyEffectTextZh: '每月 +500 MAOC 民兵池人力（须 MAOC 已激活）。',
   },
   {
     id: 'FNTT', abbreviation: 'FNTT', name: 'Federación Nacional de Trabajadores de la Tierra', nameZh: '全国土地劳动者联合会',
@@ -287,7 +382,9 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/SEU_Emblem.png',
     type: 'youth', owner: 'FE', defaultEstablished: { '1933': true, '1936': true },
     defaultEstablishedAt: { '1933': { year: 1933, month: 11 }, '1936': { year: 1933, month: 11 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('SEU'),
+    monthlyEffectText: '+500 Falange First Line manpower each month while the Falange militia is active.',
+    monthlyEffectTextZh: '每月 +500 长枪党第一线民兵池人力（须该民兵组织已激活）。',
   },
   {
     id: 'SECCION_FEMENINA', abbreviation: 'SF', name: 'Sección Femenina', nameZh: '妇女部',
@@ -303,9 +400,10 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/JSU_Emblem.png',
     type: 'youth', owner: 'PCE', defaultEstablished: { '1936': true },
     defaultEstablishedAt: { '1936': { year: 1936, month: 4 } }, uiVisibility: 'internal',
-    monthlyEffectText: '+7/12 percentage points of PCE support among intellectuals each month.',
-    monthlyEffectTextZh: '每月知识分子对 PCE 的支持度 +7/12 个百分点。',
+    monthlyEffectText: '+600 MAOC militia manpower each month while the MAOC is active, and +7/12 percentage points of PCE support among intellectuals.',
+    monthlyEffectTextZh: '每月 +600 MAOC 民兵池人力（须 MAOC 已激活），并使知识分子对 PCE 的支持度 +7/12 个百分点。',
     monthlyEffect: (state) => ({
+      ...youthMilitiaMonthlyEffect('JSU')(state),
       classes: adjustClassSupport(state.classes, 'Intelectuales', 'PCE', 7 / 12),
     }),
   },
@@ -325,7 +423,9 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/EGI_Emblem.png',
     type: 'youth', owner: 'PNV', defaultEstablished: { '1933': true, '1936': true },
     defaultEstablishedAt: { '1933': { year: 1932, month: 1 }, '1936': { year: 1932, month: 1 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('EGI'),
+    monthlyEffectText: '+500 Basque Army manpower each month while the Euzko Gudarostea is active.',
+    monthlyEffectTextZh: '每月 +500 巴斯克军人力（须巴斯克军已激活）。',
   },
   {
     // ⚠️ Founding year needs source verification. Dated to 1930, before the 1931
@@ -334,7 +434,9 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/Pelayos_Emblem.png',
     type: 'youth', owner: 'CT', defaultEstablished: { '1931': true, '1933': true, '1936': true },
     defaultEstablishedAt: { '1931': { year: 1930, month: 1 }, '1933': { year: 1930, month: 1 }, '1936': { year: 1930, month: 1 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('PELAYOS'),
+    monthlyEffectText: '+600 Requeté manpower each month while the Requeté militia is active.',
+    monthlyEffectTextZh: '每月 +600 呼啸兵（Requetés）人力（须该民兵组织已激活）。',
   },
   {
     // ⚠️ Date follows the POUM's own founding, since the JCI became its youth wing.
@@ -342,7 +444,9 @@ export const ORGANIZATION_DEFINITIONS: OrganizationDefinition[] = [
     icon: '/img/Organization/JCI_Emblem.png',
     type: 'youth', owner: 'POUM', defaultEstablished: { '1936': true },
     defaultEstablishedAt: { '1936': { year: 1935, month: 9 } }, uiVisibility: 'internal',
-    monthlyEffectText: 'No monthly effect.', monthlyEffectTextZh: '暂无月度效果。',
+    monthlyEffect: youthMilitiaMonthlyEffect('JCI'),
+    monthlyEffectText: '+500 POUM militia manpower each month while the POUM militia is active.',
+    monthlyEffectTextZh: '每月 +500 POUM 民兵池人力（须 POUM 民兵已激活）。',
   },
   {
     id: 'PCE', abbreviation: 'PCE', name: 'Partido Comunista de España', nameZh: '西班牙共产党', type: 'political', owner: 'PCE',
@@ -472,18 +576,28 @@ export const ORGANIZATION_DEFINITION_BY_ID: Record<OrganizationId, OrganizationD
   }, {} as Record<OrganizationId, OrganizationDefinition>);
 
 /** Build a complete registry state for a new scenario. */
-export const getDefaultOrganizationState = (scenario: GameState['scenario']): OrganizationStateMap => (
-  ORGANIZATION_DEFINITIONS.reduce((result, definition) => {
-    result[definition.id] = {
+export const getDefaultOrganizationState = (scenario: GameState['scenario']): OrganizationStateMap => {
+  const result = ORGANIZATION_DEFINITIONS.reduce((acc, definition) => {
+    acc[definition.id] = {
       established: definition.defaultEstablished?.[scenario] === true,
       status: definition.defaultEstablished?.[scenario] === true ? 'active' : 'unformed',
       ...(definition.defaultEstablishedAt?.[scenario]
         ? { establishedAt: definition.defaultEstablishedAt[scenario] }
         : {}),
     };
-    return result;
-  }, {} as OrganizationStateMap)
-);
+    return acc;
+  }, {} as OrganizationStateMap);
+
+  // The JSU was formed in April 1936 by merging the JJSS and the UJCE.
+  // Their successors must not remain active alongside it, or every youth
+  // organization would feed the PCE/PSOE militia separately.
+  if (scenario === '1936' && result.JSU?.established) {
+    if (result.JJSS) result.JJSS = { ...result.JJSS, status: 'integrated' };
+    if (result.UJCE) result.UJCE = { ...result.UJCE, status: 'integrated' };
+  }
+
+  return result;
+};
 
 /** Read organization state from the canonical registry. */
 export const isOrganizationEstablished = (state: OrganizationStateReader, id: OrganizationId): boolean => {
@@ -762,6 +876,45 @@ export const activateCivilWarOrganizations = (state: GameState): Partial<GameSta
   };
 };
 
+/**
+ * Approximate historical order of magnitude for the first militia cadre of
+ * each organization. These are deliberately round numbers, not precise
+ * headcounts: the sources give political membership and local strength far
+ * more reliably than a single national "militia roll".
+ *
+ * - MAOC, 1933: a modest organised cadre (the PCE's militia remained small
+ *   until the spring of 1936).
+ * - CNT defence committees, 1934: several thousand clandestine armed cadres.
+ * - Falange First Line, 1933-34: a small founding cadre before the 1936
+ *   expansion.
+ * - Requetés: an old Carlist militia, present in every scenario but at
+ *   different levels of legal/organisational strength.
+ */
+export const MAOC_FOUNDING_MANPOWER = 1_000;
+export const DEFENSE_COMMITTEE_FOUNDING_MANPOWER = 5_000;
+export const FALANGE_FIRST_LINE_FOUNDING_MANPOWER = 1_500;
+
+/** Adjust any party militia pool, including pools whose militia organization is not active yet. */
+export const adjustMilitiaManpower = (
+  state: GameState,
+  entityId: ArmedEntityId,
+  delta: number,
+): Partial<GameState> => {
+  const existingPool = state.armedForces.entityPools[entityId]
+    || getDefaultArmedEntityPools()[entityId];
+  if (!existingPool) return {};
+  const nextValue = Math.max(0, existingPool.manpower + delta);
+  return {
+    armedForces: {
+      ...state.armedForces,
+      entityPools: {
+        ...state.armedForces.entityPools,
+        [entityId]: { ...existingPool, status: 'active' as const, manpower: nextValue },
+      },
+    },
+  };
+};
+
 /** Adjust the canonical CNT defence-committee manpower pool. */
 export const adjustCntMilitiaManpower = (state: GameState, delta: number): Partial<GameState> => {
   const organizationId: OrganizationId = 'DC';
@@ -769,15 +922,7 @@ export const adjustCntMilitiaManpower = (state: GameState, delta: number): Parti
   const definition = getOrganizationDefinition(organizationId);
   const entityId = definition.armedEntityId;
   if (!entityId) return {};
-  const existingPool = state.armedForces.entityPools[entityId]
-    || EMPTY_POOL(entityId, organizationId, 'CNT_FAI');
-  const currentValue = existingPool.manpower;
-  const nextValue = Math.max(0, currentValue + delta);
-  const pools = {
-    ...state.armedForces.entityPools,
-    [entityId]: { ...existingPool, status: 'active' as const, manpower: nextValue },
-  };
-  return { armedForces: { ...state.armedForces, entityPools: pools } };
+  return adjustMilitiaManpower(state, entityId, delta);
 };
 
 /** Apply all recurring organization effects without mutating the input. */

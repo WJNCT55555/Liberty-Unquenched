@@ -1,5 +1,5 @@
 import type { GameEvent } from '../types';
-import { isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
+import { adjustMilitiaManpower, DEFENSE_COMMITTEE_FOUNDING_MANPOWER, isOrganizationEstablished, setOrganizationEstablished } from '../organizations';
 import { isAnyWarOngoing } from '../rules/republicCrisis';
 
 const cntMilitaryMeta = {
@@ -36,8 +36,11 @@ export const defenseCommitteeFormation: GameEvent = {
     {
       text: 'Organize the defense committees and coordinate our militia forces.',
       textZh: '组织防御委员会，并协调我们的民兵力量。',
+      subtitle: 'Founds the CNT defence committees with a clandestine armed cadre of about 5,000.',
+      subtitleZh: '成立 CNT 防御委员会，并带来约 5,000 名地下武装骨干。',
       effect: (state) => ({
         ...setOrganizationEstablished(state, 'DC'),
+        ...adjustMilitiaManpower(state, 'cnt_defense_committees', DEFENSE_COMMITTEE_FOUNDING_MANPOWER),
       })
     }
   ]

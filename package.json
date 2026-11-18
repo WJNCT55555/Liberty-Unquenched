@@ -44,6 +44,7 @@
     "test:commune-federation": "tsx scripts/test-commune-federation.ts",
     "test:catalonia-defense": "tsx scripts/test-catalonia-defense.ts",
     "test:scenario-start-events": "tsx scripts/test-scenario-start-events.ts",
+    "test:militia-foundation": "tsx scripts/test-militia-foundation.ts",
     "mission": "tsx scripts/mission.ts",
     "test:missions": "tsx scripts/test-missions.ts",
     "verify:phase3": "npm run lint && npm run test:effect-previews && npm run test:armament-income && npm run test:rules && npm run test:wartime && npm run test:may-days && npm run test:union-share && npm run test:save-system && npm run test:architecture && npm run test:selectors && npm run test:scenario-parity && npm run test:orchestration && npm run build",

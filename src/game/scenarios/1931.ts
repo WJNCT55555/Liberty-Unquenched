@@ -118,12 +118,14 @@ export const SCENARIO_1931: ScenarioDefinition = {
     coupSystemActive: false,
   },
 
+  // The Requetés predate the Republic. The other militia pools stay at zero
+  // until their founding events (MAOC 1933, DC 1934, Falange 1933) add a cadre.
   armedEntityManpower: {
     cnt_defense_committees: 0,
     maoc: 0,
     poum_militias: 0,
     ugt_socialist_militias: 0,
-    requetes: 0,
+    requetes: 8000,
     falange_first_line: 0,
   },
 

@@ -1,5 +1,12 @@
 import { Advisor } from '../types';
-import { adjustFactionDissents, adjustFactionInfluence } from '../utils';
+import {
+  adjustFactionDissent,
+  adjustFactionDissents,
+  COALITION_FRICTION_COMMITMENT,
+  getDissentMultiplier,
+  getRulingCoalitionMembers,
+  raiseRulingCoalitionContribution,
+} from '../utils';
 
 export const marianoRodriguez: Advisor = {
   id: 'mariano_rodriguez',
@@ -20,18 +27,19 @@ export const marianoRodriguez: Advisor = {
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        ...state,
-        advisorActionTimer: 6,
-        stats: {
-          ...state.stats,
-          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 10)
-        },
-        factions: {
-          ...adjustFactionInfluence(state.factions, 'Cenetistas', 10),
-          Puristas: { ...state.factions.Puristas, dissent: Math.min(100, state.factions.Puristas.dissent + 15) }
-        }
-      })
+      effect: (state) => {
+        const factions = adjustFactionDissent(state.factions, 'Puristas', 7);
+
+        return {
+          advisorActionTimer: 6,
+          stats: {
+            ...state.stats,
+            // The recruitment gain shrinks as the movement's overall dissent rises.
+            anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 10 * getDissentMultiplier(state.factions))
+          },
+          factions
+        };
+      }
     },
     {
       id: 'pragmatic_compromise',
@@ -83,6 +91,48 @@ export const marianoRodriguez: Advisor = {
           factions
         };
       }
+    },
+    {
+      id: 'mariano_coalition_friction',
+      title: 'Reduce Coalition Friction',
+      titleZh: '降低联盟分歧',
+      subtitle: 'Mediate inside the ruling coalition to raise the CNT-FAI\'s commitment, and with it the coalition\'s cohesion.',
+      subtitleZh: '在执政联盟内部斡旋，提高 CNT-FAI 的承诺度，从而抬升联盟凝聚力。',
+      unavailableSubtitle: (state) => {
+        if (state.cntStance !== 'cooperate') {
+          return 'Requires the CNT-FAI to be cooperating with the government.';
+        }
+        if (!getRulingCoalitionMembers(state).includes('CNT_FAI')) {
+          return 'Requires the CNT-FAI to sit in the ruling coalition.';
+        }
+        if (!getRulingCoalitionMembers(state).includes('PSOE')) {
+          return 'Requires the PSOE in the same ruling coalition.';
+        }
+        return `${state.advisorActionTimer} months before next advisor action.`;
+      },
+      unavailableSubtitleZh: (state) => {
+        if (state.cntStance !== 'cooperate') {
+          return '需要 CNT-FAI 对政府采取合作态度。';
+        }
+        if (!getRulingCoalitionMembers(state).includes('CNT_FAI')) {
+          return '需要 CNT-FAI 身处执政联盟。';
+        }
+        if (!getRulingCoalitionMembers(state).includes('PSOE')) {
+          return '需要社会党在同一执政联盟内。';
+        }
+        return `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`;
+      },
+      condition: (state) => state.advisorActionTimer <= 0
+        && state.cntStance === 'cooperate'
+        && getRulingCoalitionMembers(state).includes('CNT_FAI')
+        && getRulingCoalitionMembers(state).includes('PSOE'),
+      effect: (state) => ({
+        advisorActionTimer: 6,
+        // Commitment is the source of truth; cohesion is recomputed from it.
+        activeCoalitions: raiseRulingCoalitionContribution(state, 'CNT_FAI', COALITION_FRICTION_COMMITMENT)
+      }),
+      description: 'Marianet has spent the month on the telephone: the ministry keeps its ministry, the PSOE gets its guarantees, and the pact holds for another season.',
+      descriptionZh: '马里亚内这个月把时间花在电话上：部里保住自己的部，社会党拿到保证，协议又撑过一个季度。',
     }
   ]
 };

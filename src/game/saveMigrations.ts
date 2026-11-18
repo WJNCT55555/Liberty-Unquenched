@@ -442,6 +442,7 @@ export const migrateSaveState = (rawState: unknown): GameState => {
   return {
     ...migrated,
     paseo_timer: Number.isFinite(migrated.paseo_timer) ? Math.max(0, migrated.paseo_timer) : 0,
+    arms_acquisition_timer: Number.isFinite(migrated.arms_acquisition_timer) ? Math.max(0, migrated.arms_acquisition_timer) : 0,
     ...(migrated.classes ? { classes: Object.fromEntries(Object.entries(migrated.classes).map(([socialClass, entry]) =>
       [socialClass, { ...entry, support: { ...entry.support, FET: entry.support.FET ?? 0 } }])) as GameState['classes'] } : {}),
     ...(migrated.partySupport ? { partySupport: { ...migrated.partySupport, FET: migrated.partySupport.FET ?? 0 } } : {}),

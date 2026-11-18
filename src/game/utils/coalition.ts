@@ -16,6 +16,43 @@ export const getCoalitionMembers = (state: GameState, coalition: CoalitionState)
   (coalition.members ?? COALITION_DEFS.find(def => def.id === coalition.activeId)?.members ?? [])
     .filter(member => isRepublicanPartyEligible(state, member));
 
+/**
+ * 执政联盟中在册的成员；没有执政联盟时返回空数组。
+ *
+ * 顾问的「降低联盟分歧」用它做可用性判断：CNT-FAI 与 PSOE 必须同时在列。
+ */
+export const getRulingCoalitionMembers = (state: GameState): CoalitionMember[] => {
+  const ruling = state.activeCoalitions?.find(coalition => coalition.activeId === state.rulingCoalition);
+  return ruling ? getCoalitionMembers(state, ruling) : [];
+};
+
+/** 顾问「降低联盟分歧」每次提高的承诺度（布兰科与马里亚诺共用同一选项）。 */
+export const COALITION_FRICTION_COMMITMENT = 6;
+
+/**
+ * 提高执政联盟中某成员的承诺度，并按 `memberContributions` 重算凝聚力。
+ *
+ * **不要直接写 `cohesion`**：`updateCoalitions` 按承诺度加权重算，直接写会被下一步抹掉。
+ */
+export const raiseRulingCoalitionContribution = (
+  state: GameState,
+  member: CoalitionMember,
+  delta: number,
+): CoalitionState[] => {
+  const activeCoalitions = state.activeCoalitions.map(coalition => {
+    if (coalition.activeId !== state.rulingCoalition) return coalition;
+    const current = coalition.memberContributions?.[member] ?? 80;
+    return {
+      ...coalition,
+      memberContributions: {
+        ...coalition.memberContributions,
+        [member]: Math.min(100, Math.max(0, current + delta)),
+      },
+    };
+  });
+  return updateCoalitions({ ...state, activeCoalitions });
+};
+
 export function updateCoalitions(state: GameState): CoalitionState[] {
   const support = state.partySupport && Object.keys(state.partySupport).length > 0 
     ? state.partySupport 

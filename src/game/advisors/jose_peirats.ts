@@ -1,5 +1,6 @@
 import { Advisor } from '../types';
 import { adjustFactionDissent, adjustFactionInfluence } from '../utils';
+import { armsAcquisition } from '../military_affairs/arms_acquisition';
 
 export const josePeirats: Advisor = {
   id: 'jose_peirats',
@@ -57,6 +58,34 @@ export const josePeirats: Advisor = {
           }
         };
       }
+    },
+    {
+      // Same option as Ascaso's "Clandestine Armaments": enter the Arms Acquisition card
+      // even while it is on cooldown, then leave it on cooldown again.
+      id: 'peirats_clandestine_network',
+      title: 'Clandestine Armaments',
+      titleZh: '地下武装整备',
+      subtitle: 'Open the Arms Acquisition decision immediately, ignoring its current cooldown; the card then goes on cooldown as usual.',
+      subtitleZh: '直接进入「军备获取」决策，无视其当前冷却；进入后该卡照常进入冷却。',
+      unavailableSubtitle: (state) => state.resources < 1
+        ? 'Requires at least 1 resource.'
+        : `${state.advisorActionTimer} months before next advisor action.`,
+      unavailableSubtitleZh: (state) => state.resources < 1
+        ? '需要至少 1 资源。'
+        : `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
+      condition: (state) => state.advisorActionTimer <= 0 && state.resources >= 1,
+      effect: (state) => {
+        const result = armsAcquisition.effect(state);
+
+        return {
+          advisorActionTimer: 6,
+          // Same as Ascaso: the cooldown is bypassed on the way in, then written again.
+          arms_acquisition_timer: 6,
+          currentEvent: result.currentEvent
+        };
+      },
+      description: 'A purse of hard currency has gone to the border contacts, and the committees will hear the result within the month.',
+      descriptionZh: '一袋硬通货交到了边境联系人手里，各委员会这个月内就会知道结果。',
     }
   ]
 };

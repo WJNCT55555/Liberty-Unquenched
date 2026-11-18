@@ -144,13 +144,16 @@ export const SCENARIO_1933: ScenarioDefinition = {
     coupSystemActive: true,
   },
 
+  // Historical cadres already in existence by November 1933: the Requetés
+  // are an old Carlist militia; the MAOC and Falange first line are recent
+  // (1933) and still small. DC and the mass party militias are not yet formed.
   armedEntityManpower: {
     cnt_defense_committees: 0,
-    maoc: 0,
+    maoc: 1000,
     poum_militias: 0,
     ugt_socialist_militias: 0,
-    requetes: 0,
-    falange_first_line: 0,
+    requetes: 15000,
+    falange_first_line: 1500,
   },
 
   regionalStatuses: {

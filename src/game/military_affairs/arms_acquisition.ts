@@ -62,9 +62,12 @@ export const armsAcquisition: Card = {
   description: 'Seek weapons through our contacts near the French border.',
   descriptionZh: '通过法国边境附近的联系网络寻求武器。',
   cost: 1,
-  // Each attempt already spends an action point and a resource; no separate timer is needed.
-  condition: (state: GameState) => state.resources >= 1,
+  // Each attempt already spends an action point and a resource. The six-month lock is
+  // what makes the advisors' "地下武装整备" bypass meaningful: they clear this timer and
+  // hand the player the card's event directly.
+  condition: (state: GameState) => state.resources >= 1 && (state.arms_acquisition_timer || 0) <= 0,
   effect: (state: GameState): Partial<GameState> => ({
+    arms_acquisition_timer: 6,
     currentEvent: armsAcquisitionEvent(state)
   })
 };

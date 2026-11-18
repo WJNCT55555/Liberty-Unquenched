@@ -249,6 +249,32 @@ export const areLawStanceModalStatesEqual = equalStateKeys([
   'year',
 ] as const);
 
+export const selectPartiesOrganizationsModalState = (state: GameState): GameState => state;
+export const arePartiesOrganizationsModalStatesEqual = equalStateKeys([
+  'activeCoalitions',
+  'ceda_formed',
+  'classes',
+  'cntVotingRate',
+  'cortes',
+  'falange_jons',
+  'fe_founded',
+  'iberianDefense',
+  'ir_formed',
+  'month',
+  'organizations',
+  'partyAliases',
+  'partyRelations',
+  'polity',
+  'poum_founded',
+  'ps_founded',
+  'republicanPartyStatus',
+  'rulingCoalition',
+  'scenario',
+  'ur_formed',
+  'wartimePowerArrangement',
+  'year',
+] as const);
+
 /** SidePanel is intentionally broad, but no longer reacts to cards, events, saves, or other unused state. */
 export const selectSidePanelState = (state: GameState): GameState => state;
 export const areSidePanelStatesEqual = equalStateKeys([

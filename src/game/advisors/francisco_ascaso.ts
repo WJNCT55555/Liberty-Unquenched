@@ -1,4 +1,5 @@
 import { Advisor } from '../types';
+import { armsAcquisition } from '../military_affairs/arms_acquisition';
 
 export const franciscoAscaso: Advisor = {
   id: 'Francisco Ascaso',
@@ -13,22 +14,28 @@ export const franciscoAscaso: Advisor = {
       id: 'ascaso_clandestine_network',
       title: 'Clandestine Armaments',
       titleZh: '地下武装整备',
-      subtitle: 'Utilize underground contacts to secure arms cash and ammunition lines.',
-      subtitleZh: '通过地下渠道秘密筹措枪支器械与弹药存量。',
-      unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
-      unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
-      condition: (state) => state.advisorActionTimer <= 0 && state.resources >= 2,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        resources: state.resources - 2,
-        armaments: state.armaments + 25,
-        stats: {
-          ...state.stats,
-          anarchistMilitia: Math.min(100, state.stats.anarchistMilitia + 5)
-        }
-      }),
-      description: 'By spending reserves on underground channels, we have distributed a massive quantity of pistols and carbines to neighborhood defense cadres.',
-      descriptionZh: '将部分公积储备拨给地下采购渠道，为各街区自卫委员会与劳动纠察哨分发了大量手枪和卡宾短枪。',
+      subtitle: 'Open the Arms Acquisition decision immediately, ignoring its current cooldown; the card then goes on cooldown as usual.',
+      subtitleZh: '直接进入「军备获取」决策，无视其当前冷却；进入后该卡照常进入冷却。',
+      unavailableSubtitle: (state) => state.resources < 1
+        ? 'Requires at least 1 resource.'
+        : `${state.advisorActionTimer} months before next advisor action.`,
+      unavailableSubtitleZh: (state) => state.resources < 1
+        ? '需要至少 1 资源。'
+        : `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
+      condition: (state) => state.advisorActionTimer <= 0 && state.resources >= 1,
+      effect: (state) => {
+        const result = armsAcquisition.effect(state);
+
+        return {
+          advisorActionTimer: 6,
+          // The entry ignores whatever cooldown the card is under, then locks it again:
+          // the advisor route spends the card's timer just like playing the card does.
+          arms_acquisition_timer: 6,
+          currentEvent: result.currentEvent
+        };
+      },
+      description: 'The underground channels are open: weapons can be bought across the French border this month, whatever the ministry has decreed.',
+      descriptionZh: '地下渠道已经打开：不管部里怎么规定，这个月总能从法国边境买到武器。',
     }
   ]
 };
