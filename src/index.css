@@ -716,16 +716,20 @@ body {
 .parties-page__dossier::before {
   content: '';
   position: absolute;
-  right: 2rem;
-  bottom: 2rem;
-  width: 260px;
-  height: 260px;
+  top: 50%;
+  left: 50%;
+  width: 320px;
+  height: 320px;
   background-image: var(--dossier-mark, none);
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
   filter: grayscale(1);
-  opacity: 0.055;
+  mix-blend-mode: multiply;
+  opacity: 0.06;
   pointer-events: none;
-  z-index: -1;
+  transform: translate(-50%, -50%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 54%, rgba(0, 0, 0, 0.55) 70%, transparent 88%);
+  mask-image: radial-gradient(circle at center, #000 54%, rgba(0, 0, 0, 0.55) 70%, transparent 88%);
+  z-index: 1;
 }
