@@ -205,7 +205,7 @@ export const LawStanceModal: React.FC<Props> = ({ isOpen, onClose, state, isZh }
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-2 md:p-5">
+    <div className="game-modal-backdrop fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-5">
       <div className={`flex h-[95vh] w-full max-w-[1500px] flex-col border-[3px] ${reportBorder} bg-[#ece2c8] bg-halftone shadow-[8px_8px_0_rgba(0,0,0,0.45)]`}>
         <header className={`shrink-0 border-b-[3px] ${reportBorder} bg-[#e5d8ba] px-4 py-3 md:px-6`}>
           <div className="flex items-start justify-between gap-4">

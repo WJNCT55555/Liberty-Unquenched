@@ -4,17 +4,14 @@ import { PARTY_INFLUENCE_INFO, DEPT_INFO_PACK } from './SidePanel';
 import { CABINET, CABINET_FIELDS } from '../game/rules/cabinet';
 import { GameState, Party } from '../game/types';
 import { COALITION_DEFS } from '../game/coalitions';
-import { getPartySupport } from '../game/parties';
 import { getPartyName, getPartyColor } from '../game/partyNames';
-import { getPartyDescription } from '../game/partyProfiles';
 import { getParliamentSeatEntries } from '../game/parliamentOrder';
 import { calculateElectionResults, getCoalitionMembers } from '../game/utils';
 import { getEffectiveCortes, getVacantCortesSeats, isRepublicanPartyPresent } from '../game/politicalEligibility';
 import { formatGeneralElectionViewModel, selectGeneralElectionViewModel } from '../game/selectors';
 import { WartimeCoalitionDetails } from './WartimeCoalitionDetails';
 import { ParliamentChart, type ParliamentData } from './ParliamentChart';
-import { PoliticalOrganizations } from './PoliticalOrganizations';
-import { X, Users, Vote, Briefcase, Layers, UserCheck } from 'lucide-react';
+import { X, Vote, Briefcase, Layers, UserCheck } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -24,27 +21,6 @@ interface Props {
 }
 
 
-// Party historical ideologies
-const PARTY_IDEOLOGIES: Record<Party | 'CNT_FAI', { en: string; zh: string }> = {
-  CNT_FAI: { en: 'Anarcho-Syndicalism', zh: '无政府工团主义' },
-  PSOE: { en: 'Socialism', zh: '社会民主主义/社会主义' },
-  IR: { en: 'Left Republicanism', zh: '左翼共和主义' },
-  UR: { en: 'Moderate Republicanism', zh: '温和左翼共和主义' },
-  PCE: { en: 'Communism (Marxism-Leninism)', zh: '共产主义 (马列主义)' },
-  PS: { en: 'Revolutionary Syndicalism', zh: '工团主义参政派' },
-  FE: { en: 'Fascism / National Syndicalism', zh: '法西斯主义/国家工团主义' },
-  FET: { en: 'Unified Falangist-Traditionalist Movement', zh: '统一长枪党—传统主义运动' },
-  POUM: { en: 'Anti-Stalinist Marxism', zh: '反斯大林主义马克思主义' },
-  AP: { en: 'Catholic Conservatism / Right-wing Autonomism', zh: '天主教保守主义/右翼自治联盟' },
-  CT: { en: 'Carlist Traditionalism', zh: '卡洛斯传统主义 / 保王派' },
-  RE: { en: 'Alfonsist Monarchism', zh: '阿方索派君主主义 / 保皇派' },
-  DLR: { en: 'Centrist Liberal Republicanism', zh: '自由共和主义 / 中间派' },
-  PRR: { en: 'Centrist Liberal Republicanism', zh: '自由共和主义 / 中间派' },
-  ERC: { en: 'Catalan Left Nationalism', zh: '加泰罗尼亚左翼民族主义' },
-  PNV: { en: 'Basque Christian Democracy', zh: '巴斯克基督教民主与民族主义' },
-  Other: { en: 'Independents & Minor Factions', zh: '独立人士与地方小党派' },
-  PRRevS: { en: 'Revolutionary Syndicalism', zh: '革命共和工团参政派' }
-};
 
 const PARTY_ICON_FILES: Partial<Record<Party | 'CNT_FAI', string>> = {
   CNT_FAI: 'CNT-FAI.png',
@@ -116,74 +92,6 @@ const PartyIcon: React.FC<PartyIconProps> = ({ state, party, isZh, size = 'small
 
 
 
-interface PartyInfoPopoverProps {
-  state: GameState;
-  party: Party | 'CNT_FAI';
-  isZh: boolean;
-  seats: number;
-  seatPct: string;
-  support: number;
-  isRuling: boolean;
-  isAlliance: boolean;
-}
-
-const PartyInfoPopover: React.FC<PartyInfoPopoverProps> = ({
-  state,
-  party,
-  isZh,
-  seats,
-  seatPct,
-  support,
-  isRuling,
-  isAlliance,
-}) => {
-  const name = getPartyName(state, party, isZh);
-  const ideology = isZh ? PARTY_IDEOLOGIES[party].zh : PARTY_IDEOLOGIES[party].en;
-  const description = getPartyDescription(state, party, isZh);
-  const status = isRuling
-    ? (isZh ? '执政联盟成员' : 'Governing coalition member')
-    : isAlliance
-      ? (isZh ? '在野联盟成员' : 'Opposition alliance member')
-      : (isZh ? '未结盟政党' : 'Non-aligned party');
-
-  return (
-    <div
-      className="pointer-events-none absolute left-0 top-full z-[70] mt-2 w-80 max-w-[calc(100vw-3rem)] translate-y-1 border-2 border-ink border-t-4 bg-[#f4f1ea] p-3 text-ink opacity-0 shadow-[5px_5px_0px_0px_rgba(26,26,26,0.9)] transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
-      style={{ borderTopColor: getPartyColor(state, party) }}
-    >
-      <div className="absolute -top-2 left-5 h-3 w-3 rotate-45 border-l-2 border-t-2 border-ink bg-[#f4f1ea]" />
-      <div className="relative flex items-start gap-3">
-        <PartyIcon state={state} party={party} isZh={isZh} size="small" />
-        <div className="min-w-0 flex-1">
-          <div className="font-typewriter text-sm font-bold leading-tight">{name}</div>
-          <div className="mt-1 text-[9px] font-mono font-bold uppercase tracking-wider text-cnt-red">
-            {status}
-          </div>
-        </div>
-      </div>
-
-      <div className="my-2 border-t border-ink/20" />
-      <div className="text-[10px] leading-relaxed text-ink/80">{description}</div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-ink/15 pt-2 font-mono text-[10px]">
-        <div>
-          <span className="block text-[8px] uppercase tracking-wider text-ink-light">
-            {isZh ? '政治定位' : 'Ideological profile'}
-          </span>
-          <span className="font-bold">{ideology}</span>
-        </div>
-        <div className="text-right">
-          <span className="block text-[8px] uppercase tracking-wider text-ink-light">
-            {isZh ? '议席 / 民意' : 'Seats / Support'}
-          </span>
-          <span className="font-bold">
-            {party === 'CNT_FAI' ? (isZh ? '不参政' : 'Non-parl') : `${seats} (${seatPct}%)`} / {support.toFixed(1)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const MINISTRIES_DEF = CABINET_FIELDS.map(field => ({
   id: field,
@@ -356,64 +264,6 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
     return cortes[party as Party] ?? 0;
   };
 
-  const getPartyGroups = () => {
-    const groups: {
-      id: string;
-      name: { en: string; zh: string };
-      type: 'ruling' | 'opposition_alliance' | 'single';
-      members: (Party | 'CNT_FAI')[];
-      description?: { en: string; zh: string };
-    }[] = [];
-
-    const unassigned = [...presentParties];
-
-    // First process active coalitions
-    const activeCoalitions = state.activeCoalitions || [];
-    
-    activeCoalitions.forEach(coalition => {
-      const def = COALITION_DEFS.find(c => c.id === coalition.activeId);
-      if (!def) return;
-      
-      const membersPresent = getCoalitionMembers(state, coalition).filter(m => unassigned.includes(m as any));
-      if (membersPresent.length === 0) return;
-
-      const isRuling = state.rulingCoalition === coalition.activeId;
-      
-      groups.push({
-        id: (isRuling ? 'ruling_' : 'opposition_') + coalition.activeId,
-        name: { 
-          en: (isRuling ? 'Ruling Coalition: ' : 'Active Coalition: ') + def.name, 
-          zh: (isRuling ? '执政内阁联盟：' : '活跃联盟：') + def.nameZh 
-        },
-        type: isRuling ? 'ruling' : 'opposition_alliance',
-        members: membersPresent,
-        description: {
-          en: isRuling ? 'Currently forming the active government cabinet.' : 'An active political block currently out of government.',
-          zh: isRuling ? '当前主持并组成共和国政府内阁的执政联盟。' : '当前处于在野状态的活跃政治联盟。'
-        }
-      });
-      
-      membersPresent.forEach(m => {
-        const idx = unassigned.indexOf(m as any);
-        if (idx > -1) unassigned.splice(idx, 1);
-      });
-    });
-
-    // Keep all non-aligned parties in one compact block instead of repeating
-    // an "Independent Party" header for every individual party.
-    if (unassigned.length > 0) {
-      groups.push({
-        id: 'non_aligned_parties',
-        name: { en: 'Non-aligned Parties', zh: '未结盟政党' },
-        type: 'single',
-        members: unassigned
-      });
-    }
-
-    return groups;
-  };
-
-  const partyGroups = getPartyGroups();
 
   // Coalition cohesion texts and explanations
   const getCohesionExplanation = (cohesion: number) => {
@@ -480,7 +330,7 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
   const activeCohesionExplanation = getCohesionExplanation(activeCoalitionCohesion);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="game-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
         
         {/* Header */}
@@ -714,128 +564,14 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
                     </div>
                   </div>
                 </div>
+
+                {activeRulingCoalition && activeRulingCoalition.activeId === 'popular_front_wartime' && (
+                  <div className="mt-4">
+                    <WartimeCoalitionDetails state={state} coalition={activeRulingCoalition} isZh={isZh} />
+                  </div>
+                )}
               </div>
 
-              {/* Card 3: Party Alliances and Factions */}
-              <div className="border-2 border-ink p-5 bg-paper shadow-sm">
-                <div className="border-b border-ink/20 pb-3 mb-4">
-                  <h3 className="font-typewriter text-lg font-bold flex items-center gap-2">
-                    <Users className="w-5 h-5 text-ink-light" />
-                    {isZh ? '共和国各政党、政治派系与联盟' : 'Parties, Alliances & Political Blocs'}
-                  </h3>
-                  <p className="text-xs text-ink/60 mt-1">
-                    {isZh 
-                      ? '列出国内所有现存政党的席位分布、大选得票率及从属。' 
-                      : 'Comprehensive list of political groups and their seats.'}
-                  </p>
-                </div>
-
-                <div className="space-y-5">
-                  {partyGroups.map((group) => {
-                    const isRuling = group.type === 'ruling';
-                    const isAlliance = group.type === 'opposition_alliance';
-                    const isSingle = group.type === 'single';
-                    
-                    return (
-                      <div 
-                        key={group.id} 
-                        className={isSingle
-                          ? 'border-0 bg-transparent p-0'
-                          : `border ${
-                              isRuling
-                                ? 'border-cnt-red/30 bg-cnt-red/[0.01]'
-                                : isAlliance
-                                  ? 'border-ink/20 bg-ink/[0.01]'
-                                  : 'border-ink/10 bg-transparent'
-                            } p-3 rounded-sm`}
-                      >
-                        {/* Group Header */}
-                        {!isSingle && (
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-ink/10 pb-2 mb-2 gap-1">
-                            <div>
-                              <h4 className={`font-typewriter text-sm font-bold ${isRuling ? 'text-cnt-red' : 'text-ink'}`}>
-                                {isZh ? group.name.zh : group.name.en}
-                              </h4>
-                            </div>
-                            <div className="text-[9px] font-mono font-bold text-ink-light uppercase">
-                              {isRuling
-                                ? (isZh ? '[ 执政阵营 ]' : '[ Ruling ]')
-                                : (isZh ? '[ 在野联盟 ]' : '[ Opposition ]')}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Member Parties */}
-                        {isRuling && activeRulingCoalition?.activeId === 'popular_front_wartime' && <div className="my-4"><WartimeCoalitionDetails state={state} coalition={activeRulingCoalition} isZh={isZh} /></div>}
-                        <div className="divide-y divide-ink/10">
-                          {group.members.map((party) => {
-                            const seats = getChamberSeatCount(party);
-                            const seatPct = totalCortesSeats > 0 ? ((seats / totalCortesSeats) * 100).toFixed(1) : '0.0';
-                            const support = getPartySupport(state, party);
-                            const isRulingParty = rulingMembers.includes(party) && (activeRulingCoalition?.activeId !== 'popular_front_wartime' || activeRulingCoalition.participation?.[party] === 'government');
-
-                            return (
-                              <div key={party} className={`${isSingle ? 'py-1.5' : 'py-2.5'} flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-ink/[0.02] px-1 transition-colors rounded-xs`}>
-                                <div className="flex items-start gap-2.5 min-w-0">
-                                  <PartyIcon state={state} party={party} isZh={isZh} size="large" />
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <div className="relative group min-w-0">
-                                        <span className="cursor-help font-bold font-typewriter text-sm underline decoration-dotted decoration-ink/40 underline-offset-2">
-                                          {getPartyName(state, party, isZh)}
-                                        </span>
-                                        <PartyInfoPopover
-                                          state={state}
-                                          party={party}
-                                          isZh={isZh}
-                                          seats={seats}
-                                          seatPct={seatPct}
-                                          support={support}
-                                          isRuling={isRuling}
-                                          isAlliance={isAlliance}
-                                        />
-                                      </div>
-                                      {isRulingParty && (
-                                        <span className="text-[8px] uppercase font-bold border border-cnt-red text-cnt-red px-1 bg-cnt-red/5 rounded-xs">
-                                          {isZh ? '阁员' : 'Cabinet'}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[10px] text-ink/60 font-mono mt-0.5">
-                                      {isZh ? PARTY_IDEOLOGIES[party].zh : PARTY_IDEOLOGIES[party].en}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 justify-between sm:justify-end text-right font-mono text-[11px] sm:text-xs">
-                                  <div>
-                                    <span className="text-[8px] text-ink-light block uppercase leading-none mb-0.5">
-                                      {isZh ? '议席' : 'Seats'}
-                                    </span>
-                                    <span className="font-bold text-ink">
-                                      {party === 'CNT_FAI' 
-                                        ? (isZh ? '不参政' : 'Non-parl') 
-                                        : `${seats} 席 (${seatPct}%)`}
-                                    </span>
-                                  </div>
-                                  <div className="border-l border-ink/10 pl-3 min-w-[65px]">
-                                    <span className="text-[8px] text-ink-light block uppercase leading-none mb-0.5">
-                                      {isZh ? '民意' : 'Support'}
-                                    </span>
-                                    <span className="font-bold text-ink">
-                                      {support.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
             </div>
 
@@ -975,7 +711,6 @@ export const DomesticPoliticsModal: React.FC<Props> = ({ isOpen, onClose, state,
 
             </div>
 
-            <PoliticalOrganizations state={state} isZh={isZh} />
           </div>
         </div>
 

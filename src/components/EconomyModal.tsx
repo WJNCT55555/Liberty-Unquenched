@@ -346,7 +346,7 @@ export const EconomyModal: React.FC<Props> = ({ isOpen, onClose, state, dispatch
   } = economy;
 
   return (
-    <div className="economy-modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="economy-modal game-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="economy-modal__panel bg-paper border-2 border-ink w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
         
         {/* Header */}

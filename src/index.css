@@ -318,11 +318,6 @@ body {
 
 /* Finance ledger treatment. The existing grid and content stay intact; this
    scope only changes the printed-paper visual language of the finance modal. */
-.economy-modal {
-  background: rgba(26, 22, 17, 0.72);
-  backdrop-filter: blur(2px) saturate(0.75);
-}
-
 .economy-modal__panel {
   overflow: hidden;
   border: 3px solid var(--color-ink) !important;
@@ -465,7 +460,7 @@ body {
   color: var(--law-ink);
 }
 
-.law-page__backdrop {
+.game-modal-backdrop {
   background-color: #1b1816;
   background-image:
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 48px),

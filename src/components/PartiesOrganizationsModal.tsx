@@ -291,7 +291,7 @@ export const PartiesOrganizationsModal: React.FC<Props> = ({ isOpen, onClose, st
     : undefined;
 
   return (
-    <div className="law-page law-page__backdrop parties-page fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
+    <div className="law-page game-modal-backdrop parties-page fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
       <div className="law-page__window flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden">
         <div className="law-page__tricolor shrink-0" aria-hidden="true" />
 
