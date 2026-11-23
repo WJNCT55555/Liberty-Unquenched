@@ -576,8 +576,18 @@ export const areJournalViewModelsEqual = (left: JournalViewModel, right: Journal
     && leftIds.every((id) => {
       const a = left.goalLinesById[id] || [];
       const b = right.goalLinesById[id] || [];
-      return a.length === b.length && a.every((line, index) =>
-        line.text === b[index].text && line.textZh === b[index].textZh && line.met === b[index].met);
+      return a.length === b.length && a.every((line, index) => {
+        const other = b[index];
+        return line.text === other.text
+          && line.textZh === other.textZh
+          && line.met === other.met
+          && line.current === other.current
+          && line.target === other.target
+          && line.unit === other.unit
+          && line.kind === other.kind
+          && line.group === other.group
+          && line.groupZh === other.groupZh;
+      });
     });
 };
 

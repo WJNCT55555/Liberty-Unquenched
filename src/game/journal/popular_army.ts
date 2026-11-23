@@ -51,6 +51,27 @@ export const popularArmyJournal: JournalEntryDef = {
     (militiaLegalityLevel(state) / MILITIA_LEGALITY_TARGET) * 100,
   ),
 
+  goalLinesTitle: 'ARMY CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '人民军条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const militarization = getMilitarization(state, 'cnt');
+    const legality = militiaLegalityLevel(state);
+    return [
+      {
+        text: 'CNT militia militarization (must exceed 85)',
+        textZh: 'CNT 民兵军事化率（须超过 85）',
+        met: militarization > POPULAR_ARMY_MILITARIZATION_TARGET,
+        current: militarization, target: 86, kind: 'bar',
+      },
+      {
+        text: 'Militia Legality Law',
+        textZh: '民兵合法性法',
+        met: legality >= MILITIA_LEGALITY_TARGET,
+        current: legality, target: MILITIA_LEGALITY_TARGET, kind: 'bar',
+      },
+    ];
+  },
+
   /** 激活只属于开始事件（`isEventMediatedJournal` 会忽略 checkStatus 的 active 判定）。 */
   activationEventId: 'militarization_crossroads',
   completionEventId: 'popular_army_formed',

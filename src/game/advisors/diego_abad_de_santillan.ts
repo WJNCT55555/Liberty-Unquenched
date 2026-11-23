@@ -1,4 +1,4 @@
-﻿import { Advisor, GameState } from '../types';
+import { Advisor, GameState } from '../types';
 import { adjustFactionInfluence } from '../utils';
 import { advanceEconomyPush } from '../rules/economyReforms';
 import { applyControlInfluence, applyEconomicOption } from '../rules/controlShares';
@@ -43,11 +43,15 @@ export const diegoAbadDeSantillan: Advisor = {
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        resources: state.resources + 5,
-        ...applyControlInfluence(state, 8, { land: 0, industry: 1 })
-      }),
+      effect: (state) => {
+        const control = applyControlInfluence(state, 8, { land: 0, industry: 1 });
+        return {
+          advisorActionTimer: 6,
+          resources: state.resources + 5,
+          ...control,
+          stats: { ...state.stats, ...(control.stats ?? {}) },
+        };
+      },
       description: 'By defining concrete economic structures instead of pure abstractions, we have systematized factory collectivism and secured vital provisions.',
       descriptionZh: '摒弃了空洞的理论论证，我们以详尽、详实的工业规划组织工厂集体化，保障了物资产出的有序循环。',
     },

@@ -187,6 +187,16 @@ export interface JournalGoalLine {
   text: string;
   textZh: string;
   met: boolean;
+  /** 当前值 / 目标值：有 target 时 UI 可画一条 mini-bar。 */
+  current?: number;
+  target?: number;
+  /** 显示单位，例如 “%”“级”“项”。 */
+  unit?: string;
+  /** bar = 数值条；check = 二值勾选；either = “A 或 B”型条件。 */
+  kind?: 'bar' | 'check' | 'either';
+  /** 可选分组标题，用于 5—6 个条件的日志。 */
+  group?: string;
+  groupZh?: string;
 }
 
 export interface JournalEntryDef {
@@ -210,6 +220,9 @@ export interface JournalEntryDef {
   progressMax?: number;
   getProgress?: (state: GameState, entryState: JournalState) => number;
   getGoalLines?: (state: GameState) => JournalGoalLine[];
+  /** 目标核验列表的标题；缺省时使用通用文案。 */
+  goalLinesTitle?: string;
+  goalLinesTitleZh?: string;
 
   /**
    * 事件—日志—事件契约（设计文档 §6.3）。

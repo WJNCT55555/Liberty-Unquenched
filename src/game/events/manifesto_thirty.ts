@@ -1,5 +1,7 @@
 import type { GameEvent } from '../types';
 import { adjustFactionInfluence, adjustClassSupport, adjustFactionDissents, isAtOrAfter } from '../utils';
+import { activateJournal } from '../rules/journalEvents';
+import { PRREVS_JOURNAL_ID } from '../journal/prrevs';
 
 const cntInternalSplitMeta = {
   category: 'cnt' as const,
@@ -45,7 +47,11 @@ While some have agreed with their positions, the more radical comrades and espec
       textZh: '静观其变',
       effect: (state) => {
         const newFactions = adjustFactionDissents(state.factions, { Treintistas: 5, Faistas: 5 });
-        return { factions: newFactions };
+        return {
+          factions: newFactions,
+          // 静观其变 = 不驱逐三十人集团，建党筹备日志从此开启。
+          ...activateJournal(state, PRREVS_JOURNAL_ID),
+        };
       },
     },
     {

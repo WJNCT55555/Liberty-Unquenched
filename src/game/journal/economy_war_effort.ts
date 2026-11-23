@@ -35,6 +35,31 @@ export const economyWarEffortJournal: JournalEntryDef = {
   completionEventId: 'economy_war_effort_victory',
   failureEventId: 'economy_war_effort_conceded',
 
+  goalLinesTitle: 'WARTIME COORDINATION · ITEMIZED CHECK',
+  goalLinesTitleZh: '战时统筹条件 · 逐项核验',
+  getGoalLines: (state) => [
+    {
+      text: 'Private bank deposits seized', textZh: '没收私营银行储蓄',
+      met: state.private_bank_seizure >= 1,
+      current: state.private_bank_seizure, target: 1, kind: 'bar',
+    },
+    {
+      text: 'Wartime agricultural requisition', textZh: '战时农业强制征发',
+      met: state.wartime_requisition >= 1,
+      current: state.wartime_requisition, target: 1, kind: 'bar',
+    },
+    {
+      text: 'Family ration books', textZh: '家庭口粮本配给',
+      met: state.family_rationing >= 1,
+      current: state.family_rationing, target: 1, kind: 'bar',
+    },
+    {
+      text: 'Wartime trade monopoly', textZh: '战时外贸垄断',
+      met: state.wartime_trade_monopoly >= 2,
+      current: state.wartime_trade_monopoly, target: 2, kind: 'bar',
+    },
+  ],
+
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;
     // 两条战时日志谁先完成谁关掉对方。

@@ -35,6 +35,43 @@ export const economyCooperativeJournal: JournalEntryDef = {
   activationEventId: 'economy_cooperative_path',
   completionEventId: 'economy_cooperative_victory',
 
+  goalLinesTitle: 'COOPERATIVE CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '合作社条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const collectivized = isJournalCompleted(state, 'journal_land_collectivization');
+    return [
+      {
+        text: 'Agricultural cooperatives', textZh: '农业合作社',
+        met: state.agricultural_cooperative >= 5,
+        current: state.agricultural_cooperative, target: 5, kind: 'bar',
+        group: 'Cooperative network', groupZh: '合作社网络',
+      },
+      {
+        text: 'Mutual credit network', textZh: '地方互助信贷',
+        met: state.mutual_credit_network >= 5,
+        current: state.mutual_credit_network, target: 5, kind: 'bar',
+        group: 'Cooperative network', groupZh: '合作社网络',
+      },
+      {
+        text: 'Industrial cooperatives', textZh: '工业合作社',
+        met: state.industrial_cooperative >= 5,
+        current: state.industrial_cooperative, target: 5, kind: 'bar',
+        group: 'Cooperative network', groupZh: '合作社网络',
+      },
+      {
+        text: 'Land Reform journal completed', textZh: '「土地改革」日志完成',
+        met: isJournalCompleted(state, 'journal_land_reform'), kind: 'check',
+        group: 'Political prerequisites', groupZh: '政治前提',
+      },
+      {
+        text: 'Collectivization not completed (it closes this route)',
+        textZh: '尚未完成土地集体化（否则本路线关闭）',
+        met: !collectivized, kind: 'check',
+        group: 'Route blocker', groupZh: '路线阻断',
+      },
+    ];
+  },
+
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;
     if (isJournalCompleted(state, 'journal_land_collectivization')) return null;

@@ -1,4 +1,4 @@
-import type { GameState, JournalEntryDef } from '../types';
+import type { GameState, JournalEntryDef, JournalGoalLine } from '../types';
 import { adjustAllActiveFactionDissent, adjustClassSupport } from '../utils';
 import { getUnionShare } from '../unions';
 import {
@@ -32,33 +32,63 @@ export const forcedUnemploymentJournal: JournalEntryDef = {
   hasProgress: true,
   progressMax: 100,
   getProgress: getForcedUnemploymentProgress,
+  goalLinesTitle: 'CONGRESS RESOLUTION · PLEDGE CHECKLIST',
+  goalLinesTitleZh: '大会决议 · 逐项核验',
   getGoalLines: (state) => {
     const mandate = state.forcedUnemploymentMandate;
     if (!mandate) return [];
     const target = getForcedUnemploymentTarget(mandate);
     const elapsed = getForcedUnemploymentMonthsElapsed(state, mandate);
-    const lines = mandate.pledgeIds.map(id => {
+    const lines: JournalGoalLine[] = mandate.pledgeIds.map(id => {
       const pledge = getForcedUnemploymentPledge(id);
       const met = isForcedUnemploymentPledgeMet(state, mandate, id);
-      const actual = pledge.group === 'hours'
-        ? `L${state.domesticPolicy.max_hours_law}`
-        : pledge.group === 'unemployment'
-          ? `${state.unemployment_rate.toFixed(2)}%, ${mandate.unemploymentStreak}/${FORCED_UNEMPLOYMENT_STREAK_MONTHS}`
-          : id === 'minimum_wage_1'
-            ? `L${state.domesticPolicy.min_wage}`
-            : id === 'land_reform_20'
-              ? `${state.domesticPolicy.land_reform_progress}%`
-              : `${getUnionShare(state).CNT}%`;
+      const group = pledge.group === 'hours' ? '工时' : pledge.group === 'unemployment' ? '失业' : '额外承诺';
+      const groupEn = pledge.group === 'hours' ? 'Hours' : pledge.group === 'unemployment' ? 'Unemployment' : 'Additional pledges';
+      if (pledge.group === 'hours') {
+        return {
+          text: `${pledge.text} (${pledge.chips} chips)`,
+          textZh: `${pledge.textZh}（${pledge.chips}筹码）`,
+          met, kind: 'bar' as const, current: state.domesticPolicy.max_hours_law, target: pledge.target,
+          group: groupEn, groupZh: group,
+        };
+      }
+      if (pledge.group === 'unemployment') {
+        return {
+          text: `${pledge.text} (${pledge.chips} chips; streak ${mandate.unemploymentStreak}/${FORCED_UNEMPLOYMENT_STREAK_MONTHS})`,
+          textZh: `${pledge.textZh}（${pledge.chips}筹码；已连续 ${mandate.unemploymentStreak}/${FORCED_UNEMPLOYMENT_STREAK_MONTHS} 月）`,
+          met, kind: 'bar' as const, current: mandate.unemploymentStreak, target: FORCED_UNEMPLOYMENT_STREAK_MONTHS,
+          group: groupEn, groupZh: group,
+        };
+      }
+      if (id === 'minimum_wage_1') {
+        return {
+          text: `${pledge.text} (${pledge.chips} chips)`,
+          textZh: `${pledge.textZh}（${pledge.chips}筹码）`,
+          met, kind: 'bar' as const, current: state.domesticPolicy.min_wage, target: pledge.target,
+          group: groupEn, groupZh: group,
+        };
+      }
+      if (id === 'land_reform_20') {
+        return {
+          text: `${pledge.text} (${pledge.chips} chips)`,
+          textZh: `${pledge.textZh}（${pledge.chips}筹码）`,
+          met, kind: 'bar' as const, current: state.domesticPolicy.land_reform_progress, target: pledge.target, unit: '%',
+          group: groupEn, groupZh: group,
+        };
+      }
       return {
-        text: `${pledge.text} (${pledge.chips} chips; now ${actual})`,
-        textZh: `${pledge.textZh}（${pledge.chips}筹码；当前${actual}）`,
-        met,
+        text: `${pledge.text} (${pledge.chips} chips)`,
+        textZh: `${pledge.textZh}（${pledge.chips}筹码）`,
+        met, kind: 'bar' as const, current: getUnionShare(state).CNT, target: pledge.target, unit: '%',
+        group: groupEn, groupZh: group,
       };
     });
     lines.push({
       text: `Deadline: ${Math.max(0, FORCED_UNEMPLOYMENT_DEADLINE_MONTHS - elapsed)} months remain. Unemployment target: ≤${target}%.`,
       textZh: `期限：还剩${Math.max(0, FORCED_UNEMPLOYMENT_DEADLINE_MONTHS - elapsed)}个月；失业率目标≤${target}%。`,
       met: elapsed < FORCED_UNEMPLOYMENT_DEADLINE_MONTHS,
+      kind: 'check' as const,
+      group: 'Deadline', groupZh: '期限',
     });
     return lines;
   },

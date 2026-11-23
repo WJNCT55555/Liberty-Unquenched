@@ -3,6 +3,7 @@ import { regionalIssuesJournal } from './regional_issues';
 import { iberianDreamJournal } from './iberian_dream';
 import { uhpJournal } from './uhp';
 import { alianzaObreraJournal } from './alianza_obrera';
+import { prrevsJournal } from './prrevs';
 import { ramonFrancoPresidencyJournal } from './ramon_franco_presidency';
 import { popularArmyJournal } from './popular_army';
 import { militiaAutonomyJournal } from './militia_autonomy';
@@ -23,6 +24,7 @@ export const JOURNAL_ENTRIES: JournalEntryDef[] = [
   uhpJournal,
   alianzaObreraJournal,
   forcedUnemploymentJournal,
+  prrevsJournal,
   ramonFrancoPresidencyJournal,
   popularArmyJournal,
   militiaAutonomyJournal,

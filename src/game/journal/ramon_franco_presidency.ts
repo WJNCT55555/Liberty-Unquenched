@@ -15,8 +15,29 @@ export const ramonFrancoPresidencyJournal: JournalEntryDef = {
   successEffectDescZh: '解锁总统拉蒙·佛朗哥，野猪派影响力 +10，ERC 关系 +15，FAI与纯洁派不服度 +12',
   
   hasProgress: true,
-  progressMax: 3,
-  getProgress: (state) => Math.min(3, state.ramon_franco_campaign_count || 0),
+  progressMax: 100,
+  getProgress: (state) => {
+    const erc = Math.max(0, Math.min(1, (state.partyRelations?.ERC ?? 0) / 80));
+    const campaigns = Math.max(0, Math.min(1, (state.ramon_franco_campaign_count ?? 0) / 3));
+    return Math.round(100 * Math.min(erc, campaigns));
+  },
+
+  goalLinesTitle: 'CAMPAIGN CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '竞选条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const erc = state.partyRelations?.ERC ?? 50;
+    const campaigns = state.ramon_franco_campaign_count ?? 0;
+    return [
+      {
+        text: 'ERC relations', textZh: 'ERC 关系',
+        met: erc >= 80, current: erc, target: 80, kind: 'bar',
+      },
+      {
+        text: 'Presidential campaign tours', textZh: '总统竞选宣传',
+        met: campaigns >= 3, current: campaigns, target: 3, kind: 'bar',
+      },
+    ];
+  },
 
   checkStatus: (state, entryState) => {
     if (entryState.status === 'completed' || entryState.status === 'failed') return null;

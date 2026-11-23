@@ -48,6 +48,27 @@ export const militiaAutonomyJournal: JournalEntryDef = {
     (militiaLegalityLevel(state) / MILITIA_LEGALITY_TARGET) * 100,
   ),
 
+  goalLinesTitle: 'MILITIA CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '民兵纵队条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const units = countCntMilitiaUnits(state);
+    const legality = militiaLegalityLevel(state);
+    return [
+      {
+        text: 'CNT militia units in the field',
+        textZh: '场上归属 CNT 的民兵单位',
+        met: units >= MILITIA_COLUMN_TARGET,
+        current: units, target: MILITIA_COLUMN_TARGET, kind: 'bar',
+      },
+      {
+        text: 'Militia Legality Law',
+        textZh: '民兵合法性法',
+        met: legality >= MILITIA_LEGALITY_TARGET,
+        current: legality, target: MILITIA_LEGALITY_TARGET, kind: 'bar',
+      },
+    ];
+  },
+
   activationEventId: 'militarization_crossroads',
   completionEventId: 'militia_columns_secured',
   failureEventId: 'militia_columns_absorbed',

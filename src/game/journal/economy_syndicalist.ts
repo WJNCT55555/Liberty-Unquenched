@@ -3,6 +3,7 @@ import { adjustFactionInfluence } from '../utils';
 import { applyUnionShareDelta } from '../unions';
 import { changeLaws } from '../rules/lawChange';
 import { isOrganizationEstablished } from '../organizations';
+import { getControlShares } from '../rules/controlShares';
 import {
   ECONOMY_ROUTE_RULES,
   isCoalUnderWorkersControl,
@@ -42,6 +43,51 @@ export const economySyndicalistJournal: JournalEntryDef = {
   /** 激活只属于开始事件（CNT 三大选项），这里不返回 active。 */
   activationEventId: 'cnt_third_congress_2',
   completionEventId: 'economy_syndicalist_victory',
+
+  goalLinesTitle: 'SYNDICALIST CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '温和工团条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const industry = getControlShares(state).industry;
+    const socialized = industry.cooperative + industry.union + industry.state;
+    const railControlled = isRailUnderWorkersControl(state);
+    const coalControlled = isCoalUnderWorkersControl(state);
+    return [
+      {
+        text: 'Land Reform journal completed', textZh: '「土地改革」日志完成',
+        met: isJournalCompleted(state, 'journal_land_reform'), kind: 'check',
+        group: 'Political prerequisites', groupZh: '政治前提',
+      },
+      {
+        text: 'PRRevS founded', textZh: 'PRRevS 已成立',
+        met: isOrganizationEstablished(state, 'PRRevS'), kind: 'check',
+        group: 'Political prerequisites', groupZh: '政治前提',
+      },
+      {
+        text: 'Industrial socialized share', textZh: '工业社会化份额',
+        met: socialized >= 70, current: socialized, target: 70, unit: '%', kind: 'bar',
+        group: 'Ownership', groupZh: '所有权',
+      },
+      {
+        text: 'State ownership', textZh: '工业国有制',
+        met: industry.state >= 25, current: industry.state, target: 25, unit: '%', kind: 'bar',
+        group: 'Ownership', groupZh: '所有权',
+      },
+      {
+        text: 'Railways taken over (nationalisation 3 or rail committee)',
+        textZh: '铁路接管（国有化 3 次或铁路委员会）',
+        met: state.rail_nationalization >= 3 || railControlled,
+        current: state.rail_nationalization, target: 3, kind: 'either',
+        group: 'Ownership', groupZh: '所有权',
+      },
+      {
+        text: 'Coal mines taken over (nationalisation 2 or coal committee)',
+        textZh: '煤矿接管（国有化 2 次或煤炭委员会）',
+        met: state.coal_nationalization >= 2 || coalControlled,
+        current: state.coal_nationalization, target: 2, kind: 'either',
+        group: 'Ownership', groupZh: '所有权',
+      },
+    ];
+  },
 
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;

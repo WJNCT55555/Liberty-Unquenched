@@ -1,4 +1,4 @@
-﻿import { JournalEntryDef } from '../types';
+import { JournalEntryDef } from '../types';
 import { applyControlInfluence } from '../rules/controlShares';
 
 export const landReformJournal: JournalEntryDef = {
@@ -48,9 +48,15 @@ export const landReformJournal: JournalEntryDef = {
     }
   }),
   
-  onFail: (state) => ({
-    ...applyControlInfluence(state, -10, { land: 1, industry: 0 })
-  }),
+  onFail: (state) => {
+    const control = applyControlInfluence(state, -10, { land: 1, industry: 0 });
+    return {
+      ...control,
+      // Same partial-stats trap as Peiró's Industrial Collectivization: merge instead
+      // of replacing the whole object.
+      stats: { ...state.stats, ...(control.stats ?? {}) },
+    };
+  },
 
   activeEffect: {
     description: 'Ongoing rural unrest increases revolutionary fervor.',

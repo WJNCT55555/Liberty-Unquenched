@@ -46,10 +46,17 @@ export const joanPeiro: Advisor = {
       unavailableSubtitle: (state) => `${state.advisorActionTimer} months before next advisor action.`,
       unavailableSubtitleZh: (state) => `距离下一次顾问行动还有 ${state.advisorActionTimer} 个月。`,
       condition: (state) => state.advisorActionTimer <= 0,
-      effect: (state) => ({
-        advisorActionTimer: 6,
-        ...applyControlInfluence(state, 5, { land: 0, industry: 1 })
-      }),
+      effect: (state) => {
+        const control = applyControlInfluence(state, 5, { land: 0, industry: 1 });
+        return {
+          advisorActionTimer: 6,
+          ...control,
+          // applyControlInfluence returns a partial `stats` ({ workerControl }); spreading
+          // it directly would replace the whole stats object and make every other stat
+          // undefined, crashing the UI. Merge it over the existing stats instead.
+          stats: { ...state.stats, ...(control.stats ?? {}) },
+        };
+      },
       description: 'We have reorganized factories under direct worker management. Production is stabilizing, and the workers feel empowered.',
       descriptionZh: '我们在工人直接管理下重组了工厂。生产正在稳定，工人们感到了力量。',
     },

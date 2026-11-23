@@ -33,6 +33,26 @@ export const economyRevolutionaryWarJournal: JournalEntryDef = {
   completionEventId: 'economy_revolutionary_war_victory',
   failureEventId: 'economy_revolutionary_war_conceded',
 
+  goalLinesTitle: 'REVOLUTIONARY WAR · ITEMIZED CHECK',
+  goalLinesTitleZh: '革命军事化条件 · 逐项核验',
+  getGoalLines: (state) => [
+    {
+      text: 'Family ration books', textZh: '家庭口粮本配给',
+      met: state.family_rationing >= 1,
+      current: state.family_rationing, target: 1, kind: 'bar',
+    },
+    {
+      text: 'Emergency war industry conversion', textZh: '军工紧急转产改组',
+      met: state.war_industry_conversion >= 3,
+      current: state.war_industry_conversion, target: 3, kind: 'bar',
+    },
+    {
+      text: 'Foreign capital seized', textZh: '外资没收',
+      met: state.foreign_capital_seizure >= 3,
+      current: state.foreign_capital_seizure, target: 3, kind: 'bar',
+    },
+  ],
+
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;
     if (isJournalCompleted(state, 'journal_economy_war_effort')) return 'failed';

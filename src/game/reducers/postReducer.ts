@@ -86,6 +86,11 @@ export const applyPostReducerPipeline = (
       newState.partySupport = updatePartySupport(newState);
     }
     if (newState.stats) {
+      // Content effects sometimes return a *partial* stats patch (notably
+      // `applyControlInfluence`, which only supplies `workerControl`). Merge over the
+      // previous stats before clamping so a missing patch key can never erase
+      // revolutionaryFervor / tension / armyLoyalty and crash the UI.
+      newState.stats = { ...(previousState.stats ?? {}), ...newState.stats };
       Object.keys(newState.stats).forEach(s => {
         const stat = s as keyof typeof newState.stats;
         newState.stats[stat] = Math.max(0, Math.min(100, newState.stats[stat]));

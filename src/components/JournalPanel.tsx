@@ -3,7 +3,47 @@ import { useGameSelector } from '../game/GameContext';
 import { getJournalEntryDef } from '../game/journal';
 import { ChevronRight, ChevronDown, Bookmark, AlertTriangle, GripVertical, CheckCircle2, XCircle, Lock, Wrench } from 'lucide-react';
 import { areJournalViewModelsEqual, selectJournalViewModel } from '../game/selectors';
+import type { JournalGoalLine } from '../game/types';
 import { EconomyReformPanel } from './EconomyReformPanel';
+
+const formatGoalValue = (value: number | undefined, unit?: string): string => {
+  const current = Number.isFinite(value) ? Number(value) : 0;
+  const rounded = Number.isInteger(current) ? String(current) : current.toFixed(1);
+  return `${rounded}${unit ?? ''}`;
+};
+
+const goalPercent = (line: JournalGoalLine): number => {
+  if (line.met) return 100;
+  if (line.target === undefined || line.target <= 0) return 0;
+  const current = Number.isFinite(line.current) ? Number(line.current) : 0;
+  return Math.max(0, Math.min(99, (current / line.target) * 100));
+};
+
+interface GoalGroup {
+  key: string;
+  label: string;
+  labelZh: string;
+  lines: JournalGoalLine[];
+}
+
+const groupGoalLines = (lines: JournalGoalLine[]): GoalGroup[] => {
+  const groups: GoalGroup[] = [];
+  for (const line of lines) {
+    const key = line.group ?? '';
+    let group = groups.find(candidate => candidate.key === key);
+    if (!group) {
+      group = {
+        key,
+        label: line.group ?? '',
+        labelZh: line.groupZh ?? line.group ?? '',
+        lines: [],
+      };
+      groups.push(group);
+    }
+    group.lines.push(line);
+  }
+  return groups;
+};
 
 export const JournalPanel: React.FC = () => {
   const state = useGameSelector(selectJournalViewModel, areJournalViewModelsEqual);
@@ -89,6 +129,11 @@ export const JournalPanel: React.FC = () => {
     const fileCode = def.id.split('_').pop()?.substring(0, 6).toUpperCase() || 'DOC';
     const progress = state.progressById[id] ?? entryState.progress;
     const goalLines = state.goalLinesById[id] || [];
+    const goalGroups = groupGoalLines(goalLines);
+    const metGoalCount = goalLines.filter(line => line.met).length;
+    const bottleneck = goalLines
+      .filter(line => !line.met)
+      .sort((a, b) => goalPercent(a) - goalPercent(b))[0];
 
     return (
       <div 
@@ -177,22 +222,75 @@ export const JournalPanel: React.FC = () => {
               )}
 
               {goalLines.length > 0 && entryState.status === 'active' && (
-                <div className="mb-4 p-3 bg-paper-dark/60 border border-ink/25 space-y-1 text-xs font-typewriter">
-                  <div className="font-bold mb-2">{isZh ? '大会决议 · 逐项核验' : 'CONGRESS RESOLUTION · PLEDGE CHECKLIST'}</div>
-                  {goalLines.map((line, index) => (
-                    <div key={`${id}-goal-${index}`} className="flex items-start gap-2">
-                      <span className={line.met ? 'text-green-700' : 'text-cnt-red'}>{line.met ? '✓' : '○'}</span>
-                      <span>{isZh ? line.textZh : line.text}</span>
+                <div className="mb-4 p-3 bg-paper-dark/60 border border-ink/25 text-xs font-typewriter">
+                  <div className="flex items-baseline justify-between gap-2 mb-2">
+                    <div className="font-bold">
+                      {isZh
+                        ? (def.goalLinesTitleZh || '目标核验 · 逐项条件')
+                        : (def.goalLinesTitle || 'OBJECTIVE CHECKLIST')}
                     </div>
-                  ))}
+                    <div className="shrink-0 text-[10px] opacity-70">
+                      {metGoalCount}/{goalLines.length} {isZh ? '项已满足' : 'MET'}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {goalGroups.map(group => (
+                      <div key={`${id}-group-${group.key || 'default'}`} className="space-y-1">
+                        {group.key && (
+                          <div className="text-[10px] uppercase tracking-widest opacity-55 font-bold">
+                            {isZh ? group.labelZh : group.label}
+                          </div>
+                        )}
+                        {[...group.lines]
+                          .sort((a, b) => Number(a.met) - Number(b.met))
+                          .map((line, index) => {
+                            const percent = goalPercent(line);
+                            const showBar = (line.kind === 'bar' || (!line.kind && line.target !== undefined))
+                              && line.target !== undefined && line.target > 0;
+                            return (
+                              <div key={`${id}-goal-${group.key}-${index}`} className="space-y-1">
+                                <div className="flex items-start gap-2">
+                                  <span className={`shrink-0 pt-[1px] ${line.met ? 'text-green-700' : 'text-cnt-red'}`}>
+                                    {line.met ? '✓' : '○'}
+                                  </span>
+                                  <span className="flex-1 min-w-0 leading-snug">
+                                    {isZh ? line.textZh : line.text}
+                                  </span>
+                                  {line.target !== undefined && (
+                                    <span className={`shrink-0 text-[10px] font-bold ${line.met ? 'text-green-700' : 'text-ink/70'}`}>
+                                      {formatGoalValue(line.current, line.unit)} / {formatGoalValue(line.target, line.unit)}
+                                    </span>
+                                  )}
+                                </div>
+                                {showBar && (
+                                  <div className="ml-5 h-1.5 border border-ink/20 bg-ink/10 overflow-hidden">
+                                    <div
+                                      className={`h-full transition-all duration-500 ${line.met ? 'bg-green-700' : 'bg-ink'}`}
+                                      style={{ width: `${percent}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {def.hasProgress && entryState.status === 'active' && (
                 <div className="mb-2 bg-paper-dark p-2 border-2 border-ink/30">
                   <div className="flex justify-between text-[10px] font-typewriter uppercase tracking-widest mb-1.5 font-bold">
-                    <span>{isZh ? '进展' : 'PROGRESS'}</span>
-                    <span>{Math.round(progress / (def.progressMax || 100) * 100)}%</span>
+                    <span>
+                      {goalLines.length > 0
+                        ? (isZh ? '综合进度 · 最短板' : 'OVERALL PROGRESS · BOTTLENECK')
+                        : (isZh ? '进展' : 'PROGRESS')}
+                    </span>
+                    <span>
+                      {Math.round(progress / (def.progressMax || 100) * 100)}%
+                      {goalLines.length > 0 ? ` · ${metGoalCount}/${goalLines.length}` : ''}
+                    </span>
                   </div>
                   <div className="w-full bg-ink/10 h-3 border border-ink relative overflow-hidden p-[1px]">
                     <div className="absolute inset-0 flex justify-between px-1 opacity-20 pointer-events-none">
@@ -206,6 +304,12 @@ export const JournalPanel: React.FC = () => {
                       }}
                     />
                   </div>
+                  {goalLines.length > 0 && bottleneck && (
+                    <div className="mt-1.5 text-[10px] font-typewriter text-cnt-red/90">
+                      {isZh ? '瓶颈：' : 'Bottleneck: '}
+                      {isZh ? bottleneck.textZh : bottleneck.text}
+                    </div>
+                  )}
                 </div>
               )}
 

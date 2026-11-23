@@ -25,8 +25,63 @@ export const alianzaObreraJournal: JournalEntryDef = {
   failureEffectDesc: 'Opportunity lost',
   failureEffectDescZh: '错失良机',
   hasProgress: true,
-  progressMax: 3,
-  getProgress: (state) => state.workersAllianceProgress || 0,
+  progressMax: 100,
+  getProgress: (state) => {
+    const share = getUnionShare(state);
+    const right = getRightShare(share);
+    const ratio = (value: number, target: number) => Math.max(0, Math.min(1, value / target));
+    return Math.round(100 * Math.min(
+      ratio(state.partyRelations?.PSOE ?? 0, 80),
+      ratio(state.partyRelations?.PCE ?? 0, 60),
+      ratio(state.workersAllianceProgress || 0, 3),
+      ratio(share.CNT, 18),
+      ratio(share.CNT + share.UGT, 35),
+      right <= 12 ? 1 : ratio(12, right),
+    ));
+  },
+
+  goalLinesTitle: 'ALLIANCE CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '工人联盟条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const share = getUnionShare(state);
+    const right = getRightShare(share);
+    const psoe = state.partyRelations?.PSOE ?? 0;
+    const pce = state.partyRelations?.PCE ?? 0;
+    return [
+      {
+        text: 'PSOE relations', textZh: 'PSOE 关系',
+        met: psoe >= 80, current: psoe, target: 80, kind: 'bar',
+        group: 'Party relations', groupZh: '党际关系',
+      },
+      {
+        text: 'PCE relations', textZh: 'PCE 关系',
+        met: pce >= 60, current: pce, target: 60, kind: 'bar',
+        group: 'Party relations', groupZh: '党际关系',
+      },
+      {
+        text: 'Alliance progress', textZh: '工人联盟推进',
+        met: (state.workersAllianceProgress || 0) >= 3,
+        current: state.workersAllianceProgress || 0, target: 3, kind: 'bar',
+        group: 'Party relations', groupZh: '党际关系',
+      },
+      {
+        text: 'CNT union share', textZh: 'CNT 工会占比',
+        met: share.CNT >= 18, current: share.CNT, target: 18, unit: '%', kind: 'bar',
+        group: 'Union strength', groupZh: '工会力量',
+      },
+      {
+        text: 'CNT + UGT share', textZh: 'CNT + UGT 合计',
+        met: share.CNT + share.UGT >= 35,
+        current: share.CNT + share.UGT, target: 35, unit: '%', kind: 'bar',
+        group: 'Union strength', groupZh: '工会力量',
+      },
+      {
+        text: 'Right-wing unions (at most 12%)', textZh: '右翼工会（最多 12%）',
+        met: right <= 12, current: right, target: 12, unit: '%', kind: 'check',
+        group: 'Union strength', groupZh: '工会力量',
+      },
+    ];
+  },
 
   /**
    * 事件—日志—事件契约（设计文档 §6.1）：

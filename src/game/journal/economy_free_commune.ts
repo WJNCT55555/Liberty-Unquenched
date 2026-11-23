@@ -1,6 +1,7 @@
 import type { GameState, JournalEntryDef } from '../types';
 import { adjustClassSupport } from '../utils';
 import { ECONOMY_ROUTE_RULES, isJournalCompleted } from '../rules/economyReforms';
+import { getWorkersShare } from '../rules/controlShares';
 
 /**
  * 自由公社路线（docs/经济改造方案.md §5.2）。
@@ -39,6 +40,52 @@ export const economyFreeCommuneJournal: JournalEntryDef = {
 
   activationEventId: 'economy_free_commune_start',
   completionEventId: 'economy_free_commune_victory',
+
+  goalLinesTitle: 'FREE COMMUNE CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '自由公社条件 · 逐项核验',
+  getGoalLines: (state) => {
+    const landWorkers = getWorkersShare(state, 'land');
+    const industryWorkers = getWorkersShare(state, 'industry');
+    return [
+      {
+        text: 'Land Reform journal completed', textZh: '「土地改革」日志完成',
+        met: isJournalCompleted(state, 'journal_land_reform'), kind: 'check',
+        group: 'Political prerequisites', groupZh: '政治前提',
+      },
+      {
+        text: 'Collectivization journal completed', textZh: '「土地集体化」日志完成',
+        met: isJournalCompleted(state, 'journal_land_collectivization'), kind: 'check',
+        group: 'Political prerequisites', groupZh: '政治前提',
+      },
+      {
+        text: 'Land held by workers (state ownership excluded)',
+        textZh: '土地劳动者份额（不含国有）',
+        met: landWorkers >= 60, current: landWorkers, target: 60, unit: '%', kind: 'bar',
+        group: 'Ownership', groupZh: '所有权',
+      },
+      {
+        text: 'Industry held by workers (state ownership excluded)',
+        textZh: '工业劳动者份额（不含国有）',
+        met: industryWorkers >= 55, current: industryWorkers, target: 55, unit: '%', kind: 'bar',
+        group: 'Ownership', groupZh: '所有权',
+      },
+      {
+        text: 'Money abolished', textZh: '废除货币',
+        met: state.currency_abolition >= 3, current: state.currency_abolition, target: 3, kind: 'bar',
+        group: 'Economic prerequisites', groupZh: '经济前提',
+      },
+      {
+        text: 'Railways nationalised', textZh: '铁路国有化',
+        met: state.rail_nationalization >= 3, current: state.rail_nationalization, target: 3, kind: 'bar',
+        group: 'Economic prerequisites', groupZh: '经济前提',
+      },
+      {
+        text: 'Coal mines nationalised', textZh: '煤炭国有化',
+        met: state.coal_nationalization >= 2, current: state.coal_nationalization, target: 2, kind: 'bar',
+        group: 'Economic prerequisites', groupZh: '经济前提',
+      },
+    ];
+  },
 
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;

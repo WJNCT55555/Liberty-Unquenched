@@ -35,6 +35,46 @@ export const economyOrganicJournal: JournalEntryDef = {
   activationEventId: 'economy_after_the_revolution',
   completionEventId: 'economy_organic_victory',
 
+  goalLinesTitle: 'ORGANIC CONDITIONS · ITEMIZED CHECK',
+  goalLinesTitleZh: '有机工团条件 · 逐项核验',
+  getGoalLines: (state) => [
+    {
+      text: 'Collectivization journal completed', textZh: '「土地集体化」日志完成',
+      met: isJournalCompleted(state, 'journal_land_collectivization'), kind: 'check',
+      group: 'Political prerequisites', groupZh: '政治前提',
+    },
+    {
+      text: 'Money abolished', textZh: '废除货币',
+      met: state.currency_abolition >= 3,
+      current: state.currency_abolition, target: 3, kind: 'bar',
+      group: 'Financial network', groupZh: '金融网络',
+    },
+    {
+      text: 'Private bank deposits seized', textZh: '没收私营银行储蓄',
+      met: state.private_bank_seizure >= 1,
+      current: state.private_bank_seizure, target: 1, kind: 'bar',
+      group: 'Financial network', groupZh: '金融网络',
+    },
+    {
+      text: 'Credit and Exchange Committee founded', textZh: '信用与兑换委员会成立',
+      met: state.credit_exchange_committee >= 1,
+      current: state.credit_exchange_committee, target: 1, kind: 'bar',
+      group: 'Financial network', groupZh: '金融网络',
+    },
+    {
+      text: 'Foreign capital seized', textZh: '外资没收',
+      met: state.foreign_capital_seizure >= 3,
+      current: state.foreign_capital_seizure, target: 3, kind: 'bar',
+      group: 'Supply network', groupZh: '物资网络',
+    },
+    {
+      text: 'Supply coordination network', textZh: '工团物资调控网络',
+      met: state.supply_coordination_network >= 3,
+      current: state.supply_coordination_network, target: 3, kind: 'bar',
+      group: 'Supply network', groupZh: '物资网络',
+    },
+  ],
+
   checkStatus: (state, entryState) => {
     if (entryState.status !== 'active') return null;
     if (
