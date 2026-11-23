@@ -461,10 +461,9 @@ body {
 }
 
 .game-modal-backdrop {
-  background-color: #1b1816;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 48px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 48px);
+  background: rgba(26, 22, 17, 0.72);
+  -webkit-backdrop-filter: blur(2px) saturate(0.75);
+  backdrop-filter: blur(2px) saturate(0.75);
 }
 
 .law-page__window {
